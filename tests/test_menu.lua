@@ -42,6 +42,8 @@ stub("device", { screen = { scaleBySize = function(_, v) return v end, getWidth 
                             getHeight = function() return screen.h end, getDPI = function() return screen.dpi end },
                  isTouchDevice = function() return true end })
 stub("lua-ljsqlite3/init", H.SQ3)
+local data_dir = TEST_KOREADER_DIR
+stub("datastorage", { getDataDir = function() return data_dir end })
 local dirs = {}
 stub("libs/libkoreader-lfs", { attributes = function(path, what) return dirs[path] and "directory" or nil end })
 
@@ -81,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 9 + 5 + 5 + 3 + 4 + 5, "menu size")
+eq(count, 10 + 5 + 5 + 3 + 4 + 5 + 2, "menu size")
 
 -- The two toggles are independent.
 local pinyin_item, popup_item = entry.sub_item_table[1], entry.sub_item_table[2]
@@ -202,5 +204,59 @@ local lh = Annotator.lineHeightFor(64, 40, 100)
 assert(math.abs(lh - (1 + (64 * 0.4 * 1.2 + 4) / 64)) < 1e-9, "line height " .. lh)
 assert(math.abs(Annotator.lineHeightFor(64, 40, 85) - lh / 0.85) < 1e-9, "line spacing not compensated")
 eq(Annotator.lineHeightFor(64, 80, 50), 3.0, "line height capped")
+
+-- Fallback dictionaries: Wiktionary from the plugin database, MOE from the
+-- user's file in KOReader's data folder (here a test file), in that order.
+local function names(list)
+    local out = {}
+    for _, s in ipairs(list) do out[#out + 1] = s.source end
+    return table.concat(out, ",")
+end
+eq(names(plugin:fallbackSources()), "wikt,moe")
+local fb_item = entry.sub_item_table[9]
+eq(fb_item.text, "Fallback dictionaries")
+eq(fb_item.sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)")
+assert(fb_item.sub_item_table[1].checked_func() and fb_item.sub_item_table[2].checked_func())
+local status = table.concat(plugin:fallbackStatus(), "\n")
+assert(status:find("Wiktionary: on (dump 2026-10-01", 1, true), status)
+assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 2 entries)", 1, true), status)
+
+-- The tap's fallback lookup: CC-CEDICT's words never; Wiktionary first;
+-- MOE for what Wiktionary lacks.
+local Model = require("ch_popup_model")
+local texts = { "尚", "尚书", "尚书省", "丁匠", "东西" }
+local rows = plugin:db():lookup(texts)
+local fb = plugin.tap:fallbackRows(texts, rows)
+local got = {}
+for _, r in ipairs(fb) do got[#got + 1] = r.simp .. ":" .. r.source end
+table.sort(got)
+eq(table.concat(got, ","), "丁匠:moe,尚书省:wikt")
+-- Switch Wiktionary off: MOE gives 尚书省 too.
+fb_item.sub_item_table[1].callback()
+eq(names(plugin:fallbackSources()), "moe")
+got = {}
+for _, r in ipairs(plugin.tap:fallbackRows(texts, rows)) do got[#got + 1] = r.simp .. ":" .. r.source end
+table.sort(got)
+eq(table.concat(got, ","), "丁匠:moe,尚书省:moe")
+assert(table.concat(plugin:fallbackStatus(), "\n"):find("Wiktionary: off", 1, true))
+-- Both off: nothing beyond CC-CEDICT.
+fb_item.sub_item_table[2].callback()
+eq(#plugin:fallbackSources(), 0); eq(#plugin.tap:fallbackRows(texts, rows), 0)
+fb_item.sub_item_table[1].callback(); fb_item.sub_item_table[2].callback()
+eq(names(plugin:fallbackSources()), "wikt,moe")
+
+-- No MOE file (a fresh session, with an empty data folder): Wiktionary only,
+-- and the menu says so.
+data_dir = "/nonexistent-koreader"
+local Plugin2 = dofile(PLUGIN_DIR .. "/main.lua")
+local plugin2 = Plugin2:new{ path = PLUGIN_DIR }
+plugin2:init()
+eq(names(plugin2:fallbackSources()), "wikt")
+local items2 = {}
+plugin2:addToMainMenu(items2)
+local moe_item = items2.chinesehelper.sub_item_table[9].sub_item_table[2]
+eq(moe_item.text_func(), "MOE 重編國語辭典 (not installed)")
+assert(not moe_item.enabled_func() and not moe_item.checked_func())
+assert(table.concat(plugin2:fallbackStatus(), "\n"):find("MOE 重編國語辭典: not installed", 1, true))
 
 G_reader_settings = nil

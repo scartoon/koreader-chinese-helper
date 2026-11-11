@@ -24,6 +24,8 @@ Settings.DEFAULTS = {
     uncertain = "both",
     special = true,
     special_style = "bold",   -- not in the menu: "bold", "underline" or "none"
+    fallback_wikt = true,     -- fallback dictionaries, for words CC-CEDICT lacks
+    fallback_moe = true,      -- (MOE: only when the user has installed its file)
     edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5 or 10 mm
     popup_text_pct = 60,      -- 38 px on a Boox Go 7 with 64 px book text (the old popups used 43 px)
 }
@@ -87,6 +89,11 @@ end
 function Settings:pinyinEnabled() return self:get("pinyin_enabled") == true end
 function Settings:popupEnabled() return self:get("popup_enabled") == true end
 function Settings:specialEnabled() return self:get("special") == true end
+
+-- "wikt" or "moe": is that fallback dictionary switched on?
+function Settings:fallbackEnabled(source)
+    return self:get("fallback_" .. source) == true
+end
 
 function Settings:threshold()
     return tonumber(self:get("threshold")) or Settings.DEFAULTS.threshold

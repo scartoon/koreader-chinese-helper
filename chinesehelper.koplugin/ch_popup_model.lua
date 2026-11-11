@@ -54,7 +54,8 @@ function Model.cleanRows(word, rows)
                 local seen = {}
                 for _, s in ipairs(senses) do seen[s] = true end
                 entry = { pinyin = pinyin, syllables = row.syllables or pinyin, senses = senses,
-                          seen = seen, order = #kept + 1, proper = pinyin:match("^%u") ~= nil }
+                          seen = seen, order = #kept + 1, proper = pinyin:match("^%u") ~= nil,
+                          source = row.source or "cedict" }
                 by_pinyin[pinyin] = entry
                 kept[#kept + 1] = entry
             end
@@ -123,11 +124,59 @@ local function markMatching(entries, chosen, value)
     return false
 end
 
+------------------------------------------------------------------------
+-- Fallback dictionaries (Wiktionary, the optional MOE file): consulted
+-- only for candidate words CC-CEDICT has no row for, one source per word.
+------------------------------------------------------------------------
+
+Model.SOURCE_ORDER = { "wikt", "moe" }   -- after CC-CEDICT, in this order
+
+-- The candidate words (texts) no CC-CEDICT row covers, in their order.
+function Model.uncovered(texts, rows)
+    local covered = {}
+    for _, row in ipairs(rows or {}) do
+        covered[row.simp or ""], covered[row.trad or ""] = true, true
+    end
+    local out = {}
+    for _, t in ipairs(texts) do
+        if not covered[t] then out[#out + 1] = t end
+    end
+    return out
+end
+
+-- From one source's rows for `remaining` (a list of words), the rows to use
+-- and the words still without an entry: a word one source has is not looked
+-- up in the next.
+function Model.takeFallback(remaining, rows)
+    local wanted, taken = {}, {}
+    for _, t in ipairs(remaining) do wanted[t] = true end
+    local kept = {}
+    for _, row in ipairs(rows or {}) do
+        local hit = false
+        for _, form in ipairs({ row.simp, row.trad }) do
+            if form and wanted[form] then
+                taken[form] = true
+                hit = true
+            end
+        end
+        if hit then kept[#kept + 1] = row end
+    end
+    local left = {}
+    for _, t in ipairs(remaining) do
+        if not taken[t] then left[#left + 1] = t end
+    end
+    return kept, left
+end
+
 --[[--
 The popup's matches.
 
   args.cands        Text.candidates' first result
-  args.rows         CC-CEDICT rows for the candidates ({simp, trad, pinyin, syllables, defs})
+  args.rows         rows for the candidates ({simp, trad, pinyin, syllables, defs,
+                    source}): CC-CEDICT's (source nil or "cedict") and the
+                    fallback dictionaries' ("wikt", "moe"). For each word,
+                    CC-CEDICT's rows win; otherwise the first source in
+                    Model.SOURCE_ORDER that has the word gives its rows.
   args.chosen       the resolver's reading of the tapped character ("dào", or a
                     pair "chéng/shèng"), or nil
   args.annotated    true when that reading is drawn above the character
@@ -139,26 +188,45 @@ The popup's matches.
 
 Returns { {word=, start=, len=, entries={...}, decided=bool, note=}, ... }.
 Each entry: { pinyin=, syllables=, senses={...}, proper=bool, marked=bool,
-missing=bool (a chosen reading CC-CEDICT does not list) }.
+missing=bool (a chosen reading CC-CEDICT does not list), source= ("cedict",
+"wikt", "moe") }. Reading markers (and the "decides" tag's test for a choice
+of readings) only ever apply to CC-CEDICT entries: a fallback entry shows its
+source's own reading, unmarked.
 ]]
 function Model.matches(args)
+    -- form -> source -> rows
     local by_form = {}
     for _, row in ipairs(args.rows or {}) do
+        local source = row.source or "cedict"
         for _, form in ipairs({ row.simp, row.trad }) do
             if form then
-                local list = by_form[form]
+                local sources = by_form[form]
+                if not sources then
+                    sources = {}
+                    by_form[form] = sources
+                end
+                local list = sources[source]
                 if not list then
                     list = {}
-                    by_form[form] = list
+                    sources[source] = list
                 end
                 if list[#list] ~= row then list[#list + 1] = row end
             end
         end
     end
+    local function rowsFor(form)
+        local sources = by_form[form]
+        if not sources then return nil end
+        if sources.cedict then return sources.cedict end
+        for _, s in ipairs(Model.SOURCE_ORDER) do
+            if sources[s] then return sources[s] end
+        end
+        return nil
+    end
     local decided = args.decided
     local anchor, words, have_decided = nil, {}, false
     for _, c in ipairs(args.cands or {}) do
-        local list = by_form[c.text]
+        local list = rowsFor(c.text)
         local entries = list and Model.cleanRows(c.text, list) or {}
         local m = { word = c.text, start = c.start, len = c.len, entries = entries }
         local is_decided = decided ~= nil and c.text == decided.word and c.start == decided.start
@@ -188,8 +256,16 @@ function Model.matches(args)
         return a.start < b.start
     end)
 
+    -- A word whose entries are CC-CEDICT's (the resolver's own reading lines
+    -- count as CC-CEDICT's side), not a fallback dictionary's.
+    local function fromCedict(m)
+        for _, e in ipairs(m.entries) do
+            if e.source == "cedict" then return true end
+        end
+        return false
+    end
     -- The tapped character: mark the resolver's reading(s).
-    if anchor and args.chosen and args.chosen ~= "" then
+    if anchor and fromCedict(anchor) and args.chosen and args.chosen ~= "" then
         local entries = anchor.entries
         local several = distinctReadings(entries) > 1
         for reading in args.chosen:gmatch("[^/]+") do
@@ -197,14 +273,14 @@ function Model.matches(args)
                 -- A reading CC-CEDICT does not list for the character itself
                 -- (it may come from a pypinyin phrase): shown, with no senses.
                 entries[#entries + 1] = { pinyin = reading, syllables = reading, senses = {},
-                                          missing = true, marked = true }
+                                          missing = true, marked = true, source = "cedict" }
             end
         end
         anchor.entries = markedFirst(entries)
     end
     -- Each word: mark the resolver's reading when there is a choice.
     for _, m in ipairs(words) do
-        if distinctReadings(m.entries) > 1 then
+        if fromCedict(m) and distinctReadings(m.entries) > 1 then
             local chosen = (m.decided and decided.syllables)
                 or (args.wordReading and args.wordReading(m.word))
             if chosen and markMatching(m.entries, chosen, true) then
@@ -214,7 +290,7 @@ function Model.matches(args)
     end
     -- "Decides X's reading" only means something when X has a choice of
     -- readings (人 in 行人 has one); the word itself stays listed.
-    local choice = anchor and distinctReadings(anchor.entries) > 1
+    local choice = anchor and fromCedict(anchor) and distinctReadings(anchor.entries) > 1
     if not choice then
         for _, m in ipairs(words) do m.decided = nil end
     end
