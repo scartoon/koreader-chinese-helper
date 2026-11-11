@@ -100,7 +100,14 @@ assert(entry.sub_item_table[3].text_func():find("1500"), "threshold label not up
 assert(entry.sub_item_table[5].text_func():find("show both"))
 entry.sub_item_table[5].sub_item_table[2].callback()
 eq(plugin.settings:uncertainMode(), "best")
--- Popup text size.
+-- Popup text size. A size saved by an earlier version that is no longer a
+-- choice (70) shows and checks the default, 60%.
+settings.chinesehelper_popup_text_pct = 70
+assert(entry.sub_item_table[8].text_func():find("60%%"))
+assert(entry.sub_item_table[8].sub_item_table[2].checked_func(), "60% checked")
+for k, item in ipairs(entry.sub_item_table[8].sub_item_table) do
+    if k ~= 2 then assert(not item.checked_func(), "only 60% checked") end
+end
 entry.sub_item_table[8].sub_item_table[4].callback()
 eq(plugin.settings:popupTextPercent(), 100)
 assert(entry.sub_item_table[8].text_func():find("100%%"))

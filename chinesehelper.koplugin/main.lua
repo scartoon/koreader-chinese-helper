@@ -200,12 +200,14 @@ end
 function ChineseHelper:addToMainMenu(menu_items)
     local plugin = self
     local settings = self.settings
-    local function radio(values, key, label, after)
+    -- current: the validated value (the label shows the same), so a saved
+    -- value that is no longer a choice still checks the one in use.
+    local function radio(values, key, label, after, current)
         local items = {}
         for _i, value in ipairs(values) do
             items[#items + 1] = {
                 text = T(label, value),
-                checked_func = function() return settings:get(key) == value end,
+                checked_func = function() return (current and current() or settings:get(key)) == value end,
                 radio = true,
                 keep_menu_open = true,
                 callback = function(touchmenu)
@@ -317,7 +319,8 @@ function ChineseHelper:addToMainMenu(menu_items)
                 text_func = function()
                     return T(_("Popup text size: %1% of text"), settings:popupTextPercent())
                 end,
-                sub_item_table = radio(Settings.POPUP_SIZES, "popup_text_pct", _("%1% of text size"), function() end),
+                sub_item_table = radio(Settings.POPUP_SIZES, "popup_text_pct", _("%1% of text size"), function() end,
+                    function() return settings:popupTextPercent() end),
                 separator = true,
             },
             {
