@@ -281,9 +281,11 @@ The popup's lookups use indexes on the simplified and traditional forms; the bui
 
 ### Optional: the MOE dictionary (build it yourself)
 
-The Taiwan Ministry of Education's 《重編國語辭典修訂本》 (about 160,000 entries, monolingual, strong on
-historical and literary vocabulary) can be added as a second fallback dictionary. Its licence
-(CC BY-ND 3.0 TW) allows copying it for your own use but not distributing adaptations, so it is
+The Taiwan Ministry of Education's [《重編國語辭典修訂本》](https://dict.revised.moe.edu.tw/) (about
+160,000 entries, monolingual, strong on historical and literary vocabulary) can be added as a
+second fallback dictionary. Its licence
+([CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/)) allows copying it for your
+own use but not distributing adaptations, so it is
 **not** in the repository or the release: you build the file yourself and copy it to your device.
 The plugin works the same without it.
 
@@ -392,8 +394,10 @@ The data (the database, and the files in `data/`) is derived from, and distribut
   readings only, dialect-only senses dropped, redirects resolved, entries CC-CEDICT has and
   everyday combinations left out, senses reformatted; see `data/README.md`.
 
-Not distributed: the optional MOE dictionary (中華民國教育部《重編國語辭典修訂本》, CC BY-ND 3.0 TW,
-via [g0v/moedict-data](https://github.com/g0v/moedict-data)) is never in the repository or a
+Not distributed: the optional MOE dictionary, [中華民國教育部《重編國語辭典修訂本》](https://dict.revised.moe.edu.tw/)
+(© Ministry of Education, Republic of China (Taiwan),
+[CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/)), read from
+[g0v/moedict-data](https://github.com/g0v/moedict-data), is never in the repository or a
 release; `tools/build_moe.py` builds it from the original for the user's own device.
 
 [`data/README.md`](data/README.md) lists the changes made and the versions used. The texts in
