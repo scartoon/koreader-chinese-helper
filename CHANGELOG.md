@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 (2026-11-11)
 
 - **Other dictionaries for words CC-CEDICT lacks**: English **Wiktionary** (about 61,000 words,
   bundled) and, optionally, the Taiwan Ministry of Education's **重編國語辭典** (a file you build
