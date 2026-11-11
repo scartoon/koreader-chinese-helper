@@ -196,7 +196,8 @@ def main():
     if not args.no_cpp:
         shares = load_shares()
         rows = {mode: run_test(plugin, shares, mode) for mode in ("both", "best", "skip")}
-        print(f"CPP test split: {len(rows['best']):,} labelled characters the plugin can annotate")
+        print(f"CPP test split: {len(rows['best']):,} labelled characters with a known reading "
+              f"({sum(1 for r in rows['best'] if r[2] == 0 or r[2] > 1000):,} that can be annotated)")
         print()
         print("  threshold    n    best guess   both shown   pairs  | skip uncertain: drawn  right")
         for t in THRESHOLDS:
@@ -206,6 +207,17 @@ def main():
             pct = lambda a, b: f"{100 * a / b:5.1f}%" if b else "   - "  # noqa: E731
             print(f"  {t:>9,}  {n:>5,}   {pct(ok_best, n)}       {pct(ok_both, n)}      {pct(pairs, n)} |"
                   f"         {pct(drawn_skip, n)}  {pct(ok_skip, drawn_skip)}")
+
+        # The tap popup marks a reading for every character: common ones too.
+        common = {mode: [r for r in rows[mode] if r[2] and 0 < r[2] <= 1000] for mode in ("best", "both")}
+        n = len(common["best"])
+        if n:
+            ok_best = sum(shown_ok(lb, s) for _, lb, _, s in common["best"])
+            ok_both = sum(shown_ok(lb, s) for _, lb, _, s in common["both"])
+            pairs = sum(s is not None and "/" in s for _, _, _, s in common["both"])
+            print(f"\n  Popup marking, common characters (the 1,000 most common, never annotated): "
+                  f"{n:,} examples; best guess {100 * ok_best / n:.1f}%, both shown {100 * ok_both / n:.1f}% "
+                  f"({100 * pairs / n:.1f}% pairs)")
 
         # Rules on/off at --threshold.
         plugin.lua.execute("local d = ...; d.rules = {}", plugin.data)

@@ -1,1 +1,248 @@
 # koreader-chinese-helper
+
+A [KOReader](https://github.com/koreader/koreader) plugin for reading Chinese:
+
+- **Pinyin above rare characters.** Characters outside the N most common get their pinyin drawn
+  above them, with the reading worked out from the surrounding word where a character has more
+  than one. The book file is never modified.
+- **Tap any character for its definition.** A single tap on a Chinese character, or on the
+  pinyin above one, opens a popup with that character's CC-CEDICT entry and every dictionary word
+  around it that contains it, with one button per word for KOReader's own dictionary lookup.
+
+The popup marks the reading of the character in this sentence, worked out by the same resolver
+that draws the pinyin, so the two can never disagree.
+
+![Pinyin above rare characters on a Boox Go 7](docs/screenshot.png)
+
+![Tapping 单 in 匈奴单于入塞: chán is shown above it and marked in the popup; 单于 decides the reading; a button per word](docs/popup.png)
+
+It merges two plugins that are no longer developed:
+[koreader-interlinear-pinyin](https://github.com/scartoon/koreader-interlinear-pinyin) (the pinyin)
+and [koreader-chinese-popup](https://github.com/scartoon/koreader-chinese-popup) (the popup). One
+plugin means one tap handler, one popup for every character, and one database.
+
+Status: **1.0.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+
+## Install
+
+1. Download `chinesehelper.koplugin.zip` from the
+   [latest release](https://github.com/scartoon/koreader-chinese-helper/releases/latest) and unzip
+   it. You get a `chinesehelper.koplugin` folder, which includes the database
+   (`data/chinesehelper.sqlite`, about 20 MB).
+2. Copy that folder into KOReader's `plugins` folder:
+   - **Android** (Boox and others): `/sdcard/koreader/plugins/`, which appears as
+     `koreader/plugins` in the device's internal storage over USB. With adb:
+     `adb push chinesehelper.koplugin /sdcard/koreader/plugins/`
+   - Other devices: the `plugins` folder inside KOReader's own folder.
+3. Restart KOReader.
+
+The folder must keep its name, `chinesehelper.koplugin`. The repository does not contain the
+database (see [Data](#data)); to install from a clone, build it first.
+
+### Moving from the two old plugins
+
+1. Delete `interlinearpinyin.koplugin` and `chinesepopup.koplugin` from KOReader's `plugins`
+   folder, install this one, and restart KOReader.
+2. That's all: on its first start the plugin copies your settings from both (pinyin on or off,
+   the frequency threshold, pinyin size, uncertain readings, unusual readings, and whether the
+   popup is on). Your old settings are left in place, and neither old plugin had per-book
+   settings.
+
+While either old plugin is still installed, Chinese helper shows a message asking you to remove
+it: both listening for taps on Chinese characters means a tap can open the wrong popup.
+"Tap annotated character for definitions" from the pinyin plugin has no successor: "Tap
+characters for popup" now covers every character, annotated or not.
+
+## Usage
+
+Open a book (EPUB, FB2, MOBI, HTML, TXT and other reflowable formats), then **Tools (🔧) →
+Chinese helper** (the entry may be on the second page of the Tools menu). Settings apply to
+all books.
+
+| Menu item | |
+|---|---|
+| Show pinyin above rare characters | On / off (off when first installed) |
+| Tap characters for popup | On / off (on when first installed) |
+| Which characters | Pinyin for characters outside the 1,500 / 2,500 / 3,500 / 5,000 / 7,000 most common (default 3,500) |
+| Pinyin size | 35–55% of the book's text size (default 40%) |
+| When the reading is uncertain | Show both readings (default) / show the most likely reading / don't annotate |
+| Mark unusual readings of common characters | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
+| Popup text size | 70–120% of the book's text size (default 70%, about the size of KOReader's own popups) |
+| Status | Version, data versions and load times, what the current page needed, and any old plugin still installed |
+
+The two switches are independent: pinyin without the popup, the popup without pinyin, or both.
+
+### What a tap does
+
+- **A single tap on a Chinese character's glyph** (CJK Unified Ideographs, all extensions, and
+  the compatibility ideographs), **or on the pinyin drawn above one**, opens the popup.
+- **Every other tap is KOReader's as usual**: margins, the space between lines, blank space after
+  a paragraph, punctuation, Latin text and digits turn the page or open the menus. Taps on links
+  and on your highlights keep their usual behaviour.
+- **Long-press and every other gesture are untouched**, so KOReader's long-press dictionary and
+  text selection work as before.
+- PDF and DjVu are not supported: there, every tap is KOReader's and no pinyin is drawn.
+
+### The popup
+
+The plugin reads up to 7 Chinese characters before and after the tapped one (stopping at
+punctuation, a paragraph break or any non-Chinese character) and looks up every 1–8 character
+stretch containing the tapped character, against both simplified and traditional forms.
+
+- **The tapped character first**, with all its readings. The reading it has here comes first,
+  marked **· shown above** when its pinyin is drawn, or **· likely here** when not. A character
+  whose reading is uncertain (see the menu) has both likely readings marked.
+- **Then every dictionary word containing it**, longest first; words of the same length in
+  reading order. A word with several readings (东西 *dōngxī* "east and west" / *dōngxi*
+  "thing") has the likely one marked and first.
+- **The word that decides the reading** is tagged **· decides X's reading**, also when
+  CC-CEDICT does not have it (a word from pypinyin's phrase list, or an unusual-reading word
+  with a short note, such as 冒顿 *mò dú*).
+- **Buttons**: one per entry, labelled with the character or word, which opens KOReader's
+  dictionary lookup for it, and **Close**. Tapping outside the popup also closes it.
+- If CC-CEDICT has nothing for the character or any word around it, the tap goes straight to
+  KOReader's dictionary lookup.
+
+The popup is the full width of the screen (minus a small margin) and as tall as its content,
+up to the full screen height, scrolling beyond that. A short popup goes in the half of the
+screen away from the tapped character, so the text stays visible. A taller one starts with the
+phrase around the character, the character in bold:
+
+![A tall popup: the phrase 他的确来了 at the top, 的 marked dí, decided by 的确](docs/popup-tall.png)
+
+### Readings
+
+Readings are dictionary readings: 一 is *yī* and 不 is *bù* everywhere, as in CC-CEDICT, without
+the spoken tone changes (一定 *yídìng*, 不是 *búshì*). In the pinyin drawn above rare
+characters, a word's neutral tone shows as the character's own tone (刺猬: *wèi* over 猬).
+
+For each character, in order: an unusual reading in a listed name or term (单于 *chán yú*), if
+that option is on; the longest dictionary word around it (侥 is *jiǎo* in 侥幸 but *yáo* in
+僬侥; when two words overlap, the more common one); a context rule for the character next to it
+(about 950, learned from labelled sentences); its most frequent reading. Characters whose reading
+stays uncertain show both likely readings, or the most likely, or none (the menu). Measured on
+held-out labelled sentences, about 99.7% of the pinyin drawn in ordinary text is right; see
+[Accuracy](https://github.com/scartoon/koreader-interlinear-pinyin#accuracy).
+
+The popup's markers use the same resolver on the same page, for every character, common ones
+included (的 is *dí* in 的确, *de* or *dì* on its own; 行 is *háng* in 银行, *xíng* in 行人). On
+held-out labelled sentences built around the 1,000 most common characters' hard cases (those with
+several readings), the marked reading is right 97.3% of the time (98.1% counting both of an
+uncertain pair).
+Some word-level choices need the meaning, which the plugin does not have: 东西 is always marked
+*dōngxi* ("thing"), also where it means "east and west".
+
+### Line spacing
+
+The pinyin goes in the space between lines, so while it is on the plugin sets a line height that
+leaves room for it, taking KOReader's line-spacing setting into account. Turning it off restores
+the book's own spacing (KOReader lays the book out again, which takes a moment).
+
+![The same page with pinyin off (left) and on (right)](docs/off-on.png)
+
+Books with tight spacing get more pages; books that already set generous spacing can end up with
+tighter lines, because the plugin replaces the book's line height rather than adding to it.
+
+### Unusual readings of common characters
+
+Common characters are never annotated, but some take a rare reading in particular words, mostly
+historical names, titles and places: 单于 *chán yú*, 冒顿 *mò dú*, 龟兹 *qiū cí*, 尉迟 *yù chí*,
+番禺 *pān yú*. With **Mark unusual readings of common characters** on, the plugin knows about
+190 such words (65 hand-checked) and draws, in bold, only the characters whose reading there
+differs from their usual one. A guard keeps them from matching by accident: 订单于3日发货 is
+订单 + 于, not 单于.
+
+## Speed
+
+Measured on a Boox Go 7 against the two old plugins, same book, same pages:
+
+- **Page turns**: the pinyin for a page takes 13.4 ms on average to work out, against
+  interlinear-pinyin 0.5.0's 13.7 ms; the pages drawn are pixel-for-pixel the same. A page never
+  queries the database: the words a page can need are read into memory with the other reading
+  tables when the first page is drawn (about 230 ms, once per KOReader session; 0.5.0 took
+  190–270 ms to read its text files).
+- **A tap**: one database query for the popup's words, opened on first use and kept open.
+
+## Data
+
+Everything is in one SQLite database, `chinesehelper.koplugin/data/chinesehelper.sqlite` (about
+20 MB): CC-CEDICT, and the reading tables (every character's frequency rank and default reading,
+words, context rules, uncertain characters, unusual readings). The popup's lookups use indexes on
+the simplified and traditional forms; the build checks with `EXPLAIN QUERY PLAN` that every
+lookup query uses its index.
+
+The database changes completely with each CC-CEDICT update, so it is **not committed** (every
+rebuild would add another 20 MB of binary history); it is attached to each GitHub release inside
+the ready-to-install zip. The small hand-made and learned inputs it is built from are in
+[`data/`](data/README.md).
+
+To rebuild it (Python 3):
+
+```sh
+python3 -m venv .venv && .venv/bin/pip install wordfreq==3.1.1 pypinyin==0.55.0 lupa
+.venv/bin/python tools/build_db.py                 # downloads the current CC-CEDICT
+.venv/bin/python tools/build_db.py --cedict build/cedict_1_0_ts_utf-8_mdbg.txt.gz   # or a local copy
+.venv/bin/python tools/build_db.py --learn         # also re-learn the context rules (downloads the CPP dataset)
+```
+
+The release ships CC-CEDICT dated 2026-11-09 (125,397 entries); [`data/README.md`](data/README.md)
+lists every source's version.
+
+## Development
+
+```sh
+tools/check.sh                  # luac -p and luajit -b on every Lua file, then the tests
+tools/deploy.sh "/sdcard/Books/book.epub"   # check, push to a USB-connected Android device, restart KOReader
+.venv/bin/python tools/eval_readings.py     # reading accuracy on the CPP test split
+.venv/bin/python tools/scan_special.py BOOK.epub   # the unusual readings a book gets
+.venv/bin/python tools/make_test_epub.py build/chinesehelper-test.epub   # a book for tap tests on a device
+```
+
+The tests (`tests/run.py`, under LuaJIT through lupa) cover the reading resolver, page walking,
+layout and hit testing, the popup's content and placement, the settings migration, the menu, and
+the database code, which runs its real SQL against the built database. `test_integration.lua`
+checks the resolver and the popup together, including that for every character the pinyin layer
+draws, the popup marks the same reading.
+
+| File | |
+|---|---|
+| `main.lua` | lifecycle, menu, data loading, old-plugin check |
+| `ch_settings.lua` | settings and the migration from the old plugins |
+| `ch_annotator.lua` | the pinyin layer: line spacing, page refresh |
+| `ch_page.lua` | walks the page through the rendering engine |
+| `ch_resolve.lua` | the reading resolver, for the pinyin and the popup |
+| `ch_readings.lua` | the resolver's tables |
+| `ch_db.lua` | the database |
+| `ch_overlay.lua`, `ch_layout.lua`, `ch_hit.lua` | drawing the pinyin, spacing it, and which pinyin a tap is on |
+| `ch_tap.lua` | the one tap handler |
+| `ch_context.lua`, `ch_text.lua` | tap → character → the characters around it; candidate words |
+| `ch_pinyin.lua` | pinyin comparisons |
+| `ch_popup_model.lua`, `ch_popup.lua` | what the popup shows, and the popup |
+
+## Credits and licences
+
+The annotation code comes from **[WordGloss](https://github.com/GangYe293/wordgloss.koplugin)** by
+GangYe293 (GPL-3.0), which koreader-interlinear-pinyin was forked from: the paint layer, layout
+and line-height injection (`ch_overlay.lua`, `ch_layout.lua`, parts of `ch_annotator.lua` and
+`ch_page.lua`). WordGloss credits its inline-gloss rendering approach to
+[inlinehints.koplugin](https://github.com/omer-faruq/inlinehints.koplugin) by omer-faruq.
+
+The code is licensed under the **GNU General Public License v3.0** (see [`LICENSE`](LICENSE)),
+like WordGloss and both plugins it merges.
+
+The data (the database, and the files in `data/`) is derived from, and distributed under,
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/):
+
+- **[CC-CEDICT](https://www.mdbg.net/chinese/dictionary?page=cc-cedict)**, © MDBG and
+  contributors, CC BY-SA 4.0: the dictionary, readings and words.
+- **[wordfreq](https://github.com/rspeer/wordfreq)** by Robyn Speer, data under CC BY-SA 4.0:
+  character and word frequencies.
+- **[pypinyin](https://github.com/mozillazg/python-pinyin)** by mozillazg, MIT License: its phrase
+  list (words CC-CEDICT lacks) and fallback readings.
+- The **[CPP polyphone dataset](https://github.com/kakaobrain/g2pM)** by Kyubyong Park and Seanie
+  Lee (Interspeech 2020; repository Apache-2.0, sentences from Chinese Wikipedia, CC BY-SA): its
+  train split, for the context rules and uncertain characters. The dataset itself is not
+  included.
+
+[`data/README.md`](data/README.md) lists the changes made and the versions used. The texts in
+the sample book (`samples/guwen.epub`: 陶渊明, 刘禹锡, 周敦颐) are in the public domain.
