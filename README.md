@@ -68,7 +68,7 @@ all books.
 | When the reading is uncertain | Show both readings (default) / show the most likely reading / don't annotate |
 | Mark unusual readings of common characters | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 10 mm. See [The edge band](#the-edge-band) |
-| Popup text size | 70–120% of the book's text size (default 70%, about the size of KOReader's own popups) |
+| Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
 | Status | Version, data versions and load times, what the current page needed, and any old plugin still installed |
 
 The two switches are independent: pinyin without the popup, the popup without pinyin, or both.

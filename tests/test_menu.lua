@@ -81,7 +81,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 9 + 5 + 5 + 3 + 4 + 6, "menu size")
+eq(count, 9 + 5 + 5 + 3 + 4 + 5, "menu size")
 
 -- The two toggles are independent.
 local pinyin_item, popup_item = entry.sub_item_table[1], entry.sub_item_table[2]

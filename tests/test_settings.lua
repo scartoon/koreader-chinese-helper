@@ -14,7 +14,7 @@ end
 local s = Settings.new(store())
 eq(s:pinyinEnabled(), false); eq(s:popupEnabled(), true)
 eq(s:threshold(), 3500); eq(s:sizePercent(), 40); eq(s:uncertainMode(), "both")
-eq(s:specialEnabled(), true); eq(s:specialStyle(), "bold"); eq(s:popupTextPercent(), 70)
+eq(s:specialEnabled(), true); eq(s:specialStyle(), "bold"); eq(s:popupTextPercent(), 60)
 
 -- This device's settings at the time of the merge, plus every other old key.
 local st = store{
@@ -47,7 +47,12 @@ s = Settings.new(st); eq(#s:migrate(), 0); assert(st.values.chinesehelper_migrat
 -- Out-of-range values come back valid.
 s = Settings.new(store{ chinesehelper_uncertain = "nonsense", chinesehelper_size_pct = 500,
                         chinesehelper_special_style = "x", chinesehelper_popup_text_pct = 1 })
-eq(s:uncertainMode(), "both"); eq(s:sizePercent(), 80); eq(s:specialStyle(), "bold"); eq(s:popupTextPercent(), 50)
+eq(s:uncertainMode(), "both"); eq(s:sizePercent(), 80); eq(s:specialStyle(), "bold"); eq(s:popupTextPercent(), 60)
+-- Popup text size: exactly the menu's choices; an old 70 falls back to the default.
+for _, pct in ipairs({ 40, 60, 80, 100, 120 }) do
+    eq(Settings.new(store{ chinesehelper_popup_text_pct = pct }):popupTextPercent(), pct)
+end
+eq(Settings.new(store{ chinesehelper_popup_text_pct = 70 }):popupTextPercent(), 60)
 s:set("threshold", 1500); eq(s:threshold(), 1500)
 -- No settings store at all (tests, odd starts): defaults, no errors.
 s = Settings.new(nil); eq(s:threshold(), 3500); s:set("threshold", 1); eq(#s:migrate(), 0)
