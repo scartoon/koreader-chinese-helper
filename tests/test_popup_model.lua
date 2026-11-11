@@ -238,6 +238,15 @@ assert(not text:find("no definition in CC-CEDICT", 1, true), text)
 m = matches("", "尚", "书省", { row("尚", "尚", "shàng", "still"), row("尚", "尚", "cháng", "other") },
     { chosen = "shàng", decided = decided })
 assert(Model.render(m, "尚", false):find("decides 尚's reading\nno definition in CC-CEDICT", 1, true))
+-- Blocks carry each entry's source (for the labels); the text is the same as render's.
+m = matches("", "尚", "书省", { row("尚", "尚", "shàng", "still"),
+    frow("尚书省", "尚書省", "shàng shū shěng", "官署名", "moe") })
+local blocks = Model.blocks(m, "尚", false)
+eq(blocks[1].source, "cedict"); eq(blocks[2].source, "moe")
+eq(blocks[2].head, "尚书省  shàng shū shěng"); eq(blocks[2].lines[1], "官署名")
+eq(Model.render(m, "尚", false), blocks[1].head .. "\n" .. table.concat(blocks[1].lines, "\n") .. "\n\n"
+    .. blocks[2].head .. "\n" .. table.concat(blocks[2].lines, "\n"))
+eq(Model.SOURCE_LABELS.cedict, "CEDICT"); eq(Model.SOURCE_LABELS.wikt, "Wikt"); eq(Model.SOURCE_LABELS.moe, "MOE")
 -- Only fallback rows: the popup has something to show (it no longer goes
 -- straight to KOReader's dictionary).
 m = matches("", "尚", "书省", { frow("尚书省", "尚書省", "Shàngshūshěng", "x", "wikt") })

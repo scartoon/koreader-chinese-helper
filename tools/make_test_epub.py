@@ -28,6 +28,8 @@ PARAS = [
     # Rare characters (pinyin above them at the default threshold), and a
     # special word.
     "两军对峙，饕餮之徒侥幸逃脱。匈奴单于入塞。",
+    # Fallback dictionaries: 帐 (CC-CEDICT), 甲帐 (MOE), 帐下吏 (Wiktionary); 尚书省 (Wiktionary).
+    "汉武帝的甲帐下吏都是名将。唐代尚书省下设六部。",
     "A paragraph in English only, to tap on Latin text: the quick brown fox jumps over the lazy dog.",
 ]
 

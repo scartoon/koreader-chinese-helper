@@ -253,7 +253,8 @@ function Tap:showPopup(hit)
     local font_size = self:textHeight()
     popup = Popup:new{
         title = hit.char,
-        text = Model.render(matches, hit.char, annotated, Popup.BOLD_START, Popup.BOLD_END),
+        blocks = Model.blocks(matches, hit.char, annotated, Popup.BOLD_START, Popup.BOLD_END),
+        labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
         header = Model.header(left, hit.char, right, Popup.BOLD_START, Popup.BOLD_END),
         buttons = Text.rows(buttons, Tap.BUTTONS_PER_ROW),
         anchor = hit.box,

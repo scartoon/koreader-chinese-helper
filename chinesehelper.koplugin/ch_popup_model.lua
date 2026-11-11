@@ -298,23 +298,22 @@ function Model.matches(args)
     return words
 end
 
+-- Short names of the dictionaries, shown as the entries' source labels.
+Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", moe = "MOE" }
+
 --[[--
-The popup text. b0/b1 are the bold markers (TextBoxWidget's PTF markers in
-KOReader). One block per match, separated by a blank line:
-
-  **宛**  yuān · shown above
-  winding; as if
-  wǎn: ...
-
-  **大宛**  Dàyuān · decides 宛's reading
-  Dayuan, ancient state of Central Asia
+The popup's content as blocks, one per match:
+  { head = "**宛**  yuān · shown above" (the word, its first reading, markers),
+    source = "cedict" / "wikt" / "moe" (whose entry it is),
+    lines = { "winding; as if", "wǎn: ...", ... } (senses, further readings) }
+b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
 ]]
-function Model.render(matches, char, annotated, b0, b1)
+function Model.blocks(matches, char, annotated, b0, b1)
     b0, b1 = b0 or "", b1 or ""
     local mark = " · " .. (annotated and Model.MARK_SHOWN or Model.MARK_LIKELY)
     local blocks = {}
     for _, m in ipairs(matches) do
-        local lines = {}
+        local block = { lines = {} }
         for k, e in ipairs(m.entries) do
             local senses = table.concat(e.senses, "; ")
             if #e.senses == 0 then
@@ -329,15 +328,35 @@ function Model.render(matches, char, annotated, b0, b1)
             local marked = e.marked and (m.len == 1 and mark or (" · " .. Model.MARK_LIKELY)) or ""
             if k == 1 then
                 local tag = m.decided and (" · decides " .. char .. "'s reading") or ""
-                lines[#lines + 1] = b0 .. m.word .. b1 .. "  " .. e.pinyin .. marked .. tag
-                lines[#lines + 1] = senses
+                block.head = b0 .. m.word .. b1 .. "  " .. e.pinyin .. marked .. tag
+                block.source = e.source or "cedict"
+                block.lines[#block.lines + 1] = senses
             else
-                lines[#lines + 1] = e.pinyin .. marked .. ": " .. senses
+                block.lines[#block.lines + 1] = e.pinyin .. marked .. ": " .. senses
             end
         end
-        blocks[#blocks + 1] = table.concat(lines, "\n")
+        blocks[#blocks + 1] = block
     end
-    return table.concat(blocks, "\n\n")
+    return blocks
+end
+
+--[[--
+The popup text, without source labels. One block per match, separated by a
+blank line:
+
+  **宛**  yuān · shown above
+  winding; as if
+  wǎn: ...
+
+  **大宛**  Dàyuān · decides 宛's reading
+  Dayuan, ancient state of Central Asia
+]]
+function Model.render(matches, char, annotated, b0, b1)
+    local out = {}
+    for _, block in ipairs(Model.blocks(matches, char, annotated, b0, b1)) do
+        out[#out + 1] = block.head .. "\n" .. table.concat(block.lines, "\n")
+    end
+    return table.concat(out, "\n\n")
 end
 
 -- The phrase around the tapped character with the character in bold: the

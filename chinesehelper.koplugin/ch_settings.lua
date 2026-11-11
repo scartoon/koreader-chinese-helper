@@ -26,6 +26,7 @@ Settings.DEFAULTS = {
     special_style = "bold",   -- not in the menu: "bold", "underline" or "none"
     fallback_wikt = true,     -- fallback dictionaries, for words CC-CEDICT lacks
     fallback_moe = true,      -- (MOE: only when the user has installed its file)
+    labels = "fallback",      -- source labels: "all", "fallback" (entries not from CC-CEDICT), "none"
     edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5 or 10 mm
     popup_text_pct = 60,      -- 38 px on a Boox Go 7 with 64 px book text (the old popups used 43 px)
 }
@@ -93,6 +94,16 @@ function Settings:specialEnabled() return self:get("special") == true end
 -- "wikt" or "moe": is that fallback dictionary switched on?
 function Settings:fallbackEnabled(source)
     return self:get("fallback_" .. source) == true
+end
+
+Settings.LABEL_MODES = { "all", "fallback", "none" }
+
+function Settings:labelMode()
+    local mode = self:get("labels")
+    for _, m in ipairs(Settings.LABEL_MODES) do
+        if mode == m then return mode end
+    end
+    return Settings.DEFAULTS.labels
 end
 
 function Settings:threshold()

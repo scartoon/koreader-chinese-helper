@@ -2,7 +2,7 @@
 --
 -- From the popup both source plugins shared (koreader-interlinear-pinyin's
 -- pinyin_popup.lua, copied as koreader-chinese-popup's cp_popup.lua). Built
--- from KOReader's own widgets (TitleBar, ScrollTextWidget, ButtonTable) so it
+-- from KOReader's own widgets (TitleBar, TextBoxWidget, ButtonTable) so it
 -- looks native and uses KOReader's UI fonts, whose CJK fallback covers the
 -- characters and whose Noto Sans has the tone marks. Bold uses
 -- TextBoxWidget's PTF markers.
@@ -26,24 +26,33 @@ local Geom = require("ui/geometry")
 local GestureRange = require("ui/gesturerange")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local LineWidget = require("ui/widget/linewidget")
-local ScrollTextWidget = require("ui/widget/scrolltextwidget")
 local Size = require("ui/size")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local TitleBar = require("ui/widget/titlebar")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
+local HorizontalGroup = require("ui/widget/horizontalgroup")
+local HorizontalSpan = require("ui/widget/horizontalspan")
+local VerticalSpan = require("ui/widget/verticalspan")
+local TextWidget = require("ui/widget/textwidget")
 local Screen = Device.screen
 
 local Model = require("ch_popup_model")
 
 local Popup = InputContainer:extend{
     title = nil,       -- the character
-    text = nil,        -- PTF text (ch_popup_model.lua Model.render)
+    blocks = nil,      -- the entries (ch_popup_model.lua Model.blocks)
+    labels = nil,      -- source -> label text (Model.SOURCE_LABELS)
+    label_mode = "fallback", -- which entries carry a label: "all", "fallback", "none"
     header = nil,      -- PTF phrase around the character (Model.header)
     buttons = nil,     -- ButtonTable rows
     anchor = nil,      -- screen box of the tapped character {x, y, w, h}
     text_px = nil,     -- body text size in screen pixels (nil: KOReader's default)
 }
+
+-- Source labels: a small grey line just above an entry, left-aligned.
+Popup.LABEL_MIN_PX = 18     -- never smaller than this, in screen pixels
+Popup.LABEL_RATIO = 0.62    -- of the popup text size
 
 Popup.BOLD_START = TextBoxWidget.PTF_BOLD_START
 Popup.BOLD_END = TextBoxWidget.PTF_BOLD_END
@@ -136,24 +145,11 @@ function Popup:build(with_header)
     }
 
     -- Text area: as tall as the text, up to what the screen leaves.
-    local text = TextBoxWidget.PTF_HEADER .. (self.text or "")
     local text_w = inner_w - 2 * padding
-    local scroll_bar = ScrollTextWidget.scroll_bar_width + ScrollTextWidget.text_scroll_span
-    local measure = TextBoxWidget:new{
-        text = text, face = self.face, width = text_w - scroll_bar, for_measurement_only = true,
-    }
-    local text_h = measure:getSize().h
-    measure:free()
     local max_h = screen_h - 2 * self.margin - header_h - titlebar:getHeight() - button_table:getSize().h
         - 2 * padding - 2 * Size.border.window
     max_h = math.max(max_h, self.face.size * 3)
-    self.scroll = ScrollTextWidget:new{
-        text = text,
-        face = self.face,
-        width = text_w,
-        height = math.min(text_h, max_h),
-        dialog = self,
-    }
+    self.scroll = self:body(text_w, max_h)
     parts[#parts + 1] = FrameContainer:new{ padding = padding, bordersize = 0, margin = 0, self.scroll }
     parts[#parts + 1] = CenterContainer:new{
         dimen = Geom:new{ w = inner_w, h = button_table:getSize().h },
@@ -170,6 +166,58 @@ function Popup:build(with_header)
     }
     self[1] = self.frame
     self.has_header = with_header
+end
+
+-- Should this block carry its source label?
+function Popup:labelled(block)
+    if self.label_mode == "none" then return false end
+    if self.label_mode == "fallback" then return block.source ~= "cedict" end
+    return true
+end
+
+function Popup:labelPx()
+    local px = self.text_px or Screen:scaleBySize(20)
+    return math.max(Popup.LABEL_MIN_PX, math.floor(px * Popup.LABEL_RATIO + 0.5))
+end
+
+-- The entries, one block each: the source label (when shown) on a small grey
+-- line of its own, left-aligned, then the headline (word, reading, markers)
+-- and the senses. The blocks stack vertically; only when they are taller
+-- than the room left do they scroll (ScrollableContainer, with a scroll bar).
+function Popup:body(text_w, max_h)
+    local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
+    local label_face = Font:getFace("x_smallinfofont", unscaled(self:labelPx()))
+    local block_gap = math.floor(self.face.size * 0.6)
+    local function stack(width)
+        local group = VerticalGroup:new{ align = "left" }
+        for k, b in ipairs(self.blocks or {}) do
+            if k > 1 then group[#group + 1] = VerticalSpan:new{ width = block_gap } end
+            if self:labelled(b) then
+                group[#group + 1] = TextWidget:new{
+                    text = (self.labels or {})[b.source] or b.source, face = label_face,
+                    fgcolor = Blitbuffer.COLOR_GRAY_5, max_width = width,
+                }
+            end
+            group[#group + 1] = TextBoxWidget:new{ text = TextBoxWidget.PTF_HEADER .. b.head, face = self.face,
+                                                   width = width }
+            if #b.lines > 0 then
+                group[#group + 1] = TextBoxWidget:new{
+                    text = TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n"), face = self.face, width = width,
+                }
+            end
+        end
+        return group
+    end
+    local group = stack(text_w)
+    if group:getSize().h <= max_h then
+        self.scrolls = false
+        return group
+    end
+    -- Too tall: narrower, to leave room for the scroll bar, and scrollable.
+    group:free()
+    group = stack(text_w - ScrollableContainer.scroll_bar_width - Size.padding.small)
+    self.scrolls = true
+    return ScrollableContainer:new{ dimen = Geom:new{ w = text_w, h = max_h }, show_parent = self, group }
 end
 
 function Popup:paintTo(bb, x, y)

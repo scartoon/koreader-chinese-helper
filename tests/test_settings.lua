@@ -54,5 +54,10 @@ for _, pct in ipairs({ 40, 60, 80, 100, 120 }) do
 end
 eq(Settings.new(store{ chinesehelper_popup_text_pct = 70 }):popupTextPercent(), 60)
 s:set("threshold", 1500); eq(s:threshold(), 1500)
+-- Source labels: default "fallback"; anything else unknown falls back to it.
+eq(Settings.new(store()):labelMode(), "fallback")
+eq(Settings.new(store{ chinesehelper_labels = "all" }):labelMode(), "all")
+eq(Settings.new(store{ chinesehelper_labels = "x" }):labelMode(), "fallback")
+eq(Settings.new(store()):fallbackEnabled("wikt"), true); eq(Settings.new(store()):fallbackEnabled("moe"), true)
 -- No settings store at all (tests, odd starts): defaults, no errors.
 s = Settings.new(nil); eq(s:threshold(), 3500); s:set("threshold", 1); eq(#s:migrate(), 0)

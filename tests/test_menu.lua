@@ -83,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 10 + 5 + 5 + 3 + 4 + 5 + 2, "menu size")
+eq(count, 10 + 5 + 5 + 3 + 4 + 5 + 3 + 3, "menu size")
 
 -- The two toggles are independent.
 local pinyin_item, popup_item = entry.sub_item_table[1], entry.sub_item_table[2]
@@ -215,6 +215,16 @@ end
 eq(names(plugin:fallbackSources()), "wikt,moe")
 local fb_item = entry.sub_item_table[9]
 eq(fb_item.text, "Fallback dictionaries")
+-- Source labels: default "other dictionaries only".
+local labels_item = fb_item.sub_item_table[1]
+eq(labels_item.text_func(), "Source labels: other dictionaries only")
+assert(labels_item.sub_item_table[2].checked_func())
+labels_item.sub_item_table[1].callback(); eq(plugin.settings:labelMode(), "all")
+labels_item.sub_item_table[3].callback(); eq(plugin.settings:labelMode(), "none")
+eq(labels_item.text_func(), "Source labels: none")
+labels_item.sub_item_table[2].callback()
+-- Then the dictionaries, Wiktionary first.
+table.remove(fb_item.sub_item_table, 1)
 eq(fb_item.sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)")
 assert(fb_item.sub_item_table[1].checked_func() and fb_item.sub_item_table[2].checked_func())
 local status = table.concat(plugin:fallbackStatus(), "\n")
@@ -254,7 +264,7 @@ plugin2:init()
 eq(names(plugin2:fallbackSources()), "wikt")
 local items2 = {}
 plugin2:addToMainMenu(items2)
-local moe_item = items2.chinesehelper.sub_item_table[9].sub_item_table[2]
+local moe_item = items2.chinesehelper.sub_item_table[9].sub_item_table[3]
 eq(moe_item.text_func(), "MOE 重編國語辭典 (not installed)")
 assert(not moe_item.enabled_func() and not moe_item.checked_func())
 assert(table.concat(plugin2:fallbackStatus(), "\n"):find("MOE 重編國語辭典: not installed", 1, true))

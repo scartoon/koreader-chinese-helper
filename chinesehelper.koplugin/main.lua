@@ -405,6 +405,26 @@ function ChineseHelper:addToMainMenu(menu_items)
                 help_text = _("For words CC-CEDICT does not have, the popup can show entries from other dictionaries. CC-CEDICT always comes first: a word it has never gets an entry from another dictionary. Wiktionary is part of the plugin; the MOE dictionary is a file you build and install yourself (see the README)."),
                 sub_item_table = {
                     {
+                        text_func = function()
+                            local names = { all = _("all entries"), fallback = _("other dictionaries only"),
+                                            none = _("none") }
+                            return T(_("Source labels: %1"), names[settings:labelMode()])
+                        end,
+                        help_text = _("A small grey line above an entry naming its dictionary: CEDICT, Wikt (Wiktionary) or MOE."),
+                        sub_item_table = {
+                            { text = _("All entries"), radio = true, keep_menu_open = true,
+                              checked_func = function() return settings:labelMode() == "all" end,
+                              callback = function() settings:set("labels", "all") end },
+                            { text = _("Other dictionaries only (not CC-CEDICT)"), radio = true, keep_menu_open = true,
+                              checked_func = function() return settings:labelMode() == "fallback" end,
+                              callback = function() settings:set("labels", "fallback") end },
+                            { text = _("None"), radio = true, keep_menu_open = true,
+                              checked_func = function() return settings:labelMode() == "none" end,
+                              callback = function() settings:set("labels", "none") end },
+                        },
+                        separator = true,
+                    },
+                    {
                         text = _("Wiktionary"),
                         checked_func = function() return settings:fallbackEnabled("wikt") end,
                         callback = function() settings:set("fallback_wikt", not settings:fallbackEnabled("wikt")) end,
