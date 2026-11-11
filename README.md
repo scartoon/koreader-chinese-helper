@@ -69,6 +69,7 @@ all books.
 | Mark unusual readings of common characters | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 10 mm. See [The edge band](#the-edge-band) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
+| Fallback dictionaries | Source labels (all entries / other dictionaries only, the default / none); Wiktionary on/off; MOE 重編國語辭典 on/off (only when you have installed its file). See [Other dictionaries](#other-dictionaries) |
 | Status | Version, data versions and load times, what the current page needed, and any old plugin still installed |
 
 The two switches are independent: pinyin without the popup, the popup without pinyin, or both.
@@ -128,8 +129,28 @@ stretch containing the tapped character, against both simplified and traditional
   with a short note, such as 冒顿 *mò dú*).
 - **Buttons**: one per entry, labelled with the character or word, which opens KOReader's
   dictionary lookup for it, and **Close**. Tapping outside the popup also closes it.
-- If CC-CEDICT has nothing for the character or any word around it, the tap goes straight to
-  KOReader's dictionary lookup.
+- Words CC-CEDICT does not have can come from other dictionaries (below). If no dictionary has
+  the character or any word around it, the tap goes straight to KOReader's dictionary lookup.
+
+### Other dictionaries
+
+For words CC-CEDICT does not have, the popup also looks in **Wiktionary** (part of the plugin:
+about 61,000 words, many of them historical and literary terms, chengyu, technical terms and some
+slang) and, if you have installed it, the **MOE 重編國語辭典** (see
+[Data](#optional-the-moe-dictionary-build-it-yourself)). CC-CEDICT always comes first: a word it
+has never gets an entry from another dictionary. Otherwise Wiktionary comes before MOE, and each
+word shows one dictionary's entry.
+
+- An entry from another dictionary shows that dictionary's own reading (MOE's are Taiwan
+  standard) and is never marked *shown above* or *likely here*: those markers come from the
+  reading resolver and appear on CC-CEDICT entries only, so the popup and the pinyin always
+  agree. A word that decides the reading but is missing from CC-CEDICT shows the other
+  dictionary's definition, still tagged *decides X's reading*.
+- A small grey line above an entry names its dictionary: **CEDICT**, **Wikt** or **MOE**. By
+  default only entries from the other dictionaries are labelled; **Source labels** can label
+  every entry or none.
+- Each dictionary can be switched off under **Fallback dictionaries**; with both off the popup
+  shows CC-CEDICT alone, as before. **Status** lists each dictionary's version and size.
 
 The popup is the full width of the screen (minus a small margin) and as tall as its content,
 up to the full screen height, scrolling beyond that. A short popup goes in the half of the
@@ -189,7 +210,12 @@ Measured on a Boox Go 7 against the two old plugins, same book, same pages:
   queries the database: the words a page can need are read into memory with the other reading
   tables when the first page is drawn (about 230 ms, once per KOReader session; 0.5.0 took
   190–270 ms to read its text files).
-- **A tap**: one database query for the popup's words, opened on first use and kept open.
+- **A tap**: from the tap to the popup built, 14.7 ms median (16.9 ms mean) with Wiktionary and
+  the MOE dictionary, against 13.8 ms (16.6 ms) without them: one query to CC-CEDICT, then one to
+  each other dictionary for the words CC-CEDICT does not have. The first tap after opening a book
+  takes 20–30 ms either way; the MOE file opens on the first tap, in 1–3 ms. Memory: about
+  2 MB more (KOReader's total about 133 MB against 131 MB); the dictionaries are read from the
+  database, not loaded into memory.
 
 ## Data
 

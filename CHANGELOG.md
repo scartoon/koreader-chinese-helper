@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Other dictionaries for words CC-CEDICT lacks**: English **Wiktionary** (about 61,000 words,
+  bundled) and, optionally, the Taiwan Ministry of Education's **重編國語辭典** (a file you build
+  yourself with `tools/build_moe.py`; its licence does not allow distributing it). CC-CEDICT
+  always comes first; everyday combinations (很多, 这次) and numerals are left out. Entries from
+  them carry their own readings and no reading markers; a small grey line above names their
+  source (CEDICT, Wikt, MOE). Menu: Fallback dictionaries (source labels, each dictionary on or
+  off). The database grows from 20 to 28 MB.
+
 ## 1.1.0 (2026-11-11)
 
 - **Edge band**: a single tap within a set distance of any screen edge always goes to KOReader
