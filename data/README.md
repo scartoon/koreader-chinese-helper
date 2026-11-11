@@ -58,9 +58,11 @@ a locative or particle after one, e.g. 很多, 这次, 一天, 脸上; entries W
 classical are kept) and numerals dropped; senses kept with their qualifiers ("(historical)"), one
 "/" between senses, a "/" inside a sense written "／".
 
-Not part of this data: the optional MOE dictionary (中華民國教育部《重編國語辭典修訂本》,
-CC BY-ND 3.0 TW, https://github.com/g0v/moedict-data), which `tools/build_moe.py` builds into a
-separate file for the user's own device. It is never committed or released.
+Not part of this data: the optional MOE dictionary, 中華民國教育部《重編國語辭典修訂本》 —
+https://dict.revised.moe.edu.tw/ — © Ministry of Education, Republic of China (Taiwan), CC BY-ND
+3.0 TW — https://creativecommons.org/licenses/by-nd/3.0/tw/ — read from g0v/moedict-data,
+https://github.com/g0v/moedict-data. `tools/build_moe.py` builds it into a separate file for the
+user's own device. It is never committed or released.
 
 Changes made: characters ranked by summed word frequency; default readings chosen by the
 frequency of the words using each reading; numbered pinyin converted to tone marks; pypinyin
