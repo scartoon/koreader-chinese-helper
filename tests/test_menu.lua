@@ -37,7 +37,9 @@ stub("ffi/blitbuffer", { COLOR_BLACK = 0 })
 stub("ui/font", {})
 stub("ui/rendertext", {})
 stub("ui/size", { span = { horizontal_small = 2 } })
-stub("device", { screen = { scaleBySize = function(_, v) return v end, getWidth = function() return 1000 end },
+local screen = { w = 1680, h = 1264, dpi = 300 }
+stub("device", { screen = { scaleBySize = function(_, v) return v end, getWidth = function() return screen.w end,
+                            getHeight = function() return screen.h end, getDPI = function() return screen.dpi end },
                  isTouchDevice = function() return true end })
 stub("lua-ljsqlite3/init", H.SQ3)
 local dirs = {}
@@ -79,7 +81,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 8 + 5 + 5 + 3 + 6, "menu size")
+eq(count, 9 + 5 + 5 + 3 + 4 + 6, "menu size")
 
 -- The two toggles are independent.
 local pinyin_item, popup_item = entry.sub_item_table[1], entry.sub_item_table[2]
@@ -99,9 +101,61 @@ assert(entry.sub_item_table[5].text_func():find("show both"))
 entry.sub_item_table[5].sub_item_table[2].callback()
 eq(plugin.settings:uncertainMode(), "best")
 -- Popup text size.
-entry.sub_item_table[7].sub_item_table[4].callback()
+entry.sub_item_table[8].sub_item_table[4].callback()
 eq(plugin.settings:popupTextPercent(), 100)
-assert(entry.sub_item_table[7].text_func():find("100%%"))
+assert(entry.sub_item_table[8].text_func():find("100%%"))
+
+-- Edge pass-through width: default 5 mm, four radio choices, label follows.
+local edge_item = entry.sub_item_table[7]
+eq(edge_item.text_func(), "Edge pass-through width: 5 mm")
+local labels = {}
+for _, item in ipairs(edge_item.sub_item_table) do
+    labels[#labels + 1] = item.text
+    assert(item.radio, "radio choices")
+end
+eq(table.concat(labels, "|"), "0 mm (off)|2.5 mm|5 mm|10 mm")
+assert(edge_item.sub_item_table[3].checked_func() and not edge_item.sub_item_table[1].checked_func())
+edge_item.sub_item_table[2].callback()
+eq(settings.chinesehelper_edge_mm, 2.5, "saved"); eq(edge_item.text_func(), "Edge pass-through width: 2.5 mm")
+
+-- The tap handler: the edge band is checked first, before any hit testing,
+-- and a change applies to the next tap.
+local hits = 0
+plugin.tap.hitAt = function() hits = hits + 1; return nil end
+plugin.ui = { document = {}, highlight = {} }
+local function tap(x, y) return plugin.tap:onTap({ pos = { x = x, y = y } }) end
+for k, mm in ipairs({ 2.5, 5, 10 }) do
+    edge_item.sub_item_table[k + 1].callback()
+    local band = ({ 30, 59, 118 })[k]
+    eq(plugin.tap:edgeBand(), band, mm .. " mm at 300 dpi")
+    for _, p in ipairs({ { band - 1, 600 }, { 1680 - band, 600 }, { 840, band - 1 }, { 840, 1264 - band } }) do
+        hits = 0
+        eq(tap(p[1], p[2]), false, "edge tap passes through")
+        eq(hits, 0, "no hit testing for an edge tap")
+    end
+    for _, p in ipairs({ { band, 600 }, { 1680 - band - 1, 600 }, { 840, band }, { 840, 1264 - band - 1 } }) do
+        hits = 0
+        tap(p[1], p[2])
+        eq(hits, 1, "just outside the band: hit tested")
+    end
+end
+-- Portrait: the right edge is at 1264.
+screen.w, screen.h = 1264, 1680
+hits = 0; tap(1264 - 130, 800); eq(hits, 1, "portrait, 10 mm band (118 px): 130 px from the right edge is outside")
+hits = 0; tap(1264 - 100, 800); eq(hits, 0, "portrait: within 118 px of the right edge")
+screen.w, screen.h = 1680, 1264
+-- 0 mm: no band at all, even at the very edge.
+edge_item.sub_item_table[1].callback()
+eq(plugin.tap:edgeBand(), 0)
+for _, p in ipairs({ { 0, 600 }, { 1679, 600 }, { 840, 0 }, { 840, 1263 } }) do
+    hits = 0; tap(p[1], p[2]); eq(hits, 1, "0 mm: every tap is hit tested")
+end
+-- A screen that reports no DPI: 300.
+screen.dpi = nil
+edge_item.sub_item_table[3].callback()
+eq(plugin.tap:edgeBand(), 59)
+screen.dpi = 300
+plugin.ui = nil
 
 -- Data through the real database: loaded once, shared.
 local data = assert(plugin:readings(), "readings")

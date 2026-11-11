@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 
 TESTS = [
     "test_text.lua", "test_context.lua", "test_pinyin.lua", "test_settings.lua",
-    "test_layout.lua", "test_hit.lua", "test_popup_model.lua",
+    "test_layout.lua", "test_hit.lua", "test_popup_model.lua", "test_edge.lua",
     "test_db.lua", "test_resolve.lua", "test_special.lua", "test_page.lua",
     "test_integration.lua", "test_menu.lua",
 ]

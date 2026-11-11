@@ -6,7 +6,8 @@
 -- first, and returns false (the tap falls through to them, and the page
 -- turns) unless the tap is on a Chinese character's glyph or drawn pinyin.
 -- Links and highlights come earlier (registered before plugins) and are also
--- checked in the handler. Nothing is registered for hold, swipe or any other
+-- checked in the handler. A tap in the edge band ("Edge pass-through width")
+-- is always KOReader's: that is checked first, before any hit testing. Nothing is registered for hold, swipe or any other
 -- gesture, and nothing at all while "Tap characters for popup" is off or the
 -- document is not reflowable (PDF, DjVu, CBZ: every tap is KOReader's).
 
@@ -19,6 +20,7 @@ local _ = require("gettext")
 local T = require("ffi/util").template
 
 local Context = require("ch_context")
+local Edge = require("ch_edge")
 local Model = require("ch_popup_model")
 local Page = require("ch_page")
 local Resolve = require("ch_resolve")
@@ -96,6 +98,23 @@ function Tap:tapIsOnHighlight(pos)
     return false
 end
 
+-- The edge band's width in pixels (0 when off), from the setting and the
+-- DPI the screen reports. Read on every tap, so a change applies at once.
+function Tap:edgeBand()
+    local mm = self.plugin.settings:edgeMm()
+    if mm <= 0 then return 0 end
+    return Edge.px(mm, Device.screen:getDPI())
+end
+
+-- Is the tap within the edge band? Measured from the screen's edges in its
+-- current orientation (getWidth/getHeight follow rotation, as do tap positions).
+function Tap:inEdgeBand(pos)
+    local band = self:edgeBand()
+    if band <= 0 then return false end
+    local screen = Device.screen
+    return Edge.inBand(pos.x, pos.y, screen:getWidth(), screen:getHeight(), band)
+end
+
 function Tap:textHeight()
     local ok, size = pcall(function() return self:ui().document:getFontSize() end)
     return ok and tonumber(size) or nil
@@ -113,6 +132,8 @@ end
 
 function Tap:onTap(ges)
     if not self.plugin.settings:popupEnabled() or not ges or not ges.pos then return false end
+    -- The edge band first: those taps are KOReader's, at no extra cost.
+    if self:inEdgeBand(ges.pos) then return false end
     local highlight = self:ui().highlight
     -- A tap while selecting text, or in highlight select mode, is ReaderHighlight's.
     if highlight and (highlight.hold_pos or highlight.select_mode) then return false end

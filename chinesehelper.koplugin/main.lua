@@ -244,6 +244,17 @@ function ChineseHelper:addToMainMenu(menu_items)
         }
     end
 
+    local edge_items = {}
+    for _i, mm in ipairs(require("ch_edge").CHOICES) do
+        edge_items[#edge_items + 1] = {
+            text = plugin:edgeLabel(mm),
+            checked_func = function() return settings:edgeMm() == mm end,
+            radio = true,
+            keep_menu_open = true,
+            callback = function() settings:set("edge_mm", mm) end,
+        }
+    end
+
     menu_items.chinesehelper = {
         text = _("Chinese helper"),
         sorting_hint = "tools",
@@ -297,6 +308,13 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text_func = function()
+                    return T(_("Edge pass-through width: %1"), plugin:edgeLabel(settings:edgeMm()))
+                end,
+                help_text = _("A tap this close to any edge of the screen always goes to KOReader (page turn, menus, corner actions), even on a Chinese character or its pinyin. 0 mm turns this off: then only taps that miss a character go to KOReader."),
+                sub_item_table = edge_items,
+            },
+            {
+                text_func = function()
                     return T(_("Popup text size: %1% of text"), settings:popupTextPercent())
                 end,
                 sub_item_table = radio(Settings.POPUP_SIZES, "popup_text_pct", _("%1% of text size"), function() end),
@@ -309,6 +327,12 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
         },
     }
+end
+
+-- "0 mm (off)", "2.5 mm", "5 mm", "10 mm".
+function ChineseHelper:edgeLabel(mm)
+    local text = (mm == math.floor(mm)) and string.format("%d mm", mm) or string.format("%.1f mm", mm)
+    return mm == 0 and T(_("%1 (off)"), text) or text
 end
 
 function ChineseHelper:showStatus()
@@ -337,6 +361,10 @@ function ChineseHelper:showStatus()
             special.count, special.guard_count or 0, string.format("%.0f", special.load_ms or 0),
             string.format("%.0f", special.kb or 0))
     end
+    local Device = require("device")
+    local dpi = Device.screen and Device.screen.getDPI and Device.screen:getDPI()
+    lines[#lines + 1] = T(_("Edge pass-through: %1 = %2 px (screen %3 dpi)"), self:edgeLabel(self.settings:edgeMm()),
+        self.tap:edgeBand(), tostring(dpi))
     local old = self:oldPluginsPresent()
     if #old > 0 then
         lines[#lines + 1] = T(_("Old plugins still installed: %1"), table.concat(old, ", "))

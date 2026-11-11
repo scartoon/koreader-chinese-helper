@@ -24,6 +24,7 @@ Settings.DEFAULTS = {
     uncertain = "both",
     special = true,
     special_style = "bold",   -- not in the menu: "bold", "underline" or "none"
+    edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5 or 10 mm
     popup_text_pct = 70,      -- 45 px on a Boox Go 7 with 64 px book text: the old popups used 43 px
 }
 
@@ -99,6 +100,15 @@ end
 function Settings:popupTextPercent()
     local pct = tonumber(self:get("popup_text_pct")) or Settings.DEFAULTS.popup_text_pct
     return math.max(50, math.min(200, pct))
+end
+
+-- Edge pass-through width in millimetres: one of Edge.CHOICES (0 = off).
+function Settings:edgeMm()
+    local mm = tonumber(self:get("edge_mm"))
+    for _, choice in ipairs(require("ch_edge").CHOICES) do
+        if mm == choice then return mm end
+    end
+    return Settings.DEFAULTS.edge_mm
 end
 
 function Settings:uncertainMode()

@@ -67,6 +67,7 @@ all books.
 | Pinyin size | 35–55% of the book's text size (default 40%) |
 | When the reading is uncertain | Show both readings (default) / show the most likely reading / don't annotate |
 | Mark unusual readings of common characters | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
+| Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 10 mm. See [The edge band](#the-edge-band) |
 | Popup text size | 70–120% of the book's text size (default 70%, about the size of KOReader's own popups) |
 | Status | Version, data versions and load times, what the current page needed, and any old plugin still installed |
 
@@ -75,13 +76,40 @@ The two switches are independent: pinyin without the popup, the popup without pi
 ### What a tap does
 
 - **A single tap on a Chinese character's glyph** (CJK Unified Ideographs, all extensions, and
-  the compatibility ideographs), **or on the pinyin drawn above one**, opens the popup.
+  the compatibility ideographs), **or on the pinyin drawn above one**, opens the popup, unless
+  it is within the edge band (below).
 - **Every other tap is KOReader's as usual**: margins, the space between lines, blank space after
   a paragraph, punctuation, Latin text and digits turn the page or open the menus. Taps on links
   and on your highlights keep their usual behaviour.
 - **Long-press and every other gesture are untouched**, so KOReader's long-press dictionary and
   text selection work as before.
 - PDF and DjVu are not supported: there, every tap is KOReader's and no pinyin is drawn.
+
+### The edge band
+
+A single tap within a set distance of any edge of the screen always goes to KOReader (page turn,
+menus, corner actions), even when it lands on a Chinese character or on pinyin. That keeps page
+turns reliable when the text runs close to the edges, for example with small page margins.
+
+Set the width with **Edge pass-through width**:
+
+| Choice | Band on a 300 dpi screen | |
+|---|---|---|
+| 0 mm (off) | none | Only taps that miss a character go to KOReader. |
+| 2.5 mm | 30 px | |
+| 5 mm (default) | 59 px | |
+| 10 mm | 118 px | |
+
+- The band runs along all four edges, measured from the screen's edges as it is currently held,
+  so it follows rotation.
+- Millimetres are converted with the screen DPI KOReader reports (shown under **Status**), so
+  the band is the same physical size on any device; a screen that reports no DPI is taken as
+  300 dpi.
+- A change applies to the next tap; no restart is needed.
+- KOReader's own menu and corner tap zones reach further than the band (the top and bottom
+  menus cover an eighth of the screen height, a fifth across the middle half). Inside those zones
+  but outside the band, a tap on a character opens the popup rather than KOReader's menu; tap
+  in the band, or on blank space, punctuation or a margin, to open the menus.
 
 ### The popup
 
