@@ -166,3 +166,9 @@ eq(y, MG, "taller than the room: from the top margin"); assert(covers)
 -- A character straddling the middle: a half-screen popup can still cover it.
 y, covers = Model.place(480, SH, MG, { x = 0, y = 470, w = 40, h = 60 })
 eq(y, MG); assert(covers)
+
+-- The deciding word is tagged only when the character has a choice of readings.
+m = matches("行", "人", "", { row("人", "人", "rén", "person"), row("行人", "行人", "xíngrén", "pedestrian", "xíng rén") },
+    { chosen = "rén", decided = { word = "行人", start = -1, len = 2, syllables = "xíng rén" } })
+eq(join(m, "word"), "人,行人"); assert(not m[2].decided)
+assert(not Model.render(m, "人", false):find("decides", 1, true))

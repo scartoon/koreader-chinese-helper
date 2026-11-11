@@ -24,7 +24,7 @@ Settings.DEFAULTS = {
     uncertain = "both",
     special = true,
     special_style = "bold",   -- not in the menu: "bold", "underline" or "none"
-    popup_text_pct = 80,
+    popup_text_pct = 70,      -- 45 px on a Boox Go 7 with 64 px book text: the old popups used 43 px
 }
 
 -- Old key -> new key. interlinearpinyin_tap_definitions has no successor:

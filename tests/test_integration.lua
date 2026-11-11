@@ -90,7 +90,7 @@ eq(popup("我的书。", "的", { mode = "skip" }).chosen, "de/dì")
 p = popup("去买东西。", "东")
 eq(p.chosen, "dōng")
 eq(marked(p, "东西"), "dōngxi")
-assert(p.text:find("东西  dōngxi · likely here · decides 东's reading\nthing; stuff", 1, true), p.text)
+assert(p.text:find("东西  dōngxi · likely here\nthing; stuff", 1, true), "no 'decides' tag: 东 has one reading\n" .. p.text)
 eq(words(p), "东,买东西,东西")
 assert(p.text:find("dōngxī: east and west", 1, true), p.text)
 -- 西 in 东西 is neutral: its own entry xī stands for it (one reading: no marker).
@@ -126,7 +126,7 @@ assert(p.text:find("峙  zhì · shown above", 1, true) or not p.text:find("·",
 p = popup("很大宛如雷鸣", "宛", { threshold = 2500 })
 eq(p.drawn, "wǎn"); eq(p.chosen, "wǎn"); eq(p.decided.word, "宛如")
 assert(p.text:find("宛  wǎn\n", 1, true), "one reading in CC-CEDICT (with the surname): no marker\n" .. p.text)
-assert(p.text:find("宛如  wǎnrú · decides 宛's reading", 1, true), p.text)
+assert(p.text:find("宛如  wǎnrú\n", 1, true), "no tag: CC-CEDICT gives 宛 one reading\n" .. p.text)
 eq(words(p), "宛,大宛,宛如", "both words listed, the decided one tagged")
 -- 大宛 alone: yuān.
 p = popup("西域有大宛国。", "宛", { threshold = 2500 })

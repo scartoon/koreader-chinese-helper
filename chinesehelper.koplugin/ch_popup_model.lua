@@ -8,9 +8,9 @@
 --   * then every dictionary word around it that contains it, longest first,
 --     ties broken by the earlier start; a word with several readings has the
 --     resolver's reading of that word marked and first;
---   * the word that decided the character's reading tagged, and listed even
---     when CC-CEDICT lacks it (a pypinyin phrase, or a special word with a
---     note such as 冒顿).
+--   * the word that decided the character's reading tagged (when the
+--     character has a choice of readings), and listed even when CC-CEDICT
+--     lacks it (a pypinyin phrase, or a special word with a note such as 冒顿).
 
 local Pinyin = require("ch_pinyin")
 
@@ -211,6 +211,12 @@ function Model.matches(args)
                 m.entries = markedFirst(m.entries)
             end
         end
+    end
+    -- "Decides X's reading" only means something when X has a choice of
+    -- readings (人 in 行人 has one); the word itself stays listed.
+    local choice = anchor and distinctReadings(anchor.entries) > 1
+    if not choice then
+        for _, m in ipairs(words) do m.decided = nil end
     end
     if anchor then table.insert(words, 1, anchor) end
     return words

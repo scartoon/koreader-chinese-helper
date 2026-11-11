@@ -14,7 +14,7 @@ end
 local s = Settings.new(store())
 eq(s:pinyinEnabled(), false); eq(s:popupEnabled(), true)
 eq(s:threshold(), 3500); eq(s:sizePercent(), 40); eq(s:uncertainMode(), "both")
-eq(s:specialEnabled(), true); eq(s:specialStyle(), "bold"); eq(s:popupTextPercent(), 80)
+eq(s:specialEnabled(), true); eq(s:specialStyle(), "bold"); eq(s:popupTextPercent(), 70)
 
 -- This device's settings at the time of the merge, plus every other old key.
 local st = store{

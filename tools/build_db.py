@@ -96,11 +96,13 @@ def syllable_pinyin(numbered):
 
 # Cross-references inside CC-CEDICT senses: 夠|够[gou4], 乘[cheng2], [jue2].
 XREF_RE = re.compile(r"(?:([^\x00-\x7f\s\[\]|,;:()/]+)(?:\|([^\x00-\x7f\s\[\]|,;:()/]+))?)?\[([A-Za-z0-9:, ·]+)\]")
+BARE_XREF_RE = re.compile(r"([^\x00-\x7f\s\[\]|,;:()/]+)\|([^\x00-\x7f\s\[\]|,;:()/]+)")
 
 
 def clean_sense(sense):
     """'variant of 夠|够[gou4]' -> 'variant of 够 gòu', 'CL:個|个[ge4],隻|只[zhi1]'
-    -> 'CL: 个 gè, 只 zhī', 'Taiwan pr. [jue2]' -> 'Taiwan pr. jué'.
+    -> 'CL: 个 gè, 只 zhī', 'Taiwan pr. [jue2]' -> 'Taiwan pr. jué',
+    'branch of Xianbei 鮮卑|鲜卑' -> 'branch of Xianbei 鲜卑'.
     Cross-references show the simplified form (the reader mostly reads modern
     simplified Mandarin)."""
     def repl(m):
@@ -109,6 +111,8 @@ def clean_sense(sense):
         py = joined_pinyin(py)
         return f"{form} {py}" if form else py
     sense = XREF_RE.sub(repl, sense)
+    # Without pinyin: 鮮卑|鲜卑 -> 鲜卑.
+    sense = BARE_XREF_RE.sub(lambda m: m.group(2), sense)
     if sense.startswith("CL:"):
         sense = "CL: " + ", ".join(p.strip() for p in sense[3:].split(","))
     return sense.replace("\t", " ").strip()
