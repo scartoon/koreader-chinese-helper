@@ -172,3 +172,82 @@ m = matches("行", "人", "", { row("人", "人", "rén", "person"), row("行人
     { chosen = "rén", decided = { word = "行人", start = -1, len = 2, syllables = "xíng rén" } })
 eq(join(m, "word"), "人,行人"); assert(not m[2].decided)
 assert(not Model.render(m, "人", false):find("decides", 1, true))
+
+------------------------------------------------------------------------
+-- Fallback dictionaries
+------------------------------------------------------------------------
+local function frow(simp, trad, pinyin, defs, source) return { simp = simp, trad = trad, pinyin = pinyin, defs = defs, source = source } end
+
+-- Only the words CC-CEDICT does not cover go to the fallback lookup.
+eq(table.concat(Model.uncovered({ "尚", "尚书", "尚书省", "书省" }, { row("尚", "尚", "shàng", "still"),
+    row("尚书", "尚書", "shàngshū", "high official") }), ","), "尚书省,书省")
+eq(#Model.uncovered({ "歷" }, { row("历", "歷", "lì", "x") }), 0, "traditional form covered")
+-- One source per word: what Wiktionary has is not looked up in MOE.
+local kept, left = Model.takeFallback({ "尚书省", "书省", "韃子" },
+    { frow("尚书省", "尚書省", "Shàngshūshěng", "Department of State Affairs", "wikt"),
+      frow("鞑子", "韃子", "dázi", "Tartar", "wikt") })
+eq(#kept, 2); eq(table.concat(left, ","), "书省")
+kept, left = Model.takeFallback({ "书省" }, { frow("别的", "別的", "x", "x", "moe") })
+eq(#kept, 0, "rows for other words ignored"); eq(table.concat(left, ","), "书省")
+
+-- CC-CEDICT always wins: a fallback row for a word CC-CEDICT has is ignored.
+m = matches("", "东", "西", {
+    row("东", "東", "dōng", "east"),
+    frow("东", "東", "dōng", "WIKT east", "wikt"),
+    row("东西", "東西", "dōngxī", "east and west", "dōng xī"),
+    frow("东西", "東西", "dōngxi", "WIKT thing", "wikt"),
+})
+eq(#m[1].entries, 1); eq(m[1].entries[1].source, "cedict")
+eq(join(m[2].entries, "source"), "cedict", "CC-CEDICT's 东西 only")
+-- Fallback rows fill words CC-CEDICT lacks; Wiktionary before MOE, one source per word.
+m = matches("", "尚", "书省", {
+    row("尚", "尚", "shàng", "still"),
+    row("尚书", "尚書", "shàngshū", "high official"),
+    frow("尚书省", "尚書省", "shàng shū shěng", "官署名", "moe"),
+    frow("尚书省", "尚書省", "Shàngshūshěng", "the Department of State Affairs", "wikt"),
+})
+eq(join(m, "word"), "尚,尚书省,尚书", "longest first, as always")
+eq(join(m[2].entries, "source"), "wikt", "Wiktionary before MOE")
+eq(m[2].entries[1].senses[1], "the Department of State Affairs")
+-- MOE when Wiktionary does not have the word (or is switched off).
+m = matches("", "尚", "书省", { row("尚", "尚", "shàng", "still"),
+    frow("尚书省", "尚書省", "shàng shū shěng", "官署名", "moe") })
+eq(m[2].entries[1].source, "moe"); eq(m[2].entries[1].pinyin, "shàng shū shěng", "MOE's own (Taiwan) reading")
+
+-- No reading markers on fallback entries, even with several readings and a
+-- resolver reading for the word; CC-CEDICT's markers are unchanged.
+m = matches("", "鞑", "子", { row("鞑", "韃", "dá", "Tartar"), row("鞑", "韃", "tà", "whip"),
+    frow("鞑子", "韃子", "dázi", "Tartar (derogatory)", "wikt"), frow("鞑子", "韃子", "dázǐ", "other", "wikt") },
+    { chosen = "dá", annotated = true, wordReading = function() return "dá zǐ" end })
+assert(m[1].entries[1].marked, "CC-CEDICT anchor still marked")
+for _, e in ipairs(m[2].entries) do assert(not e.marked, "fallback entry unmarked") end
+eq(join(m[2].entries, "pinyin"), "dázi,dázǐ", "the source's order, nothing moved")
+-- A fallback-only anchor (CC-CEDICT lacks the character): listed, unmarked.
+m = matches("", "𪜀", "", { frow("𪜀", "𪜀", "x", "a rare character", "wikt") }, { chosen = "x" })
+eq(#m, 1); assert(not m[1].entries[1].marked and not m[1].entries[1].missing)
+
+-- The deciding word CC-CEDICT lacks: the fallback definition, tag kept.
+local decided = { word = "尚书省", start = 0, len = 3, syllables = "shàng shū shěng" }
+m = matches("", "尚", "书省", { row("尚", "尚", "shàng", "still"), row("尚", "尚", "cháng", "other"),
+    frow("尚书省", "尚書省", "Shàngshūshěng", "the Department of State Affairs", "wikt") },
+    { chosen = "shàng", decided = decided })
+local text = Model.render(m, "尚", false)
+assert(text:find("尚书省  Shàngshūshěng · decides 尚's reading\nthe Department of State Affairs", 1, true), text)
+assert(not text:find("no definition in CC-CEDICT", 1, true), text)
+-- Without a fallback entry: as before.
+m = matches("", "尚", "书省", { row("尚", "尚", "shàng", "still"), row("尚", "尚", "cháng", "other") },
+    { chosen = "shàng", decided = decided })
+assert(Model.render(m, "尚", false):find("decides 尚's reading\nno definition in CC-CEDICT", 1, true))
+-- Blocks carry each entry's source (for the labels); the text is the same as render's.
+m = matches("", "尚", "书省", { row("尚", "尚", "shàng", "still"),
+    frow("尚书省", "尚書省", "shàng shū shěng", "官署名", "moe") })
+local blocks = Model.blocks(m, "尚", false)
+eq(blocks[1].source, "cedict"); eq(blocks[2].source, "moe")
+eq(blocks[2].head, "尚书省  shàng shū shěng"); eq(blocks[2].lines[1], "官署名")
+eq(Model.render(m, "尚", false), blocks[1].head .. "\n" .. table.concat(blocks[1].lines, "\n") .. "\n\n"
+    .. blocks[2].head .. "\n" .. table.concat(blocks[2].lines, "\n"))
+eq(Model.SOURCE_LABELS.cedict, "CEDICT"); eq(Model.SOURCE_LABELS.wikt, "Wikt"); eq(Model.SOURCE_LABELS.moe, "MOE")
+-- Only fallback rows: the popup has something to show (it no longer goes
+-- straight to KOReader's dictionary).
+m = matches("", "尚", "书省", { frow("尚书省", "尚書省", "Shàngshūshěng", "x", "wikt") })
+eq(join(m, "word"), "尚书省")

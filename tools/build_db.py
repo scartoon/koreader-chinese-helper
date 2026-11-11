@@ -37,6 +37,7 @@ CC-CEDICT: https://www.mdbg.net/chinese/dictionary?page=cc-cedict
 (c) MDBG and contributors, CC BY-SA 4.0.
 """
 import argparse
+import json
 import gzip
 import hashlib
 import os
@@ -46,10 +47,12 @@ import subprocess
 import sys
 import unicodedata
 import urllib.request
+from collections import Counter
 from importlib.metadata import version
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pinyin_util import numbered_to_marked  # noqa: E402
+import fallback_sources  # noqa: E402
 
 URL = "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -196,7 +199,57 @@ SCHEMA = """
 """
 
 
-def build(cedict_entries, header, sha, out):
+WIKT_URL = "https://kaikki.org/dictionary/Chinese/kaikki.org-dictionary-Chinese.jsonl.gz"
+WIKT_PAGE = "https://kaikki.org/dictionary/Chinese/index.html"
+WIKT_DEFAULT = os.path.join(BUILD_DIR, "sources", "wiktionary", "kaikki-Chinese.jsonl.gz")
+
+
+def download_wiktionary(path=WIKT_DEFAULT):
+    """kaikki.org's Chinese extraction of English Wiktionary, and, next to it,
+    <file>.info.json with the Wiktionary dump date and extraction date from
+    kaikki's page (mirrors keep only the current extraction)."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    headers = {"User-Agent": "koreader-chinese-helper build script"}
+    print(f"Downloading {WIKT_URL}")
+    with urllib.request.urlopen(urllib.request.Request(WIKT_URL, headers=headers), timeout=600) as r, \
+            open(path, "wb") as f:
+        last_modified = r.headers.get("Last-Modified", "")
+        f.write(r.read())
+    with urllib.request.urlopen(urllib.request.Request(WIKT_PAGE, headers=headers), timeout=120) as r:
+        page = r.read().decode("utf-8", "replace")
+    dump = re.search(r"dump dated (\d{4}-\d{2}-\d{2})", page)
+    extracted = re.search(r"extracted on (\d{4}-\d{2}-\d{2})", page)
+    info = {"url": WIKT_URL, "last_modified": last_modified,
+            "wiktionary_dump": dump.group(1) if dump else "",
+            "extracted": extracted.group(1) if extracted else ""}
+    with open(path + ".info.json", "w", encoding="utf-8") as f:
+        json.dump(info, f, indent=1)
+    return path
+
+
+def wiktionary_info(path):
+    info = {}
+    if os.path.exists(path + ".info.json"):
+        with open(path + ".info.json", encoding="utf-8") as f:
+            info = json.load(f)
+    with open(path, "rb") as f:
+        info["sha256"] = hashlib.sha256(f.read()).hexdigest()
+    return info
+
+
+def resolver_digest(*tables):
+    """One checksum over the resolver's tables, recorded in meta: fallback
+    data must never change it (compare builds with and without fallback)."""
+    h = hashlib.sha256()
+    for rows in tables:
+        for row in sorted(rows, key=repr):
+            h.update(repr(row).encode("utf-8"))
+        h.update(b"|")
+    return h.hexdigest()
+
+
+def build(cedict_entries, header, sha, out, wikt=None):
+    """wikt: (path, rows, stats) for the Wiktionary fallback table, or None."""
     os.makedirs(os.path.dirname(out), exist_ok=True)
     tmp = out + ".tmp"
     if os.path.exists(tmp):
@@ -227,14 +280,25 @@ def build(cedict_entries, header, sha, out):
     con.executemany("INSERT INTO uncertain VALUES (?, ?, ?, ?)", uncertain)
     con.executemany("INSERT INTO special VALUES (?, ?, ?, ?, ?)", special)
     con.executemany("INSERT INTO special_guard VALUES (?, ?, ?)", guard)
+    # Fallback entries live in their own table: `entries` stays CC-CEDICT
+    # alone, and nothing here feeds the resolver's tables above.
+    fallback_sources.write_fallback(con, wikt[1] if wikt else [])
 
     meta = {
         "cedict_date": header.get("date", ""), "cedict_entries": str(len(cedict_entries)),
         "cedict_sha256": sha, "wordfreq": version("wordfreq"), "pypinyin": version("pypinyin"),
         "chars": str(len(chars)), "words": str(len(words)), "rare_words": str(sum(w[3] for w in words)), "rules": str(len(rules)),
         "uncertain": str(len(uncertain)), "special": str(len(special)), "special_guard": str(len(guard)),
-        "license": "CC BY-SA 4.0 (CC-CEDICT, wordfreq; see README)",
+        "license": "CC BY-SA 4.0 (CC-CEDICT, wordfreq, Wiktionary; see README)",
+        "resolver_sha256": resolver_digest(chars, words, rules, uncertain, special, guard),
+        "fallback_sources": "wikt" if wikt else "",
     }
+    if wikt:
+        info = wiktionary_info(wikt[0])
+        meta.update({"wikt_rows": str(len(set(wikt[1]))), "wikt_sha256": info["sha256"],
+                     "wikt_dump": info.get("wiktionary_dump", ""), "wikt_extracted": info.get("extracted", ""),
+                     "wikt_url": info.get("url", WIKT_URL),
+                     "wikt_license": "CC BY-SA 4.0 (Wiktionary contributors; wiktextract by Tatu Ylonen, kaikki.org)"})
     con.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
     con.commit()
     con.execute("VACUUM")
@@ -265,11 +329,13 @@ def check_query_plans(path):
         (entries_sql(36), 72, ("USING INDEX entries_simp", "USING INDEX entries_trad")),
         (words_sql(1), 1, ("USING PRIMARY KEY",)),
         (words_sql(9), 9, ("USING PRIMARY KEY",)),
+        (fallback_sources.fallback_sql(1), 2, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
+        (fallback_sources.fallback_sql(36), 72, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
     ]
     try:
         for sql, nargs, wanted in checks:
             plan = "\n".join(row[3] for row in con.execute("EXPLAIN QUERY PLAN " + sql, ["x"] * nargs))
-            if any(w not in plan for w in wanted) or re.search(r"\bSCAN (entries|words)\b", plan):
+            if any(w not in plan for w in wanted) or re.search(r"\bSCAN (entries|words|fallback)\b", plan):
                 sys.exit(f"Query does not use its index:\n{sql}\n{plan}")
             print(f"Query plan ok: {sql[:60]}...\n    " + plan.replace("\n", "\n    "))
     finally:
@@ -284,6 +350,9 @@ def main():
                     help="re-learn data/rules.tsv and data/uncertain.tsv from the CPP dataset first")
     ap.add_argument("--skip-readings", action="store_true",
                     help="reuse build/data/ from an earlier run instead of running build_data.py")
+    ap.add_argument("--wiktionary", default=WIKT_DEFAULT,
+                    help="kaikki.org Chinese JSONL(.gz); downloaded when missing")
+    ap.add_argument("--no-wiktionary", action="store_true", help="build without the Wiktionary fallback table")
     args = ap.parse_args()
     path = args.cedict or download()
     with open(path, "rb") as f:
@@ -298,12 +367,25 @@ def main():
     header, entries = read_cedict(path)
     if len(entries) < 100000:
         sys.exit(f"Only {len(entries)} entries read from {path}; is it CC-CEDICT?")
-    meta = build(entries, header, sha, args.out)
+    wikt = None
+    if not args.no_wiktionary:
+        wpath = args.wiktionary if os.path.exists(args.wiktionary) else download_wiktionary(args.wiktionary)
+        forms, measure = fallback_sources.forms_from_entries(entries)
+        stats = Counter()
+        rows = fallback_sources.wiktionary_rows(wpath, forms, measure, stats)
+        for k in sorted(stats):
+            print(f"  {k}: {stats[k]:,}")
+        wikt = (wpath, rows, stats)
+    meta = build(entries, header, sha, args.out, wikt)
     check_query_plans(args.out)
     size = os.path.getsize(args.out)
     print(f"CC-CEDICT {header.get('date', '(no date)')}: {len(entries)} entries, SHA-256 {sha}")
     print("Tables: " + ", ".join(f"{k} {meta[k]}" for k in
                                  ("chars", "words", "rules", "uncertain", "special", "special_guard")))
+    print(f"Resolver tables SHA-256 {meta['resolver_sha256']}")
+    if wikt:
+        print(f"Wiktionary fallback: {meta['wikt_rows']} rows (dump {meta['wikt_dump']}, "
+              f"extracted {meta['wikt_extracted']}, SHA-256 {meta['wikt_sha256']})")
     print(f"Wrote {args.out} ({size / 1e6:.1f} MB)")
 
 

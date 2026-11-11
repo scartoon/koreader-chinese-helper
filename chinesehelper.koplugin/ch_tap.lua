@@ -184,6 +184,27 @@ function Tap:resolve(hit, left, right)
     return reading, decided, drawn ~= nil
 end
 
+-- Rows from the fallback dictionaries for the candidate words CC-CEDICT has
+-- no row for: each source in priority order, one source per word.
+function Tap:fallbackRows(texts, rows)
+    local remaining = Model.uncovered(texts, rows)
+    local out = {}
+    for _, src in ipairs(self.plugin:fallbackSources()) do
+        if #remaining == 0 then break end
+        local got = {}
+        for _, row in ipairs(src.db:fallback(remaining)) do
+            if (row.source or src.source) == src.source then
+                row.source = src.source
+                got[#got + 1] = row
+            end
+        end
+        local kept
+        kept, remaining = Model.takeFallback(remaining, got)
+        for _, row in ipairs(kept) do out[#out + 1] = row end
+    end
+    return out
+end
+
 function Tap:lookupInKOReader(text, box)
     local dictionary = self:ui().dictionary
     if not dictionary then return end
@@ -202,6 +223,7 @@ function Tap:showPopup(hit)
     local left, right = Context.around(document, hit)
     local cands, texts = Text.candidates(left, hit.char, right)
     local rows = db:lookup(texts)
+    for _, row in ipairs(self:fallbackRows(texts, rows)) do rows[#rows + 1] = row end
     local chosen, decided, annotated = self:resolve(hit, left, right)
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end
@@ -231,7 +253,8 @@ function Tap:showPopup(hit)
     local font_size = self:textHeight()
     popup = Popup:new{
         title = hit.char,
-        text = Model.render(matches, hit.char, annotated, Popup.BOLD_START, Popup.BOLD_END),
+        blocks = Model.blocks(matches, hit.char, annotated, Popup.BOLD_START, Popup.BOLD_END),
+        labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
         header = Model.header(left, hit.char, right, Popup.BOLD_START, Popup.BOLD_END),
         buttons = Text.rows(buttons, Tap.BUTTONS_PER_ROW),
         anchor = hit.box,

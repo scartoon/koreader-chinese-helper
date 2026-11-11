@@ -83,8 +83,30 @@ class SQLiteBridge:
         return self.lua.table_from(list(row))
 
 
+def make_test_moe(data_dir):
+    """A tiny file in the MOE file's format (tools/build_moe.py), for the tests:
+    <data_dir>/data/chinesehelper/chinesehelper-moe.sqlite."""
+    import fallback_sources
+    path = os.path.join(data_dir, "data", "chinesehelper", "chinesehelper-moe.sqlite")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if os.path.exists(path):
+        os.remove(path)
+    con = sqlite3.connect(path)
+    fallback_sources.write_fallback(con, [
+        ("尚书省", "尚書省", "shàng shū shěng", "", "官署名。", "moe"),     # Wiktionary has it too
+        ("丁匠", "丁匠", "dīng jiàng", "", "官府的工匠。", "moe"),           # MOE only
+    ])
+    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+    con.executemany("INSERT INTO meta VALUES (?, ?)", [("fallback_sources", "moe"), ("moe_rows", "2"),
+                                                      ("moe_commit_date", "2026-07-11T09:55:26Z")])
+    con.commit()
+    con.close()
+    return data_dir
+
+
 def main():
     print(f"Running tests under {RUNTIME}")
+    test_data = make_test_moe(os.path.join(ROOT, "build", "test-koreader"))
     if not os.path.exists(DB_PATH):
         sys.exit(f"missing {DB_PATH}: build it first with tools/build_db.py")
     import build_db  # the SQL the build checks, compared in test_db.lua
@@ -101,6 +123,8 @@ def main():
         g.PY_SQLITE = SQLiteBridge(lua)
         g.PY_ENTRIES_SQL = build_db.entries_sql
         g.PY_WORDS_SQL = build_db.words_sql
+        g.PY_FALLBACK_SQL = build_db.fallback_sources.fallback_sql
+        g.TEST_KOREADER_DIR = test_data
         lua.execute(f'package.path = "{PLUGIN}/?.lua;{ROOT}/tests/?.lua;" .. package.path')
         try:
             lua.execute(open(os.path.join(ROOT, "tests", name), encoding="utf-8").read())
