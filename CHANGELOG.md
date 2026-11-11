@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Translate the sentence** from the popup: a full-width button below the word buttons sends the
+  whole sentence containing the tapped character (found in the book's text, across pages, up to
+  200 characters). With KOAssistant installed it reads **Translate & Analyze** and runs a
+  built-in prompt (a snapshot of the author's custom action) through KOAssistant, with the
+  sentence as a real selection; without it, **Translate** uses KOReader's built-in translator.
+  Shown only while Wi-Fi is on and connected.
+
 ## 1.2.0 (2026-11-11)
 
 - **Other dictionaries for words CC-CEDICT lacks**: English **Wiktionary** (about 61,000 words,

@@ -22,6 +22,8 @@ koreader-chinese-popup.
   ch_pinyin.lua        pinyin comparisons
   ch_popup_model.lua   what the popup shows
   ch_popup.lua         the popup widget
+  ch_sentence.lua      the sentence around the tapped character
+  ch_translate.lua     the popup's Translate button (KOAssistant or KOReader)
 ]]
 
 local InfoMessage = require("ui/widget/infomessage")
