@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+# Downloaded CC-CEDICT, intermediate tables, release zips
+build/
+dist/
+# Built by tools/build_db.py; shipped as a release asset, not committed
+chinesehelper.koplugin/data/
