@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 (2026-11-11)
 
 - **Translate the sentence** from the popup: a full-width button below the word buttons sends the
   whole sentence containing the tapped character (found in the book's text, across pages, up to
