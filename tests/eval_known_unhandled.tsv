@@ -1,0 +1,9 @@
+# Known, not handled: what tools/eval_readings.py should show for these, but
+# the plugin does not (yet). They are reported, not required to pass.
+#
+#   sentence <TAB> expected annotations (char=reading, or char=- for "not marked")
+
+# 了解元 is read 了解 + 元 by the overlap guard (了解 "understand" is far more
+# common than 解元), which is what keeps 了解元朝历史 from being marked. Telling
+# 中了解元 apart needs more context than word frequencies.
+他中了解元	解=jiè
