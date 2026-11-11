@@ -4,12 +4,13 @@ local Edge = require("ch_edge")
 local eq = require("sq3_shim").eq
 
 -- The menu's choices.
-eq(table.concat(Edge.CHOICES, ","), "0,2.5,5,10")
+eq(table.concat(Edge.CHOICES, ","), "0,2.5,5,7.5,10")
 
--- At 300 dpi (Boox Go 7): 2.5 / 5 / 10 mm = 30 / 59 / 118 px.
+-- At 300 dpi (Boox Go 7): 2.5 / 5 / 7.5 / 10 mm = 30 / 59 / 89 / 118 px.
 eq(Edge.px(0, 300), 0, "0 mm is off")
 eq(Edge.px(2.5, 300), 30)
 eq(Edge.px(5, 300), 59)
+eq(Edge.px(7.5, 300), 89)
 eq(Edge.px(10, 300), 118)
 -- Another DPI scales with it; no usable DPI falls back to 300.
 eq(Edge.px(5, 150), 30)
@@ -18,7 +19,7 @@ eq(Edge.px(5, nil), 59); eq(Edge.px(5, 0), 59)
 -- Every width, both orientations of a 1264 x 1680 screen, all four edges:
 -- one pixel inside the band passes through, the first pixel outside does not.
 local screens = { { name = "portrait", w = 1264, h = 1680 }, { name = "landscape", w = 1680, h = 1264 } }
-for _, mm in ipairs({ 2.5, 5, 10 }) do
+for _, mm in ipairs({ 2.5, 5, 7.5, 10 }) do
     local band = Edge.px(mm, 300)
     for _, s in ipairs(screens) do
         local cx, cy = s.w / 2, s.h / 2
@@ -44,6 +45,13 @@ end
 -- landscape (1680 wide).
 assert(Edge.inBand(1200, 600, 1264, 1680, 118), "portrait: near the right edge")
 assert(not Edge.inBand(1200, 600, 1680, 1264, 118), "landscape: far from it")
+-- 7.5 mm (89 px) in pixels: 88 px from an edge is inside, 89 px is not.
+for _, s in ipairs(screens) do
+    assert(Edge.inBand(88, 300, s.w, s.h, 89) and not Edge.inBand(89, 300, s.w, s.h, 89), s.name .. ": 7.5 mm, left")
+    assert(Edge.inBand(s.w - 89, 300, s.w, s.h, 89) and not Edge.inBand(s.w - 90, 300, s.w, s.h, 89), s.name .. ": 7.5 mm, right")
+    assert(Edge.inBand(300, 88, s.w, s.h, 89) and not Edge.inBand(300, 89, s.w, s.h, 89), s.name .. ": 7.5 mm, top")
+    assert(Edge.inBand(300, s.h - 89, s.w, s.h, 89) and not Edge.inBand(300, s.h - 90, s.w, s.h, 89), s.name .. ": 7.5 mm, bottom")
+end
 
 -- 0 mm never passes a tap through, not even at the very edge.
 for _, s in ipairs(screens) do

@@ -67,7 +67,7 @@ all books.
 | Pinyin size | 35–55% of the book's text size (default 40%) |
 | When the reading is uncertain | Show both readings (default) / show the most likely reading / don't annotate |
 | Mark unusual readings of common characters | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
-| Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 10 mm. See [The edge band](#the-edge-band) |
+| Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [The edge band](#the-edge-band) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
 | Fallback dictionaries | Source labels (all entries / other dictionaries only, the default / none); Wiktionary on/off; MOE 重編國語辭典 on/off (only when you have installed its file). See [Other dictionaries](#other-dictionaries) |
 | Status | Version, data versions and load times, what the current page needed, and any old plugin still installed |
@@ -99,6 +99,7 @@ Set the width with **Edge pass-through width**:
 | 0 mm (off) | none | Only taps that miss a character go to KOReader. |
 | 2.5 mm | 30 px | |
 | 5 mm (default) | 59 px | |
+| 7.5 mm | 89 px | |
 | 10 mm | 118 px | |
 
 - The band runs along all four edges, measured from the screen's edges as it is currently held,

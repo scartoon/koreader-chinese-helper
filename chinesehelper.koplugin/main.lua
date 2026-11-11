@@ -450,7 +450,7 @@ function ChineseHelper:addToMainMenu(menu_items)
     }
 end
 
--- "0 mm (off)", "2.5 mm", "5 mm", "10 mm".
+-- "0 mm (off)", "2.5 mm", "5 mm", "7.5 mm", "10 mm".
 function ChineseHelper:edgeLabel(mm)
     local text = (mm == math.floor(mm)) and string.format("%d mm", mm) or string.format("%.1f mm", mm)
     return mm == 0 and T(_("%1 (off)"), text) or text

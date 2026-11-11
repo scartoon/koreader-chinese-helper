@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Edge pass-through width** offers 7.5 mm (89 px at 300 dpi) between 5 and 10 mm. The default
+  stays 5 mm; a width saved by an earlier version is kept.
+
 ## 1.2.0 (2026-11-11)
 
 - **Other dictionaries for words CC-CEDICT lacks**: English **Wiktionary** (about 61,000 words,

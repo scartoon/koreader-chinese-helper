@@ -27,7 +27,7 @@ Settings.DEFAULTS = {
     fallback_wikt = true,     -- fallback dictionaries, for words CC-CEDICT lacks
     fallback_moe = true,      -- (MOE: only when the user has installed its file)
     labels = "fallback",      -- source labels: "all", "fallback" (entries not from CC-CEDICT), "none"
-    edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5 or 10 mm
+    edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5, 7.5 or 10 mm
     popup_text_pct = 60,      -- 38 px on a Boox Go 7 with 64 px book text (the old popups used 43 px)
 }
 

@@ -53,6 +53,13 @@ for _, pct in ipairs({ 40, 60, 80, 100, 120 }) do
     eq(Settings.new(store{ chinesehelper_popup_text_pct = pct }):popupTextPercent(), pct)
 end
 eq(Settings.new(store{ chinesehelper_popup_text_pct = 70 }):popupTextPercent(), 60)
+-- Edge width: every choice saved by 1.1.0 or later is kept as it is, 7.5 mm
+-- included; no setting is the default 5 mm; anything else falls back to it.
+eq(Settings.new(store()):edgeMm(), 5)
+for _, mm in ipairs({ 0, 2.5, 5, 7.5, 10 }) do
+    eq(Settings.new(store{ chinesehelper_edge_mm = mm }):edgeMm(), mm)
+end
+eq(Settings.new(store{ chinesehelper_edge_mm = 7 }):edgeMm(), 5)
 s:set("threshold", 1500); eq(s:threshold(), 1500)
 -- Source labels: default "fallback"; anything else unknown falls back to it.
 eq(Settings.new(store()):labelMode(), "fallback")
