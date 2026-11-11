@@ -26,6 +26,9 @@ Stages (each cached as a pickle in build/measure/, rerun with --stage NAME):
            one that cuts through a jieba word as a likely false match
            ("crossing").
   report   build/measure/report.md and the sample files.
+  built    (run on its own, after tools/build_db.py and tools/build_moe.py)
+           the same taps against the fallback tables as built, by match
+           length: build/measure/length-report.md.
 """
 import argparse
 import collections
@@ -502,12 +505,13 @@ def lua_list(t):
     return [t[k] for k in range(1, len(t) + 1)]
 
 
-def stage_taps(per_book, seed):
-    src = load("sources")
+def tap_samples(per_book, seed):
+    """The simulated taps: for a seeded sample of Han characters per book,
+    (book, paragraph, index, candidates [(text, start, len)], left, right,
+    jieba word boundaries of the paragraph). Same seed, same taps."""
     lua, Text = lua_text()
     jieba = _jieba()
     rnd = random.Random(seed)
-    taps = []
     for path in sorted(glob.glob(os.path.join(CORPUS, "*.txt"))):
         paras = [l.rstrip("\n") for l in open(path, encoding="utf-8")]
         positions = [(p, i) for p, para in enumerate(paras) for i, ch in enumerate(para) if HAN_CHAR.match(ch)]
@@ -518,25 +522,130 @@ def stage_taps(per_book, seed):
             right = lua_list(Text.hanPrefix(para[i + 1:], Text.MAX_CONTEXT))
             cands, _ = Text.candidates(lua.table_from(left), ch, lua.table_from(right))
             cands = [(c.text, c.start, c.len) for c in lua_list(cands)]
-            # Word boundaries of the paragraph, in character offsets.
             bounds, pos = {0}, 0
             for tok in jieba.cut(para, HMM=False):
                 pos += len(tok)
                 bounds.add(pos)
-            found = {"cedict": [c for c in cands if c[0] in src["cedict"]]}
-            for s in SOURCES:
-                hits = []
-                for text, start, length in cands:
-                    if text in src["cedict"] or text not in src[s]:
-                        continue
-                    a, b = i + start, i + start + length
-                    aligned = a in bounds and b in bounds
-                    hits.append((text, start, length, aligned))
-                found[s] = hits
-            taps.append({"book": os.path.basename(path), "char": ch,
-                         "context": "".join(left) + "[" + ch + "]" + "".join(right), "found": found})
+            yield os.path.basename(path), para, i, cands, left, right, bounds
+
+
+def stage_taps(per_book, seed):
+    src = load("sources")
+    taps = []
+    for book, para, i, cands, left, right, bounds in tap_samples(per_book, seed):
+        ch = para[i]
+        found = {"cedict": [c for c in cands if c[0] in src["cedict"]]}
+        for s in SOURCES:
+            hits = []
+            for text, start, length in cands:
+                if text in src["cedict"] or text not in src[s]:
+                    continue
+                a, b = i + start, i + start + length
+                hits.append((text, start, length, a in bounds and b in bounds))
+            found[s] = hits
+        taps.append({"book": book, "char": ch, "context": "".join(left) + "[" + ch + "]" + "".join(right),
+                     "found": found})
     save("taps", taps)
     print(f"  {len(taps):,} simulated taps")
+
+
+def stage_built(per_book, seed, moe_path):
+    """The same taps against the tables as built (release database: CC-CEDICT
+    and the Wiktionary fallback; the MOE file), with the source priority
+    CC-CEDICT > Wiktionary > MOE, one source per headword. For the open
+    question of a minimum length for fallback matches."""
+    con = sqlite3.connect(DB)
+    cedict = set()
+    for simp, trad in con.execute("SELECT simp, trad FROM entries"):
+        cedict.update((simp, trad))
+    forms = {"wikt": set(), "moe": set()}
+    for simp, trad in con.execute("SELECT simp, trad FROM fallback WHERE source = 'wikt'"):
+        forms["wikt"].update((simp, trad))
+    resolver_words = {w for (w,) in con.execute("SELECT word FROM words")}
+    con.close()
+    if os.path.exists(moe_path):
+        m = sqlite3.connect(moe_path)
+        for simp, trad in m.execute("SELECT simp, trad FROM fallback"):
+            forms["moe"].update((simp, trad))
+        m.close()
+    taps = []
+    for book, para, i, cands, left, right, bounds in tap_samples(per_book, seed):
+        hits = []
+        for text, start, length in cands:
+            if text in cedict:
+                continue
+            source = next((s for s in ("wikt", "moe") if text in forms[s]), None)
+            if source:
+                a, b = i + start, i + start + length
+                hits.append({"word": text, "len": length, "source": source,
+                             "aligned": a in bounds and b in bounds, "resolver": text in resolver_words})
+        taps.append({"book": book, "context": "".join(left) + "[" + para[i] + "]" + "".join(right),
+                     "cedict": sum(1 for c in cands if c[0] in cedict), "hits": hits})
+    save("built", {"taps": taps, "sizes": {s: len(v) for s, v in forms.items()}})
+    print(f"  {len(taps):,} simulated taps against the built tables")
+
+
+def report_built():
+    """build/measure/length-report.md: the minimum-length question."""
+    data = load("built")
+    taps = data["taps"]
+    n = len(taps)
+    L = []
+    w = L.append
+    w("# Fallback matches by length (tables as built, priority CC-CEDICT > Wiktionary > MOE)\n")
+    w(f"{n:,} simulated taps (same sample as report.md). Fallback headwords: Wiktionary "
+      f"{data['sizes']['wikt']:,} forms, MOE {data['sizes']['moe']:,} forms (after the everyday-combination "
+      "filter). 'Plausible' = the match starts and ends on jieba word boundaries; 'likely false' = it cuts "
+      "through a jieba word. 'Resolver word' = in the resolver's word table, so it can be the word that decides "
+      "a reading (the proposed exception to a length rule).\n")
+    w("| Source | length | matches | plausible | likely false | of which resolver words |")
+    w("|---|---|---|---|---|---|")
+    for s in ("wikt", "moe"):
+        for label, test in (("2", lambda h: h["len"] == 2), ("3+", lambda h: h["len"] >= 3),
+                            ("1", lambda h: h["len"] == 1)):
+            hs = [h for t in taps for h in t["hits"] if h["source"] == s and test(h)]
+            if not hs:
+                continue
+            ok = sum(h["aligned"] for h in hs)
+            w(f"| {s} | {label} | {len(hs):,} | {ok:,} ({pct(ok, len(hs))}) | {len(hs) - ok:,} | "
+              f"{sum(h['resolver'] for h in hs):,} |")
+    w("")
+    def per_tap(rule):
+        kept = [[h for h in t["hits"] if rule(h)] for t in taps]
+        return (sum(len(k) for k in kept) / n, sum(1 for k in kept if any(h["aligned"] for h in k)),
+                sum(1 for k in kept if any(not h["aligned"] for h in k)))
+    rules = [("no length rule", lambda h: True),
+             ("3+ characters", lambda h: h["len"] >= 3),
+             ("3+ characters, or a resolver word", lambda h: h["len"] >= 3 or h["resolver"])]
+    w("| Rule for fallback matches | extra blocks per tap | taps gaining a plausible match | "
+      "taps gaining a likely-false match |")
+    w("|---|---|---|---|")
+    for label, rule in rules:
+        blocks, good, bad = per_tap(rule)
+        w(f"| {label} | {blocks:.3f} | {good:,} ({pct(good, n)}) | {bad:,} ({pct(bad, n)}) |")
+    w("")
+    rnd = random.Random(2)
+    for s in ("wikt", "moe"):
+        for kind, flag in (("plausible", True), ("likely false", False)):
+            ex = [(h["word"], t["context"]) for t in taps for h in t["hits"]
+                  if h["source"] == s and h["len"] == 2 and h["aligned"] == flag]
+            rnd.shuffle(ex)
+            w(f"**{s}, 2 characters, {kind}** ({len(ex):,}): " + "; ".join(f"{a} in {b}" for a, b in ex[:25]))
+            w("")
+    for s in ("wikt", "moe"):
+        ex = [(h["word"], t["context"]) for t in taps for h in t["hits"] if h["source"] == s and h["len"] >= 3]
+        rnd.shuffle(ex)
+        w(f"**{s}, 3+ characters** ({len(ex):,}): " + "; ".join(f"{a} in {b}" for a, b in ex[:20]))
+        w("")
+    with open(os.path.join(OUT, "length-report.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(L) + "\n")
+    with open(os.path.join(OUT, "built-tap-samples.tsv"), "w", encoding="utf-8") as f:
+        f.write("source\tlength\tkind\tresolver_word\tword\tcontext\tbook\n")
+        for t in taps:
+            for h in t["hits"]:
+                f.write(f"{h['source']}\t{h['len']}\t{'plausible' if h['aligned'] else 'likely-false'}\t"
+                        f"{int(h['resolver'])}\t{h['word']}\t{t['context']}\t{t['book']}\n")
+    print(f"wrote {os.path.join(OUT, 'length-report.md')}")
 
 
 # ---------------------------------------------------------------------------
@@ -727,7 +836,9 @@ def stage_report():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--stage", choices=["all", "sources", "gaps", "taps", "report"], default="all")
+    ap.add_argument("--stage", choices=["all", "sources", "gaps", "taps", "report", "built"], default="all")
+    ap.add_argument("--moe", default=os.path.join(BUILD, "chinesehelper-moe.sqlite"),
+                    help="the MOE file from tools/build_moe.py (for --stage built)")
     ap.add_argument("--taps-per-book", type=int, default=150)
     ap.add_argument("--seed", type=int, default=20261111)
     args = ap.parse_args()
@@ -739,6 +850,9 @@ def main():
         stage_taps(args.taps_per_book, args.seed)
     if args.stage in ("all", "report"):
         stage_report()
+    if args.stage == "built":
+        stage_built(args.taps_per_book, args.seed, args.moe)
+        report_built()
 
 
 if __name__ == "__main__":

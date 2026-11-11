@@ -74,7 +74,7 @@ def cedict_forms(db_path):
 NUMERALS = set("零〇一二两兩三四五六七八九十百千万萬亿億几幾半廿卅数數")
 DEMONSTRATIVES = set("这這那哪每各某此该該本其另")
 PRONOUNS = set("我你他她它您咱")
-DEGREE = set("很太最更挺极極超颇頗较較")
+DEGREE = set("很太最更挺极極超颇頗较較多")
 ADVERBS = set("也都就才又还還却卻只便再不没沒别別已")
 LOCATIVES = set("上下里裡裏中内內外前后後边邊面头頭间間旁")
 PARTICLES = set("的地得了着著过過吗嗎呢吧啊呀")
@@ -102,6 +102,10 @@ def everyday(word, cedict, measure=frozenset(), protected=False):
         return "number + measure word"
     first, tail = word[0], word[1:]
     if tail in cedict:
+        if first in PARTICLES:
+            return "particle + word"
+        if first in measure and len(word) == 2:
+            return "measure word + word"
         if first in DEMONSTRATIVES:
             return "demonstrative + word"
         if first in DEGREE:
