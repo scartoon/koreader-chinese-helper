@@ -215,7 +215,9 @@ function Popup:body(text_w, max_h)
     end
     -- Too tall: narrower, to leave room for the scroll bar, and scrollable.
     group:free()
-    group = stack(text_w - ScrollableContainer.scroll_bar_width - Size.padding.small)
+    -- (The container keeps 3 bar widths for its vertical bar; any wider and it
+    -- adds a horizontal one.)
+    group = stack(text_w - ScrollableContainer:getScrollbarWidth())
     self.scrolls = true
     return ScrollableContainer:new{ dimen = Geom:new{ w = text_w, h = max_h }, show_parent = self, group }
 end
