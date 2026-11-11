@@ -129,8 +129,46 @@ stretch containing the tapped character, against both simplified and traditional
   with a short note, such as 冒顿 *mò dú*).
 - **Buttons**: one per entry, labelled with the character or word, which opens KOReader's
   dictionary lookup for it, and **Close**. Tapping outside the popup also closes it.
+- **Translate the sentence**: a full-width button on its own row below them, shown only while
+  Wi-Fi is on and connected (see below).
 - Words CC-CEDICT does not have can come from other dictionaries (below). If no dictionary has
   the character or any word around it, the tap goes straight to KOReader's dictionary lookup.
+
+### Translating the sentence
+
+While Wi-Fi is on and connected, the popup has one more button on a row of its own. It closes
+the popup and sends **the whole sentence containing the tapped character**:
+
+- **With [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) installed**, the button
+  reads **Translate & Analyze** and runs the sentence through KOAssistant with a built-in prompt:
+  a natural English translation, then a chunk-by-chunk analysis (characters, pinyin with tone
+  marks, a literal gloss and the grammatical role), then any construction that governs the
+  sentence. The sentence goes to KOAssistant as a selection, exactly as if you had selected it
+  and run an action from the highlight menu, so KOAssistant also gets its surrounding context,
+  your provider and model, and the book's title. The prompt is part of this plugin, a **snapshot**
+  of the author's own KOAssistant custom action "Translate & Analyze" (system prompt,
+  temperature 0.3, up to 2000 tokens): it works without that custom action, and editing a
+  custom action of your own does not change this button. Nothing is written to KOAssistant's
+  settings or files.
+- **Without KOAssistant** (or with a version whose internals have changed), the button reads
+  **Translate** and uses **KOReader's built-in translator**, the same as Translate in the
+  highlight menu, with its usual window. KOReader translates from the book's language when
+  "Translate from book language" is on: a Chinese book whose metadata says English (common with
+  converted EPUBs) comes back untranslated. Fix the book's language in Book information
+  (zh-CN), or turn that option off.
+
+The label is decided when the popup opens, so it always says what the button will do. Without
+Wi-Fi (off, or on but not connected) the row is left out altogether. The check reads KOReader's
+network state only, with no lookup or request, so the popup opens as fast as before; a
+connection lost after the popup opens is left to KOReader or KOAssistant.
+
+**The sentence** is found in the book's text, not on the lines on screen, and crosses pages:
+forward to the next 。！？ (or . ! ? in Latin text, when followed by a space or the end), with
+any closing quotes or brackets right after it (。” ？」 ！』); backward to just after the
+previous one, or to the start of the paragraph. A paragraph with no end mark is taken whole.
+At most **200 characters** go out: a longer sentence is kept to 200 around the tapped
+character (centred, or shifted when it is near one end), each cut end moved inward to a
+clause mark (，；：) when there is one close by. Nothing is highlighted in the book.
 
 ### Other dictionaries
 
@@ -216,6 +254,9 @@ Measured on a Boox Go 7 against the two old plugins, same book, same pages:
   takes 20–30 ms either way; the MOE file opens on the first tap, in 1–3 ms. Memory: about
   2 MB more (KOReader's total about 133 MB against 131 MB); the dictionaries are read from the
   database, not loaded into memory.
+- **The Translate button**: the Wi-Fi check and the choice of mode take 1–2 ms when the popup
+  opens (popup built in 9–15 ms against 7–10 ms without the button, same character). The
+  sentence is found when the button is pressed, in 2–3 ms.
 
 ## Data
 
@@ -296,8 +337,8 @@ tools/deploy.sh "/sdcard/Books/book.epub"   # check, push to a USB-connected And
 ```
 
 The tests (`tests/run.py`, under LuaJIT through lupa) cover the reading resolver, page walking,
-layout and hit testing, the popup's content and placement, the settings migration, the menu, and
-the database code, which runs its real SQL against the built database. `test_integration.lua`
+layout and hit testing, the popup's content and placement, the sentence finder and the
+Translate button (mode, Wi-Fi), the settings migration, the menu, and the database code, which runs its real SQL against the built database. `test_integration.lua`
 checks the resolver and the popup together, including that for every character the pinyin layer
 draws, the popup marks the same reading.
 
@@ -315,6 +356,8 @@ draws, the popup marks the same reading.
 | `ch_context.lua`, `ch_text.lua` | tap → character → the characters around it; candidate words |
 | `ch_pinyin.lua` | pinyin comparisons |
 | `ch_popup_model.lua`, `ch_popup.lua` | what the popup shows, and the popup |
+| `ch_sentence.lua` | the sentence around the tapped character |
+| `ch_translate.lua` | the Translate button: KOAssistant (with the prompt snapshot) or KOReader's translator |
 
 ## Credits and licences
 

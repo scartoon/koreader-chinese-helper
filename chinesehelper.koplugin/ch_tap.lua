@@ -211,6 +211,40 @@ function Tap:lookupInKOReader(text, box)
     dictionary:onLookupWord(text, false, box and { box } or nil)
 end
 
+-- The sentence button's row (ch_translate.lua), or nil while Wi-Fi is not
+-- connected. The sentence is only looked for when the button is pressed.
+function Tap:sentenceRow(hit, close)
+    local t0 = time.monotonic()
+    local ok, row, mode = pcall(function()
+        local Sentence = require("ch_sentence")
+        local Translate = require("ch_translate")
+        local document = self:ui().document
+        return Translate.row{
+            ui = self:ui(),
+            network = require("ui/network/manager"),
+            close = close,
+            logger = logger,
+            sentence = function()
+                local t0 = time.monotonic()
+                local ok2, s = pcall(Sentence.find, document, hit)
+                if not ok2 then logger.warn("chinesehelper: sentence failed:", tostring(s)) end
+                s = ok2 and s or { text = hit.char }
+                logger.dbg(string.format("chinesehelper: sentence of %d bytes%s%s in %.1f ms", #s.text,
+                    s.pos0 and "" or " (no positions)", s.capped and " (capped)" or "",
+                    time.to_ms(time.monotonic() - t0)))
+                return s
+            end,
+        }
+    end)
+    if not ok then
+        logger.warn("chinesehelper: sentence button failed:", tostring(row))
+        return nil
+    end
+    logger.dbg(string.format("chinesehelper: sentence button %s in %.2f ms", tostring(mode or "hidden"),
+        time.to_ms(time.monotonic() - t0)))
+    return row
+end
+
 function Tap:showPopup(hit)
     local t0 = time.monotonic()
     local db, err = self.plugin:db()
@@ -250,13 +284,16 @@ function Tap:showPopup(hit)
         }
     end
     buttons[#buttons + 1] = { text = _("Close"), callback = function() popup:onClose() end }
+    local rows = Text.rows(buttons, Tap.BUTTONS_PER_ROW)
+    local sentence_row = self:sentenceRow(hit, function() popup:onClose() end)
+    if sentence_row then rows[#rows + 1] = sentence_row end
     local font_size = self:textHeight()
     popup = Popup:new{
         title = hit.char,
         blocks = Model.blocks(matches, hit.char, annotated, Popup.BOLD_START, Popup.BOLD_END),
         labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
         header = Model.header(left, hit.char, right, Popup.BOLD_START, Popup.BOLD_END),
-        buttons = Text.rows(buttons, Tap.BUTTONS_PER_ROW),
+        buttons = rows,
         anchor = hit.box,
         text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),
     }
