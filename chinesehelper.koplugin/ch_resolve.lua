@@ -64,21 +64,29 @@ end
 -- "also possible"), as { {word=, start=}, ... }.
 -- When several words of that length cover it (大宛 and 宛如 in 很大宛如), the
 -- more frequent word wins; the leftmost one on a tie.
+local function text_of(items, start, stop)
+    local parts = {}
+    for k = start, stop do parts[#parts + 1] = items[k].text end
+    return table.concat(parts)
+end
+
+-- Add every word word_reading may look up for items[i] to `list`.
+local function candidate_words(data, items, i, list)
+    local max_len = math.min(data.max_word_len or 4, 4)
+    for len = max_len, 2, -1 do
+        for start = i - len + 1, i do
+            if contiguous(items, start, start + len - 1) then list[#list + 1] = text_of(items, start, start + len - 1) end
+        end
+    end
+    return list
+end
+
 function Resolve.word_reading(data, items, i)
     local max_len = math.min(data.max_word_len or 4, 4)
-    local function text_of(start, stop)
-        local parts = {}
-        for k = start, stop do parts[#parts + 1] = items[k].text end
-        return table.concat(parts)
-    end
     if data.prefetch then
-        -- Every candidate word in one lookup (a database query in the plugin).
-        local list = {}
-        for len = max_len, 2, -1 do
-            for start = i - len + 1, i do
-                if contiguous(items, start, start + len - 1) then list[#list + 1] = text_of(start, start + len - 1) end
-            end
-        end
+        -- Every candidate word in one lookup (a database query in the plugin;
+        -- nothing when Resolve.annotate has fetched the page's already).
+        local list = candidate_words(data, items, i, {})
         if #list > 0 then data:prefetch(list) end
     end
     for len = max_len, 2, -1 do
@@ -87,7 +95,7 @@ function Resolve.word_reading(data, items, i)
         for start = i - len + 1, i do
             local stop = start + len - 1
             if contiguous(items, start, stop) then
-                local word = text_of(start, stop)
+                local word = text_of(items, start, stop)
                 local syllables, freq = data:word(word)
                 freq = freq or 0
                 if syllables and #syllables == len then
@@ -244,29 +252,36 @@ in page order; match is the word that decided the reading (see
 Resolve.reading), or nil.
 ]]
 function Resolve.annotate(data, items, threshold, uncertain, special)
-    local out, seen = {}, {}
+    -- Rarity first: only a rare character, or one with an unusual reading in
+    -- a special word, is worth resolving. Their candidate words are then
+    -- fetched in one lookup for the whole page.
+    local wanted, words = {}, {}
     for i, item in ipairs(items) do
         if item.on_page ~= false and single_char(item.text) then
-            -- Rarity first: only a rare character, or one with an unusual
-            -- reading in a special word, is worth resolving.
             local sp = special and Resolve.special_at(special, items, i) or false
             local rank = data:char(item.text)
-            local wanted = (sp and sp.entry.marks[sp.pos]) or rank == 0 or (rank and rank > threshold)
-            local reading, match, marked
-            if wanted then
-                reading, rank, match, marked = Resolve.reading(data, items, i, uncertain, special, sp)
+            if (sp and sp.entry.marks[sp.pos]) or rank == 0 or (rank and rank > threshold) then
+                wanted[#wanted + 1] = { i, sp }
+                if data.prefetch then candidate_words(data, items, i, words) end
             end
-            if reading and (marked or rank == 0 or (rank and rank > threshold)) then
-                local key = item.text .. "\t" .. reading
-                if not seen[key] then
-                    seen[key] = true
-                    -- Rarity used to decide what to drop when a line is crowded:
-                    -- unranked characters count as rarest.
-                    -- Unusual readings are kept like the rarest characters.
-                    out[#out + 1] = { index = i, reading = reading,
-                                      rank = (marked or rank == 0) and math.huge or rank,
-                                      match = match, special = marked or nil }
-                end
+        end
+    end
+    if #words > 0 then data:prefetch(words) end
+    local out, seen = {}, {}
+    for _, w in ipairs(wanted) do
+        local i = w[1]
+        local item = items[i]
+        local reading, rank, match, marked = Resolve.reading(data, items, i, uncertain, special, w[2])
+        if reading and (marked or rank == 0 or (rank and rank > threshold)) then
+            local key = item.text .. "\t" .. reading
+            if not seen[key] then
+                seen[key] = true
+                -- Rarity used to decide what to drop when a line is crowded:
+                -- unranked characters count as rarest.
+                -- Unusual readings are kept like the rarest characters.
+                out[#out + 1] = { index = i, reading = reading,
+                                  rank = (marked or rank == 0) and math.huge or rank,
+                                  match = match, special = marked or nil }
             end
         end
     end

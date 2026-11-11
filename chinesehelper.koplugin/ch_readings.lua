@@ -14,19 +14,26 @@
 --              word nor a rule decides: confidence, the two likeliest readings.
 --
 -- The plugin fills chars, rules and uncertain from the SQLite database when
--- the first page is drawn (they are needed for every character on a page)
--- and looks words up in the database on demand, in batches, caching the
--- answers (ch_db.lua). Tests and tools fill everything from the build's TSV
--- files (Readings.fromTsv). Either way the resolver sees the same object.
+-- the first page is drawn (they are needed for every character on a page),
+-- with every word that contains a rare character (one that can be
+-- annotated): those are all the words a page's annotations can need, so a
+-- page turn never queries the database, as fast as the TSV tables of
+-- interlinear-pinyin 0.5.0. Other words (common characters only, for the
+-- popup) are looked up in the database on demand, in batches, and cached
+-- (ch_db.lua). Tests and tools fill everything from the build's TSV files
+-- (Readings.fromTsv). Either way the resolver sees the same object.
 
 local Readings = {}
 Readings.__index = Readings
 
 Readings.MAX_WORD_LEN = 4
+Readings.RARE_RANK = 1000      -- characters ranked above this (or unranked) can be annotated
 Readings.CACHE_LIMIT = 20000   -- cached word lookups kept before the cache is reset
 
 -- opts.word_lookup: function(list of words) -> { [word] = { "syllables", freq } }
--- for words not held in memory (nil: words come only from addWord).
+-- for words not held in memory (nil: words come only from addWord). With a
+-- lookup, the words in memory are taken to be every word that contains a
+-- rare character: such a word that is not there does not exist.
 function Readings.new(opts)
     opts = opts or {}
     return setmetatable({
@@ -34,6 +41,15 @@ function Readings.new(opts)
         lookup = opts.word_lookup, cache = {}, cached = 0,
         max_word_len = Readings.MAX_WORD_LEN,
     }, Readings)
+end
+
+-- Does `word` contain a rare character (one that can be annotated)?
+function Readings:hasRare(word)
+    for ch in word:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        local entry = self.chars[ch]
+        if not entry or entry[1] == 0 or entry[1] > Readings.RARE_RANK then return true end
+    end
+    return false
 end
 
 -- Split on the space character only: %S depends on the C locale, and in some
@@ -49,8 +65,9 @@ function Readings:addChar(ch, rank, reading)
     self.chars[ch] = { tonumber(rank) or 0, reading }
 end
 
+-- syllables: a table, or the space-separated string (split on first use).
 function Readings:addWord(word, syllables, freq)
-    self.words[word] = type(syllables) == "table" and syllables or Readings.syllables(syllables)
+    self.words[word] = syllables
     local f = tonumber(freq)
     if f and f > 0 then self.word_freq[word] = f end
 end
@@ -103,7 +120,7 @@ function Readings:prefetch(list)
     if not self.lookup then return end
     local missing, seen = {}, {}
     for _, w in ipairs(list) do
-        if not self.words[w] and self.cache[w] == nil and not seen[w] then
+        if not self.words[w] and self.cache[w] == nil and not seen[w] and not self:hasRare(w) then
             seen[w] = true
             missing[#missing + 1] = w
         end
@@ -124,8 +141,14 @@ end
 -- words, 0 when unknown), or nil.
 function Readings:word(word)
     local syllables = self.words[word]
-    if syllables then return syllables, self.word_freq[word] or 0 end
-    if not self.lookup then return nil end
+    if syllables then
+        if type(syllables) == "string" then
+            syllables = Readings.syllables(syllables)
+            self.words[word] = syllables
+        end
+        return syllables, self.word_freq[word] or 0
+    end
+    if not self.lookup or self:hasRare(word) then return nil end
     if self.cache[word] == nil then self:prefetch({ word }) end
     local hit = self.cache[word]
     if not hit then return nil end

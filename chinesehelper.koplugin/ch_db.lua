@@ -5,7 +5,7 @@
 --   entries(simp, trad, pinyin, syllables, defs)   CC-CEDICT, one row per entry;
 --                         indexes on simp and trad (the popup's lookup)
 --   chars(ch, rank, reading)                       the resolver's tables
---   words(word, syllables, freq)                   (see ch_readings.lua);
+--   words(word, syllables, freq, rare)             (see ch_readings.lua);
 --   rules(ch, side, neighbour, reading, n)         chars, rules and uncertain are
 --   uncertain(ch, confidence, first, second)       read into memory once, words
 --   special(word, pinyin, marks, freq, note)       are looked up on demand
@@ -102,13 +102,17 @@ function DB:words(list)
     return out
 end
 
--- The resolver's tables: chars, rules and uncertain in memory, words looked
--- up here on demand.
+-- The resolver's tables: chars, rules, uncertain and the words containing a
+-- rare character in memory (everything a page's annotations need), the
+-- other words looked up here on demand.
 function DB:readings()
     local db = self
     local data = Readings.new{ word_lookup = function(list) return db:words(list) end }
     self:each("SELECT ch, rank, reading FROM chars", nil, function(row)
         data:addChar(row[1], tonumber(row[2]), row[3])
+    end)
+    self:each("SELECT word, syllables, freq FROM words WHERE rare = 1", nil, function(row)
+        data:addWord(row[1], row[2], tonumber(row[3]))
     end)
     self:each("SELECT ch, side, neighbour, reading, n FROM rules", nil, function(row)
         data:addRule(row[1], row[2], row[3], row[4], tonumber(row[5]))

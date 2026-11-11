@@ -40,3 +40,20 @@ assert(data:word("东东东") == nil and data.cache["东东东"] == false, "miss
 eq(data:rule("行", nil, nil), nil)
 local first, second = data:uncertainty("了")
 eq(first, "le"); eq(second, "liǎo")
+
+-- Every word with a rare character is in memory, so annotating a page never
+-- queries the database; common words still come from it.
+local in_memory = 0
+for _ in pairs(data.words) do in_memory = in_memory + 1 end
+eq(tostring(in_memory), meta.rare_words, "words with a rare character loaded")
+local queries = 0
+local real = data.lookup
+data.lookup = function(list) queries = queries + 1; return real(list) end
+assert(data:word("饕不存在") == nil)
+local Resolve = require("ch_resolve")
+Resolve.annotate(data, H.items("两军对峙，饕餮之徒，侥幸逃脱，僬侥之国。"), 1500, "both", H.special())
+eq(queries, 0, "no database query for a page's annotations")
+data.cache, data.cached = {}, 0
+data:word("东西")
+eq(queries, 1, "a common word is looked up")
+data.lookup = real

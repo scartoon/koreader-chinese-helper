@@ -26,7 +26,8 @@ Schema:
         pinyin     tone marks, joined into words: "Zhōngguó", "dōngxi"
         syllables  tone marks, one per character: "Zhōng guó", "dōng xi"
         defs       senses joined with "/", cross-references made readable
-    chars(ch, rank, reading)  words(word, syllables, freq)
+    chars(ch, rank, reading)  words(word, syllables, freq, rare)
+        rare       1 when the word contains a character that can be annotated
     rules(ch, side, neighbour, reading, n)  uncertain(ch, confidence, first, second)
     special(word, pinyin, marks, freq, note)  special_guard(ordinary, word, offset)
     meta(key, value)          source versions and counts
@@ -58,6 +59,7 @@ BUILD_DATA = os.path.join(BUILD_DIR, "data")
 DATA_DIR = os.path.join(ROOT, "data")
 
 LINE_RE = re.compile(r"^(\S+) (\S+) \[([^\]]*)\] /(.*)/\s*$")
+RARE_RANK = 1000   # as Readings.RARE_RANK in ch_readings.lua and MIN_ANNOTATABLE_RANK in build_data.py
 
 # ---------------------------------------------------------------------------
 # CC-CEDICT pinyin and cross-references (from koreader-chinese-popup)
@@ -177,7 +179,8 @@ SCHEMA = """
     CREATE TABLE entries (simp TEXT NOT NULL, trad TEXT NOT NULL, pinyin TEXT NOT NULL,
                           syllables TEXT NOT NULL, defs TEXT NOT NULL);
     CREATE TABLE chars (ch TEXT PRIMARY KEY, rank INTEGER NOT NULL, reading TEXT NOT NULL) WITHOUT ROWID;
-    CREATE TABLE words (word TEXT PRIMARY KEY, syllables TEXT NOT NULL, freq INTEGER NOT NULL) WITHOUT ROWID;
+    CREATE TABLE words (word TEXT PRIMARY KEY, syllables TEXT NOT NULL, freq INTEGER NOT NULL,
+                        rare INTEGER NOT NULL) WITHOUT ROWID;
     CREATE TABLE rules (ch TEXT NOT NULL, side TEXT NOT NULL, neighbour TEXT NOT NULL,
                         reading TEXT NOT NULL, n INTEGER NOT NULL);
     CREATE TABLE uncertain (ch TEXT PRIMARY KEY, confidence REAL NOT NULL, first TEXT NOT NULL,
@@ -201,14 +204,21 @@ def build(cedict_entries, header, sha, out):
     con.execute("CREATE INDEX entries_trad ON entries(trad)")
 
     chars = [(ch, int(rank), reading) for ch, rank, reading in tsv(os.path.join(BUILD_DATA, "chars.tsv"), 3)]
-    words = [(w, syl, int_or_zero(freq)) for w, syl, freq in tsv(os.path.join(BUILD_DATA, "words.tsv"), 3)]
+    rank = {ch: r for ch, r, _ in chars}
+
+    def rare(word):
+        """Contains a character that can be annotated (rank above 1,000, or
+        unranked): the plugin keeps these words in memory, so a page turn
+        never queries the database."""
+        return int(any(rank.get(ch, 0) == 0 or rank.get(ch, 0) > RARE_RANK for ch in word))
+    words = [(w, syl, int_or_zero(freq), rare(w)) for w, syl, freq in tsv(os.path.join(BUILD_DATA, "words.tsv"), 3)]
     rules = [(ch, side, nb, r, int_or_zero(n)) for ch, side, nb, r, n in tsv(os.path.join(DATA_DIR, "rules.tsv"), 5)]
     uncertain = [(ch, float(c), a, b) for ch, c, a, b in tsv(os.path.join(DATA_DIR, "uncertain.tsv"), 4)]
     special = [(w, py, marks, int_or_zero(freq), note or None)
                for w, py, marks, freq, note in tsv(os.path.join(BUILD_DATA, "special.tsv"), 5)]
     guard = [(a, b, int(off)) for a, b, off in tsv(os.path.join(BUILD_DATA, "special_guard.tsv"), 3)]
     con.executemany("INSERT INTO chars VALUES (?, ?, ?)", chars)
-    con.executemany("INSERT INTO words VALUES (?, ?, ?)", words)
+    con.executemany("INSERT INTO words VALUES (?, ?, ?, ?)", words)
     con.executemany("INSERT INTO rules VALUES (?, ?, ?, ?, ?)", rules)
     con.executemany("INSERT INTO uncertain VALUES (?, ?, ?, ?)", uncertain)
     con.executemany("INSERT INTO special VALUES (?, ?, ?, ?, ?)", special)
@@ -217,7 +227,7 @@ def build(cedict_entries, header, sha, out):
     meta = {
         "cedict_date": header.get("date", ""), "cedict_entries": str(len(cedict_entries)),
         "cedict_sha256": sha, "wordfreq": version("wordfreq"), "pypinyin": version("pypinyin"),
-        "chars": str(len(chars)), "words": str(len(words)), "rules": str(len(rules)),
+        "chars": str(len(chars)), "words": str(len(words)), "rare_words": str(sum(w[3] for w in words)), "rules": str(len(rules)),
         "uncertain": str(len(uncertain)), "special": str(len(special)), "special_guard": str(len(guard)),
         "license": "CC BY-SA 4.0 (CC-CEDICT, wordfreq; see README)",
     }
