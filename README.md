@@ -194,10 +194,43 @@ Measured on a Boox Go 7 against the two old plugins, same book, same pages:
 ## Data
 
 Everything is in one SQLite database, `chinesehelper.koplugin/data/chinesehelper.sqlite` (about
-20 MB): CC-CEDICT, and the reading tables (every character's frequency rank and default reading,
-words, context rules, uncertain characters, unusual readings). The popup's lookups use indexes on
-the simplified and traditional forms; the build checks with `EXPLAIN QUERY PLAN` that every
-lookup query uses its index.
+28 MB):
+
+- **CC-CEDICT** (`entries`): the popup's dictionary.
+- **Fallback dictionaries** (`fallback`): entries from English **Wiktionary** for words CC-CEDICT
+  does not have (about 61,000 headwords: historical and literary terms, chengyu, technical terms,
+  some slang). CC-CEDICT always wins: there is no fallback row for any headword CC-CEDICT has, in
+  either script. Only what the popup can match is kept (headwords of 1–8 Chinese characters with a
+  Mandarin reading), and everyday combinations that CC-CEDICT leaves out on purpose are filtered
+  out (很多, 这次, 一天, 脸上: a closed-class word such as a numeral, measure word, adverb, locative
+  or particle next to a word CC-CEDICT has), as are numerals and entries that only name places.
+- **The reading tables** (every character's frequency rank and default reading, words, context
+  rules, uncertain characters, unusual readings). The fallback dictionaries never feed these: the
+  build records a checksum of them, which is the same with and without the fallback table.
+
+The popup's lookups use indexes on the simplified and traditional forms; the build checks with
+`EXPLAIN QUERY PLAN` that every lookup query uses its index.
+
+### Optional: the MOE dictionary (build it yourself)
+
+The Taiwan Ministry of Education's 《重編國語辭典修訂本》 (about 160,000 entries, monolingual, strong on
+historical and literary vocabulary) can be added as a second fallback dictionary. Its licence
+(CC BY-ND 3.0 TW) allows copying it for your own use but not distributing adaptations, so it is
+**not** in the repository or the release: you build the file yourself and copy it to your device.
+The plugin works the same without it.
+
+```sh
+.venv/bin/pip install opencc
+.venv/bin/python tools/build_moe.py              # -> build/chinesehelper-moe.sqlite (about 17 MB)
+.venv/bin/python tools/build_moe.py --push       # ... and copy it to a USB-connected Android device
+```
+
+It goes in KOReader's data folder, where plugin updates leave it alone:
+`koreader/data/chinesehelper/chinesehelper-moe.sqlite` (on Android:
+`/sdcard/koreader/data/chinesehelper/chinesehelper-moe.sqlite`). Its headwords are traditional,
+also indexed under their simplified form (OpenCC `tw2s`, characters only); its readings are Taiwan
+standard and stay inside its own entries. Build the plugin database first: headwords CC-CEDICT has
+are left out of the MOE file too.
 
 The database changes completely with each CC-CEDICT update, so it is **not committed** (every
 rebuild would add another 20 MB of binary history); it is attached to each GitHub release inside
@@ -211,10 +244,20 @@ python3 -m venv .venv && .venv/bin/pip install wordfreq==3.1.1 pypinyin==0.55.0 
 .venv/bin/python tools/build_db.py                 # downloads the current CC-CEDICT
 .venv/bin/python tools/build_db.py --cedict build/cedict_1_0_ts_utf-8_mdbg.txt.gz   # or a local copy
 .venv/bin/python tools/build_db.py --learn         # also re-learn the context rules (downloads the CPP dataset)
+.venv/bin/python tools/build_db.py --no-wiktionary # without the Wiktionary fallback table
 ```
 
-The release ships CC-CEDICT dated 2026-11-09 (125,397 entries); [`data/README.md`](data/README.md)
-lists every source's version.
+The Wiktionary data (kaikki.org's extraction, about 160 MB) is downloaded into `build/` when
+missing, with the dump and extraction dates it came from; the build records them, and the
+checksums of every source, in the database's `meta` table.
+
+The release ships CC-CEDICT dated 2026-11-09 (125,397 entries) and Wiktionary as of the 2026-10-01
+dump (kaikki.org extraction of 2026-10-30); [`data/README.md`](data/README.md) lists every source's
+version.
+
+To see what fallback dictionaries add on your own books: `tools/fetch_books.py` (copies the EPUBs
+from a USB-connected device into `build/`), `tools/download_sources.sh`, then
+`tools/measure_fallback.py` (reports in `build/measure/`).
 
 ## Development
 
@@ -271,6 +314,17 @@ The data (the database, and the files in `data/`) is derived from, and distribut
   Lee (Interspeech 2020; repository Apache-2.0, sentences from Chinese Wikipedia, CC BY-SA): its
   train split, for the context rules and uncertain characters. The dataset itself is not
   included.
+- **[Wiktionary](https://en.wiktionary.org/)** (English Wiktionary's Chinese entries), by
+  Wiktionary contributors, CC BY-SA 4.0, via the
+  [kaikki.org](https://kaikki.org/dictionary/Chinese/) extraction made with
+  [wiktextract](https://github.com/tatuylonen/wiktextract) (Tatu Ylonen, "Wiktextract: Wiktionary as
+  Machine-Readable Structured Data", LREC 2022): the fallback dictionary. Changes made: Mandarin
+  readings only, dialect-only senses dropped, redirects resolved, entries CC-CEDICT has and
+  everyday combinations left out, senses reformatted; see `data/README.md`.
+
+Not distributed: the optional MOE dictionary (中華民國教育部《重編國語辭典修訂本》, CC BY-ND 3.0 TW,
+via [g0v/moedict-data](https://github.com/g0v/moedict-data)) is never in the repository or a
+release; `tools/build_moe.py` builds it from the original for the user's own device.
 
 [`data/README.md`](data/README.md) lists the changes made and the versions used. The texts in
 the sample book (`samples/guwen.epub`: 陶渊明, 刘禹锡, 周敦颐) are in the public domain.
