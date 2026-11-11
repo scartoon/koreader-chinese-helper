@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Edge pass-through width** offers 7.5 mm (89 px at 300 dpi) between 5 and 10 mm. The default
+  stays 5 mm; a width saved by an earlier version is kept.
+
 ## 1.3.0 (2026-11-11)
 
 - **Translate the sentence** from the popup: a full-width button below the word buttons sends the

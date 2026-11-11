@@ -83,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 10 + 5 + 5 + 3 + 4 + 5 + 3 + 3, "menu size")
+eq(count, 10 + 5 + 5 + 3 + 5 + 5 + 3 + 3, "menu size")
 
 -- The two toggles are independent.
 local pinyin_item, popup_item = entry.sub_item_table[1], entry.sub_item_table[2]
@@ -114,7 +114,7 @@ entry.sub_item_table[8].sub_item_table[4].callback()
 eq(plugin.settings:popupTextPercent(), 100)
 assert(entry.sub_item_table[8].text_func():find("100%%"))
 
--- Edge pass-through width: default 5 mm, four radio choices, label follows.
+-- Edge pass-through width: default 5 mm, five radio choices, label follows.
 local edge_item = entry.sub_item_table[7]
 eq(edge_item.text_func(), "Edge pass-through width: 5 mm")
 local labels = {}
@@ -122,7 +122,7 @@ for _, item in ipairs(edge_item.sub_item_table) do
     labels[#labels + 1] = item.text
     assert(item.radio, "radio choices")
 end
-eq(table.concat(labels, "|"), "0 mm (off)|2.5 mm|5 mm|10 mm")
+eq(table.concat(labels, "|"), "0 mm (off)|2.5 mm|5 mm|7.5 mm|10 mm")
 assert(edge_item.sub_item_table[3].checked_func() and not edge_item.sub_item_table[1].checked_func())
 edge_item.sub_item_table[2].callback()
 eq(settings.chinesehelper_edge_mm, 2.5, "saved"); eq(edge_item.text_func(), "Edge pass-through width: 2.5 mm")
@@ -133,9 +133,12 @@ local hits = 0
 plugin.tap.hitAt = function() hits = hits + 1; return nil end
 plugin.ui = { document = {}, highlight = {} }
 local function tap(x, y) return plugin.tap:onTap({ pos = { x = x, y = y } }) end
-for k, mm in ipairs({ 2.5, 5, 10 }) do
+for k, mm in ipairs({ 2.5, 5, 7.5, 10 }) do
     edge_item.sub_item_table[k + 1].callback()
-    local band = ({ 30, 59, 118 })[k]
+    eq(settings.chinesehelper_edge_mm, mm, "saved")
+    eq(edge_item.text_func(), "Edge pass-through width: " .. mm .. " mm")
+    assert(edge_item.sub_item_table[k + 1].checked_func(), mm .. " mm checked")
+    local band = ({ 30, 59, 89, 118 })[k]
     eq(plugin.tap:edgeBand(), band, mm .. " mm at 300 dpi")
     for _, p in ipairs({ { band - 1, 600 }, { 1680 - band, 600 }, { 840, band - 1 }, { 840, 1264 - band } }) do
         hits = 0
@@ -152,6 +155,14 @@ end
 screen.w, screen.h = 1264, 1680
 hits = 0; tap(1264 - 130, 800); eq(hits, 1, "portrait, 10 mm band (118 px): 130 px from the right edge is outside")
 hits = 0; tap(1264 - 100, 800); eq(hits, 0, "portrait: within 118 px of the right edge")
+-- Portrait at 7.5 mm (89 px), all four edges.
+edge_item.sub_item_table[4].callback()
+for _, p in ipairs({ { 88, 800 }, { 1264 - 89, 800 }, { 600, 88 }, { 600, 1680 - 89 } }) do
+    hits = 0; eq(tap(p[1], p[2]), false, "portrait, 7.5 mm: inside"); eq(hits, 0)
+end
+for _, p in ipairs({ { 89, 800 }, { 1264 - 90, 800 }, { 600, 89 }, { 600, 1680 - 90 } }) do
+    hits = 0; tap(p[1], p[2]); eq(hits, 1, "portrait, 7.5 mm: just outside")
+end
 screen.w, screen.h = 1680, 1264
 -- 0 mm: no band at all, even at the very edge.
 edge_item.sub_item_table[1].callback()

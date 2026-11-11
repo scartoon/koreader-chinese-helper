@@ -10,8 +10,8 @@
 
 local Edge = {}
 
-Edge.CHOICES = { 0, 2.5, 5, 10 }   -- millimetres; 0 = off
-Edge.FALLBACK_DPI = 300            -- when the screen reports no usable DPI
+Edge.CHOICES = { 0, 2.5, 5, 7.5, 10 }   -- millimetres; 0 = off
+Edge.FALLBACK_DPI = 300                 -- when the screen reports no usable DPI
 
 -- Band width in pixels for `mm` millimetres at `dpi` (0 when off).
 function Edge.px(mm, dpi)
