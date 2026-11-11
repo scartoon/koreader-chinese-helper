@@ -144,14 +144,19 @@ function ChineseHelper:special()
     if session.special then return session.special end
     local db = self:db()
     if not db then return nil end
+    -- The collector is paused while loading so the memory figure in Status
+    -- is what the list takes, not that minus whatever was collected meanwhile.
+    collectgarbage("stop")
     local t0, kb0 = time.monotonic(), collectgarbage("count")
     local ok, special = pcall(db.special, db)
+    local kb = collectgarbage("count") - kb0
+    collectgarbage("restart")
     if not ok then
         logger.warn("chinesehelper: no special readings:", tostring(special))
         return nil
     end
     special.load_ms = time.to_ms(time.monotonic() - t0)
-    special.kb = collectgarbage("count") - kb0
+    special.kb = kb
     session.special = special
     return special
 end
