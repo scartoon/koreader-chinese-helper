@@ -101,6 +101,7 @@ def main():
         g.PY_SQLITE = SQLiteBridge(lua)
         g.PY_ENTRIES_SQL = build_db.entries_sql
         g.PY_WORDS_SQL = build_db.words_sql
+        g.PY_FALLBACK_SQL = build_db.fallback_sources.fallback_sql
         lua.execute(f'package.path = "{PLUGIN}/?.lua;{ROOT}/tests/?.lua;" .. package.path')
         try:
             lua.execute(open(os.path.join(ROOT, "tests", name), encoding="utf-8").read())

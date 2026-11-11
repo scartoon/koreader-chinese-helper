@@ -10,6 +10,9 @@
 --   uncertain(ch, confidence, first, second)       read into memory once, words
 --   special(word, pinyin, marks, freq, note)       are looked up on demand
 --   special_guard(ordinary, word, offset)
+--   fallback(simp, trad, pinyin, syllables, defs, source)   other dictionaries,
+--                         for words CC-CEDICT lacks (indexes on simp and trad);
+--                         the same table in the user's optional MOE file
 --   meta(key, value)
 --
 -- The SQL here must stay identical to tools/build_db.py's, which checks the
@@ -53,6 +56,13 @@ function DB.entriesSql(n)
         .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
 end
 
+-- Fallback rows for n candidate words (simplified or traditional form).
+-- Kept identical to tools/fallback_sources.py's fallback_sql.
+function DB.fallbackSql(n)
+    return "SELECT simp, trad, pinyin, syllables, defs, source FROM fallback WHERE simp IN (" .. marks(n)
+        .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
+end
+
 -- The resolver's word readings for n words.
 function DB.wordsSql(n)
     return "SELECT word, syllables, freq FROM words WHERE word IN (" .. marks(n) .. ")"
@@ -89,6 +99,23 @@ function DB:lookup(words)
     self:each(DB.entriesSql(n), args, function(row)
         rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5] }
     end)
+    return rows
+end
+
+-- Rows { {simp=, trad=, pinyin=, syllables=, defs=, source=}, ... } from the
+-- fallback table for `words`, in table order. A database without the table
+-- (built before fallback sources existed) gives none.
+function DB:fallback(words)
+    local n = #words
+    if n == 0 then return {} end
+    local args = {}
+    for k = 1, n do args[k], args[n + k] = words[k], words[k] end
+    local rows = {}
+    local ok, err = pcall(self.each, self, DB.fallbackSql(n), args, function(row)
+        rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
+                            source = row[6] }
+    end)
+    if not ok then return {}, err end
     return rows
 end
 
