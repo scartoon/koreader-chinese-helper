@@ -281,4 +281,31 @@ function Resolve.wordReading(data, word)
     return syllables and table.concat(syllables, " ") or nil
 end
 
+--[[--
+What the tap popup needs for items[i]: the reading to mark and the word that
+decided it. `drawn`, when the character has pinyin drawn above it, is that
+pinyin, which then wins (it was computed by Resolve.annotate on the same
+items, so they agree anyway; this makes it certain). The "don't annotate"
+mode marks both likely readings: nothing is drawn, so there is nothing to
+contradict.
+
+Returns chosen ("dào", "chéng/shèng" or nil), decided ({ word=, start=
+relative to items[i], len=, syllables=, note= } or nil).
+]]
+function Resolve.forPopup(data, items, i, uncertain, special, drawn)
+    if uncertain == Resolve.UNCERTAIN_SKIP then uncertain = Resolve.UNCERTAIN_BOTH end
+    local reading, _rank, match = Resolve.reading(data, items, i, uncertain, special)
+    if drawn then reading = drawn end
+    local decided
+    if match and match.len and match.len > 1 then
+        decided = {
+            word = match.word, start = match.start - i, len = match.len,
+            syllables = match.special and table.concat(match.special.syllables, " ")
+                or Resolve.wordReading(data, match.word),
+            note = match.special and match.special.note,
+        }
+    end
+    return reading, decided
+end
+
 return Resolve
