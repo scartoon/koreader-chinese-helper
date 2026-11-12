@@ -85,7 +85,8 @@ files for the user's own device.
   Licence: CBDB Data Licensing Terms, https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms
   (CC BY-NC-SA 4.0, https://creativecommons.org/licenses/by-nc-sa/4.0/, for data within the
   current standalone release; CBDB's own non-commercial, no-derivatives, no-redistribution terms
-  beyond it). Used: `OFFICE_CODES` rows of the Ming (`c_dy` 19) and Southern Ming (80): every name
+  beyond it). The project applies the stricter terms: only the build script is distributed, and
+  the file is built by its user for personal, non-commercial use and never shared. Used: `OFFICE_CODES` rows of the Ming (`c_dy` 19) and Southern Ming (80): every name
   and alternative name of 1–8 Han characters, under its traditional form and OpenCC `t2s`; CBDB's
   English translation with "(Ming office title)" added, or "office title (Ming)" when CBDB has
   none ("[Not Yet Translated]"); CBDB's toneless reading. Names CC-CEDICT has dropped.

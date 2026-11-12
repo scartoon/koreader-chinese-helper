@@ -348,7 +348,9 @@ They go in KOReader's data folder, where plugin updates leave them alone:
   110 MB zipped, 590 MB unzipped). Licence: the
   [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms)
   ([CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) for the data of the
-  standalone release, CBDB's own non-commercial, no-redistribution terms beyond it).
+  standalone release, CBDB's own non-commercial, no-redistribution terms beyond it). This project
+  follows the stricter of the two: it ships only the build script, never CBDB data, and the file
+  is meant for your own non-commercial reading on your own device. Don't share it.
 - **Moegirlpedia slang**: the internet-slang pages of [萌娘百科](https://zh.moegirl.org.cn) (the
   page's opening sentence or two, with 黑幕 and struck-through text removed; a hand-checked list
   of characters, works and plain words left out), from the offline snapshot
