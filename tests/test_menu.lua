@@ -242,6 +242,12 @@ local status = table.concat(plugin:fallbackStatus(), "\n")
 assert(status:find("Wiktionary: on (dump 2026-10-01", 1, true), status)
 assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 2 entries)", 1, true), status)
 
+-- The resolver gets Wiktionary's words only (MOE's are for the popup).
+eq(plugin:readings().fallback_key, "wikt")
+local seen = {}
+for _, r in ipairs(plugin:readings().fallback({ "丁匠", "尚书省" })) do seen[#seen + 1] = r.simp .. ":" .. r.source end
+eq(table.concat(seen, ","), "尚书省:wikt", "MOE not asked for readings")
+
 -- The tap's fallback lookup: CC-CEDICT's words never; Wiktionary first;
 -- MOE for what Wiktionary lacks.
 local Model = require("ch_popup_model")
@@ -260,9 +266,11 @@ for _, r in ipairs(plugin.tap:fallbackRows(texts, rows)) do got[#got + 1] = r.si
 table.sort(got)
 eq(table.concat(got, ","), "丁匠:moe,尚书省:moe")
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("Wiktionary: off", 1, true))
--- Both off: nothing beyond CC-CEDICT.
+eq(plugin:readings().fallback, nil, "the resolver follows the switch: no Wiktionary, no fallback words")
+-- Both off: nothing beyond CC-CEDICT, for the resolver too.
 fb_item.sub_item_table[2].callback()
 eq(#plugin:fallbackSources(), 0); eq(#plugin.tap:fallbackRows(texts, rows), 0)
+eq(plugin:readings().fallback, nil)
 fb_item.sub_item_table[1].callback(); fb_item.sub_item_table[2].callback()
 eq(names(plugin:fallbackSources()), "wikt,moe")
 

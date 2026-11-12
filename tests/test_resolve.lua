@@ -164,5 +164,94 @@ expect("莞尔一笑", 3500, "")
 expect("他侥|幸逃脱|", 3500, "")
 expect("僬|侥之国|", 3500, "侥=yáo")
 
+-- Fallback dictionaries' words (Resolve.fallback_reading), on small
+-- hand-made tables: what decides, in which order, and what is skipped.
+do
+    local Readings = require("ch_readings")
+    local fb = Readings.new()
+    for ch, r in pairs({ ["累"] = "lěi", ["世"] = "shì", ["公"] = "gōng", ["卿"] = "qīng", ["积"] = "jī",
+                         ["甲"] = "jiǎ", ["乙"] = "yǐ", ["丙"] = "bǐng", ["丁"] = "dīng" }) do
+        fb:addChar(ch, 3000, r)
+    end
+    fb:addUncertain("累", 0.7, "lěi", "léi")
+    fb:addWord("积累", "jī lěi", 100)
+    fb:addChar("官", 500, "guān"); fb:addRule("累", "R", "官", "lèi", 9)
+    local rows = {
+        { simp = "累世", trad = "累世", pinyin = "lěishì", source = "wikt" },
+        -- MOE's row for a word Wiktionary has is never used (one source per word).
+        { simp = "累世", trad = "累世", pinyin = "lèi shì", source = "moe" },
+        { simp = "甲累", trad = "甲累", pinyin = "jiǎléi", source = "wikt" },
+        { simp = "甲累", trad = "甲累", pinyin = "jiǎlèi", source = "wikt" },  -- two readings of 累
+        { simp = "累乙", trad = "累乙", pinyin = "léiyǐ", source = "wikt" },
+        { simp = "丙累", trad = "丙累", pinyin = "bǐnglèi", source = "wikt" },
+        { simp = "累丁", trad = "累丁", pinyin = "léidīng", source = "wikt" },
+        { simp = "丙累丁", trad = "丙累丁", pinyin = "bǐng lei dīng", source = "wikt" },  -- toneless
+        { simp = "积累世", trad = "積累世", pinyin = "jīlèishì", source = "wikt" },
+        { simp = "累官", trad = "累官", pinyin = "léiguān", source = "wikt" },
+        { simp = "公累", trad = "公累", pinyin = "gōnglèi", source = "wikt" },
+        { simp = "世甲", trad = "世甲", pinyin = "shìjià", source = "wikt" },
+    }
+    local queries = 0
+    fb:setFallback(function(list)
+        queries = queries + 1
+        local want, out = {}, {}
+        for _, w in ipairs(list) do want[w] = true end
+        for _, r in ipairs(rows) do if want[r.simp] then out[#out + 1] = r end end
+        return out
+    end, "wikt,moe")
+    local function at(text, ch)
+        local items = items_of(text)
+        for i, item in ipairs(items) do
+            if item.text == ch then
+                local reading, _, match = Resolve.reading(fb, items, i)
+                return reading .. (match and (" " .. match.word .. (match.fallback and ":" .. match.fallback or ""))
+                    or "")
+            end
+        end
+    end
+    local function check(got, want, what)
+        if got == want then passed = passed + 1 else
+            failures = failures + 1
+            print(("FAIL  %s: expected %s, got %s"):format(what, want, tostring(got)))
+        end
+    end
+    check(at("累世公卿", "累"), "lěi 累世:wikt", "a fallback word decides")
+    check(at("甲累", "累"), "lěi/léi", "a word giving the character two readings is skipped")
+    check(at("甲累乙", "累"), "léi 累乙:wikt", "...and the next word used")
+    check(at("丙累丁", "累"), "lěi/léi", "same length, different readings: nothing decided")
+    check(at("积累世", "累"), "lěi 积累", "a CC-CEDICT word beats a longer fallback word")
+    check(at("累官", "累"), "lèi", "a context rule beats a fallback word")
+    check(at("公累", "累"), "lěi/léi", "a reading outside the uncertain pair is not taken")
+    check(at("世甲", "甲"), "jiǎ", "a character with a reliable default: fallback words not used")
+    fb:setFallback(nil)
+    check(at("累世公卿", "累"), "lěi/léi", "fallback dictionaries off: the pair")
+    -- Page annotation: the fallback words of a page come in one lookup, and
+    -- only for characters no other word decides.
+    fb:setFallback(fb.fallback or function(list)
+        queries = queries + 1
+        local want, out = {}, {}
+        for _, w in ipairs(list) do want[w] = true end
+        for _, r in ipairs(rows) do if want[r.simp] then out[#out + 1] = r end end
+        return out
+    end, "wikt")
+    queries = 0
+    local items = items_of("累世公卿，甲累乙，积累世，世甲")
+    local got = {}
+    for _, a in ipairs(Resolve.annotate(fb, items, 1000)) do got[#got + 1] = items[a.index].text .. "=" .. a.reading end
+    check(table.concat(got, " "), "累=lěi 世=shì 公=gōng 卿=qīng 甲=jiǎ 累=léi 乙=yǐ 积=jī", "annotate")
+    check(fb.fb_cache["世甲"], nil, "only the uncertain characters' words are looked up")
+    check(queries, 1, "one fallback lookup for the page")
+    for _, a in ipairs(Resolve.annotate(fb, items, 1000)) do end
+    check(queries, 1, "cached: none for the same page again")
+    -- Switching sources empties the cache.
+    fb:setFallback(fb.fallback, "moe")
+    check(fb.fb_cached, 0, "cache emptied when the sources change")
+    -- A special word still wins (see test_special.lua for the real table).
+    local special = Readings.newSpecial()
+    Readings.addSpecial(special, "累世", "léi shì", "10", 1, "a test")
+    local sitems = items_of("累世公卿")
+    check((Resolve.reading(fb, sitems, 1, nil, special)), "léi", "a special word beats a fallback word")
+end
+
 print(("%d passed, %d failed"):format(passed, failures))
 if failures > 0 then error("tests failed") end

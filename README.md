@@ -21,7 +21,7 @@ It merges two plugins that are no longer developed:
 and [koreader-chinese-popup](https://github.com/scartoon/koreader-chinese-popup) (the popup). One
 plugin means one tap handler, one popup for every character, and one database.
 
-Status: **1.3.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **1.4.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -120,8 +120,9 @@ punctuation, a paragraph break or any non-Chinese character) and looks up every 
 stretch containing the tapped character, against both simplified and traditional forms.
 
 - **The tapped character first**, with all its readings. The reading it has here comes first,
-  marked **· shown above** when its pinyin is drawn, or **· likely here** when not. A character
-  whose reading is uncertain (see the menu) has both likely readings marked.
+  marked **· shown above** when its pinyin is drawn, or **· likely here** when not. When nothing
+  decides between a character's two likely readings (see [Readings](#readings)), both are
+  marked **· one of these**, the likelier first.
 - **Then every dictionary word containing it**, longest first; words of the same length in
   reading order. A word with several readings (东西 *dōngxī* "east and west" / *dōngxi*
   "thing") has the likely one marked and first.
@@ -185,6 +186,9 @@ word shows one dictionary's entry.
   reading resolver and appear on CC-CEDICT entries only, so the popup and the pinyin always
   agree. A word that decides the reading but is missing from CC-CEDICT shows the other
   dictionary's definition, still tagged *decides X's reading*.
+- A Wiktionary word can decide a reading in one case: the character's reading is uncertain
+  and nothing else decides it (see [Readings](#readings)), as 累世 does for 累 in 累世公卿.
+  MOE's words never decide readings.
 - A small grey line above an entry names its dictionary: **CEDICT**, **Wikt** or **MOE**. By
   default only entries from the other dictionaries are labelled; **Source labels** can label
   every entry or none.
@@ -207,8 +211,12 @@ characters, a word's neutral tone shows as the character's own tone (刺猬: *w�
 For each character, in order: an unusual reading in a listed name or term (单于 *chán yú*), if
 that option is on; the longest dictionary word around it (侥 is *jiǎo* in 侥幸 but *yáo* in
 僬侥; when two words overlap, the more common one); a context rule for the character next to it
-(about 950, learned from labelled sentences); its most frequent reading. Characters whose reading
-stays uncertain show both likely readings, or the most likely, or none (the menu). Measured on
+(about 950, learned from labelled sentences); its most frequent reading. For the about 530
+characters whose most frequent reading is unreliable, a Wiktionary word around it (one CC-CEDICT
+lacks) can pick one of the two likeliest readings, while that dictionary is on; Wiktionary words
+decide nothing else, since letting them override rules or reliable defaults broke more readings
+than it fixed. Characters whose reading stays uncertain show both likely readings, or the most
+likely, or none (the menu). Measured on
 held-out labelled sentences, about 99.7% of the pinyin drawn in ordinary text is right; see
 [Accuracy](https://github.com/scartoon/koreader-interlinear-pinyin#accuracy).
 
@@ -245,9 +253,10 @@ differs from their usual one. A guard keeps them from matching by accident: 订�
 Measured on a Boox Go 7 against the two old plugins, same book, same pages:
 
 - **Page turns**: the pinyin for a page takes 13.4 ms on average to work out, against
-  interlinear-pinyin 0.5.0's 13.7 ms; the pages drawn are pixel-for-pixel the same. A page never
-  queries the database: the words a page can need are read into memory with the other reading
-  tables when the first page is drawn (about 230 ms, once per KOReader session; 0.5.0 took
+  interlinear-pinyin 0.5.0's 13.7 ms; the pages drawn were pixel-for-pixel the same until 1.4.0's
+  Wiktionary readings. The words a page can need are read into memory with the other reading
+  tables when the first page is drawn; the only query a page can make is one Wiktionary lookup,
+  and only when an uncertain rare character on it is left undecided (results are cached) (about 230 ms, once per KOReader session; 0.5.0 took
   190–270 ms to read its text files).
 - **A tap**: from the tap to the popup built, 14.7 ms median (16.9 ms mean) with Wiktionary and
   the MOE dictionary, against 13.8 ms (16.6 ms) without them: one query to CC-CEDICT, then one to
@@ -274,7 +283,8 @@ Everything is in one SQLite database, `chinesehelper.koplugin/data/chinesehelper
   or particle next to a word CC-CEDICT has), as are numerals and entries that only name places.
 - **The reading tables** (every character's frequency rank and default reading, words, context
   rules, uncertain characters, unusual readings). The fallback dictionaries never feed these: the
-  build records a checksum of them, which is the same with and without the fallback table.
+  build records a checksum of them, which is the same with and without the fallback table. (At
+  run time, Wiktionary's words can settle an uncertain character; see [Readings](#readings).)
 
 The popup's lookups use indexes on the simplified and traditional forms; the build checks with
 `EXPLAIN QUERY PLAN` that every lookup query uses its index.
@@ -334,7 +344,7 @@ from a USB-connected device into `build/`), `tools/download_sources.sh`, then
 ```sh
 tools/check.sh                  # luac -p and luajit -b on every Lua file, then the tests
 tools/deploy.sh "/sdcard/Books/book.epub"   # check, push to a USB-connected Android device, restart KOReader
-.venv/bin/python tools/eval_readings.py     # reading accuracy on the CPP test split
+.venv/bin/python tools/eval_readings.py     # reading accuracy on the CPP test split (--fallback none: without Wiktionary's words)
 .venv/bin/python tools/scan_special.py BOOK.epub   # the unusual readings a book gets
 .venv/bin/python tools/make_test_epub.py build/chinesehelper-test.epub   # a book for tap tests on a device
 ```

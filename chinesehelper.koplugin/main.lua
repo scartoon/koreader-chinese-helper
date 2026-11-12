@@ -122,8 +122,28 @@ end
 
 -- The resolver's tables (chars, rules and uncertain read into memory; words
 -- looked up in the database as needed). Loaded when the first page is drawn
--- or the first character tapped.
+-- or the first character tapped. Wiktionary's words, while that dictionary
+-- is switched on, are (re)attached on every call, so switching it off takes
+-- effect at once. They only pick one of an uncertain character's two likely
+-- readings (ch_resolve.lua); MOE's words are not used for readings: its
+-- Taiwan readings broke more than they fixed (tools/eval_readings.py).
+ChineseHelper.READING_SOURCES = { wikt = true }
+
 function ChineseHelper:readings()
+    local data = self:loadReadings()
+    if data then
+        local names = {}
+        for _i, src in ipairs(self:fallbackSources()) do
+            if ChineseHelper.READING_SOURCES[src.source] then names[#names + 1] = src.source end
+        end
+        data:setFallback(#names > 0 and function(list)
+            return self:fallbackLookup(list, ChineseHelper.READING_SOURCES)
+        end or nil, table.concat(names, ","))
+    end
+    return data
+end
+
+function ChineseHelper:loadReadings()
     if session.readings then return session.readings end
     local db = self:db()
     if not db then return nil end
@@ -193,6 +213,31 @@ function ChineseHelper:fallbackSources()
     if settings:fallbackEnabled("moe") then
         local db = self:moeDb()
         if db then out[#out + 1] = { source = "moe", db = db } end
+    end
+    return out
+end
+
+-- Rows { {simp=, trad=, pinyin=, syllables=, defs=, source=}, ... } from the
+-- fallback dictionaries for `words` (none of them CC-CEDICT's): each source in
+-- priority order, one query per source, and a word one source has is not
+-- looked up in the next. only: { [source] = true } to use only those.
+function ChineseHelper:fallbackLookup(words, only)
+    local Model = require("ch_popup_model")
+    local remaining, out = words, {}
+    for _i, src in ipairs(self:fallbackSources()) do
+        if #remaining == 0 then break end
+        if not only or only[src.source] then
+            local got = {}
+            for _j, row in ipairs(src.db:fallback(remaining)) do
+                if (row.source or src.source) == src.source then
+                    row.source = src.source
+                    got[#got + 1] = row
+                end
+            end
+            local kept
+            kept, remaining = Model.takeFallback(remaining, got)
+            for _j, row in ipairs(kept) do out[#out + 1] = row end
+        end
     end
     return out
 end
@@ -429,7 +474,10 @@ function ChineseHelper:addToMainMenu(menu_items)
                     {
                         text = _("Wiktionary"),
                         checked_func = function() return settings:fallbackEnabled("wikt") end,
-                        callback = function() settings:set("fallback_wikt", not settings:fallbackEnabled("wikt")) end,
+                        callback = function(touchmenu)
+                            settings:set("fallback_wikt", not settings:fallbackEnabled("wikt"))
+                            apply(touchmenu)   -- fallback words can decide the pinyin drawn
+                        end,
                     },
                     {
                         text_func = function()
@@ -438,7 +486,10 @@ function ChineseHelper:addToMainMenu(menu_items)
                         end,
                         enabled_func = function() return plugin:moeDb() ~= nil end,
                         checked_func = function() return settings:fallbackEnabled("moe") and plugin:moeDb() ~= nil end,
-                        callback = function() settings:set("fallback_moe", not settings:fallbackEnabled("moe")) end,
+                        callback = function(touchmenu)
+                            settings:set("fallback_moe", not settings:fallbackEnabled("moe"))
+                            apply(touchmenu)
+                        end,
                     },
                 },
                 separator = true,

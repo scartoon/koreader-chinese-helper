@@ -18,6 +18,7 @@ local Model = {}
 
 Model.MARK_SHOWN = "shown above"     -- the reading drawn above the character
 Model.MARK_LIKELY = "likely here"    -- the resolver's reading, nothing drawn
+Model.MARK_UNSURE = "one of these"   -- the uncertainty pair: no word or rule decided
 
 -- A sense that only says the entry is a variant of the very word being shown
 -- ("variant of 着 zháo" on a 着 entry) tells the reader nothing.
@@ -83,10 +84,20 @@ local function distinctReadings(entries)
     return n
 end
 
--- Move marked entries to the front, keeping the order otherwise.
+-- Move marked entries to the front: in the resolver's order when several
+-- readings were chosen ("lěi/léi": lěi first; e.rank, set while marking),
+-- otherwise keeping their order. The unmarked keep their order.
 local function markedFirst(entries)
-    local out = {}
-    for _, e in ipairs(entries) do if e.marked then out[#out + 1] = e end end
+    local marked, out = {}, {}
+    for k, e in ipairs(entries) do if e.marked then marked[#marked + 1] = { e, e.rank or 0, k } end end
+    table.sort(marked, function(a, b)
+        if a[2] ~= b[2] then return a[2] < b[2] end
+        return a[3] < b[3]
+    end)
+    for _, m in ipairs(marked) do
+        m[1].rank = nil
+        out[#out + 1] = m[1]
+    end
     for _, e in ipairs(entries) do if not e.marked then out[#out + 1] = e end end
     return out
 end
@@ -180,13 +191,18 @@ The popup's matches.
   args.chosen       the resolver's reading of the tapped character ("dào", or a
                     pair "chéng/shèng"), or nil
   args.annotated    true when that reading is drawn above the character
+  args.unsure       true when `chosen` is the uncertainty pair (no word or rule
+                    decided; Resolve.forPopup): its readings are marked
+                    Model.MARK_UNSURE, not "likely here"
   args.decided      the word that decided it, or nil:
                     { word=, start= (relative to the tapped character), len=,
                       syllables= (the resolver's reading of the word), note= }
   args.wordReading  function(word) -> the resolver's reading of a word ("dōng xi")
                     or nil
 
-Returns { {word=, start=, len=, entries={...}, decided=bool, note=}, ... }.
+Returns { {word=, start=, len=, entries={...}, decided=bool, note=, mark=}, ... }
+(mark: Model.MARK_UNSURE on the tapped character's own match when its
+readings are the uncertainty pair; nil otherwise).
 Each entry: { pinyin=, syllables=, senses={...}, proper=bool, marked=bool,
 missing=bool (a chosen reading CC-CEDICT does not list), source= ("cedict",
 "wikt", "moe") }. Reading markers (and the "decides" tag's test for a choice
@@ -268,15 +284,22 @@ function Model.matches(args)
     if anchor and fromCedict(anchor) and args.chosen and args.chosen ~= "" then
         local entries = anchor.entries
         local several = distinctReadings(entries) > 1
+        local rank = 0
         for reading in args.chosen:gmatch("[^/]+") do
+            rank = rank + 1
             if not markMatching(entries, reading, several or nil) then
                 -- A reading CC-CEDICT does not list for the character itself
                 -- (it may come from a pypinyin phrase): shown, with no senses.
                 entries[#entries + 1] = { pinyin = reading, syllables = reading, senses = {},
                                           missing = true, marked = true, source = "cedict" }
             end
+            for _, e in ipairs(entries) do
+                if e.marked and not e.rank then e.rank = rank end
+            end
         end
         anchor.entries = markedFirst(entries)
+        -- Nothing decided between the pair: neither reading is "likely".
+        if args.unsure and not args.annotated then anchor.mark = Model.MARK_UNSURE end
     end
     -- Each word: mark the resolver's reading when there is a choice.
     for _, m in ipairs(words) do
@@ -307,13 +330,17 @@ The popup's content as blocks, one per match:
     source = "cedict" / "wikt" / "moe" (whose entry it is),
     lines = { "winding; as if", "wǎn: ...", ... } (senses, further readings) }
 b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
+The tapped character's marked readings are "shown above" when `annotated`,
+"one of these" when Model.matches set m.mark (the uncertainty pair), and
+"likely here" otherwise.
 ]]
 function Model.blocks(matches, char, annotated, b0, b1)
     b0, b1 = b0 or "", b1 or ""
-    local mark = " · " .. (annotated and Model.MARK_SHOWN or Model.MARK_LIKELY)
+    local default_mark = annotated and Model.MARK_SHOWN or Model.MARK_LIKELY
     local blocks = {}
     for _, m in ipairs(matches) do
         local block = { lines = {} }
+        local mark = " · " .. (m.mark or default_mark)
         for k, e in ipairs(m.entries) do
             local senses = table.concat(e.senses, "; ")
             if #e.senses == 0 then

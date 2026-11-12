@@ -1,11 +1,16 @@
 """Run the plugin's own Lua code (ch_readings.lua, ch_resolve.lua) from Python,
 with the reading tables from the build's TSV files (build/data/ and data/).
 
+Fallback dictionaries' words (Plugin(fallback=("wikt", "moe"))) come from
+the plugin database's fallback table and build/chinesehelper-moe.sqlite, one
+source per word, as main.lua's fallbackLookup gives them to the resolver.
+
 Also runs a koreader-interlinear-pinyin 0.5.0 copy (pinyin_data.lua,
 pinyin_resolve.lua, with its own data/ folder), for before/after comparisons:
     Plugin("path/to/interlinearpinyin.koplugin")
 """
 import os
+import sqlite3
 
 try:
     from lupa.luajit21 import LuaRuntime
@@ -16,6 +21,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_PLUGIN = os.path.join(ROOT, "chinesehelper.koplugin")
 BUILD_DATA = os.path.join(ROOT, "build", "data")
 DATA_DIR = os.path.join(ROOT, "data")
+FALLBACK_DBS = {
+    "wikt": os.path.join(ROOT, "chinesehelper.koplugin", "data", "chinesehelper.sqlite"),
+    "moe": os.path.join(ROOT, "build", "chinesehelper-moe.sqlite"),
+}
 
 HELPERS = r'''
 local Resolve = ...
@@ -104,9 +113,11 @@ return H
 
 
 class Plugin:
-    def __init__(self, plugin_dir=DEFAULT_PLUGIN, data_dir=None, special=True):
+    def __init__(self, plugin_dir=DEFAULT_PLUGIN, data_dir=None, special=True, fallback=()):
         """special: load data/special.tsv (the "unusual readings" setting, on
-        by default in the plugin) when this copy of the plugin has it."""
+        by default in the plugin) when this copy of the plugin has it.
+        fallback: the fallback dictionaries to let decide readings, in
+        priority order ("wikt", "moe"), when this copy supports them."""
         plugin_dir = os.path.abspath(plugin_dir)
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(f'package.path = "{plugin_dir}/?.lua;" .. package.path')
@@ -135,6 +146,34 @@ class Plugin:
         if isinstance(self.special, tuple):  # nil, err
             self.special = None
         self.h = self.lua.execute(HELPERS, self.lua.require(resolve))
+        self.fallback = tuple(fallback or ())
+        if self.fallback:
+            if self.lua.eval("function(d) return d.setFallback end")(self.data) is None:
+                raise SystemExit(f"{plugin_dir} cannot use fallback dictionaries")
+            conns = []
+            for src in self.fallback:
+                if not os.path.exists(FALLBACK_DBS[src]):
+                    raise SystemExit(f"missing {FALLBACK_DBS[src]} for fallback source {src}")
+                conns.append((src, sqlite3.connect(f"file:{FALLBACK_DBS[src]}?mode=ro", uri=True)))
+            lua = self.lua
+
+            def lookup(words):
+                remaining = list(words.values())
+                out = []
+                for src, conn in conns:
+                    if not remaining:
+                        break
+                    marks = ",".join("?" * len(remaining))
+                    got = conn.execute(f"SELECT simp, trad, pinyin FROM fallback WHERE (simp IN ({marks}) "
+                                       f"OR trad IN ({marks})) AND source = ? ORDER BY rowid",
+                                       remaining + remaining + [src]).fetchall()
+                    taken = set()
+                    for simp, trad, pinyin in got:
+                        taken.update((simp, trad))
+                        out.append(lua.table_from({"simp": simp, "trad": trad, "pinyin": pinyin, "source": src}))
+                    remaining = [w for w in remaining if w not in taken]
+                return lua.table_from(out)
+            self.lua.eval("function(d, f, k) d:setFallback(f, k) end")(self.data, lookup, ",".join(self.fallback))
 
     def reading(self, text, pos, mode="both"):
         """(reading, rank) the plugin gives the character at pos, or None."""

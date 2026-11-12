@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.4.0 (2026-11-11)
+
+- **Wiktionary words can settle an uncertain reading.** When no CC-CEDICT or pypinyin word, rule
+  or unusual-reading word decides a character whose reading is uncertain, a Wiktionary word
+  around it picks one of its two likely readings: 累 in 累世公卿 is now *lěi*, with 累世 tagged
+  *decides 累's reading*, where 1.3.1 showed *lěi/léi*. This applies to the pinyin drawn as well
+  as the popup. CC-CEDICT and pypinyin words always come first, and a Wiktionary word never
+  overrides a rule or a reliable default (letting it do so broke seven readings for each one it
+  fixed on the CPP test split). MOE entries are still shown in the popup but do not decide
+  readings: its Taiwan readings broke more than they fixed. Switching Wiktionary off under
+  **Fallback dictionaries** turns this off. On the CPP test split at the default threshold the
+  most-likely reading is right 96.7% of the time (96.6% before) and pairs are shown slightly less
+  often; over 184 books, 86 of 1.77 million paragraphs draw different pinyin, nearly all a pair
+  becoming the right single reading (刨坑 *páo*, 抡刀 *lūn*, 铮铮 *zhēng*).
+- **Honest popup markers.** When nothing decided between a character's two likely readings
+  (the uncertainty pair), both are marked **· one of these** instead of **· likely here**.
+  *Likely here* now always means a single resolved reading; *shown above* is unchanged.
+- **Marked readings in the resolver's order**: with a pair, the likelier reading comes first
+  (*lěi* before *léi*), not CC-CEDICT's order.
+
 ## 1.3.1 (2026-11-11)
 
 - **Edge pass-through width** offers 7.5 mm (89 px at 300 dpi) between 5 and 10 mm. The default

@@ -9,12 +9,23 @@ local Text = require("ch_text")
 local eq = H.eq
 
 local db, data, special = H.db(), H.readings(), H.special()
+-- The same tables with the Wiktionary fallback words attached, as the plugin
+-- attaches them while that dictionary is switched on (its default).
+local fdata = db:readings()
+fdata:setFallback(function(list)
+    local rows = db:fallback(list)
+    for _, r in ipairs(rows) do r.source = r.source or "wikt" end
+    return rows
+end, "wikt")
 
 -- The popup for the n-th occurrence (default 1) of `char` in `text`, as
 -- ch_tap.lua builds it: the page items resolve the reading, the Han run of
--- up to 7 characters each side gives the candidate words.
+-- up to 7 characters each side gives the candidate words. opts.data: the
+-- tables to resolve with (fdata: with fallback words, whose rows are then
+-- shown too, as ch_tap.lua adds them).
 local function popup(text, char, opts)
     opts = opts or {}
+    local data = opts.data or data
     local items = H.items(text)
     local i, seen = nil, 0
     for k, item in ipairs(items) do
@@ -42,14 +53,19 @@ local function popup(text, char, opts)
             if a.index == i then drawn = a.reading end
         end
     end
-    local chosen, decided = Resolve.forPopup(data, items, i, mode, special, drawn)
+    local chosen, decided, unsure = Resolve.forPopup(data, items, i, mode, special, drawn)
     local cands, texts = Text.candidates(left, char, right)
     data:prefetch(texts)
+    local rows = db:lookup(texts)
+    if data.fallback then
+        for _, r in ipairs(data.fallback(Model.uncovered(texts, rows))) do rows[#rows + 1] = r end
+    end
     local matches = Model.matches{
-        cands = cands, rows = db:lookup(texts), chosen = chosen, annotated = drawn ~= nil, decided = decided,
+        cands = cands, rows = rows, chosen = chosen, annotated = drawn ~= nil, decided = decided,
+        unsure = unsure,
         wordReading = function(w) return Resolve.wordReading(data, w) end,
     }
-    return { chosen = chosen, decided = decided, matches = matches, drawn = drawn,
+    return { chosen = chosen, decided = decided, unsure = unsure, matches = matches, drawn = drawn,
              text = Model.render(matches, char, drawn ~= nil) }
 end
 
@@ -134,6 +150,56 @@ eq(p.drawn, "yuān"); eq(p.decided.word, "大宛")
 -- CC-CEDICT's 宛 has no yuān (it is only in 大宛): shown first, marked, empty.
 assert(p.text:find("宛  yuān · shown above\nno separate CC-CEDICT entry for this reading\nwǎn: winding", 1, true), p.text)
 
+------------------------------------------------------------------------
+-- Fallback dictionaries' words decide; honest markers otherwise
+------------------------------------------------------------------------
+
+-- 累 in 累世 (Wiktionary only: CC-CEDICT and pypinyin lack the word, no rule
+-- covers 累 before 世). The word decides lěi, so lěi alone is marked
+-- "likely here", léi is not marked, and 累世 is tagged as deciding.
+p = popup("发展成门第望族累世公卿", "累", { data = fdata })
+eq(p.chosen, "lěi"); eq(p.decided.word, "累世"); eq(p.decided.syllables, "lěi shì"); assert(not p.unsure)
+eq(marked(p, "累"), "lěi", "lěi alone marked")
+assert(p.text:find("累  lěi · likely here\n", 1, true), p.text)
+assert(p.text:find("\nléi: ", 1, true), "léi listed, unmarked\n" .. p.text)
+assert(p.text:find("累世  lěishì · decides 累's reading", 1, true), p.text)
+eq(words(p), "累,累世")
+-- Drawn (累 ranks 1,209): the annotation layer takes the same word.
+p = popup("发展成门第望族累世公卿", "累", { data = fdata, threshold = 1000 })
+eq(p.drawn, "lěi"); assert(p.text:find("累  lěi · shown above\n", 1, true), p.text)
+local items = H.items("发展成门第望族累世公卿")
+for _, a in ipairs(Resolve.annotate(fdata, items, 1000, "both", special)) do
+    if items[a.index].text == "累" then eq(a.match.word, "累世"); eq(a.match.fallback, "wikt") end
+end
+
+-- Without the fallback words (as before this change): nothing decides, so
+-- the pair is shown with "one of these", in the resolver's order (lěi
+-- first, although CC-CEDICT lists léi first), and lèi stays unmarked.
+p = popup("发展成门第望族累世公卿", "累")
+eq(p.chosen, "lěi/léi"); assert(p.unsure); eq(p.decided, nil)
+eq(marked(p, "累"), "lěi,léi")
+assert(p.text:find("累  lěi · one of these\n", 1, true), p.text)
+assert(p.text:find("\nléi · one of these: ", 1, true), p.text)
+assert(not p.text:find("likely here", 1, true), p.text)
+-- With them too, when no word covers the character (他累: no word, no rule).
+p = popup("他累。", "累", { data = fdata })
+eq(p.chosen, "lěi/léi"); assert(p.unsure)
+assert(p.text:find("累  lěi · one of these\n", 1, true), p.text)
+-- Drawn as a pair: "shown above", as before (that is what the page shows).
+p = popup("他累。", "累", { data = fdata, threshold = 1000 })
+eq(p.drawn, "lěi/léi"); assert(not p.unsure)
+assert(p.text:find("累  lěi · shown above\n", 1, true), p.text)
+assert(p.text:find("\nléi · shown above: ", 1, true), p.text)
+
+-- A CC-CEDICT word beats a longer fallback word: in 串行端口, CC-CEDICT's
+-- 串行 (chuànháng) decides 行, not Wiktionary's 串行端口 (chuànxíng
+-- duānkǒu), although the fallback word is longer: CC-CEDICT is authoritative.
+p = popup("接上串行端口。", "行", { data = fdata })
+eq(p.chosen, "háng"); eq(p.decided.word, "串行")
+eq(fdata:fallbackWord("串行端口").readings[2], "xíng", "the fallback word does give 行 another reading")
+assert(p.text:find("串行  chuànháng · likely here · decides 行's reading", 1, true), p.text)
+assert(not p.text:find("串行端口  [^\n]*decides"), p.text)
+
 -- The property itself, over the regression sentences: wherever the
 -- annotation layer draws pinyin, the popup's reading is the same, in every
 -- mode, without being told what was drawn.
@@ -143,12 +209,14 @@ for line in f:lines() do
     local sentence = line:match("^([^\t#]+)\t")
     if sentence then
         local items = H.items(sentence)
-        for _, mode in ipairs({ "both", "best" }) do
-            for _, threshold in ipairs({ 1500, 3500 }) do
-                for _, a in ipairs(Resolve.annotate(data, items, threshold, mode, special)) do
-                    local chosen = Resolve.forPopup(data, items, a.index, mode, special, nil)
-                    eq(chosen, a.reading, sentence .. " " .. items[a.index].text .. " (" .. mode .. ")")
-                    checked = checked + 1
+        for _, d in ipairs({ data, fdata }) do
+            for _, mode in ipairs({ "both", "best" }) do
+                for _, threshold in ipairs({ 1500, 3500 }) do
+                    for _, a in ipairs(Resolve.annotate(d, items, threshold, mode, special)) do
+                        local chosen = Resolve.forPopup(d, items, a.index, mode, special, nil)
+                        eq(chosen, a.reading, sentence .. " " .. items[a.index].text .. " (" .. mode .. ")")
+                        checked = checked + 1
+                    end
                 end
             end
         end

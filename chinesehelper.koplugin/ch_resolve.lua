@@ -113,6 +113,39 @@ function Resolve.word_reading(data, items, i)
     return nil
 end
 
+-- Reading of items[i] from the longest fallback-dictionary word around it
+-- (Wiktionary, MOE: words CC-CEDICT lacks; see Readings:prefetchFallback),
+-- or nil. Also returns the word, the index of its first item and its cache
+-- entry ({ source=, syllables= }). Only words that give the character one
+-- reading count. When two words of the longest such length give it
+-- different readings, nothing is decided (fallback words have no
+-- frequencies to choose by), and shorter words are not consulted.
+function Resolve.fallback_reading(data, items, i)
+    if not data.fallbackWord or not data.fallback then return nil end
+    data:prefetchFallback(candidate_words(data, items, i, {}))
+    local max_len = math.min(data.max_word_len or 4, 4)
+    for len = max_len, 2, -1 do
+        local best, best_word, best_start, best_entry
+        for start = i - len + 1, i do
+            local stop = start + len - 1
+            if contiguous(items, start, stop) then
+                local word = text_of(items, start, stop)
+                local entry = data:fallbackWord(word)
+                local reading = entry and entry.readings[i - start + 1]
+                if reading then
+                    if not best then
+                        best, best_word, best_start, best_entry = reading, word, start, entry
+                    elseif reading ~= best then
+                        return nil
+                    end
+                end
+            end
+        end
+        if best then return best, best_word, best_start, best_entry end
+    end
+    return nil
+end
+
 ------------------------------------------------------------------------
 -- Unusual readings of common characters ("special words", data/special.tsv)
 ------------------------------------------------------------------------
@@ -177,6 +210,25 @@ Resolve.UNCERTAIN_BOTH = "both"   -- "chéng/shèng", most likely first
 Resolve.UNCERTAIN_BEST = "best"   -- the most likely reading alone (may differ from the default)
 Resolve.UNCERTAIN_SKIP = "skip"   -- no annotation
 
+-- The reading a context rule gives items[i], or nil.
+local function rule_reading(data, items, i)
+    if not data.rule then return nil end
+    local item = items[i]
+    local left = item.joined and items[i - 1] and items[i - 1].text or nil
+    local after = items[i + 1]
+    local right = after and after.joined and after.text or nil
+    return data:rule(item.text, left, right)
+end
+
+-- Would items[i] get the uncertainty pair from words and rules alone (no
+-- special word considered)? Only then do fallback words count.
+function Resolve.undecided(data, items, i)
+    local first, second
+    if data.uncertainty then first, second = data:uncertainty(items[i].text) end
+    if not (first and second and first ~= second) then return false end
+    return not Resolve.word_reading(data, items, i) and not rule_reading(data, items, i)
+end
+
 -- Reading for items[i] and the character's rank (0 = unranked), or nil when
 -- there is none (no known reading, not a Han character, or uncertain with
 -- mode "skip"). Works for any character; whether it is drawn is
@@ -190,11 +242,16 @@ Resolve.UNCERTAIN_SKIP = "skip"   -- no annotation
 -- it up (false for none); nil to look it up here.
 --
 -- In order: a special word (when `special` is given); the longest dictionary
--- word around it; a context rule for the
--- character right before or after it; its default reading. For a character
--- whose default is known to be unreliable (data:uncertainty), the two most
--- likely readings are shown together, the most likely alone, or nothing,
--- depending on `uncertain`.
+-- word around it (CC-CEDICT and pypinyin); a context rule for the character
+-- right before or after it; its default reading. For a character whose
+-- default is known to be unreliable (data:uncertainty), the longest
+-- fallback-dictionary word around it picks one of the two most likely
+-- readings (match.fallback = its source, match.syllables = its reading);
+-- failing that, the two are shown together, the most likely alone, or
+-- nothing, depending on `uncertain`. Fallback words decide nothing else:
+-- measured on the CPP test split, letting them override defaults broke
+-- seven readings for each one fixed (rare words matched across word
+-- boundaries, dialect and classical readings).
 function Resolve.reading(data, items, i, uncertain, special, sp)
     local item = items[i]
     if not item or not single_char(item.text) then return nil end
@@ -215,16 +272,17 @@ function Resolve.reading(data, items, i, uncertain, special, sp)
     if reading then
         return reading, rank, { word = word, start = start, len = utf8_len(word), others = others }
     end
-    if data.rule then
-        local left = item.joined and items[i - 1] and items[i - 1].text or nil
-        local after = items[i + 1]
-        local right = after and after.joined and after.text or nil
-        reading = data:rule(item.text, left, right)
-        if reading then return reading, rank end
-    end
+    reading = rule_reading(data, items, i)
+    if reading then return reading, rank end
     local first, second
     if data.uncertainty then first, second = data:uncertainty(item.text) end
     if first and second and first ~= second then
+        -- A fallback-dictionary word may choose between the two (累世: lěi).
+        local fallback, fword, fstart, fentry = Resolve.fallback_reading(data, items, i)
+        if fallback == first or fallback == second then
+            return fallback, rank, { word = fword, start = fstart, len = utf8_len(fword), others = {},
+                                     fallback = fentry.source, syllables = fentry.syllables }
+        end
         uncertain = uncertain or Resolve.UNCERTAIN_BOTH
         if uncertain == Resolve.UNCERTAIN_SKIP then return nil end
         if uncertain == Resolve.UNCERTAIN_BEST then return first, rank end
@@ -267,6 +325,17 @@ function Resolve.annotate(data, items, threshold, uncertain, special)
         end
     end
     if #words > 0 then data:prefetch(words) end
+    -- Then, in one more lookup, the fallback dictionaries' words around the
+    -- characters that would otherwise get the uncertainty pair.
+    if data.fallback then
+        local fwords = {}
+        for _, w in ipairs(wanted) do
+            if not w[2] and Resolve.undecided(data, items, w[1]) then
+                candidate_words(data, items, w[1], fwords)
+            end
+        end
+        if #fwords > 0 then data:prefetchFallback(fwords) end
+    end
     local out, seen = {}, {}
     for _, w in ipairs(wanted) do
         local i = w[1]
@@ -305,7 +374,9 @@ mode marks both likely readings: nothing is drawn, so there is nothing to
 contradict.
 
 Returns chosen ("dào", "chéng/shèng" or nil), decided ({ word=, start=
-relative to items[i], len=, syllables=, note= } or nil).
+relative to items[i], len=, syllables=, note= } or nil), and unsure: true
+when chosen is the uncertainty pair (no word or rule decided, nothing drawn),
+so the popup does not call either reading likely.
 ]]
 function Resolve.forPopup(data, items, i, uncertain, special, drawn)
     if uncertain == Resolve.UNCERTAIN_SKIP then uncertain = Resolve.UNCERTAIN_BOTH end
@@ -316,11 +387,12 @@ function Resolve.forPopup(data, items, i, uncertain, special, drawn)
         decided = {
             word = match.word, start = match.start - i, len = match.len,
             syllables = match.special and table.concat(match.special.syllables, " ")
-                or Resolve.wordReading(data, match.word),
+                or match.syllables or Resolve.wordReading(data, match.word),
             note = match.special and match.special.note,
         }
     end
-    return reading, decided
+    local unsure = not drawn and reading ~= nil and reading:find("/", 1, true) ~= nil
+    return reading, decided, unsure
 end
 
 return Resolve

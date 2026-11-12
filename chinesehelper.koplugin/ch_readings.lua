@@ -156,6 +156,110 @@ function Readings:word(word)
 end
 
 ------------------------------------------------------------------------
+-- Fallback dictionaries' words: words CC-CEDICT lacks, which pick one of an
+-- uncertain character's two likely readings when no word, rule or special
+-- word decides it (Resolve.fallback_reading). The plugin attaches
+-- Wiktionary's only (MOE's Taiwan readings proved less reliable).
+--
+-- setFallback(lookup, key): lookup(list of words) returns the rows
+-- { {simp=, trad=, pinyin=, source=}, ... } of the sources used, one source
+-- per word, in priority order (main.lua's fallbackLookup);
+-- key names those sources, and the cache is emptied when it changes. nil
+-- lookup: no fallback words.
+--
+-- Each word is cached as { readings = { [k] = "lěi" or false }, source=,
+-- syllables= } (or false when no source has it): readings[k] is the reading
+-- of the word's k-th character when every row of the word agrees on it and
+-- has a tone; false when the rows disagree (a character with two readings in
+-- the word), a row's pinyin does not split into one Mandarin syllable per
+-- character, or it is toneless or erhua.
+------------------------------------------------------------------------
+
+function Readings:setFallback(lookup, key)
+    key = lookup and (key or "") or nil
+    if key ~= self.fallback_key then
+        self.fallback_key = key
+        self.fb_cache, self.fb_cached = {}, 0
+    end
+    self.fallback = lookup
+end
+
+local function utf8_count(s)
+    local _, n = s:gsub("[^\128-\191]", "")
+    return n
+end
+
+-- The cache entry for `word` built from its rows (all from one source).
+local function fallbackEntry(word, rows)
+    local Pinyin = require("ch_pinyin")
+    local n = utf8_count(word)
+    local readings, syllables = {}, nil
+    for _, row in ipairs(rows) do
+        local syl = Pinyin.splitJoined(row.pinyin, n)
+        if not syl then
+            for k = 1, n do readings[k] = false end
+            break
+        end
+        syllables = syllables or table.concat(syl, " ")
+        for k = 1, n do
+            local r = syl[k]
+            if r == "r" or r == Pinyin.stripTones(r) then r = false end
+            if readings[k] == nil then
+                readings[k] = r
+            elseif readings[k] ~= r then
+                readings[k] = false
+            end
+        end
+    end
+    for k = 1, n do if readings[k] == nil then readings[k] = false end end
+    return { readings = readings, source = rows[1] and rows[1].source, syllables = syllables }
+end
+
+-- Look up every word in `list` not yet known, in one call to the lookup.
+-- Words of the words table are skipped: a word there decides before any
+-- fallback word is consulted.
+function Readings:prefetchFallback(list)
+    if not self.fallback then return end
+    local missing, seen = {}, {}
+    for _, w in ipairs(list) do
+        if self.fb_cache[w] == nil and not seen[w] and not self.words[w] and not self.cache[w] then
+            seen[w] = true
+            missing[#missing + 1] = w
+        end
+    end
+    if #missing == 0 then return end
+    if self.fb_cached + #missing > Readings.CACHE_LIMIT then
+        self.fb_cache, self.fb_cached = {}, 0
+    end
+    -- form -> rows of the first source that has it
+    local by_form = {}
+    for _, row in ipairs(self.fallback(missing) or {}) do
+        for _, form in ipairs({ row.simp, row.trad }) do
+            if form and seen[form] then
+                local rows = by_form[form]
+                if not rows then
+                    rows = { source = row.source }
+                    by_form[form] = rows
+                end
+                if rows.source == row.source and rows[#rows] ~= row then rows[#rows + 1] = row end
+            end
+        end
+    end
+    for _, w in ipairs(missing) do
+        local rows = by_form[w]
+        self.fb_cache[w] = rows and fallbackEntry(w, rows) or false
+        self.fb_cached = self.fb_cached + 1
+    end
+end
+
+-- The cached fallback entry for a word (see above), or nil.
+function Readings:fallbackWord(word)
+    if not self.fallback then return nil end
+    if self.fb_cache[word] == nil then self:prefetchFallback({ word }) end
+    return self.fb_cache[word] or nil
+end
+
+------------------------------------------------------------------------
 -- Unusual readings of common characters ("special words"), used only
 -- while that setting is on.
 --

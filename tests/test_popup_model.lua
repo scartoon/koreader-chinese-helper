@@ -251,3 +251,30 @@ eq(Model.SOURCE_LABELS.cedict, "CEDICT"); eq(Model.SOURCE_LABELS.wikt, "Wikt"); 
 -- straight to KOReader's dictionary).
 m = matches("", "尚", "书省", { frow("尚书省", "尚書省", "Shàngshūshěng", "x", "wikt") })
 eq(join(m, "word"), "尚书省")
+
+-- Marked readings follow the resolver's order ("lěi/léi": lěi first),
+-- not CC-CEDICT's (léi first).
+local lei = { row("累", "纍", "léi", "rope; to bind"), row("累", "累", "lěi", "to accumulate"),
+              row("累", "累", "lèi", "tired") }
+m = matches("", "累", "", lei, { chosen = "lěi/léi" })
+eq(join(m[1].entries, "pinyin"), "lěi,léi,lèi", "resolver's order")
+eq(m[1].entries[1].rank, nil, "the sort key is not left behind")
+m = matches("", "累", "", lei, { chosen = "léi/lěi" })
+eq(join(m[1].entries, "pinyin"), "léi,lěi,lèi")
+-- The uncertainty pair (nothing decided, nothing drawn): "one of these".
+m = matches("", "累", "", lei, { chosen = "lěi/léi", unsure = true })
+eq(Model.render(m, "累", false), "累  lěi · one of these\nto accumulate\nléi · one of these: rope; to bind\n"
+    .. "lèi: tired")
+-- Drawn as a pair, it is what the page shows.
+m = matches("", "累", "", lei, { chosen = "lěi/léi", unsure = true, annotated = true })
+eq(Model.render(m, "累", true), "累  lěi · shown above\nto accumulate\nléi · shown above: rope; to bind\n"
+    .. "lèi: tired")
+-- A single resolved reading stays "likely here".
+m = matches("", "累", "", lei, { chosen = "lěi" })
+eq(Model.render(m, "累", false), "累  lěi · likely here\nto accumulate\nléi: rope; to bind\nlèi: tired")
+-- "One of these" is the tapped character's marker only: a word's marked
+-- reading is still "likely here".
+m = matches("", "东", "西", { row("东", "東", "dōng", "east"), row("东西", "東西", "dōngxi", "thing", "dōng xi"),
+    row("东西", "東西", "dōngxī", "east and west", "dōng xī") },
+    { chosen = "dōng/dòng", unsure = true, wordReading = function() return "dōng xi" end })
+assert(Model.render(m, "东", false):find("东西  dōngxi · likely here", 1, true))
