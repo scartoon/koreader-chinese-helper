@@ -13,5 +13,9 @@ for f in $(find chinesehelper.koplugin tests -name '*.lua'); do
     if command -v luajit >/dev/null; then luajit -b "$f" /dev/null || status=1; fi
 done
 [ $status -eq 0 ] && echo "syntax ok"
+# The Status screen's version (main.lua) must match the plugin metadata.
+meta=$(sed -n 's/.*version = "\(.*\)".*/\1/p' chinesehelper.koplugin/_meta.lua)
+main=$(sed -n 's/^ChineseHelper.VERSION = "\(.*\)"/\1/p' chinesehelper.koplugin/main.lua)
+if [ "$meta" != "$main" ]; then echo "version mismatch: _meta.lua $meta, main.lua $main"; status=1; else echo "version $meta"; fi
 "$PY" tests/run.py || status=1
 exit $status

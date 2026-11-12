@@ -1,16 +1,46 @@
 # koreader-chinese-helper
 
-A [KOReader](https://github.com/koreader/koreader) plugin for reading Chinese:
+**A [KOReader](https://github.com/koreader/koreader) plugin designed specifically for reading
+Chinese.** Chinese has no spaces between words, so this plugin lets you tap a single character
+and shows every dictionary word it belongs to, drawing on several dictionaries in one popup, with
+each entry from beyond CC-CEDICT labelled with its source. No long-press, no selecting, no
+choosing a dictionary. Optional pinyin appears above rare characters only (plus the few common
+characters read in an unusual way, such as 单 in 单于), with readings chosen from the surrounding
+words, so the page stays clean while the hard characters get help. Works on any reflowable book
+(EPUB, FB2, MOBI, TXT and the like) as soon as you open it, with no preprocessing.
 
-- **Pinyin above rare characters.** Characters outside the N most common get their pinyin drawn
-  above them, with the reading worked out from the surrounding word where a character has more
-  than one. The book file is never modified.
-- **Tap any character for its definition.** A single tap on a Chinese character, or on the
-  pinyin above one, opens a popup with that character's CC-CEDICT entry and every dictionary word
-  around it that contains it, with one button per word for KOReader's own dictionary lookup.
+On 临高启明, a novel that mixes Ming dynasty officialdom, early-industrial technical vocabulary and
+2010s internet and forum slang, 81% of 8,000 simulated taps landed in a word or character the dictionaries
+have and another 11.5% in an everyday combination of such words (很多, 连连点头); most of the remaining
+7.5% are the novel's character names and its own coinages (髡贼, 归化民), which no dictionary has,
+and Ming forms of address and technical compounds are covered only in part (典史 and 红夷大炮 are
+in; 赵老爷 and 米尼步枪 are not).
 
-The popup marks the reading of the character in this sentence, worked out by the same resolver
-that draws the pinyin, so the two can never disagree.
+- **One tap on a character.** A single tap on a Chinese character, or on the pinyin above one,
+  opens the popup. Taps anywhere else turn pages and open menus as usual.
+- **Every word around it.** The popup collects every dictionary word of 1–8 characters that
+  contains the tapped character, looking on both sides of it rather than guessing how the
+  sentence divides into words, and marks the reading the character has here.
+- **CC-CEDICT first, then fallback dictionaries** for the words it lacks, in this order:
+
+  | Dictionary | Label | | Mainly covers |
+  |---|---|---|---|
+  | Wiktionary | Wikt | bundled | historical and literary terms, chengyu, technical terms, some slang |
+  | CBDB office titles | CBDB | a file you build yourself | Ming and Southern Ming office titles |
+  | MOE 重編國語辭典 | MOE | a file you build yourself | historical and literary vocabulary (in Chinese) |
+  | Wikipedia titles | WP | bundled | technology, engineering, military and history terms (English article title) |
+  | Moegirlpedia slang | Moegirl | a file you build yourself | internet slang (in Chinese) |
+
+- **Optional pinyin above rare characters**: those outside the 1,500 / 2,500 / 3,500 (default) /
+  5,000 / 7,000 most common. A character with several readings gets the one its word decides
+  (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥), then context rules, then its most frequent reading.
+- **Translate the sentence**: while Wi-Fi is on and connected, a button in the popup sends the whole sentence
+  to [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) if you have it, or to
+  KOReader's built-in translator.
+- **No per-book preprocessing**, and the book file is never modified.
+- **Pinyin and popup are separate switches**: either one, or both.
+- **Long-press and KOReader's own dictionary are untouched**, and each word in the popup has a
+  button that looks it up there.
 
 ![Pinyin above rare characters on a Boox Go 7](docs/screenshot.png)
 
@@ -21,14 +51,14 @@ It merges two plugins that are no longer developed:
 and [koreader-chinese-popup](https://github.com/scartoon/koreader-chinese-popup) (the popup). One
 plugin means one tap handler, one popup for every character, and one database.
 
-Status: **1.4.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **1.5.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
 1. Download `chinesehelper.koplugin.zip` from the
    [latest release](https://github.com/scartoon/koreader-chinese-helper/releases/latest) and unzip
    it. You get a `chinesehelper.koplugin` folder, which includes the database
-   (`data/chinesehelper.sqlite`, about 20 MB).
+   (`data/chinesehelper.sqlite`, about 33 MB).
 2. Copy that folder into KOReader's `plugins` folder:
    - **Android** (Boox and others): `/sdcard/koreader/plugins/`, which appears as
      `koreader/plugins` in the device's internal storage over USB. With adb:
@@ -70,7 +100,7 @@ all books.
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [The edge band](#the-edge-band) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
 | Fallback dictionaries | Source labels (all entries / other dictionaries only, the default / none); then each dictionary on/off, in priority order: Wiktionary, CBDB office titles, MOE 重編國語辭典, Wikipedia titles, Moegirlpedia slang (CBDB, MOE and Moegirlpedia only when you have installed their files). See [Other dictionaries](#other-dictionaries) |
-| Status | Version, data versions and load times, what the current page needed, and any old plugin still installed |
+| Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed), what the current page needed, and any old plugin still installed |
 
 The two switches are independent: pinyin without the popup, the popup without pinyin, or both.
 
@@ -190,7 +220,7 @@ project to distribute them (see [Data](#optional-dictionaries-you-build-yourself
   translations (典史 *Clerk / District Jailor*, 巡按御史 *Regional Inspector*).
 - **MOE 重編國語辭典**: about 90,000 entries, monolingual, strong on historical and literary
   vocabulary.
-- **Moegirlpedia slang**: about 400 internet-slang terms from 萌娘百科, each with its opening
+- **Moegirlpedia slang**: about 350 internet-slang terms from 萌娘百科, each with its opening
   sentence or two in Chinese (问题不大, 王八之气, 大杀器).
 
 CC-CEDICT always comes first: a word it has never gets an entry from another dictionary. After
@@ -242,15 +272,39 @@ decide nothing else, since letting them override rules or reliable defaults brok
 than it fixed. Characters whose reading stays uncertain show both likely readings, or the most
 likely, or none (the menu). Measured on
 held-out labelled sentences, about 99.7% of the pinyin drawn in ordinary text is right; see
-[Accuracy](https://github.com/scartoon/koreader-interlinear-pinyin#accuracy).
+[Accuracy](#accuracy).
 
 The popup's markers use the same resolver on the same page, for every character, common ones
 included (的 is *dí* in 的确, *de* or *dì* on its own; 行 is *háng* in 银行, *xíng* in 行人). On
 held-out labelled sentences built around the 1,000 most common characters' hard cases (those with
-several readings), the marked reading is right 97.3% of the time (98.1% counting both of an
+several readings), the marked reading is right 97.4% of the time (98.1% counting both of an
 uncertain pair).
 Some word-level choices need the meaning, which the plugin does not have: 东西 is always marked
 *dōngxi* ("thing"), also where it means "east and west".
+
+### Accuracy
+
+`tools/eval_readings.py` runs the plugin's own resolver over the test split of the
+[CPP polyphone dataset](https://github.com/kakaobrain/g2pM) (labelled sentences from Chinese
+Wikipedia; the context rules are learned from its train split only). CPP holds only characters
+with several readings, so it is the hard case. Figures for 1.5.0:
+
+| Pinyin for characters outside | Characters tested | Most likely reading right | Right counting both of a pair | Shown as a pair | Estimated, ordinary text (both shown) |
+|---|---|---|---|---|---|
+| 1,500 most common | 5,353 | 96.3% | 98.0% | 6.9% | 99.63% |
+| 2,500 | 3,189 | 96.7% | 98.2% | 7.7% | 99.70% |
+| 3,500 (default) | 1,482 | 96.7% | 98.3% | 10.6% | 99.75% |
+| 5,000 | 260 | 95.4% | 98.8% | 28.8% | 99.84% |
+| 7,000 | 42 | 97.6% | 100.0% | 45.2% | 100.00% |
+
+The last column weights every character the plugin would draw by how often it occurs in ordinary
+text (wordfreq), counting characters with a single reading as right; CPP over-represents
+minority readings, so the estimate leans pessimistic. The popup's markers on the 1,000 most
+common characters (3,687 test examples): 97.4% right, 98.1% counting both of a pair. Unusual
+readings (单于 *chán yú*) agree with CPP's label in 25 of the 36 test sentences that contain one;
+8 of the 11 others are the place name 黄陂, *Huángpí*, which CPP labels *bēi*. This measurement continues the one
+published with [koreader-interlinear-pinyin](https://github.com/scartoon/koreader-interlinear-pinyin#accuracy),
+this plugin's predecessor, on the same split.
 
 ### Line spacing
 
@@ -277,17 +331,24 @@ differs from their usual one. A guard keeps them from matching by accident: 订�
 Measured on a Boox Go 7 against the two old plugins, same book, same pages:
 
 - **Page turns**: the pinyin for a page takes 13.4 ms on average to work out, against
-  interlinear-pinyin 0.5.0's 13.7 ms; the pages drawn were pixel-for-pixel the same until 1.4.0's
-  Wiktionary readings. The words a page can need are read into memory with the other reading
-  tables when the first page is drawn; the only query a page can make is one Wiktionary lookup,
-  and only when an uncertain rare character on it is left undecided (results are cached) (about 230 ms, once per KOReader session; 0.5.0 took
-  190–270 ms to read its text files).
+  koreader-interlinear-pinyin 0.5.0's 13.7 ms; the pages drawn were pixel-for-pixel the same
+  until 1.4.0's Wiktionary readings. The words a page can need are read into memory with the
+  other reading tables when the first page is drawn (about 230 ms, once per KOReader session;
+  0.5.0 took 190–270 ms to read its text files). After that, the only query a page can make is
+  one Wiktionary lookup, and only when an uncertain rare character on it is left undecided
+  (results are cached).
 - **A tap**: from the tap to the popup built, 14.7 ms median (16.9 ms mean) with Wiktionary and
   the MOE dictionary, against 13.8 ms (16.6 ms) without them: one query to CC-CEDICT, then one to
   each other dictionary for the words CC-CEDICT does not have. The first tap after opening a book
   takes 20–30 ms either way; the MOE file opens on the first tap, in 1–3 ms. Memory: about
   2 MB more (KOReader's total about 133 MB against 131 MB); the dictionaries are read from the
   database, not loaded into memory.
+- **A tap with all five fallback dictionaries** (1.5.0 adds Wikipedia titles, CBDB and
+  Moegirlpedia): not yet timed on the device. Each one adds at most one indexed query per tap,
+  and none once every candidate word has an entry. On a laptop, running every query for 2,000
+  taps on 临高启明 took 0.11 ms per tap with all five against 0.06 ms with Wiktionary and MOE,
+  so the extra three cost about what those two did; on the Go 7 those two added 0.9 ms, so a tap
+  should stay near 16 ms. CBDB and Moegirlpedia, like MOE, are opened when first needed.
 - **The Translate button**: the Wi-Fi check and the choice of mode take 1–2 ms when the popup
   opens (popup built in 9–15 ms against 7–10 ms without the button, same character). The
   sentence is found when the button is pressed, in 2–3 ms.
@@ -328,7 +389,7 @@ works the same without them, and opens each only if it is there. Build the plugi
 .venv/bin/pip install opencc pypinyin
 .venv/bin/python tools/build_moe.py              # -> build/chinesehelper-moe.sqlite (about 17 MB)
 .venv/bin/python tools/build_cbdb.py             # -> build/chinesehelper-cbdb.sqlite (about 0.5 MB)
-.venv/bin/python tools/build_moegirl.py          # -> build/chinesehelper-moegirl.sqlite (under 0.1 MB)
+.venv/bin/python tools/build_moegirl.py          # -> build/chinesehelper-moegirl.sqlite (about 0.1 MB)
 # add --push to any of them to copy the file to a USB-connected Android device (adb)
 ```
 
@@ -367,7 +428,7 @@ KOReader's fonts may not draw: emoji, kaomoji, decorative symbols and scripts ot
 and CJK (Greek letters are spelt out: α → alpha).
 
 The database changes completely with each CC-CEDICT update, so it is **not committed** (every
-rebuild would add another 20 MB of binary history); it is attached to each GitHub release inside
+rebuild would add another 33 MB of binary history); it is attached to each GitHub release inside
 the ready-to-install zip. The small hand-made and learned inputs it is built from are in
 [`data/`](data/README.md).
 
