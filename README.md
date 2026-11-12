@@ -9,13 +9,6 @@ characters read in an unusual way, such as 单 in 单于), with readings chosen 
 words, so the page stays clean while the hard characters get help. Works on any reflowable book
 (EPUB, FB2, MOBI, TXT and the like) as soon as you open it, with no preprocessing.
 
-On 临高启明, a novel that mixes Ming dynasty officialdom, early-industrial technical vocabulary and
-2010s internet and forum slang, 81% of 8,000 simulated taps landed in a word or character the dictionaries
-have and another 11.5% in an everyday combination of such words (很多, 连连点头); most of the remaining
-7.5% are the novel's character names and its own coinages (髡贼, 归化民), which no dictionary has,
-and Ming forms of address and technical compounds are covered only in part (典史 and 红夷大炮 are
-in; 赵老爷 and 米尼步枪 are not).
-
 - **One tap on a character.** A single tap on a Chinese character, or on the pinyin above one,
   opens the popup. Taps anywhere else turn pages and open menus as usual.
 - **Every word around it.** The popup collects every dictionary word of 1–8 characters that
@@ -346,7 +339,7 @@ Measured on a Boox Go 7 against the two old plugins, same book, same pages:
 - **A tap with all five fallback dictionaries** (1.5.0 adds Wikipedia titles, CBDB and
   Moegirlpedia): not yet timed on the device. Each one adds at most one indexed query per tap,
   and none once every candidate word has an entry. On a laptop, running every query for 2,000
-  taps on 临高启明 took 0.11 ms per tap with all five against 0.06 ms with Wiktionary and MOE,
+  taps on a novel took 0.11 ms per tap with all five against 0.06 ms with Wiktionary and MOE,
   so the extra three cost about what those two did; on the Go 7 those two added 0.9 ms, so a tap
   should stay near 16 ms. CBDB and Moegirlpedia, like MOE, are opened when first needed.
 - **The Translate button**: the Wi-Fi check and the choice of mode take 1–2 ms when the popup
