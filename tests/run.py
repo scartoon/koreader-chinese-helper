@@ -83,30 +83,52 @@ class SQLiteBridge:
         return self.lua.table_from(list(row))
 
 
-def make_test_moe(data_dir):
-    """A tiny file in the MOE file's format (tools/build_moe.py), for the tests:
-    <data_dir>/data/chinesehelper/chinesehelper-moe.sqlite."""
+def make_test_files(data_dir):
+    """Tiny files in the format of the user's own files (tools/build_moe.py,
+    build_cbdb.py, build_moegirl.py), written the way those scripts write
+    them, for the tests: <data_dir>/data/chinesehelper/chinesehelper-*.sqlite.
+
+    Which source has which word (the plugin database has Wiktionary's 尚书省
+    and Wikipedia's 红夷大炮; CC-CEDICT has 东西):
+        尚书省   wikt, cbdb, moe        -> Wiktionary
+        典史     cbdb, moe              -> CBDB (before MOE)
+        试百户   cbdb                   -> CBDB
+        丁匠     moe                    -> MOE
+        红夷大炮 wp, moegirl            -> Wikipedia (before Moegirlpedia)
+        问题不大 moegirl                -> Moegirlpedia
+        东西     CC-CEDICT, moegirl     -> CC-CEDICT only (a stray row in a
+                                           user file never shows)"""
     import fallback_sources
-    path = os.path.join(data_dir, "data", "chinesehelper", "chinesehelper-moe.sqlite")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    if os.path.exists(path):
-        os.remove(path)
-    con = sqlite3.connect(path)
-    fallback_sources.write_fallback(con, [
-        ("尚书省", "尚書省", "shàng shū shěng", "", "官署名。", "moe"),     # Wiktionary has it too
-        ("丁匠", "丁匠", "dīng jiàng", "", "官府的工匠。", "moe"),           # MOE only
-    ])
-    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
-    con.executemany("INSERT INTO meta VALUES (?, ?)", [("fallback_sources", "moe"), ("moe_rows", "2"),
-                                                      ("moe_commit_date", "2026-07-11T09:55:26Z")])
-    con.commit()
-    con.close()
+    folder = os.path.join(data_dir, "data", "chinesehelper")
+    os.makedirs(folder, exist_ok=True)
+    files = {
+        "moe": ([
+            ("尚书省", "尚書省", "shàng shū shěng", "", "官署名。", "moe"),     # Wiktionary has it too
+            ("丁匠", "丁匠", "dīng jiàng", "", "官府的工匠。", "moe"),           # MOE only
+            ("典史", "典史", "diǎn shǐ", "", "官名。", "moe"),                  # CBDB has it too
+        ], {"fallback_sources": "moe", "moe_rows": "3", "moe_commit_date": "2026-07-11T09:55:26Z"}),
+        "cbdb": ([
+            ("尚书省", "尚書省", "shang shu sheng", "", "Department of State Affairs (Ming office title)", "cbdb"),
+            ("典史", "典史", "dian shi", "", "Clerk／District Jailor (Ming office title)", "cbdb"),
+            ("试百户", "試百戶", "shi bai hu", "", "office title (Ming)", "cbdb"),
+        ], {"fallback_sources": "cbdb", "cbdb_rows": "3", "cbdb_date": "2026-11-07T19:14:55Z"}),
+        "moegirl": ([
+            ("红夷大炮", "紅夷大炮", "hóng yí dà pào", "", "不是网络用语。", "moegirl"),
+            ("问题不大", "問題不大", "wèn tí bù dà", "", "问题不大是一句网络流行语，现在十分常用。", "moegirl"),
+            ("东西", "東西", "dōng xī", "", "不该出现。", "moegirl"),
+        ], {"fallback_sources": "moegirl", "moegirl_rows": "3", "moegirl_snapshot": "2023-05-07"}),
+    }
+    for source, (rows, meta) in files.items():
+        path = os.path.join(folder, f"chinesehelper-{source}.sqlite")
+        if os.path.exists(path):
+            os.remove(path)
+        fallback_sources.write_local_file(path, rows, meta, source)
     return data_dir
 
 
 def main():
     print(f"Running tests under {RUNTIME}")
-    test_data = make_test_moe(os.path.join(ROOT, "build", "test-koreader"))
+    test_data = make_test_files(os.path.join(ROOT, "build", "test-koreader"))
     if not os.path.exists(DB_PATH):
         sys.exit(f"missing {DB_PATH}: build it first with tools/build_db.py")
     import build_db  # the SQL the build checks, compared in test_db.lua
@@ -125,6 +147,7 @@ def main():
         g.PY_WORDS_SQL = build_db.words_sql
         g.PY_FALLBACK_SQL = build_db.fallback_sources.fallback_sql
         g.TEST_KOREADER_DIR = test_data
+        g.BUILD_DIR = os.path.join(ROOT, "build")
         lua.execute(f'package.path = "{PLUGIN}/?.lua;{ROOT}/tests/?.lua;" .. package.path')
         try:
             lua.execute(open(os.path.join(ROOT, "tests", name), encoding="utf-8").read())

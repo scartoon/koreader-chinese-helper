@@ -247,6 +247,41 @@ eq(blocks[2].head, "尚书省  shàng shū shěng"); eq(blocks[2].lines[1], "官
 eq(Model.render(m, "尚", false), blocks[1].head .. "\n" .. table.concat(blocks[1].lines, "\n") .. "\n\n"
     .. blocks[2].head .. "\n" .. table.concat(blocks[2].lines, "\n"))
 eq(Model.SOURCE_LABELS.cedict, "CEDICT"); eq(Model.SOURCE_LABELS.wikt, "Wikt"); eq(Model.SOURCE_LABELS.moe, "MOE")
+eq(Model.SOURCE_LABELS.wp, "WP"); eq(Model.SOURCE_LABELS.cbdb, "CBDB"); eq(Model.SOURCE_LABELS.moegirl, "Moegirl")
+eq(table.concat(Model.SOURCE_ORDER, ","), "wikt,cbdb,moe,wp,moegirl", "the default priority")
+
+-- The newer sources. Default order: CBDB before MOE, Wikipedia after MOE,
+-- Moegirlpedia last; CC-CEDICT before all of them.
+local five = {
+    row("典", "典", "diǎn", "canon"),
+    frow("典史", "典史", "diǎn shǐ", "官名", "moe"),
+    frow("典史", "典史", "dian shi", "Clerk (Ming office title)", "cbdb"),
+    frow("典史", "典史", "diǎn shǐ", "网络用语", "moegirl"),
+}
+m = matches("", "典", "史", five)
+eq(m[2].entries[1].source, "cbdb", "CBDB before MOE and Moegirlpedia")
+eq(m[2].entries[1].pinyin, "dian shi", "CBDB's own toneless reading")
+-- args.order (Settings:fallbackOrder()) changes it.
+m = matches("", "典", "史", five, { order = { "moegirl", "moe", "cbdb" } })
+eq(m[2].entries[1].source, "moegirl")
+m = matches("", "典", "史", { row("典", "典", "diǎn", "canon"), frow("典史", "典史", "diǎn shǐ", "x", "moegirl"),
+    frow("典史", "典史", "Diǎnshǐ", "Clerk", "wp") })
+eq(m[2].entries[1].source, "wp", "Wikipedia before Moegirlpedia")
+-- CC-CEDICT wins over every one of them.
+m = matches("", "典", "", { row("典", "典", "diǎn", "canon"), frow("典", "典", "x", "y", "cbdb"),
+    frow("典", "典", "x", "y", "wp"), frow("典", "典", "x", "y", "moegirl") })
+eq(join(m[1].entries, "source"), "cedict")
+-- Generated readings (Wikipedia titles, Moegirlpedia) say so; CBDB's and
+-- MOE's own readings do not.
+m = matches("", "红", "夷大炮", { row("红", "紅", "hóng", "red"),
+    frow("红夷大炮", "紅夷大炮", "hóng yí dà pào", "Hongyipao", "wp") })
+blocks = Model.blocks(m, "红", false)
+eq(blocks[2].source, "wp"); eq(blocks[2].head, "红夷大炮  hóng yí dà pào · generated pinyin")
+m = matches("", "问", "题不大", { row("问", "問", "wèn", "ask"),
+    frow("问题不大", "問題不大", "wèn tí bù dà", "问题不大是一句网络流行语。", "moegirl") })
+eq(Model.blocks(m, "问", false)[2].head, "问题不大  wèn tí bù dà · generated pinyin")
+m = matches("", "典", "史", { row("典", "典", "diǎn", "canon"), frow("典史", "典史", "dian shi", "Clerk", "cbdb") })
+eq(Model.blocks(m, "典", false)[2].head, "典史  dian shi")
 -- Only fallback rows: the popup has something to show (it no longer goes
 -- straight to KOReader's dictionary).
 m = matches("", "尚", "书省", { frow("尚书省", "尚書省", "Shàngshūshěng", "x", "wikt") })

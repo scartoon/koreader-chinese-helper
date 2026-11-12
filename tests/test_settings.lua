@@ -66,5 +66,15 @@ eq(Settings.new(store()):labelMode(), "fallback")
 eq(Settings.new(store{ chinesehelper_labels = "all" }):labelMode(), "all")
 eq(Settings.new(store{ chinesehelper_labels = "x" }):labelMode(), "fallback")
 eq(Settings.new(store()):fallbackEnabled("wikt"), true); eq(Settings.new(store()):fallbackEnabled("moe"), true)
+for _, src in ipairs({ "wp", "cbdb", "moegirl" }) do eq(Settings.new(store()):fallbackEnabled(src), true) end
+-- The fallback priority: the default, a setting naming some (the rest
+-- follow in the default order), unknown names, repeats and junk ignored.
+eq(table.concat(Settings.new(store()):fallbackOrder(), ","), "wikt,cbdb,moe,wp,moegirl")
+eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = "moegirl,wikt" }):fallbackOrder(), ","),
+   "moegirl,wikt,cbdb,moe,wp")
+eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = " wp , x,wp" }):fallbackOrder(), ","),
+   "wp,wikt,cbdb,moe,moegirl")
+eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = 5 }):fallbackOrder(), ","),
+   "wikt,cbdb,moe,wp,moegirl")
 -- No settings store at all (tests, odd starts): defaults, no errors.
 s = Settings.new(nil); eq(s:threshold(), 3500); s:set("threshold", 1); eq(#s:migrate(), 0)

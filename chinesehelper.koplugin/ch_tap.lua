@@ -249,7 +249,7 @@ function Tap:showPopup(hit)
     if data then data:prefetch(texts) end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = annotated, decided = decided,
-        unsure = unsure,
+        unsure = unsure, order = self.plugin.settings:fallbackOrder(),
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }
     if #matches == 0 then

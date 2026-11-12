@@ -83,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 10 + 5 + 5 + 3 + 5 + 5 + 3 + 3, "menu size")
+eq(count, 10 + 5 + 5 + 3 + 5 + 5 + 6 + 3, "menu size")   -- fallback: labels + 5 dictionaries
 
 -- The two toggles are independent.
 local pinyin_item, popup_item = entry.sub_item_table[1], entry.sub_item_table[2]
@@ -216,14 +216,15 @@ assert(math.abs(lh - (1 + (64 * 0.4 * 1.2 + 4) / 64)) < 1e-9, "line height " .. 
 assert(math.abs(Annotator.lineHeightFor(64, 40, 85) - lh / 0.85) < 1e-9, "line spacing not compensated")
 eq(Annotator.lineHeightFor(64, 80, 50), 3.0, "line height capped")
 
--- Fallback dictionaries: Wiktionary from the plugin database, MOE from the
--- user's file in KOReader's data folder (here a test file), in that order.
+-- Fallback dictionaries: Wiktionary and Wikipedia titles from the plugin
+-- database; CBDB, MOE and Moegirlpedia from the user's files in KOReader's
+-- data folder (here test files, tests/run.py), in the default order.
 local function names(list)
     local out = {}
     for _, s in ipairs(list) do out[#out + 1] = s.source end
     return table.concat(out, ",")
 end
-eq(names(plugin:fallbackSources()), "wikt,moe")
+eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,wp,moegirl")
 local fb_item = entry.sub_item_table[9]
 eq(fb_item.text, "Fallback dictionaries")
 -- Source labels: default "other dictionaries only".
@@ -234,58 +235,107 @@ labels_item.sub_item_table[1].callback(); eq(plugin.settings:labelMode(), "all")
 labels_item.sub_item_table[3].callback(); eq(plugin.settings:labelMode(), "none")
 eq(labels_item.text_func(), "Source labels: none")
 labels_item.sub_item_table[2].callback()
--- Then the dictionaries, Wiktionary first.
+-- Then the dictionaries, in priority order, each on.
 table.remove(fb_item.sub_item_table, 1)
-eq(fb_item.sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)")
-assert(fb_item.sub_item_table[1].checked_func() and fb_item.sub_item_table[2].checked_func())
+local function texts(items)
+    local out = {}
+    for _, it in ipairs(items) do out[#out + 1] = it.text_func() end
+    return table.concat(out, " | ")
+end
+eq(texts(fb_item.sub_item_table), "Wiktionary | CBDB office titles (your own file) | MOE 重編國語辭典 (your own file)"
+    .. " | Wikipedia titles | Moegirlpedia slang (your own file)")
+for _, it in ipairs(fb_item.sub_item_table) do assert(it.enabled_func() and it.checked_func()) end
 local status = table.concat(plugin:fallbackStatus(), "\n")
 assert(status:find("Wiktionary: on (dump 2026-10-01", 1, true), status)
-assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 2 entries)", 1, true), status)
+assert(status:find("CBDB office titles: on (CBDB 2026-11-07, 3 entries)", 1, true), status)
+assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 3 entries)", 1, true), status)
+assert(status:find("Wikipedia titles: on %(dump %d%d%d%d%-%d%d%-%d%d, %d+ entries%)"), status)
+assert(status:find("Moegirlpedia slang: on (snapshot 2023-05-07, 3 entries)", 1, true), status)
+assert(status:find("^Wiktionary.*\nCBDB.*\nMOE.*\nWikipedia.*\nMoegirlpedia"), "Status in priority order")
 
--- The resolver gets Wiktionary's words only (MOE's are for the popup).
+-- The resolver gets Wiktionary's words only (the others are for the popup).
 eq(plugin:readings().fallback_key, "wikt")
 local seen = {}
-for _, r in ipairs(plugin:readings().fallback({ "丁匠", "尚书省" })) do seen[#seen + 1] = r.simp .. ":" .. r.source end
-eq(table.concat(seen, ","), "尚书省:wikt", "MOE not asked for readings")
+for _, r in ipairs(plugin:readings().fallback({ "丁匠", "尚书省", "典史", "红夷大炮", "问题不大" })) do
+    seen[#seen + 1] = r.simp .. ":" .. r.source
+end
+eq(table.concat(seen, ","), "尚书省:wikt", "only Wiktionary asked for readings")
 
--- The tap's fallback lookup: CC-CEDICT's words never; Wiktionary first;
--- MOE for what Wiktionary lacks.
+-- The tap's fallback lookup: CC-CEDICT's words never (东西, even though the
+-- Moegirlpedia test file has a row for it); then one source per word, in
+-- priority order.
 local Model = require("ch_popup_model")
-local texts = { "尚", "尚书", "尚书省", "丁匠", "东西" }
-local rows = plugin:db():lookup(texts)
-local fb = plugin.tap:fallbackRows(texts, rows)
-local got = {}
-for _, r in ipairs(fb) do got[#got + 1] = r.simp .. ":" .. r.source end
-table.sort(got)
-eq(table.concat(got, ","), "丁匠:moe,尚书省:wikt")
--- Switch Wiktionary off: MOE gives 尚书省 too.
-fb_item.sub_item_table[1].callback()
-eq(names(plugin:fallbackSources()), "moe")
-got = {}
-for _, r in ipairs(plugin.tap:fallbackRows(texts, rows)) do got[#got + 1] = r.simp .. ":" .. r.source end
-table.sort(got)
-eq(table.concat(got, ","), "丁匠:moe,尚书省:moe")
+local texts_ = { "尚", "尚书", "尚书省", "丁匠", "典史", "试百户", "红夷大炮", "问题不大", "东西" }
+local rows = plugin:db():lookup(texts_)
+local function lookup()
+    local got = {}
+    for _, r in ipairs(plugin.tap:fallbackRows(texts_, rows)) do got[#got + 1] = r.simp .. ":" .. r.source end
+    table.sort(got)
+    return table.concat(got, ",")
+end
+eq(lookup(), "丁匠:moe,典史:cbdb,尚书省:wikt,红夷大炮:wp,试百户:cbdb,问题不大:moegirl")
+local function item(source)
+    for _, it in ipairs(fb_item.sub_item_table) do
+        if it.text_func():find(Plugin.SOURCE_NAMES[source], 1, true) then return it end
+    end
+end
+-- Switch Wiktionary off: CBDB (before MOE) gives 尚书省.
+item("wikt").callback()
+eq(names(plugin:fallbackSources()), "cbdb,moe,wp,moegirl")
+eq(lookup(), "丁匠:moe,典史:cbdb,尚书省:cbdb,红夷大炮:wp,试百户:cbdb,问题不大:moegirl")
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("Wiktionary: off", 1, true))
 eq(plugin:readings().fallback, nil, "the resolver follows the switch: no Wiktionary, no fallback words")
--- Both off: nothing beyond CC-CEDICT, for the resolver too.
-fb_item.sub_item_table[2].callback()
-eq(#plugin:fallbackSources(), 0); eq(#plugin.tap:fallbackRows(texts, rows), 0)
+-- CBDB off too: MOE's 典史 and 尚书省. Wikipedia off: Moegirlpedia's 红夷大炮.
+item("cbdb").callback(); item("wp").callback()
+eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,红夷大炮:moegirl,问题不大:moegirl")
+eq(plugin:readings().fallback, nil, "CBDB, MOE, Moegirlpedia never decide readings")
+-- All off: nothing beyond CC-CEDICT, for the resolver too.
+item("moe").callback(); item("moegirl").callback()
+eq(#plugin:fallbackSources(), 0); eq(lookup(), "")
 eq(plugin:readings().fallback, nil)
-fb_item.sub_item_table[1].callback(); fb_item.sub_item_table[2].callback()
-eq(names(plugin:fallbackSources()), "wikt,moe")
+for _, s in ipairs({ "wikt", "cbdb", "moe", "wp", "moegirl" }) do item(s).callback() end
+eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,wp,moegirl")
 
--- No MOE file (a fresh session, with an empty data folder): Wiktionary only,
--- and the menu says so.
+-- The order is a setting (not in the menu): named sources first, the rest
+-- after in the default order.
+plugin.settings:set("fallback_order", "moe, moegirl,bogus,moe")
+eq(names(plugin:fallbackSources()), "moe,moegirl,wikt,cbdb,wp")
+eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,红夷大炮:moegirl,试百户:cbdb,问题不大:moegirl")
+assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
+local items3 = {}
+plugin:addToMainMenu(items3)
+eq(items3.chinesehelper.sub_item_table[9].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
+   "the menu follows")
+-- The popup gets the same order (Model.matches args.order).
+eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,wp")
+plugin.settings:set("fallback_order", nil)
+eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,wp,moegirl")
+
+-- No user files (a fresh session, with an empty data folder): the plugin's
+-- own two, and the menu and Status say the rest are not installed.
 data_dir = "/nonexistent-koreader"
 local Plugin2 = dofile(PLUGIN_DIR .. "/main.lua")
 local plugin2 = Plugin2:new{ path = PLUGIN_DIR }
 plugin2:init()
-eq(names(plugin2:fallbackSources()), "wikt")
+eq(names(plugin2:fallbackSources()), "wikt,wp")
 local items2 = {}
 plugin2:addToMainMenu(items2)
-local moe_item = items2.chinesehelper.sub_item_table[9].sub_item_table[3]
-eq(moe_item.text_func(), "MOE 重編國語辭典 (not installed)")
-assert(not moe_item.enabled_func() and not moe_item.checked_func())
-assert(table.concat(plugin2:fallbackStatus(), "\n"):find("MOE 重編國語辭典: not installed", 1, true))
+local dict_items = items2.chinesehelper.sub_item_table[9].sub_item_table
+table.remove(dict_items, 1)
+eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典 (not installed)"
+    .. " | Wikipedia titles | Moegirlpedia slang (not installed)")
+for _, k in ipairs({ 2, 3, 5 }) do
+    assert(not dict_items[k].enabled_func() and not dict_items[k].checked_func())
+end
+local status2 = table.concat(plugin2:fallbackStatus(), "\n")
+for _, line in ipairs({ "CBDB office titles: not installed", "MOE 重編國語辭典: not installed",
+                        "Moegirlpedia slang: not installed" }) do
+    assert(status2:find(line, 1, true), status2)
+end
+-- The lookup still works: Wiktionary and Wikipedia only.
+local fb2 = {}
+for _, r in ipairs(plugin2:fallbackLookup(Model.uncovered(texts_, rows))) do fb2[#fb2 + 1] = r.simp .. ":" .. r.source end
+table.sort(fb2)
+eq(table.concat(fb2, ","), "尚书省:wikt,红夷大炮:wp")
 
 G_reader_settings = nil

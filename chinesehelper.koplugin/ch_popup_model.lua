@@ -136,11 +136,19 @@ local function markMatching(entries, chosen, value)
 end
 
 ------------------------------------------------------------------------
--- Fallback dictionaries (Wiktionary, the optional MOE file): consulted
--- only for candidate words CC-CEDICT has no row for, one source per word.
+-- Fallback dictionaries (Wiktionary and Wikipedia titles in the plugin
+-- database; CBDB, MOE and Moegirlpedia in the user's optional files):
+-- consulted only for candidate words CC-CEDICT has no row for, one source
+-- per word.
 ------------------------------------------------------------------------
 
-Model.SOURCE_ORDER = { "wikt", "moe" }   -- after CC-CEDICT, in this order
+-- After CC-CEDICT, in this order (the default; Settings:fallbackOrder() can
+-- change it, passed to Model.matches as args.order).
+Model.SOURCE_ORDER = { "wikt", "cbdb", "moe", "wp", "moegirl" }
+-- Sources whose readings are generated (pypinyin), not the source's own:
+-- the popup says so.
+Model.GENERATED_READING = { wp = true, moegirl = true }
+Model.GENERATED_NOTE = "generated pinyin"
 
 -- The candidate words (texts) no CC-CEDICT row covers, in their order.
 function Model.uncovered(texts, rows)
@@ -185,9 +193,11 @@ The popup's matches.
   args.cands        Text.candidates' first result
   args.rows         rows for the candidates ({simp, trad, pinyin, syllables, defs,
                     source}): CC-CEDICT's (source nil or "cedict") and the
-                    fallback dictionaries' ("wikt", "moe"). For each word,
-                    CC-CEDICT's rows win; otherwise the first source in
-                    Model.SOURCE_ORDER that has the word gives its rows.
+                    fallback dictionaries' ("wikt", "wp", "cbdb", "moe",
+                    "moegirl"). For each word, CC-CEDICT's rows win;
+                    otherwise the first source in args.order (default
+                    Model.SOURCE_ORDER) that has the word gives its rows.
+  args.order        the fallback dictionaries' priority, or nil
   args.chosen       the resolver's reading of the tapped character ("dào", or a
                     pair "chéng/shèng"), or nil
   args.annotated    true when that reading is drawn above the character
@@ -205,7 +215,7 @@ Returns { {word=, start=, len=, entries={...}, decided=bool, note=, mark=}, ... 
 readings are the uncertainty pair; nil otherwise).
 Each entry: { pinyin=, syllables=, senses={...}, proper=bool, marked=bool,
 missing=bool (a chosen reading CC-CEDICT does not list), source= ("cedict",
-"wikt", "moe") }. Reading markers (and the "decides" tag's test for a choice
+"wikt", "wp", "cbdb", "moe", "moegirl") }. Reading markers (and the "decides" tag's test for a choice
 of readings) only ever apply to CC-CEDICT entries: a fallback entry shows its
 source's own reading, unmarked.
 ]]
@@ -234,7 +244,7 @@ function Model.matches(args)
         local sources = by_form[form]
         if not sources then return nil end
         if sources.cedict then return sources.cedict end
-        for _, s in ipairs(Model.SOURCE_ORDER) do
+        for _, s in ipairs(args.order or Model.SOURCE_ORDER) do
             if sources[s] then return sources[s] end
         end
         return nil
@@ -322,17 +332,20 @@ function Model.matches(args)
 end
 
 -- Short names of the dictionaries, shown as the entries' source labels.
-Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", moe = "MOE" }
+-- (Moegirlpedia is "Moegirl", not "Moe", which would read as MOE.)
+Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", wp = "WP", cbdb = "CBDB", moe = "MOE",
+                        moegirl = "Moegirl" }
 
 --[[--
 The popup's content as blocks, one per match:
   { head = "**宛**  yuān · shown above" (the word, its first reading, markers),
-    source = "cedict" / "wikt" / "moe" (whose entry it is),
+    source = "cedict" / "wikt" / "wp" / "cbdb" / "moe" / "moegirl" (whose entry it is),
     lines = { "winding; as if", "wǎn: ...", ... } (senses, further readings) }
 b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
 The tapped character's marked readings are "shown above" when `annotated`,
 "one of these" when Model.matches set m.mark (the uncertainty pair), and
-"likely here" otherwise.
+"likely here" otherwise. A reading a source does not give itself
+(Model.GENERATED_READING) is followed by "· generated pinyin".
 ]]
 function Model.blocks(matches, char, annotated, b0, b1)
     b0, b1 = b0 or "", b1 or ""
@@ -353,6 +366,9 @@ function Model.blocks(matches, char, annotated, b0, b1)
                 end
             end
             local marked = e.marked and (m.len == 1 and mark or (" · " .. Model.MARK_LIKELY)) or ""
+            if Model.GENERATED_READING[e.source or ""] and e.pinyin ~= "" then
+                marked = marked .. " · " .. Model.GENERATED_NOTE
+            end
             if k == 1 then
                 local tag = m.decided and (" · decides " .. char .. "'s reading") or ""
                 block.head = b0 .. m.word .. b1 .. "  " .. e.pinyin .. marked .. tag

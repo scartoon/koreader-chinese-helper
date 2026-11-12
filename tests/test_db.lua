@@ -79,8 +79,49 @@ db:each("SELECT count(*) FROM fallback WHERE simp IN (SELECT simp FROM entries) 
     function(row) overlap = tonumber(row[1]) end)
 eq(overlap, 0, "no fallback row for a CC-CEDICT headword")
 local sources = {}
-db:each("SELECT DISTINCT source FROM fallback", nil, function(row) sources[#sources + 1] = row[1] end)
-eq(table.concat(sources, ","), "wikt", "only Wiktionary in the release database")
+db:each("SELECT DISTINCT source FROM fallback ORDER BY source", nil, function(row) sources[#sources + 1] = row[1] end)
+eq(table.concat(sources, ","), "wikt,wp", "only Wiktionary and Wikipedia titles in the release database")
+-- Wikipedia titles: the English article's title, a generated reading, both scripts.
+fb = db:fallback({ "红夷大炮" })
+eq(#fb, 1); eq(fb[1].source, "wp"); eq(fb[1].defs, "Hongyipao"); eq(fb[1].pinyin, "hóng yí dà pào")
+eq(fb[1].syllables, "", "no part in reading markers")
+eq(db:fallback({ "紅夷大炮" })[1].simp, "红夷大炮")
+eq(#db:fallback({ "火绳枪", "黄嘴喜鹊" }), 1, "technology kept, living things left out")
 -- Version information for the Status screen and data/README.md.
 local meta2 = db:meta()
-eq(meta2.fallback_sources, "wikt"); assert(meta2.wikt_dump ~= "" and meta2.wikt_sha256 and meta2.resolver_sha256)
+eq(meta2.fallback_sources, "wikt,wp"); assert(meta2.wikt_dump ~= "" and meta2.wikt_sha256 and meta2.resolver_sha256)
+assert(meta2.wp_dump:match("^%d%d%d%d%-%d%d%-%d%d$"), meta2.wp_dump); assert(tonumber(meta2.wp_rows) > 10000)
+
+-- The user's own files, as built by tools/build_cbdb.py and
+-- tools/build_moegirl.py (and build_moe.py), when this computer has them:
+-- they load through the same SQL, every row has the file's source, and none
+-- is for a headword CC-CEDICT has.
+local function checkLocal(name, source, word, want)
+    local path = BUILD_DIR .. "/chinesehelper-" .. name .. ".sqlite"
+    local f = io.open(path, "rb")
+    if not f then
+        print("  (no " .. path .. ": skipped)")
+        return
+    end
+    f:close()
+    local ldb = assert(DB.open(path, H.SQ3))
+    local got = ldb:fallback({ word })
+    assert(#got >= 1, name .. ": " .. word)
+    eq(got[1].source, source); assert(got[1].defs:find(want, 1, true), got[1].defs)
+    local srcs = {}
+    ldb:each("SELECT DISTINCT source FROM fallback", nil, function(row) srcs[#srcs + 1] = row[1] end)
+    eq(table.concat(srcs, ","), source, name .. ": one source")
+    eq(ldb:meta().fallback_sources, source)
+    local forms = {}
+    ldb:each("SELECT simp, trad FROM fallback", nil, function(row) forms[#forms + 1] = row[1]; forms[#forms + 1] = row[2] end)
+    for k = 1, #forms, 36 do
+        local chunk = {}
+        for j = k, math.min(k + 35, #forms) do chunk[#chunk + 1] = forms[j] end
+        eq(#db:lookup(chunk), 0, name .. ": a row for a CC-CEDICT headword near " .. chunk[1])
+    end
+    ldb:close()
+end
+checkLocal("cbdb", "cbdb", "典史", "Ming office title")
+checkLocal("cbdb", "cbdb", "试百户", "office title (Ming)")
+checkLocal("moegirl", "moegirl", "问题不大", "网络流行语")
+checkLocal("moe", "moe", "丁匠", "工匠")

@@ -165,25 +165,37 @@ end
 -- Fallback dictionaries
 ------------------------------------------------------------------------
 
-ChineseHelper.SOURCE_NAMES = { wikt = "Wiktionary", moe = "MOE 重編國語辭典" }
-ChineseHelper.MOE_FILE = "chinesehelper-moe.sqlite"
+ChineseHelper.SOURCE_NAMES = { wikt = "Wiktionary", wp = "Wikipedia titles", cbdb = "CBDB office titles",
+                                moe = "MOE 重編國語辭典", moegirl = "Moegirlpedia slang" }
+-- In the plugin database (the release): their rows are in its fallback table.
+ChineseHelper.BUNDLED_SOURCES = { wikt = true, wp = true }
+-- Files the user builds and installs (licences that forbid distributing
+-- them): tools/build_moe.py, build_cbdb.py, build_moegirl.py.
+ChineseHelper.LOCAL_FILES = { moe = "chinesehelper-moe.sqlite", cbdb = "chinesehelper-cbdb.sqlite",
+                              moegirl = "chinesehelper-moegirl.sqlite" }
+ChineseHelper.MOE_FILE = ChineseHelper.LOCAL_FILES.moe
 
--- Where the user's own MOE file goes: KOReader's data folder, which plugin
+-- Where the user's own files go: KOReader's data folder, which plugin
 -- updates leave alone (Android: /sdcard/koreader/data/chinesehelper/).
-function ChineseHelper:moePath()
+function ChineseHelper:localPath(source)
     local ok, DataStorage = pcall(require, "datastorage")
-    if not ok or not DataStorage then return nil end
-    return DataStorage:getDataDir() .. "/data/chinesehelper/" .. ChineseHelper.MOE_FILE
+    if not ok or not DataStorage or not ChineseHelper.LOCAL_FILES[source] then return nil end
+    return DataStorage:getDataDir() .. "/data/chinesehelper/" .. ChineseHelper.LOCAL_FILES[source]
 end
 
--- The MOE file's database, opened on first use, or nil when not installed.
-function ChineseHelper:moeDb()
-    if session.moe ~= nil then return session.moe or nil end
-    local path = self:moePath()
+-- A user file's database, opened on first use, or nil when not installed.
+function ChineseHelper:localDb(source)
+    session.local_dbs = session.local_dbs or {}
+    local cached = session.local_dbs[source]
+    if cached ~= nil then return cached or nil end
+    local path = self:localPath(source)
     local db = path and require("ch_db").open(path)
-    session.moe = db or false
+    session.local_dbs[source] = db or false
     return db or nil
 end
+
+function ChineseHelper:moePath() return self:localPath("moe") end
+function ChineseHelper:moeDb() return self:localDb("moe") end
 
 -- A database's meta table (cached for the session), or {}.
 local function metaOf(db)
@@ -198,21 +210,35 @@ local function metaOf(db)
     return meta
 end
 
--- The fallback dictionaries to consult, in priority order:
--- { {source="wikt", db=}, {source="moe", db=} }, each only when switched on
--- and present.
+-- Is `source` in a database's meta fallback_sources ("wikt,wp")?
+local function listed(db, source)
+    for name in (metaOf(db).fallback_sources or ""):gmatch("[^,%s]+") do
+        if name == source then return true end
+    end
+    return false
+end
+
+-- The database holding a fallback dictionary, or nil when it is not there
+-- (not in this plugin database, or the user's file not installed).
+function ChineseHelper:sourceDb(source)
+    if ChineseHelper.BUNDLED_SOURCES[source] then
+        local db = self:db()
+        return db and listed(db, source) and db or nil
+    end
+    return self:localDb(source)
+end
+
+-- The fallback dictionaries to consult, in priority order
+-- (Settings:fallbackOrder()): { {source="wikt", db=}, {source="cbdb", db=},
+-- ... }, each only when switched on and present.
 function ChineseHelper:fallbackSources()
     local out = {}
     local settings = self.settings
-    if settings:fallbackEnabled("wikt") then
-        local db = self:db()
-        if db and (metaOf(db).fallback_sources or ""):find("wikt", 1, true) then
-            out[#out + 1] = { source = "wikt", db = db }
+    for _i, source in ipairs(settings:fallbackOrder()) do
+        if settings:fallbackEnabled(source) then
+            local db = self:sourceDb(source)
+            if db then out[#out + 1] = { source = source, db = db } end
         end
-    end
-    if settings:fallbackEnabled("moe") then
-        local db = self:moeDb()
-        if db then out[#out + 1] = { source = "moe", db = db } end
     end
     return out
 end
@@ -242,24 +268,32 @@ function ChineseHelper:fallbackLookup(words, only)
     return out
 end
 
--- One Status line per fallback dictionary: version, size, on or off.
+-- One Status line per fallback dictionary, in priority order: version,
+-- size, on or off.
 function ChineseHelper:fallbackStatus()
     local lines = {}
-    local main = metaOf(self:db())
     local state = function(source) return self.settings:fallbackEnabled(source) and _("on") or _("off") end
-    if (main.fallback_sources or ""):find("wikt", 1, true) then
-        lines[#lines + 1] = T(_("Wiktionary: %1 (dump %2, %3 entries)"), state("wikt"), main.wikt_dump or "?",
-            main.wikt_rows or "?")
-    else
-        lines[#lines + 1] = _("Wiktionary: not in this database")
-    end
-    local moe = self:moeDb()
-    if moe then
-        local m = metaOf(moe)
-        lines[#lines + 1] = T(_("MOE 重編國語辭典: %1 (moedict-data %2, %3 entries)"), state("moe"),
-            (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?")
-    else
-        lines[#lines + 1] = _("MOE 重編國語辭典: not installed")
+    local describe = {
+        wikt = function(m) return T(_("Wiktionary: %1 (dump %2, %3 entries)"), state("wikt"),
+            m.wikt_dump or "?", m.wikt_rows or "?") end,
+        wp = function(m) return T(_("Wikipedia titles: %1 (dump %2, %3 entries)"), state("wp"),
+            m.wp_dump or "?", m.wp_rows or "?") end,
+        cbdb = function(m) return T(_("CBDB office titles: %1 (CBDB %2, %3 entries)"), state("cbdb"),
+            (m.cbdb_date or "?"):sub(1, 10), m.cbdb_rows or "?") end,
+        moe = function(m) return T(_("MOE 重編國語辭典: %1 (moedict-data %2, %3 entries)"), state("moe"),
+            (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?") end,
+        moegirl = function(m) return T(_("Moegirlpedia slang: %1 (snapshot %2, %3 entries)"), state("moegirl"),
+            (m.moegirl_snapshot or "?"):sub(1, 10), m.moegirl_rows or "?") end,
+    }
+    for _i, source in ipairs(self.settings:fallbackOrder()) do
+        local db = self:sourceDb(source)
+        if db then
+            lines[#lines + 1] = describe[source](metaOf(db))
+        elseif ChineseHelper.BUNDLED_SOURCES[source] then
+            lines[#lines + 1] = T(_("%1: not in this database"), ChineseHelper.SOURCE_NAMES[source])
+        else
+            lines[#lines + 1] = T(_("%1: not installed"), ChineseHelper.SOURCE_NAMES[source])
+        end
     end
     return lines
 end
@@ -449,15 +483,15 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Fallback dictionaries"),
-                help_text = _("For words CC-CEDICT does not have, the popup can show entries from other dictionaries. CC-CEDICT always comes first: a word it has never gets an entry from another dictionary. Wiktionary is part of the plugin; the MOE dictionary is a file you build and install yourself (see the README)."),
-                sub_item_table = {
+                help_text = _("For words CC-CEDICT does not have, the popup can show entries from other dictionaries, in the order listed here. CC-CEDICT always comes first: a word it has never gets an entry from another dictionary, and each word gets the entry of the first dictionary that has it. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE and Moegirlpedia are files you build and install yourself (see the README)."),
+                sub_item_table = plugin:fallbackItems(apply, {
                     {
                         text_func = function()
                             local names = { all = _("all entries"), fallback = _("other dictionaries only"),
                                             none = _("none") }
                             return T(_("Source labels: %1"), names[settings:labelMode()])
                         end,
-                        help_text = _("A small grey line above an entry naming its dictionary: CEDICT, Wikt (Wiktionary) or MOE."),
+                        help_text = _("A small grey line above an entry naming its dictionary: CEDICT, Wikt (Wiktionary), CBDB, MOE, WP (Wikipedia titles) or Moegirl (Moegirlpedia)."),
                         sub_item_table = {
                             { text = _("All entries"), radio = true, keep_menu_open = true,
                               checked_func = function() return settings:labelMode() == "all" end,
@@ -471,27 +505,7 @@ function ChineseHelper:addToMainMenu(menu_items)
                         },
                         separator = true,
                     },
-                    {
-                        text = _("Wiktionary"),
-                        checked_func = function() return settings:fallbackEnabled("wikt") end,
-                        callback = function(touchmenu)
-                            settings:set("fallback_wikt", not settings:fallbackEnabled("wikt"))
-                            apply(touchmenu)   -- fallback words can decide the pinyin drawn
-                        end,
-                    },
-                    {
-                        text_func = function()
-                            return plugin:moeDb() and _("MOE 重編國語辭典 (your own file)")
-                                or _("MOE 重編國語辭典 (not installed)")
-                        end,
-                        enabled_func = function() return plugin:moeDb() ~= nil end,
-                        checked_func = function() return settings:fallbackEnabled("moe") and plugin:moeDb() ~= nil end,
-                        callback = function(touchmenu)
-                            settings:set("fallback_moe", not settings:fallbackEnabled("moe"))
-                            apply(touchmenu)
-                        end,
-                    },
-                },
+                }),
                 separator = true,
             },
             {
@@ -501,6 +515,32 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
         },
     }
+end
+
+-- The Fallback dictionaries menu: `items` (the source labels setting), then
+-- one on/off item per dictionary in priority order. The user's own files
+-- show whether they are installed and cannot be switched on without one.
+function ChineseHelper:fallbackItems(apply, items)
+    local plugin, settings = self, self.settings
+    for _i, source in ipairs(settings:fallbackOrder()) do
+        local name = ChineseHelper.SOURCE_NAMES[source]
+        local bundled = ChineseHelper.BUNDLED_SOURCES[source]
+        items[#items + 1] = {
+            text_func = function()
+                if plugin:sourceDb(source) then
+                    return bundled and name or T(_("%1 (your own file)"), name)
+                end
+                return bundled and T(_("%1 (not in this database)"), name) or T(_("%1 (not installed)"), name)
+            end,
+            enabled_func = function() return plugin:sourceDb(source) ~= nil end,
+            checked_func = function() return settings:fallbackEnabled(source) and plugin:sourceDb(source) ~= nil end,
+            callback = function(touchmenu)
+                settings:set("fallback_" .. source, not settings:fallbackEnabled(source))
+                apply(touchmenu)   -- Wiktionary's words can decide the pinyin drawn
+            end,
+        }
+    end
+    return items
 end
 
 -- "0 mm (off)", "2.5 mm", "5 mm", "7.5 mm", "10 mm".
