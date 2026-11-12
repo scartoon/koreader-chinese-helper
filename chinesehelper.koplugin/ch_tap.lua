@@ -155,8 +155,9 @@ end
 --[[--
 The resolver's view of the tapped character, computed on the page items the
 annotation layer uses (so the popup cannot disagree with the pinyin drawn):
-chosen reading (or nil), the deciding word (Model.matches' `decided`), and
-whether this occurrence has pinyin drawn above it.
+chosen reading (or nil), the deciding word (Model.matches' `decided`),
+whether this occurrence has pinyin drawn above it, and whether the reading
+is only the uncertainty pair (Resolve.forPopup's `unsure`).
 ]]
 function Tap:resolve(hit, left, right)
     local data = self.plugin:readings()
@@ -179,30 +180,15 @@ function Tap:resolve(hit, left, right)
         for _, c in ipairs(right) do items[#items + 1] = { text = c, joined = true } end
     end
     local drawn = items[i].ws and self.plugin.annotator:drawnAt(i)
-    local reading, decided = Resolve.forPopup(data, items, i, settings:uncertainMode(), special,
+    local reading, decided, unsure = Resolve.forPopup(data, items, i, settings:uncertainMode(), special,
         drawn and drawn.text)
-    return reading, decided, drawn ~= nil
+    return reading, decided, drawn ~= nil, unsure
 end
 
 -- Rows from the fallback dictionaries for the candidate words CC-CEDICT has
 -- no row for: each source in priority order, one source per word.
 function Tap:fallbackRows(texts, rows)
-    local remaining = Model.uncovered(texts, rows)
-    local out = {}
-    for _, src in ipairs(self.plugin:fallbackSources()) do
-        if #remaining == 0 then break end
-        local got = {}
-        for _, row in ipairs(src.db:fallback(remaining)) do
-            if (row.source or src.source) == src.source then
-                row.source = src.source
-                got[#got + 1] = row
-            end
-        end
-        local kept
-        kept, remaining = Model.takeFallback(remaining, got)
-        for _, row in ipairs(kept) do out[#out + 1] = row end
-    end
-    return out
+    return self.plugin:fallbackLookup(Model.uncovered(texts, rows))
 end
 
 function Tap:lookupInKOReader(text, box)
@@ -258,11 +244,12 @@ function Tap:showPopup(hit)
     local cands, texts = Text.candidates(left, hit.char, right)
     local rows = db:lookup(texts)
     for _, row in ipairs(self:fallbackRows(texts, rows)) do rows[#rows + 1] = row end
-    local chosen, decided, annotated = self:resolve(hit, left, right)
+    local chosen, decided, annotated, unsure = self:resolve(hit, left, right)
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = annotated, decided = decided,
+        unsure = unsure,
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }
     if #matches == 0 then

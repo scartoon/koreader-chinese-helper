@@ -58,6 +58,10 @@ from plugin_runtime import DEFAULT_PLUGIN, ROOT, Plugin  # noqa: E402
 THRESHOLDS = (1500, 2500, 3500, 5000, 7000)
 
 
+def fallback_sources(args):
+    return () if args.fallback in ("", "none") else tuple(args.fallback.split(","))
+
+
 def shown_ok(label, shown):
     return shown is not None and label in shown.split("/")
 
@@ -190,9 +194,13 @@ def main():
     ap.add_argument("--errors", type=int, default=0, help="show this many sample errors")
     ap.add_argument("--no-cpp", action="store_true", help="only the regression lists")
     ap.add_argument("--no-special", action="store_true", help="unusual readings (the special-words table) off")
+    ap.add_argument("--fallback", default="wikt",
+                    help="fallback dictionaries whose words decide readings, comma-separated in priority order "
+                         "(wikt, moe; the plugin's default is wikt, plus moe when the user installs it); "
+                         "'none' for none")
     args = ap.parse_args()
 
-    plugin = Plugin(args.plugin, special=not args.no_special)
+    plugin = Plugin(args.plugin, special=not args.no_special, fallback=fallback_sources(args))
     if not args.no_cpp:
         shares = load_shares()
         rows = {mode: run_test(plugin, shares, mode) for mode in ("both", "best", "skip")}
@@ -222,7 +230,7 @@ def main():
         # Rules on/off at --threshold.
         plugin.lua.execute("local d = ...; d.rules = {}", plugin.data)
         no_rules = {mode: run_test(plugin, shares, mode) for mode in ("both", "best")}
-        plugin = Plugin(args.plugin, special=not args.no_special)
+        plugin = Plugin(args.plugin, special=not args.no_special, fallback=fallback_sources(args))
         n, _, ok_best, _ = summarize(rows["best"], args.threshold)
         _, _, ok_best_nr, _ = summarize(no_rules["best"], args.threshold)
         _, _, ok_both, pairs = summarize(rows["both"], args.threshold)
