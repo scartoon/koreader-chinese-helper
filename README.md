@@ -69,7 +69,7 @@ all books.
 | Mark unusual readings of common characters | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [The edge band](#the-edge-band) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
-| Fallback dictionaries | Source labels (all entries / other dictionaries only, the default / none); Wiktionary on/off; MOE 重編國語辭典 on/off (only when you have installed its file). See [Other dictionaries](#other-dictionaries) |
+| Fallback dictionaries | Source labels (all entries / other dictionaries only, the default / none); then each dictionary on/off, in priority order: Wiktionary, CBDB office titles, MOE 重編國語辭典, Wikipedia titles, Moegirlpedia slang (CBDB, MOE and Moegirlpedia only when you have installed their files). See [Other dictionaries](#other-dictionaries) |
 | Status | Version, data versions and load times, what the current page needed, and any old plugin still installed |
 
 The two switches are independent: pinyin without the popup, the popup without pinyin, or both.
@@ -174,26 +174,50 @@ clause mark (，；：) when there is one close by. Nothing is highlighted in th
 
 ### Other dictionaries
 
-For words CC-CEDICT does not have, the popup also looks in **Wiktionary** (part of the plugin:
-about 61,000 words, many of them historical and literary terms, chengyu, technical terms and some
-slang) and, if you have installed it, the **MOE 重編國語辭典** (see
-[Data](#optional-the-moe-dictionary-build-it-yourself)). CC-CEDICT always comes first: a word it
-has never gets an entry from another dictionary. Otherwise Wiktionary comes before MOE, and each
-word shows one dictionary's entry.
+For words CC-CEDICT does not have, the popup also looks in other dictionaries. Two are part of
+the plugin:
+
+- **Wiktionary**: about 61,000 words, many of them historical and literary terms, chengyu,
+  technical terms and some slang.
+- **Wikipedia titles**: about 39,000 Chinese Wikipedia article titles of 3–8 characters in
+  technology, engineering, military and history (红夷大炮 *Hongyipao*, 火绳枪 *Matchlock*,
+  鱼鳞册 *Fish-Scale Registers*), glossed with the English article's title.
+
+Three more are files you build and install yourself, because their licences do not allow this
+project to distribute them (see [Data](#optional-dictionaries-you-build-yourself)):
+
+- **CBDB office titles**: about 2,900 Ming and Southern Ming office titles with English
+  translations (典史 *Clerk / District Jailor*, 巡按御史 *Regional Inspector*).
+- **MOE 重編國語辭典**: about 90,000 entries, monolingual, strong on historical and literary
+  vocabulary.
+- **Moegirlpedia slang**: about 400 internet-slang terms from 萌娘百科, each with its opening
+  sentence or two in Chinese (问题不大, 王八之气, 大杀器).
+
+CC-CEDICT always comes first: a word it has never gets an entry from another dictionary. After
+it, each word shows the entry of the first dictionary that has it, in this order: Wiktionary,
+CBDB, MOE, Wikipedia titles, Moegirlpedia. (CBDB's narrow office titles beat MOE's general
+definitions; an English article title is a label rather than a definition, so it comes after
+the real dictionaries; Moegirlpedia is only for words nothing else has.) The order is the
+`chinesehelper_fallback_order` setting in KOReader's `settings.reader.lua`, which you can edit
+while KOReader is closed (e.g. `"moe,wikt"`: dictionaries left out keep their default place
+after those named).
 
 - An entry from another dictionary shows that dictionary's own reading (MOE's are Taiwan
-  standard) and is never marked *shown above* or *likely here*: those markers come from the
-  reading resolver and appear on CC-CEDICT entries only, so the popup and the pinyin always
-  agree. A word that decides the reading but is missing from CC-CEDICT shows the other
-  dictionary's definition, still tagged *decides X's reading*.
+  standard; CBDB's have no tone marks) and is never marked *shown above* or *likely here*: those
+  markers come from the reading resolver and appear on CC-CEDICT entries only, so the popup and
+  the pinyin always agree. Wikipedia and Moegirlpedia give no readings: the popup shows one
+  generated with pypinyin, marked *generated pinyin*. A word that decides the reading but is
+  missing from CC-CEDICT shows the other dictionary's definition, still tagged *decides X's
+  reading*.
 - A Wiktionary word can decide a reading in one case: the character's reading is uncertain
   and nothing else decides it (see [Readings](#readings)), as 累世 does for 累 in 累世公卿.
-  MOE's words never decide readings.
-- A small grey line above an entry names its dictionary: **CEDICT**, **Wikt** or **MOE**. By
-  default only entries from the other dictionaries are labelled; **Source labels** can label
-  every entry or none.
-- Each dictionary can be switched off under **Fallback dictionaries**; with both off the popup
-  shows CC-CEDICT alone, as before. **Status** lists each dictionary's version and size.
+  The other dictionaries' words never decide readings.
+- A small grey line above an entry names its dictionary: **CEDICT**, **Wikt**, **CBDB**,
+  **MOE**, **WP** or **Moegirl**. By default only entries from the other dictionaries are
+  labelled; **Source labels** can label every entry or none.
+- Each dictionary can be switched off under **Fallback dictionaries**; with all of them off the
+  popup shows CC-CEDICT alone, as before. **Status** lists each dictionary's version and size, or
+  that it is not installed.
 
 The popup is the full width of the screen (minus a small margin) and as tall as its content,
 up to the full screen height, scrolling beyond that. A short popup goes in the half of the
@@ -271,12 +295,15 @@ Measured on a Boox Go 7 against the two old plugins, same book, same pages:
 ## Data
 
 Everything is in one SQLite database, `chinesehelper.koplugin/data/chinesehelper.sqlite` (about
-28 MB):
+33 MB):
 
 - **CC-CEDICT** (`entries`): the popup's dictionary.
 - **Fallback dictionaries** (`fallback`): entries from English **Wiktionary** for words CC-CEDICT
   does not have (about 61,000 headwords: historical and literary terms, chengyu, technical terms,
-  some slang). CC-CEDICT always wins: there is no fallback row for any headword CC-CEDICT has, in
+  some slang), and **Chinese Wikipedia titles** (about 39,000: articles of 3–8 characters with an
+  English article, in a technology, engineering, military or history category; people, lists,
+  disambiguation pages, places, organisations, works, living things and chemical compounds left
+  out). CC-CEDICT always wins: there is no fallback row for any headword CC-CEDICT has, in
   either script. Only what the popup can match is kept (headwords of 1–8 Chinese characters with a
   Mandarin reading), and everyday combinations that CC-CEDICT leaves out on purpose are filtered
   out (很多, 这次, 一天, 脸上: a closed-class word such as a numeral, measure word, adverb, locative
@@ -289,28 +316,53 @@ Everything is in one SQLite database, `chinesehelper.koplugin/data/chinesehelper
 The popup's lookups use indexes on the simplified and traditional forms; the build checks with
 `EXPLAIN QUERY PLAN` that every lookup query uses its index.
 
-### Optional: the MOE dictionary (build it yourself)
+### Optional dictionaries you build yourself
 
-The Taiwan Ministry of Education's [《重編國語辭典修訂本》](https://dict.revised.moe.edu.tw/) (about
-160,000 entries, monolingual, strong on historical and literary vocabulary) can be added as a
-second fallback dictionary. Its licence
-([CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/)) allows copying it for your
-own use but not distributing adaptations, so it is
-**not** in the repository or the release: you build the file yourself and copy it to your device.
-The plugin works the same without it.
+Three more fallback dictionaries can be added, each as a separate file. Their licences allow
+copying them for your own use but not this project's distributing them, so none is in the
+repository or the release: you build the files yourself and copy them to your device. The plugin
+works the same without them, and opens each only if it is there. Build the plugin database first
+(or use the one from the release zip): headwords CC-CEDICT has are left out of these files too.
 
 ```sh
-.venv/bin/pip install opencc
+.venv/bin/pip install opencc pypinyin
 .venv/bin/python tools/build_moe.py              # -> build/chinesehelper-moe.sqlite (about 17 MB)
-.venv/bin/python tools/build_moe.py --push       # ... and copy it to a USB-connected Android device
+.venv/bin/python tools/build_cbdb.py             # -> build/chinesehelper-cbdb.sqlite (about 0.5 MB)
+.venv/bin/python tools/build_moegirl.py          # -> build/chinesehelper-moegirl.sqlite (under 0.1 MB)
+# add --push to any of them to copy the file to a USB-connected Android device (adb)
 ```
 
-It goes in KOReader's data folder, where plugin updates leave it alone:
-`koreader/data/chinesehelper/chinesehelper-moe.sqlite` (on Android:
-`/sdcard/koreader/data/chinesehelper/chinesehelper-moe.sqlite`). Its headwords are traditional,
-also indexed under their simplified form (OpenCC `tw2s`, characters only); its readings are Taiwan
-standard and stay inside its own entries. Build the plugin database first: headwords CC-CEDICT has
-are left out of the MOE file too.
+They go in KOReader's data folder, where plugin updates leave them alone:
+`koreader/data/chinesehelper/` (on Android: `/sdcard/koreader/data/chinesehelper/`).
+
+- **MOE 重編國語辭典**: the Taiwan Ministry of Education's
+  [《重編國語辭典修訂本》](https://dict.revised.moe.edu.tw/) (about 160,000 entries, monolingual),
+  from [g0v/moedict-data](https://github.com/g0v/moedict-data) (downloaded, 7 MB). Licence:
+  [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/). Its headwords are
+  traditional, also indexed under their simplified form (OpenCC `tw2s`, characters only); its
+  readings are Taiwan standard and stay inside its own entries.
+- **CBDB office titles**: the Ming and Southern Ming office titles of the
+  [China Biographical Database (CBDB)](https://cbdb.hsites.harvard.edu/), with CBDB's English
+  translations ("office title (Ming)" where CBDB has none yet) and its toneless readings, from
+  CBDB's [SQLite release](https://huggingface.co/datasets/cbdb/cbdb-sqlite) (downloaded, about
+  110 MB zipped, 590 MB unzipped). Licence: the
+  [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms)
+  ([CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) for the data of the
+  standalone release, CBDB's own non-commercial, no-redistribution terms beyond it).
+- **Moegirlpedia slang**: the internet-slang pages of [萌娘百科](https://zh.moegirl.org.cn) (the
+  page's opening sentence or two, with 黑幕 and struck-through text removed; a hand-checked list
+  of characters, works and plain words left out), from the offline snapshot
+  [zhmoegirl-20230507-alpha.slob](https://github.com/aisuneko/dicts_for_aard2/releases/tag/moegirl-alpha)
+  (1.4 GB, downloaded; listed on the [slob project's dictionary page](https://github.com/itkach/slob/wiki/Other-projects)).
+  Licence: [CC BY-NC-SA 3.0 CN](https://creativecommons.org/licenses/by-nc-sa/3.0/cn/). Reading
+  it needs the slob reader, which needs ICU:
+  `brew install icu4c pkg-config`, then
+  `PKG_CONFIG_PATH=$(brew --prefix icu4c)/lib/pkgconfig .venv/bin/pip install git+https://github.com/itkach/slob.git`.
+  Reading every page takes 10–15 minutes.
+
+The glosses of the newer sources (Wikipedia, CBDB, Moegirlpedia) are cleaned of characters
+KOReader's fonts may not draw: emoji, kaomoji, decorative symbols and scripts other than Latin
+and CJK (Greek letters are spelt out: α → alpha).
 
 The database changes completely with each CC-CEDICT update, so it is **not committed** (every
 rebuild would add another 20 MB of binary history); it is attached to each GitHub release inside
@@ -324,16 +376,18 @@ python3 -m venv .venv && .venv/bin/pip install wordfreq==3.1.1 pypinyin==0.55.0 
 .venv/bin/python tools/build_db.py                 # downloads the current CC-CEDICT
 .venv/bin/python tools/build_db.py --cedict build/cedict_1_0_ts_utf-8_mdbg.txt.gz   # or a local copy
 .venv/bin/python tools/build_db.py --learn         # also re-learn the context rules (downloads the CPP dataset)
-.venv/bin/python tools/build_db.py --no-wiktionary # without the Wiktionary fallback table
+.venv/bin/python tools/build_db.py --no-wiktionary # without the Wiktionary fallback rows
+.venv/bin/python tools/build_db.py --no-wikipedia  # without the Wikipedia title rows
 ```
 
-The Wiktionary data (kaikki.org's extraction, about 160 MB) is downloaded into `build/` when
-missing, with the dump and extraction dates it came from; the build records them, and the
-checksums of every source, in the database's `meta` table.
+The Wiktionary data (kaikki.org's extraction, about 160 MB) and the five Chinese Wikipedia SQL
+dumps the titles come from (about 1.1 GB; parsing them takes a few minutes) are downloaded into
+`build/sources/` when missing; the build records the dump dates, and the checksums of the other
+sources, in the database's `meta` table.
 
-The release ships CC-CEDICT dated 2026-11-09 (125,397 entries) and Wiktionary as of the 2026-10-01
-dump (kaikki.org extraction of 2026-10-30); [`data/README.md`](data/README.md) lists every source's
-version.
+The release ships CC-CEDICT dated 2026-11-09 (125,397 entries), Wiktionary as of the 2026-10-01
+dump (kaikki.org extraction of 2026-10-30) and Chinese Wikipedia as of the 2026-11-01 dump;
+[`data/README.md`](data/README.md) lists every source's version.
 
 To see what fallback dictionaries add on your own books: `tools/fetch_books.py` (copies the EPUBs
 from a USB-connected device into `build/`), `tools/download_sources.sh`, then
@@ -406,12 +460,27 @@ The data (the database, and the files in `data/`) is derived from, and distribut
   Machine-Readable Structured Data", LREC 2022): the fallback dictionary. Changes made: Mandarin
   readings only, dialect-only senses dropped, redirects resolved, entries CC-CEDICT has and
   everyday combinations left out, senses reformatted; see `data/README.md`.
+- **[Chinese Wikipedia](https://zh.wikipedia.org/)**, by Wikipedia contributors, CC BY-SA 4.0,
+  from the [Wikimedia dumps](https://dumps.wikimedia.org/zhwiki/): article titles and the titles
+  of their English articles (English Wikipedia, CC BY-SA 4.0), for the fallback dictionary.
+  Changes made: titles filtered by category and length, converted to both scripts with OpenCC,
+  readings generated with pypinyin; see `data/README.md`.
 
-Not distributed: the optional MOE dictionary, [中華民國教育部《重編國語辭典修訂本》](https://dict.revised.moe.edu.tw/)
-(© Ministry of Education, Republic of China (Taiwan),
-[CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/)), read from
-[g0v/moedict-data](https://github.com/g0v/moedict-data), is never in the repository or a
-release; `tools/build_moe.py` builds it from the original for the user's own device.
+Not distributed, never in the repository or a release; tools in `tools/` build them from the
+originals for the user's own device:
+
+- the optional MOE dictionary, [中華民國教育部《重編國語辭典修訂本》](https://dict.revised.moe.edu.tw/)
+  (© Ministry of Education, Republic of China (Taiwan),
+  [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/)), read from
+  [g0v/moedict-data](https://github.com/g0v/moedict-data) (`tools/build_moe.py`);
+- the optional CBDB office titles, from the
+  [China Biographical Database](https://cbdb.hsites.harvard.edu/) (Harvard University, Academia
+  Sinica and Peking University;
+  [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms),
+  CC BY-NC-SA 4.0) (`tools/build_cbdb.py`);
+- the optional Moegirlpedia slang, from [萌娘百科](https://zh.moegirl.org.cn)
+  ([CC BY-NC-SA 3.0 CN](https://creativecommons.org/licenses/by-nc-sa/3.0/cn/)), via a third
+  party's offline snapshot (`tools/build_moegirl.py`).
 
 [`data/README.md`](data/README.md) lists the changes made and the versions used. The texts in
 the sample book (`samples/guwen.epub`: 陶渊明, 刘禹锡, 周敦颐) are in the public domain.
