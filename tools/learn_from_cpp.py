@@ -26,7 +26,8 @@ licence). It is used for:
    most likely first; the plugin can then show both ("chéng/shèng") or the
    first alone. (A default below 50% is not the most likely reading, so it
    is never kept silently: either it was hand-checked in overrides.tsv and
-   the evidence agrees, or a pair is shown.)
+   the evidence agrees, or a pair is shown.) A character data/overrides.tsv
+   gives as a pair ("得 de/děi") is always listed, with that pair.
 
 3. Review lists, printed only (nothing is changed automatically): characters
    whose default disagrees with a strong train majority, and dictionary words
@@ -35,7 +36,9 @@ licence). It is used for:
    standard Mandarin before it goes into data/overrides.tsv.
 
 CPP labels spoken neutral tones (萝卜 bo); the plugin shows the toned reading
-with the same letters (bó). Such a label counts as that toned reading here.
+with the same letters (bó). Such a label counts as that toned reading here,
+except where CC-CEDICT lists the neutral reading as an entry of its own (啦 la,
+the particle, is not lā).
 """
 import argparse
 import os
@@ -48,6 +51,7 @@ from pinyin_util import is_toneless, strip_tone  # noqa: E402
 from plugin_runtime import DEFAULT_PLUGIN, ROOT, Plugin  # noqa: E402
 
 SHARES = os.path.join(ROOT, "build", "data", "reading_shares.tsv")
+NEUTRAL = os.path.join(ROOT, "build", "data", "neutral.tsv")
 
 
 def load_shares(path=SHARES):
@@ -66,10 +70,25 @@ def load_shares(path=SHARES):
     return out
 
 
-def normalize_label(label, known):
+def load_neutral(path=NEUTRAL):
+    """char -> the neutral readings CC-CEDICT lists as entries of their own
+    (啦 la, 得 de, 子 zi), from build_data.py's neutral.tsv; {} when missing
+    (tables built before 1.6.0)."""
+    out = {}
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                ch, readings = line.rstrip("\n").split("\t")
+                out[ch] = set(readings.split())
+    return out
+
+
+def normalize_label(label, known, listed=()):
     """A neutral-tone label (bo) counts as the toned reading with the same
-    letters (bó), when the character has exactly one such reading."""
-    if not is_toneless(label):
+    letters (bó), when the character has exactly one such reading, unless
+    the dictionary lists the neutral reading separately (listed: 啦's la is a
+    particle, not lā)."""
+    if not is_toneless(label) or label in listed:
         return label
     matches = [r for r in known if r != label and strip_tone(r) == label]
     return matches[0] if len(matches) == 1 else label
@@ -102,6 +121,9 @@ def main():
 
     plugin = Plugin(args.plugin)
     shares = load_shares()
+    neutral = load_neutral()
+    from build_data import override_pairs  # noqa: E402  (needs wordfreq, pypinyin)
+    pairs = override_pairs(os.path.join(ROOT, "data", "overrides.tsv"))
     data_dir = os.path.join(ROOT, "data")
 
     examples = []           # (char, label, analysis)
@@ -111,7 +133,7 @@ def main():
         if not a:
             continue
         default, dict_shares = shares.get(ch, (a["default"], {}))
-        label = normalize_label(label, set(dict_shares) | {default})
+        label = normalize_label(label, set(dict_shares) | {default}, neutral.get(ch, ()))
         examples.append((ch, label, a))
         if a["word"]:
             word_votes[(a["word"], ch, a["word_reading"])][label] += 1
@@ -152,6 +174,10 @@ def main():
             # plugin's default with the dictionary prior on it.
             default = next(a["default"] for c, _, a in examples if c == ch)
         c, first, second = confidence(default, rest.get(ch, Counter()), dict_shares, args.prior_weight)
+        if ch in pairs:
+            # Hand-checked pair (data/overrides.tsv "de/děi"): always listed.
+            first, second = pairs[ch]
+            c = min(c, round(args.cutoff - 0.001, 3))
         if second:
             conf[ch] = (c, first, second)
 

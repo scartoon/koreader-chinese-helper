@@ -66,3 +66,11 @@
 订单于3日发货	单=- 于=-
 名单于今日公布	单=- 于=-
 他去洗马桶	洗=-
+
+# Particles: the neutral reading CC-CEDICT lists as an entry of its own is the
+# default (or first of the pair); a word's neutral tone above a rare
+# character still shows the character's own tone (刺猬 wèi).
+他走呗。	呗=bei
+我来喽。	喽=lou
+这样好咯。	咯=lo/gē
+啦啦队来了。	啦=-

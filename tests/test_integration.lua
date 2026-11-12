@@ -145,6 +145,24 @@ eq(table.concat(data:word("大爷"), " "), "dà yé", "drawn: 爷's own tone")
 eq(table.concat(data:word("裁缝"), " "), "cái féng")
 word_mark("她是裁缝。", "裁", "裁缝", "cáifeng", "裁缝 tailor")
 
+-- Particles: the neutral reading CC-CEDICT lists as an entry of its own is
+-- a candidate, and the default where it is the main use.
+p = popup("你来啦。", "啦", { mode = "best" })
+eq(p.chosen, "la"); eq(marked(p, "啦"), "la", "啦 the particle, not lā")
+p = popup("你来啦。", "啦")
+eq(p.chosen, "la/lā", "both: the particle first")
+eq(popup("好嘛。", "嘛").chosen, "ma")
+eq(popup("快走呀。", "呀").chosen, "ya")
+eq(popup("走吧。", "吧").chosen, "ba")
+-- 得: de can win (default and first of the pair), děi stays in the pair,
+-- and words still decide dé.
+p = popup("他说得对。", "得")
+eq(p.chosen, "de/děi"); eq(marked(p, "得"), "de,děi")
+eq(popup("高兴得跳起来", "得", { mode = "best" }).chosen, "de")
+eq(popup("你得去。", "得").chosen, "de/děi", "děi still offered")
+p = popup("他得到了。", "得")
+eq(p.chosen, "dé"); eq(p.decided.word, "得到")
+
 -- 行 in context.
 p = popup("他在银行工作。", "行")
 eq(p.chosen, "háng"); eq(p.decided.word, "银行"); eq(marked(p, "行"), "háng")

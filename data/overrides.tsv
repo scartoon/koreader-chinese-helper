@@ -196,3 +196,22 @@
 避讳	bì huì	to avoid a taboo; bì hui is the colloquial variant
 避諱	bì huì
 金子	jīn zi	gold; Jīn Zǐ is the surname Kaneko
+
+# --- Particles: CC-CEDICT lists a neutral reading as an entry of its own and
+#     it is the character's main use; the toned readings live in words (which
+#     win over the default). A pair "a/b" is the default and the runner-up
+#     shown when no word or rule decides (tools/learn_from_cpp.py lists it in
+#     uncertain.tsv whatever CPP says).
+啦	la	sentence-final particle (来啦); lā is onomatopoeia and transliteration (啦啦队, 哗啦, 哆啦: words)
+嘛	ma	modal particle (好嘛); má only in 唵嘛呢叭咪吽, and 喇嘛 is a word
+呀	ya	particle (快走呀, 是呀); yā is the interjection "ah!"
+呗	bei	particle (走呗); bài "to chant" in 梵呗 (word)
+唄	bei
+喽	lou	particle (来喽); lóu in 喽啰 (word)
+嘍	lou
+哩	li	particle (是哩); lǐ "mile" is old usage (now 英里), and transliterations
+咯	lo	particle (好咯); gē in 咯咯, 咯吱, kǎ/luò in 咯血 (words)
+吧	ba	particle (走吧); bā "bar" in 酒吧, 网吧 (words)
+们	men	plural suffix: CC-CEDICT has no other reading (mén is pypinyin's)
+們	men
+得	de/děi	structural particle (说得好, 高兴得跳起来); děi "must" (你得去) next; dé (to obtain) is mostly in words (得到, 获得, 取得)

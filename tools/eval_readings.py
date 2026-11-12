@@ -20,7 +20,9 @@ Runs the plugin's own Lua code (ch_readings.lua, ch_resolve.lua).
    switched off).
 
    CPP labels spoken neutral tones (萝卜 bo); the plugin deliberately shows the
-   toned reading with the same letters (bó), which counts as right.
+   toned reading with the same letters (bó), which counts as right, except
+   where CC-CEDICT lists the neutral reading as an entry of its own: 啦 la, the
+   particle, is not lā (build/data/neutral.tsv).
 
 2. Estimated overall accuracy: CPP contains only polyphonic characters, so its
    numbers are not what a reader sees. The estimate weights every character the
@@ -51,7 +53,7 @@ from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cpp_dataset  # noqa: E402
-from learn_from_cpp import load_shares, normalize_label  # noqa: E402
+from learn_from_cpp import load_neutral, load_shares, normalize_label  # noqa: E402
 from pinyin_util import is_han  # noqa: E402
 from plugin_runtime import DEFAULT_PLUGIN, ROOT, Plugin  # noqa: E402
 
@@ -66,8 +68,9 @@ def shown_ok(label, shown):
     return shown is not None and label in shown.split("/")
 
 
-def run_test(plugin, shares, mode):
+def run_test(plugin, shares, mode, neutral=None):
     """[(char, label, rank, shown)] over the test split."""
+    neutral = load_neutral() if neutral is None else neutral
     out = []
     for text, pos, ch, label in cpp_dataset.load("test"):
         r = plugin.reading(text, pos, mode)
@@ -81,7 +84,7 @@ def run_test(plugin, shares, mode):
             shown, rank = r
         default, dict_shares = shares.get(ch, (None, {}))
         out.append((ch, normalize_label(label, set(dict_shares) | ({default} if default else set())
-                                        | set((shown or "").split("/"))), rank, shown))
+                                        | set((shown or "").split("/")), neutral.get(ch, ())), rank, shown))
     return out
 
 
@@ -139,6 +142,7 @@ def overall_estimate(rows, threshold, freq, chars, shares):
 
 def special_report(plugin, shares):
     """Point 3 of the module docstring."""
+    neutral = load_neutral()
     if plugin.special is None:
         print("  Unusual readings: none (this copy of the plugin has no the special-words table, or --no-special)")
         return
@@ -150,7 +154,8 @@ def special_report(plugin, shares):
             continue
         word, reading, _ = hit
         default, dict_shares = shares.get(ch, (None, {}))
-        label = normalize_label(label, set(dict_shares) | {reading} | ({default} if default else set()))
+        label = normalize_label(label, set(dict_shares) | {reading} | ({default} if default else set()),
+                                neutral.get(ch, ()))
         n += 1
         if label == reading:
             ok += 1

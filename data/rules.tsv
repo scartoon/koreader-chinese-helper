@@ -129,10 +129,14 @@
 吗	L	了	ma	13
 吗	L	好	ma	6
 吗	L	的	ma	6
+呢	L	么	ne	5
+呢	L	嘛	ne	14
+呢	L	的	ne	9
 咯	L	彼	gē	6
 咯	L	邦	gē	11
 咯	R	岛	gē	7
 咳	L	喘	ké	6
+哇	L	笃	wā	7
 哈	R	尔	hā	7
 哩	L	卓	lǐ	11
 哩	R	克	lǐ	11
@@ -142,6 +146,11 @@
 哪	R	种	nǎ	11
 啊	L	人	a	6
 啊	L	是	a	5
+啦	L	哆	lā	18
+啦	L	啦	lā	27
+啦	L	巴	lā	9
+啦	R	啦	lā	29
+啦	R	小	lā	5
 啰	L	厮	luō	16
 喇	L	喀	lǎ	17
 喇	L	沙	lǎ	5
@@ -164,6 +173,7 @@
 圩	R	村	wéi	7
 圩	R	站	wéi	5
 圩	R	镇	wéi	48
+地	L	等	dì	7
 场	R	比	chǎng	9
 坊	R	乡	fāng	6
 坊	R	街	fāng	5
@@ -227,6 +237,7 @@
 媛	R	媛	yuán	13
 嬛	L	甄	huán	15
 嬛	R	传	huán	12
+子	L	之	zǐ	5
 孱	R	陵	chán	8
 将	L	并	jiāng	8
 将	R	其	jiāng	15

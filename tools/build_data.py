@@ -23,6 +23,11 @@ Outputs (tab-separated UTF-8 text, in build/data/ by default; git-ignored):
               another of the word's CC-CEDICT readings: words.tsv gives a rare
               character's neutral tone as its own tone (大爷 dà yé, drawn), and
               the popup must still mark dà ye "uncle", not dà yé "idler".
+  neutral.tsv  char <TAB> neutral readings (not used by the plugin)
+              Neutral readings CC-CEDICT lists as single-character entries of
+              their own (啦 la, 得 de): tools/learn_from_cpp.py and
+              tools/eval_readings.py keep a CPP label "la" as it is instead of
+              counting it as lā.
   special.tsv, special_guard.tsv   unusual readings of common characters
               (see special_words.py)
   reading_shares.tsv   (not used by the plugin)
@@ -98,6 +103,9 @@ MAX_WORD_LEN = 4
 MINOR_DEF_RE = re.compile(r"^\((dialect|archaic|old|literary|onom\.)\)|^(old |archaic |)variant of|"
                           r"^see [^/]*\]$|^used in [^/]*\]$")
 LINE_RE = re.compile(r"^(\S+) (\S+) \[([^\]]*)\] /(.*)/\s*$")
+# Single-character entries whose neutral reading is only part of one word
+# (匙 shi: "used in 钥匙"), not a use of its own.
+BOUND_DEF_RE = re.compile(r"^used in |^\(Japanese|kokuji")
 
 
 def cedict_header(path):
@@ -133,7 +141,8 @@ def load_cedict(path):
 
 
 def load_overrides(path):
-    """form -> list of marked syllables, from data/overrides.tsv."""
+    """form -> list of marked syllables, from data/overrides.tsv. A character
+    given as "de/děi" has default de (see override_pairs)."""
     out = {}
     with open(path, encoding="utf-8") as f:
         for n, line in enumerate(f, 1):
@@ -152,11 +161,31 @@ def load_overrides(path):
                 out[form] = None
                 continue
             syls = reading.split()
+            if len(form) == 1 and len(syls) == 1 and "/" in reading:
+                syls = reading.split("/")[:1]
             if len(syls) != len(form) or not all(is_han(ch) for ch in form):
                 raise SystemExit(f"{path}:{n}: {form} has {len(form)} characters but {len(syls)} syllables")
             if form in out:
                 raise SystemExit(f"{path}:{n}: {form} listed twice")
             out[form] = syls
+    return out
+
+
+def override_pairs(path):
+    """char -> (default, runner-up) for characters data/overrides.tsv gives as
+    "de/děi": the pair tools/learn_from_cpp.py lists in uncertain.tsv for them
+    whatever the CPP data says (which reading is likelier where no word or
+    rule decides is the hand-checked part)."""
+    out = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            fields = line.rstrip("\n").split("\t")
+            if line.startswith("#") or len(fields) < 2 or len(fields[0]) != 1:
+                continue
+            reading = unicodedata.normalize("NFC", fields[1])
+            if "/" in reading:
+                first, second = reading.split("/")
+                out[fields[0]] = (first, second)
     return out
 
 
@@ -244,6 +273,20 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
             if len(form) == 1 and form not in single_entry_reading and not is_neutral(syls[0]):
                 single_entry_reading[form] = syls[0]
 
+    # Neutral readings CC-CEDICT lists as entries of their own: particles and
+    # suffixes (啦 la, 得 de, 子 zi), not dialect, variant or bound forms (匙
+    # shi, only in 钥匙). They are candidate readings like the toned ones.
+    neutral_listed = defaultdict(set)
+    for trad, simp, syls, defs in entries:
+        syl = syls[0].lower()
+        if len(simp) != 1 or not is_neutral(syl) or is_erhua(syl):
+            continue
+        if MINOR_DEF_RE.search(defs) or BOUND_DEF_RE.search(defs):
+            continue
+        for form in {trad, simp}:
+            if is_han(form):
+                neutral_listed[form].add(numbered_to_marked(syl))
+
     def default_reading(ch):
         if weights[ch]:
             return numbered_to_marked(weights[ch].most_common(1)[0][0])
@@ -327,13 +370,18 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
     #    their default.
     poly = {ch for ch in all_chars
             if annotatable(ch) and len({numbered_to_marked(s) for s in weights[ch]}) > 1}
+    # A neutral reading of its own (啦 la beside lā) makes a character
+    # polyphonic too.
+    with_neutral = {ch for ch in neutral_listed if ch in all_chars and weights[ch]}
+    poly |= {ch for ch in with_neutral if annotatable(ch)}
     cedict_poly = len(poly)
     for phrase, syls in py_phrases.items():
         for ch, syl in zip(phrase, fix_neutral(phrase, syls)):
             if ch in defaults and syl != defaults[ch]:
                 poly.add(ch)
     # The same for every character (common ones too, for the tap popup).
-    poly_all = set(poly) | {ch for ch in all_chars if len({numbered_to_marked(s) for s in weights[ch]}) > 1}
+    poly_all = set(poly) | with_neutral | {ch for ch in all_chars
+                                           if len({numbered_to_marked(s) for s in weights[ch]}) > 1}
     for phrase, syls in py_phrases.items():
         for ch, syl in zip(phrase, syls):
             if ch in all_defaults and not annotatable(ch) and not is_toneless(syl) and syl != all_defaults[ch]:
@@ -482,7 +530,7 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
 
     def default_of(ch):
         """Default reading of any character, annotatable or not."""
-        return defaults.get(ch) or default_reading(ch)
+        return defaults.get(ch) or all_defaults.get(ch) or default_reading(ch)
 
     @functools.lru_cache(maxsize=None)
     def shares_of(ch, script=None):
@@ -499,6 +547,11 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
             for c, syl in zip(phrase, fix_neutral(phrase, py_phrases[phrase])):
                 if c == ch and not is_toneless(syl) and syl not in w:
                     w[syl] += word_freq(phrase) / 1e9 + 1e-9
+        # A neutral reading of its own counts like a toned single-character
+        # entry: the character's frequency as a word of its own.
+        if not script:
+            for syl in neutral_listed.get(ch, ()):
+                w[syl] += freq.get(ch, 0.0) + 1e-9
         default = default_of(ch)
         if default and default not in w:
             w[default] = 0.0
@@ -535,6 +588,9 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
     with open(os.path.join(args.out, "words.tsv"), "w", encoding="utf-8") as f:
         for form, reading, wf in word_rows:
             f.write(f"{form}\t{reading}\t{wf}\n")
+    with open(os.path.join(args.out, "neutral.tsv"), "w", encoding="utf-8") as f:
+        for ch in sorted(neutral_listed):
+            f.write(f"{ch}\t{' '.join(sorted(neutral_listed[ch]))}\n")
     with open(os.path.join(args.out, "word_marks.tsv"), "w", encoding="utf-8") as f:
         for form, reading in word_marks:
             f.write(f"{form}\t{reading}\n")
