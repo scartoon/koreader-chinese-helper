@@ -7,3 +7,7 @@ build/
 dist/
 # Built by tools/build_db.py; shipped as a release asset, not committed
 chinesehelper.koplugin/data/
+# The reader's own books, dropped in the working folder for tools/fetch_books.py --local
+# (root only: samples/guwen.epub is committed)
+/*.epub
+/drive-download-*.zip

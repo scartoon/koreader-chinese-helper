@@ -5,6 +5,8 @@
     tools/download_sources.sh                  # and the sources, into build/sources/
     python3 tools/measure_fallback.py          # all stages; cached in build/measure/
     python3 tools/measure_fallback.py --stage report    # just rewrite the report
+    python3 tools/measure_fallback.py --book linggao    # one book only (fetch_books.py --local
+                                                        # linggao ...): build/measure/linggao/
 
 Needs: jieba, opencc, lupa (pip), and the plugin database (tools/build_db.py).
 Nothing here is used by the plugin; it measures, and writes its findings to
@@ -52,6 +54,7 @@ BUILD = os.path.join(ROOT, "build")
 SRC = os.path.join(BUILD, "sources")
 OUT = os.path.join(BUILD, "measure")
 CORPUS = os.path.join(BUILD, "corpus")
+BOOK = None             # --book NAME: only build/corpus/NAME-*.txt, reports in build/measure/NAME/
 DB = os.path.join(ROOT, "chinesehelper.koplugin", "data", "chinesehelper.sqlite")
 PLUGIN = os.path.join(ROOT, "chinesehelper.koplugin")
 
@@ -70,6 +73,19 @@ def han_word(w):
     return HAN_WORD.fullmatch(w) is not None
 
 
+def corpus_files():
+    """The corpus measured: every book, or with --book NAME only NAME-*.txt."""
+    return sorted(glob.glob(os.path.join(CORPUS, f"{BOOK}-*.txt" if BOOK else "*.txt")))
+
+
+def set_book(name):
+    """Measure one book (or set of files) only, with its own output folder.
+    The sources pickle is shared: it does not depend on the corpus."""
+    global BOOK, OUT
+    BOOK = name
+    OUT = os.path.join(BUILD, "measure", name)
+
+
 def save(name, obj):
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, name + ".pickle"), "wb") as f:
@@ -77,7 +93,10 @@ def save(name, obj):
 
 
 def load(name):
-    with open(os.path.join(OUT, name + ".pickle"), "rb") as f:
+    path = os.path.join(OUT, name + ".pickle")
+    if name == "sources" and BOOK and not os.path.exists(path):
+        path = os.path.join(BUILD, "measure", "sources.pickle")
+    with open(path, "rb") as f:
         return pickle.load(f)
 
 
@@ -226,51 +245,10 @@ def load_wiktionary():
     return index, stats
 
 
-# --- Wikipedia: MySQL dump parsing ---------------------------------------------
+# --- Wikipedia: MySQL dump parsing (tools/wikipedia_dump.py) -------------------
 
-SQL_STR = r"'((?:[^'\\]|\\.)*)'"
-
-
-def sql_unescape(s):
-    return re.sub(r"\\(.)", lambda m: {"n": "\n", "t": "\t", "0": "\0"}.get(m.group(1), m.group(1)), s)
-
-
-def sql_rows(path, pattern):
-    rx = re.compile(pattern)
-    with gzip.open(path, "rt", encoding="utf-8", errors="replace") as f:
-        for line in f:
-            # Rows come one per line after "INSERT INTO `t` VALUES" (newer dumps)
-            # or all on the INSERT line (older ones).
-            if line.startswith("(") or line.startswith("INSERT INTO"):
-                yield from rx.finditer(line)
-
-
-def sql_columns(path):
-    cols, inside = [], False
-    with gzip.open(path, "rt", encoding="utf-8", errors="replace") as f:
-        for line in f:
-            if line.startswith("CREATE TABLE"):
-                inside = True
-                continue
-            if inside:
-                m = re.match(r"\s+`(\w+)`", line)
-                if m:
-                    cols.append(m.group(1))
-                elif line.startswith(")"):
-                    return cols
-
-
-PERSON_CAT = re.compile(r"(\d+年(代)?出生|\d+年(代)?逝世|在世人物|出生年份不詳|出生年份不详|逝世年份不詳|逝世年份不详|"
-                        r"人物$|演員$|演员$|歌手$|作家$|運動員$|运动员$|政治人物|球員$|球员$|模特兒$|模特儿$)")
-WP_SLANG = re.compile(r"網路用語|网络用语|網路流行語|网络流行语|流行語|流行语|網路迷因|网络迷因|網路文化|网络文化|俚語|俚语|黑话|黑話")
-WP_TECH = re.compile(r"技術|技术|計算機|计算机|電腦|电脑|軟體|软件|程式|编程|程序设计|化學|化学|物理|數學|数学|醫學|医学|"
-                     r"疾病|藥物|药物|生物|工程|電子|电子|統計|统计|天文|地質|地质|經濟學|经济学|金融|法律|材料|演算法|算法|"
-                     r"網際網路|互联网|半導體|半导体|通訊|通信")
-WP_HIST = re.compile(r"朝|官職|官职|官制|歷史|历史|古代|典故|成語|成语|制度|科舉|科举|年號|年号|封建|典章|爵位|宮廷|宫廷|"
-                     r"文言|古籍|經典|经典|詩|诗|詞|词牌")
-WP_PLACE = re.compile(r"行政區劃|行政区划|城市|鄉鎮|乡镇|村$|縣$|县$|市$|區$|区$|河流|山峰|島嶼|岛屿|車站|车站|機場|机场|"
-                      r"街道|道路|公路|鐵路|铁路|學校|学校|大學|大学|公司$|企業|企业|球隊|球队|電影|电影|電視劇|电视剧|專輯|专辑|"
-                      r"歌曲|小說|小说|遊戲$|游戏$|動畫|动画|漫畫|漫画")
+from wikipedia_dump import (PERSON_CAT, SQL_STR, WP_HIST, WP_PLACE, WP_SLANG, WP_TECH,  # noqa: E402,F401
+                            sql_columns, sql_rows, sql_unescape)
 
 
 def load_wikipedia():
@@ -474,7 +452,7 @@ def _segment_book(path):
 
 
 def stage_gaps():
-    books = sorted(glob.glob(os.path.join(CORPUS, "*.txt")))
+    books = corpus_files()
     total = collections.Counter()
     per_book = {}
     with multiprocessing.Pool(max(1, os.cpu_count() - 1)) as pool:
@@ -512,7 +490,7 @@ def tap_samples(per_book, seed):
     lua, Text = lua_text()
     jieba = _jieba()
     rnd = random.Random(seed)
-    for path in sorted(glob.glob(os.path.join(CORPUS, "*.txt"))):
+    for path in corpus_files():
         paras = [l.rstrip("\n") for l in open(path, encoding="utf-8")]
         positions = [(p, i) for p, para in enumerate(paras) for i, ch in enumerate(para) if HAN_CHAR.match(ch)]
         for p, i in rnd.sample(positions, min(per_book, len(positions))):
@@ -689,8 +667,9 @@ def stage_report():
     L = []
     w = L.append
     w("# Phase 1: fallback dictionary measurement\n")
-    w(f"Corpus: {len(gaps['books'])} Chinese books from /sdcard/Books "
-      f"({sum(1 for _ in glob.glob(os.path.join(CORPUS, '*.txt')))} EPUBs kept; see build/corpus/index.tsv).\n")
+    w(f"Corpus: {len(gaps['books'])} Chinese books "
+      f"({', '.join(os.path.basename(p) for p in corpus_files()) if BOOK else 'from /sdcard/Books'}; "
+      "see build/corpus/index.tsv).\n")
     w("## 1. Sources as loaded\n")
     for s in SOURCES:
         w(f"**{NAMES[s]}**: {len(src[s]):,} indexed headwords\n")
@@ -841,8 +820,13 @@ def main():
                     help="the MOE file from tools/build_moe.py (for --stage built)")
     ap.add_argument("--taps-per-book", type=int, default=150)
     ap.add_argument("--seed", type=int, default=20261111)
+    ap.add_argument("--book", help="measure build/corpus/BOOK-*.txt only (from fetch_books.py --local BOOK); "
+                    "reports and caches in build/measure/BOOK/, sources shared with the full run")
     args = ap.parse_args()
-    if args.stage in ("all", "sources"):
+    if args.book:
+        set_book(args.book)
+    if args.stage in ("all", "sources") and not (args.book and args.stage == "all" and
+                                                 os.path.exists(os.path.join(BUILD, "measure", "sources.pickle"))):
         stage_sources()
     if args.stage in ("all", "gaps"):
         stage_gaps()
