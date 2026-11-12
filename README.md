@@ -337,7 +337,10 @@ version.
 
 To see what fallback dictionaries add on your own books: `tools/fetch_books.py` (copies the EPUBs
 from a USB-connected device into `build/`), `tools/download_sources.sh`, then
-`tools/measure_fallback.py` (reports in `build/measure/`).
+`tools/measure_fallback.py` (reports in `build/measure/`). For one book on this computer:
+`tools/fetch_books.py --local NAME BOOK.epub` (or a zip of EPUBs), then
+`tools/measure_fallback.py --book NAME` and `tools/measure_book.py --book NAME` (what that book still
+lacks after every current dictionary, and what candidate sources would add).
 
 ## Development
 
