@@ -33,8 +33,6 @@ import argparse
 import hashlib
 import json
 import os
-import sqlite3
-import subprocess
 import sys
 import urllib.request
 from collections import Counter
@@ -49,7 +47,7 @@ COMMITS = "https://api.github.com/repos/g0v/moedict-data/commits?path=dict-revis
 DEFAULT_SRC = os.path.join(ROOT, "build", "sources", "moe", "dict-revised.json.xz")
 DEFAULT_OUT = os.path.join(ROOT, "build", "chinesehelper-moe.sqlite")
 DEFAULT_DB = os.path.join(ROOT, "chinesehelper.koplugin", "data", "chinesehelper.sqlite")
-DEVICE_DIR = "/sdcard/koreader/data/chinesehelper"
+DEVICE_DIR = fallback_sources.DEVICE_DIR
 LICENSE = ("CC BY-ND 3.0 TW, 中華民國教育部《重編國語辭典修訂本》 (via g0v/moedict-data). "
            "For your own use: do not distribute this file.")
 
@@ -99,36 +97,14 @@ def main():
     for k in sorted(stats):
         print(f"  {k}: {stats[k]:,}")
 
-    tmp = args.out + ".tmp"
-    if os.path.exists(tmp):
-        os.remove(tmp)
-    con = sqlite3.connect(tmp)
-    con.execute("PRAGMA page_size = 4096")
-    fallback_sources.write_fallback(con, rows)
-    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
     meta = {"fallback_sources": "moe", "moe_rows": str(len(set(rows))), "moe_sha256": sha,
             "moe_url": info.get("url", URL), "moe_commit": info.get("commit", ""),
             "moe_commit_date": info.get("commit_date", ""), "moe_license": LICENSE}
-    con.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
-    con.commit()
-    for n in (1, 36):
-        plan = "\n".join(r[3] for r in con.execute("EXPLAIN QUERY PLAN " + fallback_sources.fallback_sql(n),
-                                                   ["x"] * (2 * n)))
-        if "USING INDEX fallback_simp" not in plan or "USING INDEX fallback_trad" not in plan:
-            sys.exit(f"MOE lookup does not use its indexes:\n{plan}")
-    con.execute("VACUUM")
-    con.close()
-    os.replace(tmp, args.out)
+    fallback_sources.write_local_file(args.out, rows, meta, "MOE")
     print(f"MOE: {meta['moe_rows']} rows, source SHA-256 {sha}"
           + (f", moedict-data {info['commit'][:7]} ({info.get('commit_date', '')[:10]})" if info.get("commit") else ""))
     print(f"Wrote {args.out} ({os.path.getsize(args.out) / 1e6:.1f} MB). {LICENSE}")
-    if args.push:
-        subprocess.run(["adb", "shell", "mkdir", "-p", DEVICE_DIR], check=True)
-        subprocess.run(["adb", "push", args.out, f"{DEVICE_DIR}/chinesehelper-moe.sqlite"], check=True)
-        print(f"Pushed to {DEVICE_DIR}/chinesehelper-moe.sqlite")
-    else:
-        print(f"To install: adb shell mkdir -p {DEVICE_DIR} && "
-              f"adb push {os.path.relpath(args.out)} {DEVICE_DIR}/chinesehelper-moe.sqlite")
+    fallback_sources.push_or_explain(args.out, args.push)
 
 
 if __name__ == "__main__":

@@ -673,9 +673,7 @@ def load_moegirl():
     return {"pages": pages, "tags": tags, "keys": nkeys, "blobs": nblobs}
 
 
-WP_EXTRA_TECH = (r"|武器|兵器|火炮|大炮|枪|槍|彈|弹药|軍艦|军舰|船舶|艦|舰|冶金|機械|机械|化工|工業|工业|蒸汽|"
-                 r"鍋爐|锅炉|機床|机床|火藥|火药|炸藥|炸药|軍事技術|军事技术|科學|科学|技術史|技术史|工藝|工艺|"
-                 r"建築材料|建筑材料|紡織|纺织|農業|农业|醫療|医疗|測量|测量")
+from wikipedia_dump import WP_EXTRA_TECH  # noqa: E402
 
 
 def load_wp_filtered():

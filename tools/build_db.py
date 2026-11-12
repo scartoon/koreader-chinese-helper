@@ -18,7 +18,11 @@ Steps:
      characters from the CPP dataset's train split, into data/rules.tsv and
      data/uncertain.tsv. These are committed, so a rebuild without --learn
      does not need the CPP dataset.
-  4. Everything into one SQLite file; the lookup queries' plans are checked
+  4. The fallback table: English Wiktionary (kaikki.org's extraction) and
+     Chinese Wikipedia titles (the zhwiki SQL dumps, about 1.1 GB, parsed in
+     a few minutes; tools/wikipedia_dump.py), both downloaded into
+     build/sources/ when missing (see tools/fallback_sources.py).
+  5. Everything into one SQLite file; the lookup queries' plans are checked
      and the build fails if any of them scans a table.
 
 Schema:
@@ -53,6 +57,7 @@ from importlib.metadata import version
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pinyin_util import numbered_to_marked  # noqa: E402
 import fallback_sources  # noqa: E402
+import wikipedia_dump  # noqa: E402
 
 URL = "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -202,6 +207,7 @@ SCHEMA = """
 WIKT_URL = "https://kaikki.org/dictionary/Chinese/kaikki.org-dictionary-Chinese.jsonl.gz"
 WIKT_PAGE = "https://kaikki.org/dictionary/Chinese/index.html"
 WIKT_DEFAULT = os.path.join(BUILD_DIR, "sources", "wiktionary", "kaikki-Chinese.jsonl.gz")
+WP_DEFAULT = os.path.join(BUILD_DIR, "sources", "wikipedia")
 
 
 def download_wiktionary(path=WIKT_DEFAULT):
@@ -248,8 +254,9 @@ def resolver_digest(*tables):
     return h.hexdigest()
 
 
-def build(cedict_entries, header, sha, out, wikt=None):
-    """wikt: (path, rows, stats) for the Wiktionary fallback table, or None."""
+def build(cedict_entries, header, sha, out, wikt=None, wp=None):
+    """wikt: (path, rows, stats) for the Wiktionary fallback rows, or None;
+    wp: (dump folder, rows, stats) for the Wikipedia titles, or None."""
     os.makedirs(os.path.dirname(out), exist_ok=True)
     tmp = out + ".tmp"
     if os.path.exists(tmp):
@@ -282,16 +289,16 @@ def build(cedict_entries, header, sha, out, wikt=None):
     con.executemany("INSERT INTO special_guard VALUES (?, ?, ?)", guard)
     # Fallback entries live in their own table: `entries` stays CC-CEDICT
     # alone, and nothing here feeds the resolver's tables above.
-    fallback_sources.write_fallback(con, wikt[1] if wikt else [])
+    fallback_sources.write_fallback(con, (wikt[1] if wikt else []) + (wp[1] if wp else []))
 
     meta = {
         "cedict_date": header.get("date", ""), "cedict_entries": str(len(cedict_entries)),
         "cedict_sha256": sha, "wordfreq": version("wordfreq"), "pypinyin": version("pypinyin"),
         "chars": str(len(chars)), "words": str(len(words)), "rare_words": str(sum(w[3] for w in words)), "rules": str(len(rules)),
         "uncertain": str(len(uncertain)), "special": str(len(special)), "special_guard": str(len(guard)),
-        "license": "CC BY-SA 4.0 (CC-CEDICT, wordfreq, Wiktionary; see README)",
+        "license": "CC BY-SA 4.0 (CC-CEDICT, wordfreq, Wiktionary, Wikipedia; see README)",
         "resolver_sha256": resolver_digest(chars, words, rules, uncertain, special, guard),
-        "fallback_sources": "wikt" if wikt else "",
+        "fallback_sources": ",".join(name for name, part in (("wikt", wikt), ("wp", wp)) if part),
     }
     if wikt:
         info = wiktionary_info(wikt[0])
@@ -299,6 +306,10 @@ def build(cedict_entries, header, sha, out, wikt=None):
                      "wikt_dump": info.get("wiktionary_dump", ""), "wikt_extracted": info.get("extracted", ""),
                      "wikt_url": info.get("url", WIKT_URL),
                      "wikt_license": "CC BY-SA 4.0 (Wiktionary contributors; wiktextract by Tatu Ylonen, kaikki.org)"})
+    if wp:
+        meta.update({"wp_rows": str(len(set(wp[1]))), "wp_dump": wikipedia_dump.dump_date(wp[0]),
+                     "wp_url": wikipedia_dump.URL.format("*"),
+                     "wp_license": "CC BY-SA 4.0 (Wikipedia contributors)"})
     con.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
     con.commit()
     con.execute("VACUUM")
@@ -352,7 +363,10 @@ def main():
                     help="reuse build/data/ from an earlier run instead of running build_data.py")
     ap.add_argument("--wiktionary", default=WIKT_DEFAULT,
                     help="kaikki.org Chinese JSONL(.gz); downloaded when missing")
-    ap.add_argument("--no-wiktionary", action="store_true", help="build without the Wiktionary fallback table")
+    ap.add_argument("--no-wiktionary", action="store_true", help="build without the Wiktionary fallback rows")
+    ap.add_argument("--wikipedia", default=WP_DEFAULT,
+                    help="folder of zhwiki-latest-*.sql.gz dumps; missing files are downloaded")
+    ap.add_argument("--no-wikipedia", action="store_true", help="build without the Wikipedia title rows")
     args = ap.parse_args()
     path = args.cedict or download()
     with open(path, "rb") as f:
@@ -376,7 +390,16 @@ def main():
         for k in sorted(stats):
             print(f"  {k}: {stats[k]:,}")
         wikt = (wpath, rows, stats)
-    meta = build(entries, header, sha, args.out, wikt)
+    wp = None
+    if not args.no_wikipedia:
+        wikipedia_dump.download(args.wikipedia)
+        forms, measure = fallback_sources.forms_from_entries(entries)
+        stats = Counter()
+        rows = fallback_sources.wikipedia_rows(args.wikipedia, forms, measure, stats)
+        for k in sorted(stats):
+            print(f"  {k}: {stats[k]:,}")
+        wp = (args.wikipedia, rows, stats)
+    meta = build(entries, header, sha, args.out, wikt, wp)
     check_query_plans(args.out)
     size = os.path.getsize(args.out)
     print(f"CC-CEDICT {header.get('date', '(no date)')}: {len(entries)} entries, SHA-256 {sha}")
@@ -386,6 +409,8 @@ def main():
     if wikt:
         print(f"Wiktionary fallback: {meta['wikt_rows']} rows (dump {meta['wikt_dump']}, "
               f"extracted {meta['wikt_extracted']}, SHA-256 {meta['wikt_sha256']})")
+    if wp:
+        print(f"Wikipedia titles: {meta['wp_rows']} rows (dump {meta['wp_dump']})")
     print(f"Wrote {args.out} ({size / 1e6:.1f} MB)")
 
 
