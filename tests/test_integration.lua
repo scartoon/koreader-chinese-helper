@@ -113,6 +113,38 @@ assert(p.text:find("dōngxī: east and west", 1, true), p.text)
 p = popup("去买东西。", "西")
 eq(p.chosen, "xi"); eq(p.matches[1].entries[1].pinyin, "xī"); assert(not p.matches[1].entries[1].missing)
 
+-- Words with several CC-CEDICT readings: the common modern sense is marked.
+-- pypinyin's phrase list decides where it has the word (便宜 pián yi, not
+-- CC-CEDICT's first entry biàn yí; 明朝 the dynasty, a proper-name reading),
+-- data/overrides.tsv where it does not or is wrong (教授, 妻子, 说法, 开通, 下水).
+local function word_mark(text, char, word, want, msg)
+    eq(marked(popup(text, char), word), want, msg or word)
+end
+word_mark("这个很便宜。", "便", "便宜", "piányi", "便宜 cheap, not biànyí (宜 ranks above 1,000)")
+word_mark("明朝灭亡了。", "明", "明朝", "Míngcháo", "明朝: the dynasty (a proper-name reading)")
+word_mark("他是大学教授。", "教", "教授", "jiàoshòu", "教授 professor")
+word_mark("他去教会。", "教", "教会", "jiàohuì", "教会 church")
+word_mark("他的妻子来了。", "妻", "妻子", "qīzi", "妻子 wife (妻 ranks above 1,000)")
+word_mark("这种说法不对。", "说", "说法", "shuōfa", "说法 wording")
+word_mark("地铁开通了。", "开", "开通", "kāitōng", "开通 to open")
+word_mark("船下水了。", "下", "下水", "xiàshuǐ", "下水 to launch")
+-- Hand-checked words still win over pypinyin.
+word_mark("拧紧垫圈。", "垫", "垫圈", "diànquān", "垫圈 washer (pypinyin: juàn)")
+word_mark("她伸出纤手。", "纤", "纤手", "xiānshǒu", "纤手 (pypinyin: qiàn)")
+word_mark("咱家有钱。", "咱", "咱家", "zánjiā", "咱家 (pypinyin: zá)")
+-- A rare character's neutral tone is drawn as its own tone (大爷: yé over
+-- 爷), which is also CC-CEDICT's other reading of the word, dà yé "idler";
+-- the popup still marks dà ye "uncle" (the word_marks table).
+p = popup("那位大爷来了。", "大")
+eq(marked(p, "大爷"), "dàye", "大爷 uncle, not dàyé")
+assert(p.text:find("大爷  dàye · likely here", 1, true), p.text)
+eq(Resolve.wordReading(data, "大爷"), "dà ye")
+eq(table.concat(data:word("大爷"), " "), "dà yé", "drawn: 爷's own tone")
+-- 裁缝: the neutral feng is drawn as the tone of the word's other reading
+-- (cái féng), not 缝's default fèng.
+eq(table.concat(data:word("裁缝"), " "), "cái féng")
+word_mark("她是裁缝。", "裁", "裁缝", "cáifeng", "裁缝 tailor")
+
 -- 行 in context.
 p = popup("他在银行工作。", "行")
 eq(p.chosen, "háng"); eq(p.decided.word, "银行"); eq(marked(p, "行"), "háng")

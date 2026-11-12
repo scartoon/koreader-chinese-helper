@@ -6,9 +6,10 @@
 --                         indexes on simp and trad (the popup's lookup)
 --   chars(ch, rank, reading)                       the resolver's tables
 --   words(word, syllables, freq, rare)             (see ch_readings.lua);
---   rules(ch, side, neighbour, reading, n)         chars, rules and uncertain are
---   uncertain(ch, confidence, first, second)       read into memory once, words
---   special(word, pinyin, marks, freq, note)       are looked up on demand
+--   word_marks(word, syllables)                    chars, word_marks, rules and
+--   rules(ch, side, neighbour, reading, n)         uncertain are read into
+--   uncertain(ch, confidence, first, second)       memory once, words are
+--   special(word, pinyin, marks, freq, note)       looked up on demand
 --   special_guard(ordinary, word, offset)
 --   fallback(simp, trad, pinyin, syllables, defs, source)   other dictionaries,
 --                         for words CC-CEDICT lacks (indexes on simp and trad);
@@ -140,6 +141,10 @@ function DB:readings()
     end)
     self:each("SELECT word, syllables, freq FROM words WHERE rare = 1", nil, function(row)
         data:addWord(row[1], row[2], tonumber(row[3]))
+    end)
+    -- Missing from databases built before 1.6.0: nothing to mark then.
+    pcall(self.each, self, "SELECT word, syllables FROM word_marks", nil, function(row)
+        data:addWordMark(row[1], row[2])
     end)
     self:each("SELECT ch, side, neighbour, reading, n FROM rules", nil, function(row)
         data:addRule(row[1], row[2], row[3], row[4], tonumber(row[5]))

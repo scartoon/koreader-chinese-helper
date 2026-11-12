@@ -127,6 +127,7 @@ class Plugin:
             build = data_dir or BUILD_DATA
             tables = self.lua.table_from({
                 "chars": os.path.join(build, "chars.tsv"), "words": os.path.join(build, "words.tsv"),
+                "word_marks": os.path.join(build, "word_marks.tsv"),
                 "rules": os.path.join(DATA_DIR, "rules.tsv"), "uncertain": os.path.join(DATA_DIR, "uncertain.tsv")})
             self.data = Readings.fromTsv(tables)
             if isinstance(self.data, tuple) or self.data is None:

@@ -32,6 +32,8 @@ Schema:
         defs       senses joined with "/", cross-references made readable
     chars(ch, rank, reading)  words(word, syllables, freq, rare)
         rare       1 when the word contains a character that can be annotated
+    word_marks(word, syllables)   the reading the popup marks where it is not
+                              the one drawn (see build_data.py, word_marks.tsv)
     rules(ch, side, neighbour, reading, n)  uncertain(ch, confidence, first, second)
     special(word, pinyin, marks, freq, note)  special_guard(ordinary, word, offset)
     meta(key, value)          source versions and counts
@@ -193,6 +195,7 @@ SCHEMA = """
     CREATE TABLE chars (ch TEXT PRIMARY KEY, rank INTEGER NOT NULL, reading TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE words (word TEXT PRIMARY KEY, syllables TEXT NOT NULL, freq INTEGER NOT NULL,
                         rare INTEGER NOT NULL) WITHOUT ROWID;
+    CREATE TABLE word_marks (word TEXT PRIMARY KEY, syllables TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE rules (ch TEXT NOT NULL, side TEXT NOT NULL, neighbour TEXT NOT NULL,
                         reading TEXT NOT NULL, n INTEGER NOT NULL);
     CREATE TABLE uncertain (ch TEXT PRIMARY KEY, confidence REAL NOT NULL, first TEXT NOT NULL,
@@ -276,6 +279,7 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None):
         never queries the database."""
         return int(any(rank.get(ch, 0) == 0 or rank.get(ch, 0) > RARE_RANK for ch in word))
     words = [(w, syl, int_or_zero(freq), rare(w)) for w, syl, freq in tsv(os.path.join(BUILD_DATA, "words.tsv"), 3)]
+    word_marks = [(w, syl) for w, syl in tsv(os.path.join(BUILD_DATA, "word_marks.tsv"), 2, required=False)]
     rules = [(ch, side, nb, r, int_or_zero(n)) for ch, side, nb, r, n in tsv(os.path.join(DATA_DIR, "rules.tsv"), 5)]
     uncertain = [(ch, float(c), a, b) for ch, c, a, b in tsv(os.path.join(DATA_DIR, "uncertain.tsv"), 4)]
     special = [(w, py, marks, int_or_zero(freq), note or None)
@@ -283,6 +287,7 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None):
     guard = [(a, b, int(off)) for a, b, off in tsv(os.path.join(BUILD_DATA, "special_guard.tsv"), 3)]
     con.executemany("INSERT INTO chars VALUES (?, ?, ?)", chars)
     con.executemany("INSERT INTO words VALUES (?, ?, ?, ?)", words)
+    con.executemany("INSERT INTO word_marks VALUES (?, ?)", word_marks)
     con.executemany("INSERT INTO rules VALUES (?, ?, ?, ?, ?)", rules)
     con.executemany("INSERT INTO uncertain VALUES (?, ?, ?, ?)", uncertain)
     con.executemany("INSERT INTO special VALUES (?, ?, ?, ?, ?)", special)
@@ -297,7 +302,8 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None):
         "chars": str(len(chars)), "words": str(len(words)), "rare_words": str(sum(w[3] for w in words)), "rules": str(len(rules)),
         "uncertain": str(len(uncertain)), "special": str(len(special)), "special_guard": str(len(guard)),
         "license": "CC BY-SA 4.0 (CC-CEDICT, wordfreq, Wiktionary, Wikipedia; see README)",
-        "resolver_sha256": resolver_digest(chars, words, rules, uncertain, special, guard),
+        "word_marks": str(len(word_marks)),
+        "resolver_sha256": resolver_digest(chars, words, rules, uncertain, special, guard, word_marks),
         "fallback_sources": ",".join(name for name, part in (("wikt", wikt), ("wp", wp)) if part),
     }
     if wikt:
@@ -404,7 +410,8 @@ def main():
     size = os.path.getsize(args.out)
     print(f"CC-CEDICT {header.get('date', '(no date)')}: {len(entries)} entries, SHA-256 {sha}")
     print("Tables: " + ", ".join(f"{k} {meta[k]}" for k in
-                                 ("chars", "words", "rules", "uncertain", "special", "special_guard")))
+                                 ("chars", "words", "word_marks", "rules", "uncertain", "special",
+                                  "special_guard")))
     print(f"Resolver tables SHA-256 {meta['resolver_sha256']}")
     if wikt:
         print(f"Wiktionary fallback: {meta['wikt_rows']} rows (dump {meta['wikt_dump']}, "

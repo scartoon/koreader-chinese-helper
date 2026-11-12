@@ -97,3 +97,102 @@
 劈成	-	pypinyin's pǐ; 劈成两半 is usually pī, which is 劈's default
 鸣镝	míng dí	whistling arrow (镝 dí = arrowhead; dī is dysprosium)
 鳴鏑	míng dí
+
+# --- Words with several CC-CEDICT readings: the common modern sense, where
+#     pypinyin's phrase list picks the other one or has no phrase (and so
+#     CC-CEDICT's first entry, or its neutral-tone one, would be marked).
+#     Reviewed one by one in 1.6.0; the doubtful ones are left alone.
+地方	dì fang	"place" (这个地方); dì fāng "local, regional" (地方政府) is the narrower sense
+多少	duō shao	"how much / how many" (多少钱); duō shǎo "amount, somewhat" (多多少少) is rarer
+精神	jīng shén	"spirit, mind" (精神上); jīng shen "lively" (很精神) is the colloquial adjective
+教授	jiào shòu	professor; jiāo shòu "to teach (a subject)" is rarer
+妻子	qī zi	wife; qī zǐ "wife and children" is literary
+教学	jiào xué	teaching, instruction (教学楼, 教学质量); jiāo xué "to teach" is rarer
+教學	jiào xué
+说法	shuō fa	wording, view (这种说法); shuō fǎ "to preach Buddhist doctrine"
+說法	shuō fa
+老公	lǎo gōng	husband; lǎo gong "eunuch" is old-fashioned
+教会	jiào huì	church; jiāo huì "to teach sb to" (教会了我) is the verb 教 + result 会
+教會	jiào huì
+开通	kāi tōng	to open (a line, a service); kāi tong "open-minded" is rarer
+開通	kāi tōng
+大夫	dài fu	doctor; dà fū, the imperial official, has its own longer words (士大夫, 御史大夫)
+总长	zǒng cháng	total length; zǒng zhǎng is a 1912-1927 ministerial title
+總長	zǒng cháng
+大爷	dà ye	uncle, old man; dà yé "arrogant idler, lord" is rarer
+大爺	dà ye
+下水	xià shuǐ	into the water, to launch; xià shui "offal" is rarer
+大方	dà fang	generous, natural; dà fāng "experts" (贻笑大方, its own word) or Dafang county
+款式	kuǎn shì	style, design; kuǎn shi "elegant" is rare
+结实	jiē shi	sturdy, strong; jiē shí "to bear fruit" is rarer
+結實	jiē shi
+把手	bǎ shou	handle (门把手); bǎ shǒu "to shake hands" is rare
+花儿	huā r	flower (erhua); huā ér is a northwest folk-song genre
+花兒	huā r
+中式	zhōng shì	Chinese style; zhòng shì "to pass the imperial examinations" is historical
+用钱	yòng qián	to spend money; yòng qian "commission" is a variant of 佣钱
+用錢	yòng qián
+执事	zhí shì	attendant, deacon, duty; zhí shi "guard of honour paraphernalia" is rare
+執事	zhí shì
+裁缝	cái feng	tailor; cái féng "to tailor" is rarer
+裁縫	cái feng
+盛装	shèng zhuāng	splendid attire; chéng zhuāng "to contain" is rare
+盛裝	shèng zhuāng
+格格	gé ge	princess (Manchu); gē gē, laughter, is usually written 咯咯
+记念	jì niàn	variant of 纪念 (记念刘和珍君); jì nian "to miss" is rarer
+記念	jì niàn
+悉数	xī shù	all, in full (悉数归还); xī shǔ "to enumerate" is literary
+悉數	xī shù
+跟前	gēn qián	in front of, near; gēn qian "(children) at one's side" is narrower
+前传	qián zhuàn	prequel; qián chuán "forward pass" is rare
+前傳	qián zhuàn
+差事	chāi shi	errand, job; chà shì "not up to standard" is rare
+活路	huó lù	way out, means of living (给条活路); huó lu "manual work" is rarer
+历数	lì shǔ	to enumerate (历数其罪); lì shù "calendar system" is 曆數 in traditional script
+歷數	lì shǔ
+外场	wài chǎng	outfield, outer area; wài cháng "society" is rare
+外場	wài chǎng
+煞气	shà qì	baleful air; shā qì "to vent one's anger" is rare
+煞氣	shà qì
+卷子	juàn zi	test paper; juǎn zi "steamed roll" is rarer
+滑溜	huá liu	slippery; huá liū, a cooking method, is rare
+铺盖	pū gai	bedding (卷铺盖); pū gài "to spread over" is rarer
+鋪蓋	pū gai
+落子	luò zǐ	to place a stone (Go); lào zi, a folk song, is rare
+摩挲	mó suō	to stroke, to caress; mā sa "to smooth with the palm" is colloquial
+重名	chóng míng	the same name (重名重姓); zhòng míng "renowned" is literary
+频数	pín shù	frequency (statistics); pín shuò "frequent" is literary
+頻數	pín shù
+反角	fǎn jué	villain; fǎn jiǎo "reflex angle" is technical
+上色	shàng shǎi	to colour, to dye; shàng sè "top quality" is rare
+# Common words CC-CEDICT gives readings that differ by a neutral tone only:
+# the plugin had no reading to mark for them.
+乖乖	guāi guāi	well-behaved, darling; guāi guai "goodness!" is an interjection
+仁义	rén yì	benevolence and righteousness; rén yi "affable" is colloquial
+仁義	rén yì
+冷战	lěng zhàn	cold war; lěng zhan "shiver" is colloquial
+冷戰	lěng zhàn
+卵子	luǎn zǐ	ovum; luǎn zi is vulgar
+咚咚	dōng dōng	thud, thump; Dōngdong is a 2008 Olympic mascot
+媳妇	xí fu	wife, daughter-in-law (spoken reading)
+媳婦	xí fu
+媳妇儿	xí fu r	erhua of 媳妇
+媳婦兒	xí fu r
+孙子	sūn zi	grandson; Sūn Zǐ, Sun Tzu, is a name
+孫子	sūn zi
+支吾	zhī wu	to equivocate (支支吾吾); zhī wú "to resist" is literary
+标致	biāo zhi	pretty (of a woman); Biāozhì is Peugeot
+標致	biāo zhi
+猴儿	hóu r	monkey (erhua); hóu ér "little devil" is rarer
+猴兒	hóu r
+狮子	shī zi	lion; Shī Zǐ is Leo or a township
+獅子	shī zi
+盘缠	pán chan	travelling money; pán chán "to coil" is rare
+盤纏	pán chan
+端详	duān xiang	to look over carefully; duān xiáng "full details" is rarer
+端詳	duān xiang
+管子	guǎn zi	tube, pipe; Guǎn Zǐ, Guan Zhong, is a name
+粒子	lì zǐ	particle; lì zi "grain" is narrower
+避讳	bì huì	to avoid a taboo; bì hui is the colloquial variant
+避諱	bì huì
+金子	jīn zi	gold; Jīn Zǐ is the surname Kaneko

@@ -20,6 +20,8 @@ into the database with CC-CEDICT by `tools/build_db.py`:
 - `words`: 2–4 character words containing a character with more than one reading, or with
   several dictionary readings themselves (东西), from CC-CEDICT and pypinyin's phrase list, with
   each word's frequency.
+- `word_marks`: the reading the popup marks for a word, for the few words where it is not the
+  one in `words` (大爷: *dà yé* is drawn above the rare 爷, the popup marks *dà ye* "uncle").
 - `special`, `special_guard`: the unusual-readings list (from `special_curated.tsv`, plus words
   found automatically) and the overlap guards that keep it from matching by accident.
 - `entries`: CC-CEDICT itself, one row per entry, with numbered pinyin converted to tone marks
@@ -107,9 +109,13 @@ frequency of the words using each reading; numbered pinyin converted to tone mar
 phrases merged in (first reading of each syllable; where both sources have a word and disagree,
 CC-CEDICT is kept unless it differs only by a neutral tone on a rare character); 一 and 不 kept at
 their dictionary tones (pypinyin writes the spoken tone changes); neutral tones on rare
-characters replaced by the character's toned reading with the same letters; for common words
-with several CC-CEDICT readings, one chosen for the popup to mark (pypinyin's if it matches one,
-else the neutral-tone one, else the first); each word's frequency added; CC-CEDICT
+characters replaced by the character's toned reading with the same letters (the tone the word's
+other CC-CEDICT reading gives it first, then the character's default); for words with several
+CC-CEDICT readings, proper names included, the one pypinyin's phrase list gives when it gives
+one of them, else an ordinary reading before a proper name and, for words of common characters
+only, the neutral-tone one, else the first, with hand-checked readings in `overrides.tsv` over
+all of these; where the reading drawn above a rare character is another of the word's readings,
+the one the popup marks kept separately (`word_marks`); each word's frequency added; CC-CEDICT
 cross-references reformatted; everything stored in SQLite.
 
 ## Versions used

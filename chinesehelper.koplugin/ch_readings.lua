@@ -8,6 +8,11 @@
 --   words      word -> syllables, frequency (per billion words). 2-4
 --              character words containing a polyphonic character, or with
 --              several dictionary readings.
+--   word_marks word -> the reading the tap popup marks, where it is not the
+--              one in words: words give a rare character's neutral tone as
+--              its own tone (大爷 dà yé, for the pinyin drawn), which can be
+--              another dictionary reading of the word (dà yé "idler"); the
+--              popup must mark dà ye "uncle". A few dozen at most.
 --   rules      context rules: the reading of a character when the character
 --              immediately to its left (L) or right (R) is a given one.
 --   uncertain  characters whose default reading is unreliable when neither a
@@ -37,7 +42,7 @@ Readings.CACHE_LIMIT = 20000   -- cached word lookups kept before the cache is r
 function Readings.new(opts)
     opts = opts or {}
     return setmetatable({
-        chars = {}, rules = {}, uncertain = {}, words = {}, word_freq = {},
+        chars = {}, rules = {}, uncertain = {}, words = {}, word_freq = {}, word_marks = {},
         lookup = opts.word_lookup, cache = {}, cached = 0,
         max_word_len = Readings.MAX_WORD_LEN,
     }, Readings)
@@ -70,6 +75,16 @@ function Readings:addWord(word, syllables, freq)
     self.words[word] = syllables
     local f = tonumber(freq)
     if f and f > 0 then self.word_freq[word] = f end
+end
+
+function Readings:addWordMark(word, syllables)
+    self.word_marks[word] = syllables
+end
+
+-- The reading the popup marks for a word ("dà ye"), when it is not the one
+-- in words; nil otherwise.
+function Readings:wordMark(word)
+    return self.word_marks[word]
 end
 
 function Readings:addRule(ch, side, neighbour, reading, n)
@@ -325,7 +340,7 @@ local function read_lines(path, fn)
     return true
 end
 
--- paths: { chars=, words=, rules=, uncertain= }; only chars is required.
+-- paths: { chars=, words=, word_marks=, rules=, uncertain= }; only chars is required.
 function Readings.fromTsv(paths)
     local self = Readings.new()
     local ok = read_lines(paths.chars, function(line)
@@ -336,6 +351,10 @@ function Readings.fromTsv(paths)
     read_lines(paths.words, function(line)
         local word, readings, freq = line:match("^([^\t]+)\t([^\t\r]+)\t?(%d*)")
         if word then self:addWord(word, readings, freq) end
+    end)
+    read_lines(paths.word_marks, function(line)
+        local word, syllables = line:match("^([^\t]+)\t([^\t\r]+)")
+        if word then self:addWordMark(word, syllables) end
     end)
     read_lines(paths.rules, function(line)
         local ch, side, neighbour, reading, n = line:match("^([^\t]+)\t([LR])\t([^\t]+)\t([^\t\r]+)\t?(%d*)")

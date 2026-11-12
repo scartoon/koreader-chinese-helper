@@ -18,6 +18,11 @@ Outputs (tab-separated UTF-8 text, in build/data/ by default; git-ignored):
               Words (2-4 characters, simplified and traditional forms) that
               contain a polyphonic character. Words come from CC-CEDICT and from
               pypinyin's phrase list.
+  word_marks.tsv   word <TAB> the reading the tap popup marks, space-separated
+              Only where it differs from words.tsv and words.tsv's reading is
+              another of the word's CC-CEDICT readings: words.tsv gives a rare
+              character's neutral tone as its own tone (大爷 dà yé, drawn), and
+              the popup must still mark dà ye "uncle", not dà yé "idler".
   special.tsv, special_guard.tsv   unusual readings of common characters
               (see special_words.py)
   reading_shares.tsv   (not used by the plugin)
@@ -31,9 +36,11 @@ Everything about characters that can be annotated (rank above 1,000 or 0) is
 built exactly as in koreader-interlinear-pinyin 0.5.0, so the pinyin drawn on
 a page does not change. What the wider coverage adds, for common characters
 only:
-  * a word with several ordinary CC-CEDICT readings that differ only by a
-    neutral tone takes the neutral one (东西 dōngxi "thing", not dōngxī "east
-    and west"), and pypinyin does not overrule CC-CEDICT's neutral tone there;
+  * a word with several CC-CEDICT readings takes the one pypinyin's phrase
+    list gives, when it gives one of them (便宜 pián yi, 明朝 míng cháo, a
+    proper-name reading); where it is silent, a word of common characters
+    whose readings differ only by a neutral tone takes the neutral one (东西
+    dōngxi "thing", not dōngxī "east and west");
   * 一 and 不 keep their dictionary tones (yī, bù) in pypinyin phrases too:
     pypinyin writes the spoken tone changes (一定 yí, 不是 bú), CC-CEDICT and
     this plugin do not.
@@ -280,18 +287,21 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
                 out.append(marked)
         return out
 
-    def fix_neutral(form, marked_syls):
+    def fix_neutral(form, marked_syls, siblings=()):
         """CC-CEDICT writes spoken neutral tones (刺猬 cì wei). Above a rare
         character we want its own tone, so a toneless syllable of an
         annotatable character takes that character's toned reading with the
         same letters (the default when it matches): wei -> wèi, and 冷颤 zhan
         -> zhàn even though 颤's default is chàn. With no such reading it is
         left as written (萝卜 bo: 卜 is otherwise only bǔ). Erhua 'r' is left
-        alone."""
+        alone. siblings: the word's other dictionary readings; a tone one of
+        them gives that syllable comes first (裁缝 cái feng "tailor" -> féng,
+        as in cái féng "to tailor", not 缝's default fèng)."""
         out = []
-        for ch, syl in zip(form, marked_syls):
+        for k, (ch, syl) in enumerate(zip(form, marked_syls)):
             if is_toneless(syl) and not is_erhua(syl) and ch in defaults:
-                for reading in toned_readings(ch):
+                from_siblings = [r[k] for r in siblings if len(r) == len(form) and r[k] != syl]
+                for reading in from_siblings + toned_readings(ch):
                     if strip_tone(reading) == syl and reading != syl:
                         syl = reading
                         break
@@ -334,17 +344,32 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
 
     # 6. Words that disambiguate them. CC-CEDICT first; prefer an ordinary word
     #    over a proper-name reading of the same form, and keep the first entry
-    #    otherwise.
+    #    otherwise (where pypinyin's phrase list does not choose; see below).
     # Common words CC-CEDICT gives several ordinary readings (东西 dōngxī "east
     # and west" / dōngxi "thing"): included even without a polyphonic
     # character, so the popup can mark one (chosen below).
-    readings_by_form = defaultdict(list)
+    readings_by_form = defaultdict(list)    # ordinary readings only
+    every_reading = defaultdict(list)       # proper-name readings too (lower case: 明朝 Míng cháo -> míng cháo)
+    simp_of = defaultdict(set)              # form -> the simplified forms of its entries
     for trad, simp, syls, _ in entries:
-        if 2 <= len(simp) <= MAX_WORD_LEN and not any(s[:1].isupper() for s in syls):
-            marked = [numbered_to_marked(s) for s in syls]
-            for form in {simp, trad}:
-                if marked not in readings_by_form[form]:
-                    readings_by_form[form].append(marked)
+        if not 2 <= len(simp) <= MAX_WORD_LEN:
+            continue
+        marked = [numbered_to_marked(s) for s in syls]
+        is_name = any(s[:1].isupper() for s in syls)
+        for form in {simp, trad}:
+            simp_of[form].add(simp)
+            if marked not in every_reading[form]:
+                every_reading[form].append(marked)
+            if not is_name and marked not in readings_by_form[form]:
+                readings_by_form[form].append(marked)
+
+    def phrase_reading(form):
+        """pypinyin's reading of a form, or of its simplified form (traditional
+        forms are rarely in its phrase list)."""
+        if form in py_phrases:
+            return py_phrases[form]
+        simps = simp_of.get(form, ())
+        return py_phrases.get(next(iter(simps))) if len(simps) == 1 else None
 
     def ambiguous_common(form):
         return len(readings_by_form.get(form, ())) > 1 and not has_annotatable(form)
@@ -398,6 +423,20 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
             stats["ambiguous common words: " + ("neutral tone" if neutral else "first")] += 1
         words[form][0] = choice
 
+    # Any word with several CC-CEDICT readings, proper names included: where
+    # pypinyin's phrase list (built for polyphone disambiguation) gives one of
+    # them, that one (便宜 pián yi, not CC-CEDICT's first entry biàn yí; 明朝
+    # míng cháo, the dynasty, over míng zhāo "tomorrow morning"). Where it is
+    # silent, the choice above stands: an ordinary reading over a proper
+    # name, the first entry otherwise; overrides.tsv settles the rest.
+    for form, readings in every_reading.items():
+        if form not in words or len(readings) < 2:
+            continue
+        py = phrase_reading(form)
+        if py in readings and words[form][0] != py:
+            words[form][0] = py
+            stats["several CC-CEDICT readings: pypinyin's chosen"] += 1
+
     # Hand-checked words win over both sources.
     for form, syls in overrides.items():
         if len(form) > 1 and syls is None:
@@ -408,11 +447,19 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
 
     neutral_fixed = set()
     word_rows = []
+    # The reading the popup marks, where it is not the one drawn: the neutral
+    # tone a rare character's pinyin turns into its own tone is another of the
+    # word's dictionary readings (大爷 dà ye "uncle" is drawn dà yé, which is
+    # also CC-CEDICT's dà yé "arrogant idler"), so the popup would mark that.
+    word_marks = []
     for form in sorted(words):
         syls, _, simp = words[form]
-        fixed = fix_neutral(form, syls)
+        others = [r for r in every_reading.get(form, ()) if r != syls]
+        fixed = fix_neutral(form, syls, others)
         neutral_fixed.update(ch for ch, a, b in zip(form, syls, fixed) if a != b)
         word_rows.append((form, " ".join(fixed), word_freq(form, simp)))
+        if fixed != syls and fixed in others:
+            word_marks.append((form, " ".join(syls)))
 
     # 7. How each polyphonic character's readings split in ordinary text:
     #    summed frequency of the CC-CEDICT words using each toned reading, plus
@@ -488,6 +535,9 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
     with open(os.path.join(args.out, "words.tsv"), "w", encoding="utf-8") as f:
         for form, reading, wf in word_rows:
             f.write(f"{form}\t{reading}\t{wf}\n")
+    with open(os.path.join(args.out, "word_marks.tsv"), "w", encoding="utf-8") as f:
+        for form, reading in word_marks:
+            f.write(f"{form}\t{reading}\n")
 
     print(f"chars.tsv: {len(rows)} characters "
           f"({sum(1 for r in rows if r[1])} ranked, {len(poly_all)} polyphonic; annotatable: {len(poly)}, "
@@ -497,6 +547,7 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
     for key in sorted(stats):
         print(f"  {key}: {stats[key]}")
     print(f"  neutral tones replaced for {len(neutral_fixed)} annotatable characters")
+    print(f"word_marks.tsv: {len(word_marks)} words whose popup reading is not the one drawn")
 
 
 if __name__ == "__main__":

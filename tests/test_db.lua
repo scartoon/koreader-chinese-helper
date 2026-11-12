@@ -37,6 +37,8 @@ local syl = data:word("的确")
 eq(table.concat(syl, " "), "dí què")
 assert(data.cache["的确"], "cached")
 assert(data:word("东东东") == nil and data.cache["东东东"] == false, "misses cached too")
+-- The popup's readings where they are not the drawn ones, in memory.
+eq(data:wordMark("大爷"), "dà ye"); eq(data:wordMark("东西"), nil)
 eq(data:rule("行", nil, nil), nil)
 local first, second = data:uncertainty("了")
 eq(first, "le"); eq(second, "liǎo")
