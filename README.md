@@ -100,10 +100,10 @@ all books.
 | Which characters | Pinyin for characters outside the 1,500 / 2,500 / 3,500 / 5,000 / 7,000 most common (default 3,500) |
 | Pinyin size | 35–55% of the book's text size (default 40%) |
 | When the reading is uncertain | Show both readings (default) / show the most likely reading / don't annotate |
-| Mark unusual readings of common characters | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
+| Mark unusual readings of common characters (names, historical terms) | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [The edge band](#the-edge-band) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
-| Fallback dictionaries | Source labels (all entries / other dictionaries only, the default / none); then each dictionary on/off, in priority order: Wiktionary, CBDB office titles, MOE 重編國語辭典, Wikipedia titles, Moegirlpedia slang (CBDB, MOE and Moegirlpedia only when you have installed their files). See [Other dictionaries](#other-dictionaries) |
+| Fallback dictionaries | Source labels (all entries / other dictionaries only, the default / none); then each dictionary on/off, in priority order: Wiktionary, CBDB office titles, MOE 重編國語辭典, Wikipedia titles, Moegirlpedia slang (CBDB, MOE and Moegirlpedia are marked "(your own file)" when installed, and greyed out with "(not installed)" when not). See [Other dictionaries](#other-dictionaries) |
 | Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed), what the current page needed, and any old plugin still installed |
 
 The two switches are independent: pinyin without the popup, the popup without pinyin, or both.
@@ -348,11 +348,12 @@ Measured on a Boox Go 7 against the two old plugins, same book, same pages:
   2 MB more (KOReader's total about 133 MB against 131 MB); the dictionaries are read from the
   database, not loaded into memory.
 - **A tap with all five fallback dictionaries** (1.5.0 adds Wikipedia titles, CBDB and
-  Moegirlpedia): not yet timed on the device. Each one adds at most one indexed query per tap,
-  and none once every candidate word has an entry. On a laptop, running every query for 2,000
-  taps on a novel took 0.11 ms per tap with all five against 0.06 ms with Wiktionary and MOE,
-  so the extra three cost about what those two did; on the Go 7 those two added 0.9 ms, so a tap
-  should stay near 16 ms. CBDB and Moegirlpedia, like MOE, are opened when first needed.
+  Moegirlpedia): 17–20 ms median (18–29 ms mean) against 14–15 ms (about 15.5 ms mean) with
+  Wiktionary and MOE alone, timed on the Go 7 over the same 31 taps, two runs of each, with the
+  Translate button showing. Each extra dictionary adds at most one indexed query per tap, and
+  none once every candidate word has an entry. The first run after installing had five taps of
+  70–85 ms that did not come back in the second, most likely the new database being read from
+  storage for the first time. CBDB and Moegirlpedia, like MOE, are opened when first needed.
 - **The Translate button**: the Wi-Fi check and the choice of mode take 1–2 ms when the popup
   opens (popup built in 9–15 ms against 7–10 ms without the button, same character). The
   sentence is found when the button is pressed, in 2–3 ms.
@@ -413,7 +414,8 @@ They go in KOReader's data folder, where plugin updates leave them alone:
   110 MB zipped, 590 MB unzipped). Licence: the
   [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms)
   ([CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) for the data of the
-  standalone release, CBDB's own non-commercial, no-redistribution terms beyond it). This project
+  standalone release, CBDB's own non-commercial, no-derivatives, no-redistribution terms beyond
+it). This project
   follows the stricter of the two: it ships only the build script, never CBDB data, and the file
   is meant for your own non-commercial reading on your own device. Don't share it.
 - **Moegirlpedia slang**: the internet-slang pages of [萌娘百科](https://zh.moegirl.org.cn) (the
