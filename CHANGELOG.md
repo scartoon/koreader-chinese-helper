@@ -1,20 +1,26 @@
 # Changelog
 
-## Unreleased
+## 1.5.0 (2026-11-12)
 
 - **Wikipedia titles** in the popup for words no dictionary has: about 39,000 Chinese Wikipedia
   article titles of 3–8 characters in technology, engineering, military and history, glossed with
   the English article's title (红夷大炮 *Hongyipao*, 火绳枪 *Matchlock*, 鱼鳞册 *Fish-Scale
-  Registers*), with a pypinyin reading marked **· generated pinyin**. Part of the plugin; label
-  **WP**. The release zip grows by about 2.7 MB.
+  Registers*), with a pypinyin reading marked **· generated pinyin**. Bundled; label **WP**. The
+  database grows from 28 to 33 MB and the release zip from 13.6 to 16.3 MB.
 - **Two more dictionaries you build yourself**, like MOE: **CBDB office titles** (about 2,900 Ming
   and Southern Ming office titles with English translations; `tools/build_cbdb.py`, label
   **CBDB**) and **Moegirlpedia slang** (about 350 internet-slang terms with their opening sentence
-  in Chinese; `tools/build_moegirl.py`, label **Moegirl**). Their licences rule out the release.
+  or two in Chinese; `tools/build_moegirl.py`, label **Moegirl**). Their licences (non-commercial)
+  rule out distributing them: they are never in the repository or the release.
 - **Priority**: CC-CEDICT, then Wiktionary, CBDB, MOE, Wikipedia titles, Moegirlpedia; each word
-  shows the first one's entry. The order is the `chinesehelper_fallback_order` setting. Each
-  dictionary has its own switch under **Fallback dictionaries** and its own **Status** line. Only
-  Wiktionary's words decide readings, as before.
+  shows the first one's entry. The order is the `chinesehelper_fallback_order` setting (not in the
+  menu). **Fallback dictionaries** has a switch for each dictionary, greyed out with "(not
+  installed)" for a missing file, and **Status** has a line for each (version, entries, on or
+  off, or not installed). Only Wiktionary's words decide readings, as before: the reading tables
+  are unchanged (same checksum), so the pinyin drawn is the same as in 1.4.0.
+- **README rewritten**: a new opening on what the plugin does for Chinese readers, what the
+  dictionaries cover on 临高启明, a feature list, and an **Accuracy** section with this release's
+  figures (previously a link to koreader-interlinear-pinyin's).
 
 ## 1.4.0 (2026-11-11)
 
