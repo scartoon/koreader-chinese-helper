@@ -215,3 +215,12 @@
 们	men	plural suffix: CC-CEDICT has no other reading (mén is pypinyin's)
 們	men
 得	de/děi	structural particle (说得好, 高兴得跳起来); děi "must" (你得去) next; dé (to obtain) is mostly in words (得到, 获得, 取得)
+
+# --- Words for learned rules taken out (data/rules_exclude.tsv) and other
+#     readings of rare characters
+累官	lěi guān	to rise in office step by step (累 lěi "repeatedly"); the learned rule had lèi
+圩市	xū shì	country market (圩 xū, southern China); wéi is a dike (圩田)
+圩日	xū rì	market day
+赶圩	gǎn xū	to go to market
+趕圩	gǎn xū
+圩集	xū jí	country fair

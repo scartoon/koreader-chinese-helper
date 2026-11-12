@@ -10,6 +10,7 @@ committed so that a rebuild needs no dataset downloads beyond CC-CEDICT:
 | `overrides.tsv` | hand | Checked readings that win over every source: a character's default reading (or a default and the runner-up shown when nothing decides, `得 de/děi`), or a word's reading (or `-` to remove a word). Each line says why. |
 | `special_curated.tsv` | hand | Unusual readings of common characters in names and historical terms (单于 *chán yú*), with a short note. Always included. |
 | `rules.tsv` | `tools/learn_from_cpp.py` | Context rules: char, L or R, the neighbouring character, the reading, the number of training examples (each: at least 5, at least 95% agreeing). |
+| `rules_exclude.tsv` | hand | Learned rules `learn_from_cpp.py` must leave out (char, L or R, the neighbour, why): it generates `rules.tsv`, so a bad rule is excluded here rather than deleted there. |
 | `uncertain.tsv` | `tools/learn_from_cpp.py` | Characters whose default reading is unreliable when no word or rule decides: char, confidence in the default, the two most likely readings. Below 75% confidence, plus the hand-checked pairs from `overrides.tsv`. |
 
 Everything else is generated into `build/` (git-ignored) by `tools/build_data.py` and packed

@@ -14,6 +14,7 @@ licence). It is used for:
    readings in sentences where no dictionary word decides. A rule is kept when
    it has at least --rule-min examples and at least --rule-purity of them agree.
    At run time: dictionary word first, then a rule, then the default.
+   Rules listed in data/rules_exclude.tsv (kept by hand) are never kept.
 
 2. Confidence (data/uncertain.tsv). Where neither a word nor a rule decides,
    how often is the default reading right? CPP is built to have many examples
@@ -52,6 +53,23 @@ from plugin_runtime import DEFAULT_PLUGIN, ROOT, Plugin  # noqa: E402
 
 SHARES = os.path.join(ROOT, "build", "data", "reading_shares.tsv")
 NEUTRAL = os.path.join(ROOT, "build", "data", "neutral.tsv")
+EXCLUDE = os.path.join(ROOT, "data", "rules_exclude.tsv")
+
+
+def load_exclusions(path=EXCLUDE):
+    """{(char, "L" or "R", neighbour)} from data/rules_exclude.tsv: rules never
+    to keep, however the train split votes."""
+    out = set()
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            for n, line in enumerate(f, 1):
+                if not line.strip() or line.startswith("#"):
+                    continue
+                fields = line.rstrip("\n").split("\t")
+                if len(fields) < 3 or fields[1] not in ("L", "R"):
+                    raise SystemExit(f"{path}:{n}: expected char<TAB>L|R<TAB>neighbour<TAB>why")
+                out.add(tuple(fields[:3]))
+    return out
 
 
 def load_shares(path=SHARES):
@@ -148,11 +166,16 @@ def main():
         if a["right"]:
             side_counts[(ch, "R", a["right"])][label] += 1
     rules = {}
+    excluded = load_exclusions()
     for key, counts in side_counts.items():
         n = sum(counts.values())
         reading, top = counts.most_common(1)[0]
-        if n >= args.rule_min and top / n >= args.rule_purity:
+        if n >= args.rule_min and top / n >= args.rule_purity and key not in excluded:
             rules[key] = (reading, n)
+    unused = excluded - set(side_counts)
+    if unused:
+        print("rules_exclude.tsv lines with no train example left (a word decides them now): "
+              + ", ".join("".join(k) for k in sorted(unused)))
 
     def rule_for(ch, a):
         l = rules.get((ch, "L", a["left"])) if a["left"] else None

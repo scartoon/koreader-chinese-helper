@@ -1,0 +1,14 @@
+# Learned context rules to leave out, kept by hand: tools/learn_from_cpp.py
+# never writes these to rules.tsv (which it generates), so they stay out when
+# the rules are learned again.
+#
+#   char <TAB> L or R <TAB> neighbour <TAB> why
+#
+# L: the neighbour is on the left (为攒 is 攒 with 为 on its left).
+
+累	R	官	learned lèi from 累官中书舍人 etc.; 累官 "to rise in office step by step" is lěi (now a word in overrides.tsv)
+攒	L	为	learned cuán from 塔顶为攒尖顶; 他为攒够银子 is zǎn: 为 is a function word (攒尖 is a word)
+粘	R	着	learned nián from 机车的粘着系数 (adhesion); 衣服粘着泥 is zhān: 着 is a function word
+靡	R	和	learned mí from the Wusun names 翁归靡和, 军须靡和; 和 is a function word
+隽	R	的	learned jùn from names (曾毓隽的, 裴延隽的); 的 is a function word
+泡	R	是	learned pāo from lake names (大屯泡是, 张家窑泡是); 水泡是, 气泡是 are pào: 是 is a function word

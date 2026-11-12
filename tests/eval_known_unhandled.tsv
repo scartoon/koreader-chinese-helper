@@ -11,3 +11,9 @@
 # 哩 the particle: CPP's Wikipedia sentences mostly use 哩 as "mile" or in
 # transliterations, so the learned pair puts lǐ first (lǐ/li).
 他是哩。	哩=li
+
+# Learned rules taken out (data/rules_exclude.tsv): nothing decides now, and
+# the learned pair puts CPP's technical reading first (攒尖顶 cuán): the
+# right reading is shown second. (The same for 衣服粘着泥, nián/zhān, but 粘
+# ranks 2,323 and is not drawn at this threshold.)
+他为攒够银子。	攒=zǎn

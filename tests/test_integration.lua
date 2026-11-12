@@ -163,6 +163,13 @@ eq(popup("你得去。", "得").chosen, "de/děi", "děi still offered")
 p = popup("他得到了。", "得")
 eq(p.chosen, "dé"); eq(p.decided.word, "得到")
 
+-- 累官 is a word (lěi): the learned rule 累 + 官 -> lèi is excluded
+-- (data/rules_exclude.tsv).
+p = popup("他累官至尚书。", "累")
+eq(p.chosen, "lěi"); eq(p.decided.word, "累官")
+eq(data:rule("累", nil, "官"), nil, "no rule 累官")
+eq(data:rule("攒", "为", nil), nil, "no rule 为攒")
+
 -- 行 in context.
 p = popup("他在银行工作。", "行")
 eq(p.chosen, "háng"); eq(p.decided.word, "银行"); eq(marked(p, "行"), "háng")
