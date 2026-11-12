@@ -5,6 +5,8 @@ candidate sources would add for it. Nothing here is used by the plugin.
     python3 tools/fetch_books.py --local linggao BOOK.epub ...   # build/corpus/linggao-*.txt
     python3 tools/measure_book.py --book linggao                 # Step 1: build/measure/linggao-report.md
     python3 tools/measure_book.py --book linggao --stage sources,eval   # Step 2: linggao-sources.md
+    python3 tools/measure_book.py --book linggao --stage built          # the new sources as built:
+                                                                   # build/measure/linggao/built.md
 
 Reuses tools/measure_fallback.py (--book corpus selection, jieba with the big
 dictionary, the simulated taps through the plugin's own ch_text.lua, the
@@ -992,10 +994,195 @@ def stage_eval():
 
 
 # ---------------------------------------------------------------------------
+# built: the same missing words and taps against the files as built
+# ---------------------------------------------------------------------------
+
+BUILT_ORDER = ["wikt", "cbdb", "moe", "wp", "moegirl"]   # the plugin's default priority
+BUILT_NEW = ["cbdb", "wp", "moegirl"]
+BUILT_FILES = {"wikt": DB, "wp": DB, "moe": MOE_FILE,
+               "cbdb": os.path.join(BUILD, "chinesehelper-cbdb.sqlite"),
+               "moegirl": os.path.join(BUILD, "chinesehelper-moegirl.sqlite")}
+
+
+def built_sources():
+    """{source: {form: gloss}} from the plugin database and the user files in
+    build/, as built (sources whose file is missing are left out)."""
+    out = {}
+    for src in BUILT_ORDER:
+        path = BUILT_FILES[src]
+        if not os.path.exists(path):
+            print(f"  ({path} missing: {src} left out)")
+            continue
+        con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        forms = {}
+        for simp, trad, defs in con.execute("SELECT simp, trad, defs FROM fallback WHERE source = ?", (src,)):
+            forms.setdefault(simp, defs)
+            forms.setdefault(trad, defs)
+        con.close()
+        out[src] = forms
+    return out
+
+
+def stage_built():
+    """Step 5: how many of the missing words (Step 1) the new sources cover
+    as built, by source and category, with the plugin's priority; what the
+    simulated taps gain and how many of those matches are likely false; what
+    is still uncovered."""
+    base = load("base")
+    taps = load("taps")
+    gen = load("gentaps") if os.path.exists(cache("gentaps")) else None
+    miss, cat, _labels = missing_words()
+    srcs = built_sources()
+    cedict = base["known"]["cedict"]
+
+    def first(text):
+        """The source the plugin would show for `text` (CC-CEDICT first)."""
+        if text in cedict:
+            return "cedict"
+        return next((s for s in BUILT_ORDER if s in srcs and text in srcs[s]), None)
+
+    L = []
+    w = L.append
+    w(f"# {BOOK}: the new fallback sources as built\n")
+    w("Files: " + ", ".join(f"{s} {os.path.relpath(BUILT_FILES[s], ROOT)} ({len(srcs[s]):,} forms)"
+                            for s in BUILT_ORDER if s in srcs) + ".")
+    w("Priority: CC-CEDICT, then " + ", ".join(BUILT_ORDER) + " (the plugin's default). Missing words, "
+      "categories and taps are Step 1's (build/measure/" + BOOK + "/), measured before these sources existed.\n")
+
+    # Missing words now covered, by source and category.
+    tot_types, tot_occ = collections.Counter(), collections.Counter()
+    cov_types = collections.defaultdict(collections.Counter)
+    cov_occ = collections.defaultdict(collections.Counter)
+    still, examples = [], collections.defaultdict(list)
+    for x, c in miss:
+        k = cat[x]
+        tot_types[k] += 1
+        tot_occ[k] += c
+        s = first(x)
+        if s in BUILT_NEW:
+            cov_types[s][k] += 1
+            cov_occ[s][k] += c
+            if len(examples[s]) < 25:
+                examples[s].append((x, c, k, srcs[s][x]))
+        elif s is None:
+            still.append((x, c, k))
+        else:
+            # A current source has it after all (e.g. a rebuilt table): count it apart.
+            cov_types["(current sources)"][k] += 1
+            cov_occ["(current sources)"][k] += c
+    real = [k for k in CATEGORIES if k not in ("noise", "phrase")]
+    w("## 1. Missing words now covered\n")
+    w("Types (occurrences) per category. *Real gap* leaves out noise and phrases, as in Step 1.\n")
+    w("| Source | " + " | ".join(CATEGORIES) + " | real gap | all |")
+    w("|---|" + "---|" * (len(CATEGORIES) + 2))
+
+    def line(name, types, occ):
+        cells = [f"{types[k]:,} ({occ[k]:,})" for k in CATEGORIES]
+        rt, ro = sum(types[k] for k in real), sum(occ[k] for k in real)
+        w(f"| {name} | " + " | ".join(cells) + f" | {rt:,} ({ro:,}) | {sum(types.values()):,} ({sum(occ.values()):,}) |")
+    line("missing before", tot_types, tot_occ)
+    for s in BUILT_NEW + ["(current sources)"]:
+        if s in cov_types:
+            line(s, cov_types[s], cov_occ[s])
+    all_t, all_o = collections.Counter(), collections.Counter()
+    for s in BUILT_NEW:
+        all_t.update(cov_types[s])
+        all_o.update(cov_occ[s])
+    line("**new sources together**", all_t, all_o)
+    st, so = collections.Counter(k for _, _, k in still), collections.Counter()
+    for _, c, k in still:
+        so[k] += c
+    line("**still missing**", st, so)
+    w("")
+    for s in BUILT_NEW:
+        if examples.get(s):
+            w(f"Most frequent covered by {s}: " + "; ".join(f"{x} ({c}, {k}): {g[:40]}" for x, c, k, g in
+                                                           examples[s][:15]))
+            w("")
+
+    # Taps.
+    def tap_gain(tap_list):
+        """Per new source: taps gaining a match, plausible and likely-false
+        matches (the candidate starts and ends on a word boundary or not)."""
+        res = {s: collections.Counter() for s in BUILT_NEW}
+        ex = {s: {"plausible": [], "false": []} for s in BUILT_NEW}
+        for t in tap_list:
+            got = collections.defaultdict(lambda: [False, False])
+            for text, _ln, aligned, cur in t["cands"]:
+                if cur is not None:
+                    continue
+                s = first(text)
+                if s in BUILT_NEW:
+                    got[s][0 if aligned else 1] = True
+                    res[s]["plausible matches" if aligned else "likely-false matches"] += 1
+                    kind_ = "plausible" if aligned else "false"
+                    if len(ex[s][kind_]) < 8:
+                        ex[s][kind_].append(f"{text} in {t['context']}")
+            for s, (p, f) in got.items():
+                res[s]["taps"] += 1
+                if p:
+                    res[s]["taps with a plausible match"] += 1
+                if f and not p:
+                    res[s]["taps with only a likely-false match"] += 1
+        return res, ex
+
+    n = len(taps)
+    gap = [t for t in taps if t["gap_word"]]
+    gap_real = [t for t in gap if cat.get(t["gap_word"]) in real]
+    w("## 2. Simulated taps on this book\n")
+    w(f"{n:,} taps (Step 1's sample). Inside a missing word: {len(gap):,} ({pct(len(gap), n)}); inside a "
+      f"real-gap word: {len(gap_real):,} ({pct(len(gap_real), n)}).\n")
+    res, ex = tap_gain(taps)
+    w("| Source | taps gaining a match | plausible / likely-false matches | false-match rate | taps inside a "
+      "missing word now covered | ... real-gap word |")
+    w("|---|---|---|---|---|---|")
+    for s in BUILT_NEW:
+        r = res[s]
+        p, f = r["plausible matches"], r["likely-false matches"]
+        rescued = sum(1 for t in gap if first(t["gap_word"]) == s)
+        rescued_real = sum(1 for t in gap_real if first(t["gap_word"]) == s)
+        w(f"| {s} | {r['taps']:,} | {p:,} / {f:,} | {pct(f, p + f)} | {rescued:,} | {rescued_real:,} |")
+    left = sum(1 for t in gap_real if first(t["gap_word"]) is None)
+    w(f"\nTaps inside a real-gap word still without any entry: {left:,} of {n:,} ({pct(left, n)}); by category: "
+      + ", ".join(f"{k} {v:,}" for k, v in collections.Counter(cat[t['gap_word']] for t in gap_real
+                                                                if first(t['gap_word']) is None).most_common()))
+    w("")
+    for s in BUILT_NEW:
+        for kind_ in ("plausible", "false"):
+            if ex[s][kind_]:
+                w(f"- {s}, {kind_}: " + " · ".join(ex[s][kind_]))
+    w("")
+    if gen:
+        w("## 3. False matches in the other books (Phase 1 corpus taps)\n")
+        g, _gex = tap_gain(gen)
+        w("| Source | taps gaining a match | plausible / likely-false matches | false-match rate |")
+        w("|---|---|---|---|")
+        for s in BUILT_NEW:
+            p, f = g[s]["plausible matches"], g[s]["likely-false matches"]
+            w(f"| {s} | {g[s]['taps']:,} of {len(gen):,} | {p:,} / {f:,} | {pct(f, p + f)} |")
+        w("")
+        for s in BUILT_NEW:
+            for kind_ in ("plausible", "false"):
+                if _gex[s][kind_]:
+                    w(f"- {s}, {kind_}: " + " · ".join(_gex[s][kind_][:5]))
+        w("")
+
+    path = os.path.join(OUT, "built.md")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(L) + "\n")
+    upath = os.path.join(OUT, "still-missing.tsv")
+    with open(upath, "w", encoding="utf-8") as f:
+        f.write("word\toccurrences\tcategory\n")
+        for x, c, k in still:
+            f.write(f"{x}\t{c}\t{k}\n")
+    print(f"wrote {path} and {upath}")
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
-STAGES = ["base", "discover", "segment", "taps", "report", "sources", "gentaps", "eval"]
+STAGES = ["base", "discover", "segment", "taps", "report", "sources", "gentaps", "eval", "built"]
 
 
 def main():
@@ -1018,7 +1205,7 @@ def main():
             sys.exit(f"unknown stage {s}")
     funcs = {"base": stage_base, "discover": stage_discover, "segment": stage_segment,
              "taps": lambda: stage_taps(args.taps_per_book, args.seed), "report": stage_report,
-             "sources": lambda: stage_sources(), "gentaps": lambda: stage_gentaps(), "eval": lambda: stage_eval()}
+             "sources": lambda: stage_sources(), "gentaps": lambda: stage_gentaps(), "eval": lambda: stage_eval(), "built": stage_built}
     for s in STAGES:
         if s in stages:
             print(f"[{s}]", flush=True)
