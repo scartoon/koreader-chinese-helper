@@ -6,7 +6,7 @@
   article titles of 3–8 characters in technology, engineering, military and history, glossed with
   the English article's title (红夷大炮 *Hongyipao*, 火绳枪 *Matchlock*, 鱼鳞册 *Fish-Scale
   Registers*), with a pypinyin reading marked **· generated pinyin**. Bundled; label **WP**. The
-  database grows from 28 to 33 MB and the release zip from 13.6 to 16.3 MB.
+  database grows from 28 to 33 MB and the release zip from 13.6 to 16.4 MB.
 - **Two more dictionaries you build yourself**, like MOE: **CBDB office titles** (about 2,900 Ming
   and Southern Ming office titles with English translations; `tools/build_cbdb.py`, label
   **CBDB**) and **Moegirlpedia slang** (about 350 internet-slang terms with their opening sentence
