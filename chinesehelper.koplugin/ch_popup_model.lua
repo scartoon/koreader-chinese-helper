@@ -110,15 +110,25 @@ end
 --      (鼓捣 "gǔ dao" for gǔ dǎo), only when no entry has it exactly
 --      (不是 bùshì "is not" must not also mark bùshi "fault");
 --   3. a neutral chosen reading standing for the entry with the same letters
---      (西 in 东西 dōngxi: 西's own entry xī).
+--      (西 in 东西 dōngxi: 西's own entry xī; 捣 drawn dao in 鼓捣: dǎo).
+--      Where several tones have those letters (糊 hù, hú, hū for 含糊 hu),
+--      only `prefer` (the character's default reading) when it is one of them.
 -- `value` is what marked is set to. Returns whether anything was marked.
-local function markMatching(entries, chosen, value)
+local function markMatching(entries, chosen, value, prefer)
     local want = Pinyin.lower(chosen)
     local neutral = want == Pinyin.stripTones(want)
+    local function sameLetters(e) return neutral and Pinyin.stripTones(Pinyin.lower(e.syllables)) == want end
+    local narrowed = false
+    if neutral and prefer and prefer ~= "" then
+        prefer = Pinyin.lower(prefer)
+        for _, e in ipairs(entries) do
+            if sameLetters(e) and Pinyin.lower(e.syllables) == prefer then narrowed = true end
+        end
+    end
     local tests = {
         function(e) return Pinyin.lower(e.syllables) == want end,
         function(e) return Pinyin.matches(e.syllables, want) end,
-        function(e) return neutral and Pinyin.stripTones(Pinyin.lower(e.syllables)) == want end,
+        function(e) return sameLetters(e) and (not narrowed or Pinyin.lower(e.syllables) == prefer) end,
     }
     for _, test in ipairs(tests) do
         for _, proper in ipairs({ false, true }) do
@@ -200,6 +210,8 @@ The popup's matches.
   args.order        the fallback dictionaries' priority, or nil
   args.chosen       the resolver's reading of the tapped character ("dào", or a
                     pair "chéng/shèng"), or nil
+  args.default      the tapped character's default reading, or nil: which of
+                    several same-letter tones a neutral `chosen` stands for
   args.annotated    true when that reading is drawn above the character
   args.unsure       true when `chosen` is the uncertainty pair (no word or rule
                     decided; Resolve.forPopup): its readings are marked
@@ -290,14 +302,28 @@ function Model.matches(args)
         end
         return false
     end
+    -- A reading CC-CEDICT gives the tapped character only with a tone: a
+    -- word's neutral tone (猬 wèi, drawn wei in 刺猬). Then even a character
+    -- with one reading has its entry marked and the word that decided it
+    -- tagged, so the popup says why the pinyin drawn differs from the entry.
+    local toneless = false
+    if anchor and args.chosen and not args.chosen:find("/", 1, true) then
+        local want = Pinyin.lower(args.chosen)
+        if want ~= "" and want == Pinyin.stripTones(want) then
+            toneless = true
+            for _, e in ipairs(anchor.entries) do
+                if Pinyin.lower(e.syllables) == want then toneless = false end
+            end
+        end
+    end
     -- The tapped character: mark the resolver's reading(s).
     if anchor and fromCedict(anchor) and args.chosen and args.chosen ~= "" then
         local entries = anchor.entries
-        local several = distinctReadings(entries) > 1
+        local several = distinctReadings(entries) > 1 or toneless
         local rank = 0
         for reading in args.chosen:gmatch("[^/]+") do
             rank = rank + 1
-            if not markMatching(entries, reading, several or nil) then
+            if not markMatching(entries, reading, several or nil, args.default) then
                 -- A reading CC-CEDICT does not list for the character itself
                 -- (it may come from a pypinyin phrase): shown, with no senses.
                 entries[#entries + 1] = { pinyin = reading, syllables = reading, senses = {},
@@ -313,7 +339,7 @@ function Model.matches(args)
     end
     -- Each word: mark the resolver's reading when there is a choice.
     for _, m in ipairs(words) do
-        if fromCedict(m) and distinctReadings(m.entries) > 1 then
+        if fromCedict(m) and (distinctReadings(m.entries) > 1 or (toneless and m.decided)) then
             local chosen = (m.decided and decided.syllables)
                 or (args.wordReading and args.wordReading(m.word))
             if chosen and markMatching(m.entries, chosen, true) then
@@ -323,7 +349,7 @@ function Model.matches(args)
     end
     -- "Decides X's reading" only means something when X has a choice of
     -- readings (人 in 行人 has one); the word itself stays listed.
-    local choice = anchor and fromCedict(anchor) and distinctReadings(anchor.entries) > 1
+    local choice = anchor and fromCedict(anchor) and (distinctReadings(anchor.entries) > 1 or toneless)
     if not choice then
         for _, m in ipairs(words) do m.decided = nil end
     end

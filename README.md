@@ -260,8 +260,13 @@ phrase around the character, the character in bold:
 ### Readings
 
 Readings are dictionary readings: 一 is *yī* and 不 is *bù* everywhere, as in CC-CEDICT, without
-the spoken tone changes (一定 *yídìng*, 不是 *búshì*). In the pinyin drawn above rare
-characters, a word's neutral tone shows as the character's own tone (刺猬: *wèi* over 猬).
+the spoken tone changes (一定 *yídìng*, 不是 *búshì*). Neutral tones follow the standard mainland
+spoken form: where CC-CEDICT gives a word's syllable only as a neutral tone, that is what is drawn
+above a rare character (刺猬 *cì wei*, 鼓捣 *gǔ dao*, 疙瘩 *gē da*, 大猩猩 *dà xīng xing*), even
+where pypinyin writes a full tone. Where CC-CEDICT lists the word both ways (大爷 *dà yé* "idler" /
+*dà ye* "uncle", 裁缝 *cái féng* / *cái feng*), the toned reading is drawn and the popup marks the
+neutral one. Tapping a character drawn with a neutral tone marks its entry with the same letters
+(猬 *wèi*) and tags the word that decided it.
 
 For each character, in order: an unusual reading in a listed name or term (单于 *chán yú*), if
 that option is on; the longest dictionary word of 2–4 characters around it (侥 is *jiǎo* in 侥幸
@@ -300,16 +305,19 @@ Some word-level choices need the meaning, which the plugin does not have: 东西
 `tools/eval_readings.py` runs the plugin's own resolver over the test split of the
 [CPP polyphone dataset](https://github.com/kakaobrain/g2pM) (labelled sentences from Chinese
 Wikipedia; the context rules are learned from its train split only). CPP holds only characters
-with several readings, so it is the hard case. Figures for 1.6.0 (since 1.6.0, a
+with several readings, so it is the hard case. Figures for 1.6.1 (since 1.6.0, a
 CPP label with a neutral tone that CC-CEDICT lists as an entry of its own, such as 啦 *la*, no
-longer counts as the toned reading with the same letters; that stricter scoring alone lowered
-the 1,500 figures by 0.1 points, which 1.6.0's reading changes won back):
+longer counts as the toned reading with the same letters). 1.6.1 draws a word's neutral tone
+where CC-CEDICT gives it only that way, and CPP labels some of these words with the full tone
+(枇杷 *pá*, 姥姥 *lǎo*, 收拾 *shí*, 铃铛 *dāng*, 唠叨 *dāo*): 22 test sentences that counted as right
+now count as wrong, 0.4 to 0.7 points of the "most likely" figures and 0.04 to 0.08 points of
+the ordinary-text estimate.
 
 | Pinyin for characters outside | Characters tested | Most likely reading right | Right counting both of a pair | Shown as a pair | Estimated, ordinary text (both shown) |
 |---|---|---|---|---|---|
-| 1,500 most common | 5,353 | 96.3% | 98.0% | 7.2% | 99.60% |
-| 2,500 | 3,189 | 96.7% | 98.3% | 8.0% | 99.69% |
-| 3,500 (default) | 1,482 | 96.7% | 98.3% | 10.7% | 99.75% |
+| 1,500 most common | 5,353 | 95.9% | 97.6% | 7.2% | 99.56% |
+| 2,500 | 3,189 | 96.2% | 97.8% | 8.0% | 99.61% |
+| 3,500 (default) | 1,482 | 96.0% | 97.6% | 10.7% | 99.67% |
 | 5,000 | 260 | 95.4% | 98.8% | 28.8% | 99.84% |
 | 7,000 | 42 | 97.6% | 100.0% | 45.2% | 100.00% |
 

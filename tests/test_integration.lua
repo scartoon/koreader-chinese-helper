@@ -62,7 +62,7 @@ local function popup(text, char, opts)
     end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = drawn ~= nil, decided = decided,
-        unsure = unsure,
+        unsure = unsure, default = select(2, data:char(char)),
         wordReading = function(w) return Resolve.wordReading(data, w) end,
     }
     return { chosen = chosen, decided = decided, unsure = unsure, matches = matches, drawn = drawn,
@@ -144,6 +144,40 @@ eq(table.concat(data:word("大爷"), " "), "dà yé", "drawn: 爷's own tone")
 -- (cái féng), not 缝's default fèng.
 eq(table.concat(data:word("裁缝"), " "), "cái féng")
 word_mark("她是裁缝。", "裁", "裁缝", "cáifeng", "裁缝 tailor")
+
+-- A neutral tone drawn as it is (CC-CEDICT gives the word only that way): the
+-- character's own entry with the same letters is marked "shown above", and
+-- the word is listed with the reading drawn.
+p = popup("一只刺猬。", "猬", { threshold = 3500 })
+eq(p.drawn, "wei"); eq(p.chosen, "wei")
+eq(marked(p, "猬"), "wèi", "猬's entry wèi stands for the drawn wei")
+assert(p.text:find("猬  wèi · shown above", 1, true), p.text)
+assert(p.text:find("刺猬  cìwei · likely here · decides 猬's reading", 1, true), p.text)
+eq(p.decided.word, "刺猬"); eq(p.decided.syllables, "cì wei")
+-- 鼓捣: in the words table only for the neutral tone; drawn at 2,500 (捣 ranks
+-- 2,655), and tapping 捣 shows the word.
+p = popup("总能鼓捣回家点儿。", "捣", { threshold = 2500 })
+eq(p.drawn, "dao"); eq(marked(p, "捣"), "dǎo")
+assert(p.text:find("捣  dǎo · shown above", 1, true), p.text)
+assert(p.text:find("鼓捣  gǔdao · likely here · decides 捣's reading", 1, true), p.text)
+eq(p.decided.word, "鼓捣")
+-- Not drawn at 3,500: the popup still marks the word's reading as likely.
+p = popup("总能鼓捣回家点儿。", "捣", { threshold = 3500 })
+eq(p.drawn, nil); eq(p.chosen, "dao"); eq(marked(p, "捣"), "dǎo")
+assert(p.text:find("捣  dǎo · likely here", 1, true), p.text)
+-- Several tones with the same letters (糊 hù, hú, hū): only the default, hú,
+-- stands for the drawn hu of 含糊.
+p = popup("他说得含糊。", "糊", { threshold = 1500 })
+eq(p.drawn, "hu"); eq(marked(p, "糊"), "hú")
+-- Listed both ways in CC-CEDICT: 缝 is drawn féng in 裁缝 (the word's other
+-- reading's tone), the character's entry féng is marked, the word cáifeng.
+p = popup("她是裁缝。", "缝", { threshold = 1500 })
+eq(p.drawn, "féng"); eq(marked(p, "缝"), "féng"); eq(marked(p, "裁缝"), "cáifeng")
+-- A rare character outside such a word keeps its own toned default.
+-- (one reading, the one drawn: no marker, as before).
+p = popup("他在捣乱。", "捣", { threshold = 2500 })
+eq(p.drawn, "dǎo"); eq(marked(p, "捣"), "")
+assert(p.text:find("捣  dǎo\n", 1, true) and not p.text:find("decides", 1, true), p.text)
 
 -- Particles: the neutral reading CC-CEDICT lists as an entry of its own is
 -- a candidate, and the default where it is the main use.

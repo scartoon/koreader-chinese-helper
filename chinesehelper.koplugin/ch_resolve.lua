@@ -361,8 +361,8 @@ end
 -- The resolver's reading of a whole word ("dōng xi" for 东西), from the words
 -- table, or nil when the dictionaries give it only one reading (so there is
 -- nothing to choose). The popup marks this reading among a word's entries:
--- where the words table gives a rare character's neutral tone as its own tone
--- for the pinyin drawn (大爷 dà yé), the dictionary reading meant (dà ye).
+-- where the words table gives a rare character the toned one of a word
+-- CC-CEDICT lists both ways (大爷 dà yé, drawn), the reading meant (dà ye).
 function Resolve.wordReading(data, word)
     local mark = data.wordMark and data:wordMark(word)
     if mark then return mark end

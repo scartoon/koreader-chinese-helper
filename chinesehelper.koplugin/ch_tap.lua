@@ -250,6 +250,7 @@ function Tap:showPopup(hit)
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = annotated, decided = decided,
         unsure = unsure, order = self.plugin.settings:fallbackOrder(),
+        default = data and select(2, data:char(hit.char)) or nil,
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }
     if #matches == 0 then

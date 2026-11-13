@@ -12,7 +12,7 @@
 声音很大宛如雷鸣	宛=wǎn
 张骞出使大宛	骞=qiān 宛=yuān
 # Neutral tones
-一只刺猬	猬=wèi
+一只刺猬	猬=wei
 # Words from pypinyin's phrase list
 澹台灭明	澹=tán
 # Hand-checked overrides
@@ -28,7 +28,7 @@
 盐谷町	町=tǐng
 姓翟的人	翟=zhái
 吃文蛤	蛤=gé
-一只癞蛤蟆	蛤=há 蟆=má 癞=lài
+一只癞蛤蟆	蛤=há 蟆=ma 癞=lài
 蚌埠市	蚌=bèng 埠=bù
 # Context rule learned from train: 幢 after a numeral
 一幢房子	幢=zhuàng
@@ -69,7 +69,8 @@
 
 # Particles: the neutral reading CC-CEDICT lists as an entry of its own is the
 # default (or first of the pair); a word's neutral tone above a rare
-# character still shows the character's own tone (刺猬 wèi).
+# character is drawn as it is where CC-CEDICT gives the word only that way
+# (刺猬 wei, above), its own tone where CC-CEDICT lists both (大爷 yé).
 他走呗。	呗=bei
 我来喽。	喽=lou
 这样好咯。	咯=lo/gē

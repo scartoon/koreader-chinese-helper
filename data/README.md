@@ -19,10 +19,12 @@ into the database with CC-CEDICT by `tools/build_db.py`:
 - `chars`: every character with its frequency rank and default reading (the most frequent
   reading, weighted by how often the words using each reading occur).
 - `words`: 2–4 character words containing a character with more than one reading, or with
-  several dictionary readings themselves (东西), from CC-CEDICT and pypinyin's phrase list, with
-  each word's frequency.
+  several dictionary readings themselves (东西), or where CC-CEDICT gives a rare character a
+  neutral tone that is not its default reading (鼓捣 *gǔ dao*), from CC-CEDICT and pypinyin's
+  phrase list, with each word's frequency.
 - `word_marks`: the reading the popup marks for a word, for the few words where it is not the
-  one in `words` (大爷: *dà yé* is drawn above the rare 爷, the popup marks *dà ye* "uncle").
+  one in `words`: words CC-CEDICT lists both with and without a neutral tone (大爷: *dà yé* is
+  drawn above the rare 爷, the popup marks *dà ye* "uncle").
 - `special`, `special_guard`: the unusual-readings list (from `special_curated.tsv`, plus words
   found automatically) and the overlap guards that keep it from matching by accident.
 - `entries`: CC-CEDICT itself, one row per entry, with numbered pinyin converted to tone marks
@@ -115,9 +117,13 @@ own, such as the particles 啦 *la* and 得 *de*, are candidates too, and the de
 `overrides.tsv` says so); numbered pinyin converted to tone marks; pypinyin
 phrases merged in (first reading of each syllable; where both sources have a word and disagree,
 CC-CEDICT is kept unless it differs only by a neutral tone on a rare character); 一 and 不 kept at
-their dictionary tones (pypinyin writes the spoken tone changes); neutral tones on rare
-characters replaced by the character's toned reading with the same letters (the tone the word's
-other CC-CEDICT reading gives it first, then the character's default); for words with several
+their dictionary tones (pypinyin writes the spoken tone changes); a rare character's neutral tone
+after a word's first syllable kept, over pypinyin's full tone, where CC-CEDICT gives the word only
+that way (刺猬 *cì wei*), and words added for it where the neutral tone is not the character's
+default (鼓捣 *gǔ dao*); other neutral tones on rare characters (CC-CEDICT lists the word both
+ways, 大爷 *dà yé* / *dà ye*, or pypinyin's phrase list has one) replaced by the character's toned
+reading with the same letters (the tone the word's other CC-CEDICT reading gives it first, then
+the character's default); erhua *r* left as it is; for words with several
 CC-CEDICT readings, proper names included, the one pypinyin's phrase list gives when it gives
 one of them, else an ordinary reading before a proper name and, for words of common characters
 only, the neutral-tone one, else the first, with hand-checked readings in `overrides.tsv` over

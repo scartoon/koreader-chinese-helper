@@ -86,8 +86,24 @@ expect("饕|饕餮|", 3500, "饕=tāo 餮=tiè")
 expect("声音很大宛如雷鸣", 2500, "宛=wǎn")
 expect("张骞出使大宛", 2500, "骞=qiān 宛=yuān")
 
--- Neutral tones in CC-CEDICT (刺猬 cì wei) give way to the character's own tone.
-expect("一只刺猬", 3500, "猬=wèi")
+-- A neutral tone CC-CEDICT gives a word only that way is drawn as it is (刺猬
+-- cì wei; pypinyin's cì wèi does not override it), in any position after the
+-- first (大猩猩 dà xīng xing, 唠唠叨叨 láo lao dāo dāo): the standard spoken
+-- form. 猩 twice on a page: two readings, so both are drawn.
+expect("一只刺猬", 3500, "猬=wei")
+expect("一只大猩猩", 2500, "猩=xīng 猩=xing")
+expect("他唠唠叨叨", 3500, "唠=láo 唠=lao")
+-- Words added only for their neutral tone (鼓捣: 捣 has the one reading dǎo,
+-- so no word was kept for it before).
+expect("总能鼓捣回家点儿", 2500, "捣=dao")
+expect("总能鼓捣回家点儿", 3500, "")              -- 捣 ranks 2,655
+expect("捣乱", 2500, "捣=dǎo")                     -- outside such a word: its own tone
+expect("刺猬和猬", 3500, "猬=wei 猬=wèi")
+-- CC-CEDICT lists both readings (大爷 dà yé / dà ye, 裁缝 cái féng / cái
+-- feng): the toned one is drawn (the popup marks the neutral; word_marks).
+expect("她是裁缝", 1500, "缝=féng")
+assert(table.concat(data:word("鼓捣"), " ") == "gǔ dao", "鼓捣 in the words table")
+assert(table.concat(data:word("唠唠叨叨"), " ") == "láo lao dāo dāo", "唠唠叨叨")
 
 -- Words from pypinyin's phrase list that CC-CEDICT lacks or reads differently.
 expect("澹台灭明", 3500, "澹=tán")
@@ -102,7 +118,7 @@ expect("林荫大道", 2500, "荫=yīn")
 -- Default readings corrected from the CPP train split (tools/overrides.tsv).
 expect("李晟是唐朝名将", 3500, "晟=shèng")
 expect("吃文蛤", 2500, "蛤=gé")
-expect("一只癞蛤蟆", 2500, "癞=lài 蛤=há 蟆=má")   -- the word keeps há
+expect("一只癞蛤蟆", 2500, "癞=lài 蛤=há 蟆=ma")   -- the word keeps há; 蟆 neutral
 expect("盐谷町", 2500, "町=tǐng")
 expect("姓翟的人", 3500, "翟=zhái")
 -- Word fixes from the train review.

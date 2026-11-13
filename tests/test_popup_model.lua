@@ -103,6 +103,21 @@ eq(Model.render(m, "靠", true), "靠  kào\nto lean")
 -- A neutral tone in CC-CEDICT stands for the toned reading: 瘩 "da" is dā.
 m = matches("", "瘩", "", { row("瘩", "瘩", "da", "see 疙瘩"), row("瘩", "瘩", "tǎ", "sore") }, { chosen = "dā" })
 eq(join(m[1].entries, "pinyin"), "da,tǎ"); assert(m[1].entries[1].marked)
+-- A word's neutral tone drawn as it is (刺猬 cì wei): the one entry with the
+-- same letters is marked even though it is the only reading, and the word
+-- that decided it is tagged and marked.
+m = matches("刺", "猬", "", { row("猬", "蝟", "wèi", "hedgehog"),
+                             row("刺猬", "刺蝟", "cìwei", "hedgehog", "cì wei") },
+            { chosen = "wei", annotated = true,
+              decided = { word = "刺猬", start = -1, len = 2, syllables = "cì wei" } })
+eq(Model.render(m, "猬", true), "猬  wèi · shown above\nhedgehog\n\n"
+   .. "刺猬  cìwei · likely here · decides 猬's reading\nhedgehog")
+-- Several tones with those letters: only the default stands for it.
+local hu = { row("糊", "糊", "hù", "paste"), row("糊", "糊", "hú", "muddled"), row("糊", "糊", "hū", "to plaster") }
+m = matches("", "糊", "", hu, { chosen = "hu", default = "hú" })
+eq(join(m[1].entries, "pinyin"), "hú,hù,hū"); assert(m[1].entries[1].marked and not m[1].entries[2].marked)
+m = matches("", "糊", "", hu, { chosen = "hu" })
+assert(m[1].entries[1].marked and m[1].entries[2].marked and m[1].entries[3].marked, "no default: all three")
 -- A chosen reading CC-CEDICT does not list for the character: shown, empty.
 m = matches("", "乐", "", yue, { chosen = "yào" })
 eq(m[1].entries[1].pinyin, "yào"); assert(m[1].entries[1].missing and m[1].entries[1].marked)

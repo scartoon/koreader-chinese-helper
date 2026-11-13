@@ -6,13 +6,15 @@
 --              rare). Every character with a known reading is here; only
 --              those ranked above 1,000 (or 0) can be annotated.
 --   words      word -> syllables, frequency (per billion words). 2-4
---              character words containing a polyphonic character, or with
---              several dictionary readings.
+--              character words containing a polyphonic character, with
+--              several dictionary readings, or giving a rare character a
+--              neutral tone that is not its default (鼓捣 gǔ dao).
 --   word_marks word -> the reading the tap popup marks, where it is not the
---              one in words: words give a rare character's neutral tone as
---              its own tone (大爷 dà yé, for the pinyin drawn), which can be
---              another dictionary reading of the word (dà yé "idler"); the
---              popup must mark dà ye "uncle". A few dozen at most.
+--              one in words: where CC-CEDICT lists a word both with and
+--              without a neutral tone, words give a rare character the toned
+--              one (大爷 dà yé, for the pinyin drawn), another dictionary
+--              reading of the word (dà yé "idler"); the popup must mark dà ye
+--              "uncle". A few dozen at most.
 --   rules      context rules: the reading of a character when the character
 --              immediately to its left (L) or right (R) is a given one.
 --   uncertain  characters whose default reading is unreliable when neither a

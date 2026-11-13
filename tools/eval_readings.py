@@ -5,6 +5,7 @@
     python3 tools/eval_readings.py                    # test split, overall estimate, regression lists
     python3 tools/eval_readings.py --errors 30        # also sample mistakes
     python3 tools/eval_readings.py --plugin DIR       # evaluate another copy of the plugin (before/after)
+    python3 tools/eval_readings.py --data DIR         # ... or another copy of build/data
 
 Runs the plugin's own Lua code (ch_readings.lua, ch_resolve.lua).
 
@@ -19,10 +20,12 @@ Runs the plugin's own Lua code (ch_readings.lua, ch_resolve.lua).
    and, at --threshold, what the context rules add (the same run with rules
    switched off).
 
-   CPP labels spoken neutral tones (萝卜 bo); the plugin deliberately shows the
-   toned reading with the same letters (bó), which counts as right, except
-   where CC-CEDICT lists the neutral reading as an entry of its own: 啦 la, the
-   particle, is not lā (build/data/neutral.tsv).
+   CPP labels spoken neutral tones (萝卜 bo). The plugin draws them as they
+   are where CC-CEDICT gives the word only that way (刺猬 wei), and otherwise
+   the toned reading with the same letters (大爷 yé), which counts as right,
+   except where CC-CEDICT lists the neutral reading as an entry of its own: 啦
+   la, the particle, is not lā (build/data/neutral.tsv). A toned label where
+   the plugin draws the neutral tone counts as wrong.
 
 2. Estimated overall accuracy: CPP contains only polyphonic characters, so its
    numbers are not what a reader sees. The estimate weights every character the
@@ -83,6 +86,9 @@ def run_test(plugin, shares, mode, neutral=None):
         else:
             shown, rank = r
         default, dict_shares = shares.get(ch, (None, {}))
+        if label in (shown or "").split("/"):
+            out.append((ch, label, rank, shown))  # a neutral label drawn as it is (刺猬 wei)
+            continue
         out.append((ch, normalize_label(label, set(dict_shares) | ({default} if default else set())
                                         | set((shown or "").split("/")), neutral.get(ch, ())), rank, shown))
     return out
@@ -194,6 +200,8 @@ def check_cases(plugin, path, threshold, label):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--plugin", default=DEFAULT_PLUGIN)
+    ap.add_argument("--data", default=None,
+                    help="reading tables to evaluate (default build/data; a saved copy for before/after)")
     ap.add_argument("--threshold", type=int, default=2500,
                     help="for the rules comparison, error samples and regression lists (default 2500)")
     ap.add_argument("--errors", type=int, default=0, help="show this many sample errors")
@@ -205,7 +213,7 @@ def main():
                          "'none' for none")
     args = ap.parse_args()
 
-    plugin = Plugin(args.plugin, special=not args.no_special, fallback=fallback_sources(args))
+    plugin = Plugin(args.plugin, data_dir=args.data, special=not args.no_special, fallback=fallback_sources(args))
     if not args.no_cpp:
         shares = load_shares()
         rows = {mode: run_test(plugin, shares, mode) for mode in ("both", "best", "skip")}
@@ -235,7 +243,7 @@ def main():
         # Rules on/off at --threshold.
         plugin.lua.execute("local d = ...; d.rules = {}", plugin.data)
         no_rules = {mode: run_test(plugin, shares, mode) for mode in ("both", "best")}
-        plugin = Plugin(args.plugin, special=not args.no_special, fallback=fallback_sources(args))
+        plugin = Plugin(args.plugin, data_dir=args.data, special=not args.no_special, fallback=fallback_sources(args))
         n, _, ok_best, _ = summarize(rows["best"], args.threshold)
         _, _, ok_best_nr, _ = summarize(no_rules["best"], args.threshold)
         _, _, ok_both, pairs = summarize(rows["both"], args.threshold)

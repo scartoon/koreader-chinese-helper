@@ -16,13 +16,20 @@ Outputs (tab-separated UTF-8 text, in build/data/ by default; git-ignored):
               <TAB> frequency (occurrences per billion words, from wordfreq;
               traditional forms take the frequency of their simplified form)
               Words (2-4 characters, simplified and traditional forms) that
-              contain a polyphonic character. Words come from CC-CEDICT and from
-              pypinyin's phrase list.
+              contain a polyphonic character, or where CC-CEDICT gives an
+              annotatable character a neutral tone that is not its default
+              (鼓捣 gǔ dao). Words come from CC-CEDICT and from pypinyin's
+              phrase list.
   word_marks.tsv   word <TAB> the reading the tap popup marks, space-separated
               Only where it differs from words.tsv and words.tsv's reading is
-              another of the word's CC-CEDICT readings: words.tsv gives a rare
-              character's neutral tone as its own tone (大爷 dà yé, drawn), and
-              the popup must still mark dà ye "uncle", not dà yé "idler".
+              another of the word's CC-CEDICT readings: where CC-CEDICT lists a
+              word both ways, words.tsv gives a rare character the toned one
+              (大爷 dà yé, drawn), and the popup must still mark dà ye "uncle",
+              not dà yé "idler".
+  neutral_kept.tsv  (not used by the plugin) every word where a neutral tone
+              is drawn as CC-CEDICT gives it and a toned reading was drawn
+              before 1.6.1 (or the word was missing): word, char, rank, the
+              old reading, the new one, 1 when the word was added for it.
   neutral.tsv  char <TAB> neutral readings (not used by the plugin)
               Neutral readings CC-CEDICT lists as single-character entries of
               their own (啦 la, 得 de): tools/learn_from_cpp.py and
@@ -37,10 +44,16 @@ Outputs (tab-separated UTF-8 text, in build/data/ by default; git-ignored):
               reading. Used by tools/learn_from_cpp.py and tools/eval_readings.py.
   special_review.tsv   (not used by the plugin) every special word and why.
 
-Everything about characters that can be annotated (rank above 1,000 or 0) is
-built exactly as in koreader-interlinear-pinyin 0.5.0, so the pinyin drawn on
-a page does not change. What the wider coverage adds, for common characters
-only:
+Neutral tones above annotatable characters (rank above 1,000 or 0) follow the
+standard mainland spoken form (since 1.6.1): CC-CEDICT is the authority. Where
+it gives a syllable after a word's first only as a neutral tone (no other
+reading of the word gives that syllable a tone with the same letters), the
+neutral tone is drawn (刺猬 cì wei, 大猩猩 dà xīng xing), also where pypinyin
+writes the full tone; words that exist only for this (鼓捣 gǔ dao) are added.
+Where CC-CEDICT lists the word both ways (大爷 dà yé / dà ye), the toned reading
+is drawn and word_marks.tsv keeps the neutral one for the popup. Otherwise
+annotatable characters are built as in koreader-interlinear-pinyin 0.5.0.
+What the wider coverage adds, for common characters only:
   * a word with several CC-CEDICT readings takes the one pypinyin's phrase
     list gives, when it gives one of them (便宜 pián yi, 明朝 míng cháo, a
     proper-name reading); where it is silent, a word of common characters
@@ -335,19 +348,21 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
                 out.append(marked)
         return out
 
-    def fix_neutral(form, marked_syls, siblings=()):
-        """CC-CEDICT writes spoken neutral tones (刺猬 cì wei). Above a rare
-        character we want its own tone, so a toneless syllable of an
-        annotatable character takes that character's toned reading with the
-        same letters (the default when it matches): wei -> wèi, and 冷颤 zhan
-        -> zhàn even though 颤's default is chàn. With no such reading it is
-        left as written (萝卜 bo: 卜 is otherwise only bǔ). Erhua 'r' is left
-        alone. siblings: the word's other dictionary readings; a tone one of
-        them gives that syllable comes first (裁缝 cái feng "tailor" -> féng,
-        as in cái féng "to tailor", not 缝's default fèng)."""
+    def fix_neutral(form, marked_syls, siblings=(), keep=()):
+        """CC-CEDICT writes spoken neutral tones (刺猬 cì wei). Where that is
+        the word's only dictionary reading of the syllable, the neutral tone
+        is what is drawn (see neutral_only; the caller passes those positions
+        as keep). Elsewhere a toneless syllable of an annotatable character
+        takes that character's toned reading with the same letters (the
+        default when it matches): a pypinyin phrase's toneless syllable, or a
+        word CC-CEDICT lists both ways (大爷 dà yé / dà ye: yé). With no such
+        reading it is left as written. Erhua 'r' is left alone. siblings:
+        the word's other dictionary readings; a tone one of them gives that
+        syllable comes first (裁缝 cái feng "tailor" -> féng, as in cái féng
+        "to tailor", not 缝's default fèng)."""
         out = []
         for k, (ch, syl) in enumerate(zip(form, marked_syls)):
-            if is_toneless(syl) and not is_erhua(syl) and ch in defaults:
+            if is_toneless(syl) and not is_erhua(syl) and ch in defaults and k not in keep:
                 from_siblings = [r[k] for r in siblings if len(r) == len(form) and r[k] != syl]
                 for reading in from_siblings + toned_readings(ch):
                     if strip_tone(reading) == syl and reading != syl:
@@ -416,6 +431,27 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
             if not is_name and marked not in readings_by_form[form]:
                 readings_by_form[form].append(marked)
 
+    def neutral_only(form):
+        """position -> neutral syllable, for the syllables after the first of
+        an annotatable character that CC-CEDICT gives only as a neutral tone:
+        one of the word's readings has it toneless (刺猬 cì wei) and none
+        gives it a tone with the same letters (大爷 dà yé / dà ye does, so 爷
+        is not one). These are drawn as the neutral tone, the standard spoken
+        form. Erhua 'r' is left out."""
+        readings = every_reading.get(form, ())
+        out = {}
+        for k in range(1, len(form)):
+            if form[k] not in defaults:
+                continue
+            for r in readings:
+                syl = r[k]
+                if not is_toneless(syl) or is_erhua(syl):
+                    continue
+                if not any(strip_tone(o[k]) == syl and o[k] != syl for o in readings):
+                    out[k] = syl
+                    break
+        return out
+
     def phrase_reading(form):
         """pypinyin's reading of a form, or of its simplified form (traditional
         forms are rarely in its phrase list)."""
@@ -441,8 +477,11 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
             words[form] = [marked, is_name, simp]
 
     # Merge pypinyin. Where both have the word and they disagree, keep
-    # CC-CEDICT unless the only difference is CC-CEDICT's neutral tones.
+    # CC-CEDICT unless the only difference is CC-CEDICT's neutral tones (for
+    # an annotatable character, neutral_only below then puts back the neutral
+    # tones CC-CEDICT gives only that way).
     stats = Counter()
+    neutral_added = set()
     for phrase, syls in py_phrases.items():
         if not any(ch in poly_all for ch in phrase):
             continue
@@ -490,6 +529,26 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
             words[form][0] = py
             stats["several CC-CEDICT readings: pypinyin's chosen"] += 1
 
+    # Words that exist only for a neutral tone: CC-CEDICT gives an annotatable
+    # character a neutral tone that is not its default (鼓捣 gǔ dao, 捣 is
+    # otherwise only dǎo), in a word not already here (it has no polyphonic
+    # character). Added so the neutral tone is drawn; rare characters' words
+    # are kept in memory, so this costs no page-turn query.
+    for form in sorted(every_reading):
+        if form in words or form in overrides:
+            continue
+        npos = neutral_only(form)
+        if not any(defaults[form[k]] != syl for k, syl in npos.items()):
+            continue
+        candidates = readings_by_form.get(form) or every_reading[form]
+        py = phrase_reading(form)
+        with_neutral = [r for r in candidates if any(r[k] == syl for k, syl in npos.items())]
+        choice = py if py in with_neutral else (with_neutral or candidates)[0]
+        simps = simp_of.get(form, ())
+        words[form] = [choice, False, next(iter(sorted(simps))) if simps else None]
+        neutral_added.add(form)
+        stats["neutral-only words added"] += 1
+
     # Hand-checked words win over both sources.
     for form, syls in overrides.items():
         if len(form) > 1 and syls is None:
@@ -500,15 +559,27 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
 
     neutral_fixed = set()
     word_rows = []
-    # The reading the popup marks, where it is not the one drawn: the neutral
-    # tone a rare character's pinyin turns into its own tone is another of the
-    # word's dictionary readings (大爷 dà ye "uncle" is drawn dà yé, which is
-    # also CC-CEDICT's dà yé "arrogant idler"), so the popup would mark that.
+    # The reading the popup marks, where it is not the one drawn: where
+    # CC-CEDICT lists a word both ways, a rare character's pinyin takes the
+    # toned one (大爷 dà ye "uncle" is drawn dà yé, which is also CC-CEDICT's
+    # dà yé "arrogant idler"), so the popup would mark that.
     word_marks = []
+    neutral_kept = []   # (form, position, before, after) where the neutral-only rule changed the reading
     for form in sorted(words):
         syls, _, simp = words[form]
+        # A neutral tone CC-CEDICT gives only that way is drawn as it is,
+        # also where pypinyin's toned reading was taken (刺猬: pypinyin cì
+        # wèi, CC-CEDICT cì wei). Hand-checked words keep their reading.
+        keep = {} if form in overrides else neutral_only(form)
+        keep = {k: n for k, n in keep.items() if strip_tone(syls[k]) == n}
+        if keep:
+            before = fix_neutral(form, syls, [r for r in every_reading.get(form, ()) if r != syls])
+            syls = [keep.get(k, syl) for k, syl in enumerate(syls)]
+            for k in keep:
+                if before[k] != syls[k]:
+                    neutral_kept.append((form, k, before[k], syls[k]))
         others = [r for r in every_reading.get(form, ()) if r != syls]
-        fixed = fix_neutral(form, syls, others)
+        fixed = fix_neutral(form, syls, others, keep)
         neutral_fixed.update(ch for ch, a, b in zip(form, syls, fixed) if a != b)
         word_rows.append((form, " ".join(fixed), word_freq(form, simp)))
         if fixed != syls and fixed in others:
@@ -599,6 +670,11 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
     with open(os.path.join(args.out, "word_marks.tsv"), "w", encoding="utf-8") as f:
         for form, reading in word_marks:
             f.write(f"{form}\t{reading}\n")
+    rank = {ch: r for ch, r, _ in rows}
+    with open(os.path.join(args.out, "neutral_kept.tsv"), "w", encoding="utf-8") as f:
+        f.write("# word\tchar\trank\twas\tdrawn\tadded (generated by tools/build_data.py; not used by the plugin)\n")
+        for form, k, was, now in neutral_kept:
+            f.write(f"{form}\t{form[k]}\t{rank.get(form[k], 0)}\t{was}\t{now}\t{int(form in neutral_added)}\n")
 
     print(f"chars.tsv: {len(rows)} characters "
           f"({sum(1 for r in rows if r[1])} ranked, {len(poly_all)} polyphonic; annotatable: {len(poly)}, "
@@ -609,6 +685,8 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
         print(f"  {key}: {stats[key]}")
     print(f"  neutral tones replaced for {len(neutral_fixed)} annotatable characters")
     print(f"word_marks.tsv: {len(word_marks)} words whose popup reading is not the one drawn")
+    print(f"neutral_kept.tsv: {len(neutral_kept)} neutral tones drawn as CC-CEDICT gives them, "
+          f"{len(neutral_added)} words added for them")
 
 
 if __name__ == "__main__":
