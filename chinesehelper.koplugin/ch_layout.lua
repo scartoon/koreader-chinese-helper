@@ -113,6 +113,20 @@ function Layout.textBand(box, text_height)
 end
 
 --[[--
+The underline under a tapped character: { x=, y=, w=, h= } in the same
+coordinates as `box`. It sits `gap` pixels below the bottom of the glyph band
+(in the gap between lines, where the next line's pinyin can be) and is
+`thick` pixels tall, both scaled to the text size unless given.
+]]
+function Layout.underlineRect(box, text_height, thick, gap)
+    local height = text_height or box.h
+    thick = thick or math.max(2, math.floor(height / 16 + 0.5))
+    gap = gap or math.max(1, math.floor(height / 24 + 0.5))
+    local _, bottom = Layout.textBand(box, text_height)
+    return { x = box.x, y = math.floor(bottom + gap), w = box.w, h = thick }
+end
+
+--[[--
 Baseline for the pinyin above a character.
 
 The bottom of the pinyin (descenders included) sits `gap` pixels above the top

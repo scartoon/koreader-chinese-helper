@@ -113,7 +113,23 @@ function Overlay:plan(max_x)
     return self.placed
 end
 
+-- The tapped character's underline (ch_tap.lua): { box=, text_height=,
+-- line_ratio= }, or nil. Drawn with the page, under any popup.
+function Overlay:setMark(mark) self.mark = mark end
+
+-- The underline's rectangle in screen coordinates, or nil.
+function Overlay:markRect()
+    local mark = self.mark
+    if not mark or not mark.box then return nil end
+    local text_height = Layout.lineTextHeight(mark.box, mark.text_height, mark.line_ratio)
+    return Layout.underlineRect(mark.box, text_height)
+end
+
 function Overlay:paintTo(bb, x, y)
+    local rect = self:markRect()
+    if rect then
+        pcall(bb.paintRect, bb, x + rect.x, y + rect.y, rect.w, rect.h, self.color or Blitbuffer.COLOR_BLACK)
+    end
     if self.dim or not self.glosses or #self.glosses == 0 then return end
     local face = self:face()
     if not face then return end

@@ -33,6 +33,7 @@ TESTS = [
     "test_layout.lua", "test_hit.lua", "test_popup_model.lua", "test_edge.lua",
     "test_db.lua", "test_resolve.lua", "test_special.lua", "test_page.lua",
     "test_integration.lua", "test_menu.lua", "test_sentence.lua", "test_translate.lua", "test_components.lua",
+    "test_snippet.lua",
 ]
 
 

@@ -25,6 +25,7 @@ local Edge = require("ch_edge")
 local Model = require("ch_popup_model")
 local Page = require("ch_page")
 local Resolve = require("ch_resolve")
+local Snippet = require("ch_snippet")
 local Text = require("ch_text")
 
 local Tap = {}
@@ -155,6 +156,7 @@ function Tap:onTap(ges)
     end)
     if not ok then
         logger.warn("chinesehelper: tap failed:", tostring(result))
+        self:unmark()   -- no popup: no underline either
         return false
     end
     return result
@@ -199,10 +201,78 @@ function Tap:fallbackRows(texts, rows)
     return self.plugin:fallbackLookup(Model.uncovered(texts, rows))
 end
 
-function Tap:lookupInKOReader(text, box)
+--[[--
+Look `text` up in KOReader's dictionaries.
+  opts.context   the page text around the tap (Tap:context), shown at the top
+                 of the dictionary popup with opts.word marked (Snippet.select)
+  opts.on_close  called when that dictionary popup closes
+]]
+function Tap:lookupInKOReader(text, box, opts)
     local dictionary = self:ui().dictionary
     if not dictionary then return end
-    dictionary:onLookupWord(text, false, box and { box } or nil)
+    opts = opts or {}
+    local boxes = box and { box } or nil
+    Tap.installDictHook()
+    -- The hook recognises the popup of this lookup by its boxes table, which
+    -- ReaderDictionary hands on unchanged: lookups from inside a dictionary
+    -- popup (or anywhere else) never get the line.
+    Tap.pending_dict = (opts.context and boxes) and { boxes = boxes, context = opts.context, word = opts.word } or nil
+    dictionary:onLookupWord(text, false, boxes, nil, nil, opts.on_close)
+end
+
+-- Wrap DictQuickLookup:init once, so the popup of a lookup made from our
+-- popup (Tap.pending_dict) gets the context line under its title.
+function Tap.installDictHook()
+    local ok, DictQuickLookup = pcall(require, "ui/widget/dictquicklookup")
+    if not ok or not DictQuickLookup or DictQuickLookup._chinesehelper_init then return end
+    local init = DictQuickLookup.init
+    DictQuickLookup._chinesehelper_init = init
+    DictQuickLookup.init = function(dql, ...)
+        init(dql, ...)
+        local pending = Tap.pending_dict
+        if pending and dql.word_boxes ~= nil and dql.word_boxes == pending.boxes then
+            Tap.pending_dict = nil
+            local ok2, err = pcall(require("ch_popup").addContextToDict, dql, pending.context, pending.word)
+            if not ok2 then logger.warn("chinesehelper: context line in dictionary failed:", tostring(err)) end
+        end
+    end
+end
+
+-- The page text around the tap for the context line: { chars=, index= }, or
+-- nil (setting off, or the page cannot be read).
+function Tap:context(hit)
+    if not self.plugin.settings:contextEnabled() then return nil end
+    local t0 = time.monotonic()
+    local ok, chars, index = pcall(function()
+        local document = self:ui().document
+        local view = self:ui().view
+        local bounds = Snippet.pageBounds(document, view ~= nil and view.view_mode == "scroll")
+        return Snippet.pageText(document, hit, bounds)
+    end)
+    if not ok then
+        logger.warn("chinesehelper: context failed:", tostring(chars))
+        return nil
+    end
+    logger.dbg(string.format("chinesehelper: context %s in %.1f ms", chars and (#chars .. " chars") or "none",
+        time.to_ms(time.monotonic() - t0)))
+    return chars and { chars = chars, index = index } or nil
+end
+
+-- The underline under the tapped character on the page. Each mark has an
+-- id, so a late close (of a popup already replaced) leaves a newer one alone.
+function Tap:mark(hit)
+    if not self.plugin.settings:underlineEnabled() or not hit.box then
+        self:unmark()
+        return nil
+    end
+    self.mark_id = (self.mark_id or 0) + 1
+    self.plugin.annotator:setMark(hit.box)
+    return self.mark_id
+end
+
+function Tap:unmark(id)
+    if id and id ~= self.mark_id then return end
+    self.plugin.annotator:setMark(nil)
 end
 
 -- The sentence button's row (ch_translate.lua), or nil while Wi-Fi is not
@@ -259,7 +329,7 @@ function Tap:showPopup(hit)
     }
     self:present{
         db = db, char = hit.char, box = hit.box, cands = cands, rows = rows, matches = matches,
-        annotated = annotated, header = Model.header(left, hit.char, right, bold()),
+        annotated = annotated, context = self:context(hit), mark = self:mark(hit),
         sentence = function(close) return self:sentenceRow(hit, close) end,
     }
     logger.dbg(string.format("chinesehelper: %s [%s|%s] reading %s, %d matches in %.1f ms",
@@ -321,20 +391,30 @@ Show the popup.
   args.cands, args.rows             Text.candidates and the rows looked up for them
   args.matches                      Model.matches
   args.annotated                    pinyin drawn above this occurrence
-  args.header                       the phrase around the character (or nil)
+  args.context                      the page text around the tap (Tap:context), or nil
+  args.mark                         the page underline's id (Tap:mark), or nil
   args.sentence                     function(close) -> the sentence button's row (or nil)
 ]]
 function Tap:present(args)
     local comp = self:components(args.db, args.char, args.cands, args.rows)
+    -- KOReader's dictionary popup, opened from this tap: keeps the underline
+    -- on the tapped character until it closes.
+    local function lookup(text, word)
+        self:lookupInKOReader(text, args.box, {
+            context = args.context, word = word,
+            on_close = args.mark and function() self:unmark(args.mark) end,
+        })
+    end
     if #args.matches == 0 and not comp then
         -- No dictionary (CC-CEDICT or a fallback dictionary) has the
         -- character or any word around it: straight to KOReader's dictionaries.
-        self:lookupInKOReader(args.char, args.box)
+        lookup(args.char)
         return
     end
     local Popup = require("ch_popup")
     local b0, b1 = bold()
     local popup
+    local keep_mark = false
     local close = function() popup:onClose() end
     self:attachIdioms(args.matches)
     local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1)
@@ -344,8 +424,9 @@ function Tap:present(args)
         words[#words + 1] = {
             text = word,
             callback = function()
+                keep_mark = true
                 popup:onClose()
-                self:lookupInKOReader(word, args.box)
+                lookup(word, { text = word, start = m.start })
             end,
         }
     end
@@ -369,7 +450,12 @@ function Tap:present(args)
         title = args.char,
         blocks = blocks,
         labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
-        header = args.header,
+        context = args.context,
+        -- However it closes (tap outside, Close, Back, Translate): the
+        -- underline goes, unless a word button opened a dictionary popup.
+        on_close = function()
+            if not keep_mark and args.mark then self:unmark(args.mark) end
+        end,
         buttons = button_rows,
         anchor = args.box,
         text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),

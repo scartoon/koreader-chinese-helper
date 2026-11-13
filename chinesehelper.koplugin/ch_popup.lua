@@ -12,9 +12,10 @@
 -- scrolling only beyond that. Placement: a popup that fits in half the
 -- screen goes in the half away from the tapped character, so the text stays
 -- visible; a taller one (or one that would still cover the character) is
--- centred and starts with the phrase around the character, the character in
--- bold. Text size: a percentage of the book's text size (the menu's "Popup
--- text size").
+-- centred. The first line (when on) is the text around the character on the
+-- page, the character bold and underlined, at the popup's text size
+-- (ch_snippet.lua picks what fits). Text size: a percentage of the book's
+-- text size (the menu's "Popup text size").
 
 local Blitbuffer = require("ffi/blitbuffer")
 local ButtonTable = require("ui/widget/buttontable")
@@ -38,6 +39,8 @@ local TextWidget = require("ui/widget/textwidget")
 local Screen = Device.screen
 
 local Model = require("ch_popup_model")
+local Snippet = require("ch_snippet")
+local Widget = require("ui/widget/widget")
 
 local Popup = InputContainer:extend{
     title = nil,       -- the character
@@ -45,7 +48,8 @@ local Popup = InputContainer:extend{
                        -- components block (ch_components.lua Components.block)
     labels = nil,      -- source -> label text (Model.SOURCE_LABELS)
     label_mode = "fallback", -- which entries carry a label: "all", "fallback", "none"
-    header = nil,      -- PTF phrase around the character (Model.header)
+    context = nil,     -- page text around the tap (ch_tap.lua Tap:context), or nil
+    on_close = nil,    -- called when the popup closes, however it closes
     buttons = nil,     -- ButtonTable rows
     anchor = nil,      -- screen box of the tapped character {x, y, w, h}
     text_px = nil,     -- body text size in screen pixels (nil: KOReader's default)
@@ -91,14 +95,8 @@ function Popup:init()
     end
     self.face, self.title_face = face, title_face
 
-    -- Build once without the context header; if the popup turns out tall (or
-    -- still covers the character), build again with it.
-    self:build(false)
-    local y, covers = Model.place(self.frame:getSize().h, screen_h, self.margin, self.anchor)
-    if covers and self.header then
-        self:build(true)
-        y = Model.place(self.frame:getSize().h, screen_h, self.margin, self.anchor)
-    end
+    self:build()
+    local y = Model.place(self.frame:getSize().h, screen_h, self.margin, self.anchor)
     local size = self.frame:getSize()
     self.frame_x = math.floor((screen_w - size.w) / 2)
     self.frame_y = y
@@ -107,21 +105,19 @@ function Popup:init()
     self.tall = size.h > screen_h / 2
 end
 
-function Popup:build(with_header)
+function Popup:build()
     local screen_h = Screen:getHeight()
     local padding = Size.padding.large
     local inner_w = self.width - 2 * Size.border.window
 
     local parts = { align = "left" }
     local header_h = 0
-    if with_header then
+    local line = self.context and Popup.contextLine(self.context, nil, self.face, inner_w - 2 * padding)
+    if line then
         local header = FrameContainer:new{
             padding = padding, padding_top = Size.padding.default, padding_bottom = Size.padding.default,
             bordersize = 0, margin = 0,
-            TextBoxWidget:new{
-                text = TextBoxWidget.PTF_HEADER .. self.header,
-                face = self.face, width = inner_w - 2 * padding,
-            },
+            line,
         }
         parts[#parts + 1] = header
         parts[#parts + 1] = LineWidget:new{ dimen = Geom:new{ w = inner_w, h = math.max(1, Size.line.thin) } }
@@ -166,7 +162,120 @@ function Popup:build(with_header)
         VerticalGroup:new(parts),
     }
     self[1] = self.frame
-    self.has_header = with_header
+    self.has_context = line ~= nil
+end
+
+-- Text with a line under it (the marked character or word of the context
+-- line): the line sits just under the baseline, in the descender space.
+local Underlined = Widget:extend{ text_widget = nil, thick = 2, offset = 0 }
+
+function Underlined:getSize()
+    local size = self.text_widget:getSize()
+    local bottom = self.text_widget:getBaseline() + self.offset + self.thick
+    return Geom:new{ w = size.w, h = math.max(size.h, bottom) }
+end
+
+function Underlined:paintTo(bb, x, y)
+    self.dimen = Geom:new{ x = x, y = y, w = self:getSize().w, h = self:getSize().h }
+    self.text_widget:paintTo(bb, x, y)
+    bb:paintRect(x, y + self.text_widget:getBaseline() + self.offset, self.text_widget:getSize().w, self.thick,
+        Blitbuffer.COLOR_BLACK)
+end
+
+function Underlined:free() self.text_widget:free() end
+
+--[[--
+The context line as a widget, at most `width` pixels wide, or nil: the text
+before, the marked character or word (bold, underlined), the text after.
+  context  { chars=, index= } (ch_tap.lua Tap:context)
+  word     { text=, start= } to mark a word instead (Snippet.select), or nil
+  face     the font face (the popup's text face: same size as the entries)
+]]
+function Popup.contextLine(context, word, face, width)
+    local function measure(s, bold)
+        if s == "" then return 0 end
+        local w = TextWidget:new{ text = s, face = face, bold = bold }
+        local px = w:getSize().w
+        w:free()
+        return px
+    end
+    local sel = Snippet.select{ chars = context.chars, index = context.index, word = word,
+                                measure = measure, width = width }
+    if not sel or sel.mark == "" then return nil end
+    local group = HorizontalGroup:new{ align = "top" }
+    local used = 0
+    local function add(widget)
+        group[#group + 1] = widget
+        used = used + widget:getSize().w
+    end
+    if sel.before ~= "" then add(TextWidget:new{ text = sel.before, face = face, max_width = width }) end
+    local size = face.size
+    add(Underlined:new{
+        text_widget = TextWidget:new{ text = sel.mark, face = face, bold = true, max_width = math.max(1, width - used) },
+        thick = math.max(2, math.floor(size / 10 + 0.5)),
+        offset = math.max(2, math.floor(size * 0.12 + 0.5)),
+    })
+    if sel.after ~= "" and width - used > 0 then
+        add(TextWidget:new{ text = sel.after, face = face, max_width = width - used })
+    end
+    return group
+end
+
+--[[--
+Put the context line under the title of KOReader's dictionary popup `dql`
+(a DictQuickLookup just built, for a lookup from one of our popups' word
+buttons), with `word` marked. The popup keeps its height, and so the place
+KOReader chose for it (clear of the looked-up word when it could): the
+definition, which scrolls, gives up whole lines for the line. Skipped when
+that would leave it fewer than MIN_DICT_LINES.
+]]
+Popup.MIN_DICT_LINES = 3
+
+function Popup.addContextToDict(dql, context, word)
+    local frame = dql.dict_frame
+    local group = frame and frame[1]
+    local line_h = dql.definition_line_height
+    if not group or not dql.content_width or not dql.content_face or not line_h or line_h <= 0
+            or not dql.definition_height or not dql.definition_widget or not dql._instantiateScrollWidget then
+        return
+    end
+    local line = Popup.contextLine(context, word, dql.content_face, dql.content_width)
+    if not line then return end
+    local pad_top = Size.padding.default
+    local row_h = line:getSize().h + pad_top
+    local cut = math.ceil(row_h / line_h) * line_h
+    if dql.definition_height - cut < Popup.MIN_DICT_LINES * line_h then
+        line:free()
+        return
+    end
+    -- The definition, rebuilt shorter (DictQuickLookup:update reuses it, so
+    -- the other dictionaries' results keep the height).
+    local container
+    for _, child in ipairs(group) do
+        if child[1] == dql.definition_widget then container = child end
+    end
+    if not container or not container.dimen then
+        line:free()
+        return
+    end
+    if dql.text_widget and dql.text_widget.free then dql.text_widget:free() end
+    dql.definition_height = dql.definition_height - cut
+    dql:_instantiateScrollWidget()
+    dql.definition_widget[1] = dql.text_widget
+    container.dimen.h = dql.definition_widget:getSize().h
+    table.insert(group, 2, FrameContainer:new{
+        padding = 0, padding_left = Size.padding.large, padding_right = Size.padding.large,
+        padding_top = pad_top, bordersize = 0, margin = 0,
+        line,
+    })
+    -- What is left of the lines given up goes under the definition.
+    for k, child in ipairs(group) do
+        if child == container then
+            table.insert(group, k + 1, VerticalSpan:new{ width = cut - row_h })
+            break
+        end
+    end
+    group:resetLayout()
 end
 
 -- Should this block carry its source label?
@@ -255,6 +364,14 @@ end
 function Popup:onClose()
     UIManager:close(self, self.tall and "flashpartial" or "partial", self.frame.dimen)
     return true
+end
+
+function Popup:onCloseWidget()
+    if self.on_close then
+        local f = self.on_close
+        self.on_close = nil
+        f()
+    end
 end
 
 -- A tap outside the popup closes it (and goes no further: it does not also

@@ -164,9 +164,8 @@ m = matches("", "甲", "乙", {}, { chosen = "jiǎ", decided = { word = "甲乙"
 eq(join(m, "word"), "甲乙"); assert(Model.render(m, "甲", false):find("no definition in CC-CEDICT", 1, true))
 
 ------------------------------------------------------------------------
--- Header and placement
+-- Placement
 ------------------------------------------------------------------------
-eq(Model.header(chars("这个"), "历", chars("史挺靠谱"), "<b>", "</b>"), "这个<b>历</b>史挺靠谱")
 local SH, MG = 1000, 10
 local top_box = { x = 100, y = 100, w = 40, h = 60 }      -- character in the top half
 local bottom_box = { x = 100, y = 800, w = 40, h = 60 }   -- in the bottom half

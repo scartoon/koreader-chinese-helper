@@ -506,12 +506,6 @@ function Model.render(matches, char, annotated, b0, b1)
     return table.concat(out, "\n\n")
 end
 
--- The phrase around the tapped character with the character in bold: the
--- header shown when the popup covers the text.
-function Model.header(left, char, right, b0, b1)
-    return table.concat(left or {}) .. (b0 or "") .. char .. (b1 or "") .. table.concat(right or {})
-end
-
 --[[--
 Where a popup of height h goes (pure arithmetic; ch_popup.lua uses it).
 

@@ -240,6 +240,42 @@ end
 -- For the tap popup
 ------------------------------------------------------------------------
 
+Annotator.MARK_DRAW = "ui"         -- refresh when the underline appears
+Annotator.MARK_CLEAR = "partial"   -- and when it goes (clears it on e-ink)
+
+--[[--
+Underline the character in screen box `box` (nil: remove the underline).
+Only the region around the line is refreshed, in both cases. no_refresh:
+the whole page is about to be redrawn anyway (a page turn).
+]]
+function Annotator:setMark(box, no_refresh)
+    self:attach()
+    local overlay = self.overlay
+    if not overlay then return end
+    local old = overlay:markRect()
+    if box then
+        local document = self:ui().document
+        local ok, size = pcall(function() return document:getFontSize() end)
+        overlay:setMark{
+            box = box, text_height = ok and tonumber(size) or nil,
+            line_ratio = self:settings():pinyinEnabled() and overlay.line_ratio or nil,
+        }
+    else
+        overlay:setMark(nil)
+    end
+    if no_refresh then return end
+    local new = overlay:markRect()
+    local Geom = require("ui/geometry")
+    local function dirty(rect, refresh)
+        if not rect then return end
+        local pad = 2
+        local region = Geom:new{ x = rect.x - pad, y = rect.y - pad, w = rect.w + 2 * pad, h = rect.h + 2 * pad }
+        UIManager:setDirty(self:ui(), function() return refresh, region end)
+    end
+    dirty(old, Annotator.MARK_CLEAR)
+    dirty(new, Annotator.MARK_DRAW)
+end
+
 -- The drawn annotation under screen point (x, y), or nil (see ch_hit.lua).
 function Annotator:hitTest(x, y)
     if not self:settings():pinyinEnabled() or not self.overlay then return nil end

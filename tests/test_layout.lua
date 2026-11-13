@@ -31,4 +31,15 @@ local heading = { x = 0, y = 32, w = 128, h = 210 }
 assert(near(Layout.lineTextHeight(heading, 64, ratio), 128), "heading text size")
 assert(Layout.lineTextHeight(heading, 64, nil) == 64, "no ratio: as before")
 
+-- The tapped character's underline: just below the glyph band, scaled to the
+-- text size, as wide as the character.
+local u = Layout.underlineRect(box, 64)
+eq_u = function(a, b, m) assert(a == b, m .. ": " .. tostring(a) .. " ~= " .. tostring(b)) end
+eq_u(u.x, 0, "underline x"); eq_u(u.w, 64, "underline w")
+eq_u(u.h, 4, "underline thickness at 64 px")
+eq_u(u.y, math.floor(32 + 105 - 20.5 + 3), "underline just below the glyphs")
+assert(u.y + u.h < box.y + box.h + 20.5, "inside the gap above the next line's glyphs")
+u = Layout.underlineRect({ x = 5, y = 0, w = 20, h = 24 }, 20)
+eq_u(u.h, 2, "never thinner than 2 px"); eq_u(u.y, 22 + 1, "gap at least 1 px")
+
 print("layout: ok")

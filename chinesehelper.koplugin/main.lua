@@ -23,6 +23,7 @@ koreader-chinese-popup.
   ch_popup_model.lua   what the popup shows
   ch_popup.lua         the popup widget
   ch_sentence.lua      the sentence around the tapped character
+  ch_snippet.lua       the popup's context line: page text, what fits on one line
   ch_translate.lua     the popup's Translate button (KOAssistant or KOReader)
 ]]
 
@@ -88,8 +89,16 @@ end
 
 -- Compute right away (not on the next tick) so the pinyin is drawn in the same
 -- screen refresh as the page turn, avoiding a second e-ink refresh.
-function ChineseHelper:onPageUpdate() self.annotator:refreshPage() end
-function ChineseHelper:onPosUpdate() self.annotator:refreshPage() end
+-- A page turn also takes the tapped character's underline away (the page
+-- is redrawn in full, so no refresh of its own).
+function ChineseHelper:onPageUpdate()
+    self.annotator:setMark(nil, true)
+    self.annotator:refreshPage()
+end
+function ChineseHelper:onPosUpdate()
+    self.annotator:setMark(nil, true)
+    self.annotator:refreshPage()
+end
 
 function ChineseHelper:onDocumentRerendered() self.annotator:onDocumentRerendered() end
 ChineseHelper.onDocumentPartiallyRerendered = ChineseHelper.onDocumentRerendered
@@ -521,6 +530,18 @@ function ChineseHelper:addToMainMenu(menu_items)
                 help_text = _("Below the tapped character's entry, one line per part: its form, reading, a short gloss, and whether it gives the meaning or the sound (same sound, same ending, or loose). A simplified character whose simplification hid a part shows its traditional form's parts. Sources: English Wiktionary, then Make Me a Hanzi, then yi-bai/ids (structure only)."),
                 checked_func = function() return settings:componentsEnabled() end,
                 callback = function() settings:set("components", not settings:componentsEnabled()) end,
+            },
+            {
+                text = _("Show the text around the character in the popup"),
+                help_text = _("A line at the top of the popup with the text around the tapped character, as much of its sentence as fits on one line, the character in bold and underlined. It shows the text as it is on the page and never goes past the end of the sentence, the paragraph or the page. Popups opened from the word buttons mark the whole word."),
+                checked_func = function() return settings:contextEnabled() end,
+                callback = function() settings:set("popup_context", not settings:contextEnabled()) end,
+            },
+            {
+                text = _("Underline the tapped character on the page"),
+                help_text = _("While the popup is open, a line under the tapped character on the page, so you can see which character the tap hit and find your place again."),
+                checked_func = function() return settings:underlineEnabled() end,
+                callback = function() settings:set("page_underline", not settings:underlineEnabled()) end,
             },
             {
                 text = _("Fallback dictionaries"),
