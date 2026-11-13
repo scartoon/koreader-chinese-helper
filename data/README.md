@@ -68,8 +68,12 @@ classical are kept) and numerals dropped; senses kept with their qualifiers ("(h
 
 Changes made to the Wikipedia data: articles only (no redirects), titles of 3–8 Han characters
 with an English article; disambiguation pages, lists and people dropped; kept only with a
-technology, engineering, military or history category and without a place, organisation, work,
-living-thing or chemical-compound category; headwords CC-CEDICT has and everyday combinations
+technology, engineering, military or history category; dropped when a category marks the article
+as a town, county, district, river, peak, island, station, airport, street, road, railway, school,
+university, company, sports team, film, TV drama, album, song, novel, game, anime or manga
+(`wikipedia_dump.WP_PLACE`), or as a living thing, mineral or chemical compound
+(`wikipedia_dump.WP_NATURE`); other places, organisations and works are kept (glaciers,
+observatories, museums, associations, parties, TV series, books); headwords CC-CEDICT has and everyday combinations
 dropped; each title under its OpenCC `t2s` and `s2t` forms; the English title as the gloss
 (underscores as spaces, Greek letters spelt out, characters KOReader's fonts may not draw taken
 out); a reading generated with pypinyin, shown as such.

@@ -389,8 +389,11 @@ def generated_pinyin(word):
 def wikipedia_rows(dump_dir, cedict, measure, stats):
     """Rows (simp, trad, pinyin, syllables, defs, "wp"): article titles of 3-8
     Han characters with an English article, in a technology, engineering,
-    military or history category, and not a person, list, disambiguation
-    page, place, organisation, work, living thing or chemical compound. The
+    military or history category, and not a person, list or disambiguation
+    page, nor in a category wikipedia_dump.WP_PLACE (towns, rivers, stations,
+    schools, companies, films, songs ...) or WP_NATURE (living things,
+    chemical compounds) matches; other places, organisations and works are
+    kept on purpose: they say what a translated name refers to. The
     gloss is the English title; the reading is generated (pypinyin)."""
     import opencc
     import wikipedia_dump as W

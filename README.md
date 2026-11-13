@@ -22,7 +22,7 @@ words, so the page stays clean while the hard characters get help. Works on any 
   | Wiktionary | Wikt | bundled | historical and literary terms, chengyu, technical terms, some slang |
   | CBDB office titles | CBDB | a file you build yourself | Ming and Southern Ming office titles |
   | MOE 重編國語辭典 | MOE | a file you build yourself | historical and literary vocabulary (in Chinese) |
-  | Wikipedia titles | WP | bundled | technology, engineering, military and history terms (English article title) |
+  | Wikipedia titles | WP | bundled | technology, engineering, military and history terms, and many proper names: places, organisations, works (English article title) |
   | Moegirlpedia slang | Moegirl | a file you build yourself | internet slang (in Chinese) |
 
 - **Optional pinyin above rare characters**: those outside the 1,500 / 2,500 / 3,500 (default) /
@@ -208,7 +208,11 @@ of the plugin:
   technical terms and some slang.
 - **Wikipedia titles**: about 39,000 Chinese Wikipedia article titles of 3–8 characters in
   technology, engineering, military and history (红夷大炮 *Hongyipao*, 火绳枪 *Matchlock*,
-  鱼鳞册 *Fish-Scale Registers*), glossed with the English article's title.
+  鱼鳞册 *Fish-Scale Registers*), glossed with the English article's title. Many are proper
+  names, which tell you what a transliterated or translated name refers to: places (亨特冰川
+  *Hunt Glacier*), observatories and museums (翁德热约夫天文台 *Ondřejov Observatory*),
+  organisations (斐济足球协会 *Fiji Football Association*) and works (恋爱的滋味 *Taste of
+  Love (South Korean TV series)*).
 
 Three more are files you build and install yourself, because their licences do not allow this
 project to distribute them (see [Data](#optional-dictionaries-you-build-yourself)):
@@ -390,13 +394,19 @@ Everything is in one SQLite database, `chinesehelper.koplugin/data/chinesehelper
 - **Fallback dictionaries** (`fallback`): entries from English **Wiktionary** for words CC-CEDICT
   does not have (about 61,000 headwords: historical and literary terms, chengyu, technical terms,
   some slang), and **Chinese Wikipedia titles** (about 39,000: articles of 3–8 characters with an
-  English article, in a technology, engineering, military or history category; people, lists,
-  disambiguation pages, places, organisations, works, living things and chemical compounds left
-  out). CC-CEDICT always wins: there is no fallback row for any headword CC-CEDICT has, in
+  English article, in a technology, engineering, military or history category). Left out: people,
+  lists and disambiguation pages, and articles filed under some kinds of place, organisation and
+  work (towns, counties, rivers, peaks, islands, stations, airports, roads, railways, schools,
+  universities, companies, sports teams, films, TV dramas, albums, songs, novels, games, anime
+  and manga) or under living things and chemical compounds. Only those categories are checked,
+  so many places, organisations and works remain (glaciers, capes, observatories, museums,
+  associations, political parties, ministries, TV series, books, ships), as do some compounds
+  (麦草畏 *Dicamba*). CC-CEDICT always wins: there is no fallback row for any headword CC-CEDICT has, in
   either script. Only what the popup can match is kept (headwords of 1–8 Chinese characters with a
   Mandarin reading), and everyday combinations that CC-CEDICT leaves out on purpose are filtered
   out (很多, 这次, 一天, 脸上: a closed-class word such as a numeral, measure word, adverb, locative
-  or particle next to a word CC-CEDICT has), as are numerals and entries that only name places.
+  or particle next to a word CC-CEDICT has), as are numerals and Wiktionary entries that only
+  name places.
 - **The reading tables** (every character's frequency rank and default reading, words, context
   rules, uncertain characters, unusual readings). The fallback dictionaries never feed these: the
   build records a checksum of them, which is the same with and without the fallback table. (At
