@@ -106,7 +106,8 @@ def make_test_files(data_dir):
             ("尚书省", "尚書省", "shàng shū shěng", "", "官署名。", "moe"),     # Wiktionary has it too
             ("丁匠", "丁匠", "dīng jiàng", "", "官府的工匠。", "moe"),           # MOE only
             ("典史", "典史", "diǎn shǐ", "", "官名。", "moe"),                  # CBDB has it too
-        ], {"fallback_sources": "moe", "moe_rows": "3", "moe_commit_date": "2026-07-11T09:55:26Z"}),
+        ], {"fallback_sources": "moe", "moe_rows": "3", "moe_commit_date": "2026-07-11T09:55:26Z",
+            "moe_text": "simplified"}),
         "cbdb": ([
             ("尚书省", "尚書省", "shang shu sheng", "", "Department of State Affairs (Ming office title)", "cbdb"),
             ("典史", "典史", "dian shi", "", "Clerk／District Jailor (Ming office title)", "cbdb"),

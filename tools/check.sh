@@ -18,4 +18,10 @@ meta=$(sed -n 's/.*version = "\(.*\)".*/\1/p' chinesehelper.koplugin/_meta.lua)
 main=$(sed -n 's/^ChineseHelper.VERSION = "\(.*\)"/\1/p' chinesehelper.koplugin/main.lua)
 if [ "$meta" != "$main" ]; then echo "version mismatch: _meta.lua $meta, main.lua $main"; status=1; else echo "version $meta"; fi
 "$PY" tests/run.py || status=1
+# The build's Python unit tests (the simplified-text converter needs OpenCC).
+if "$PY" -c "import opencc" 2>/dev/null; then
+    "$PY" -m unittest discover -s tests -p 'test_*.py' || status=1
+else
+    echo "python tests skipped: pip install opencc"; status=1
+fi
 exit $status

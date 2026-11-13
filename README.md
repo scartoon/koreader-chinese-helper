@@ -42,7 +42,9 @@ you open it.
 
   The fallback set was chosen with the time-travel novel 临高启明 in mind, which mixes Ming
   officialdom, early-industrial technology and internet slang, so its readers are well served;
-  nothing in the plugin is specific to it ([Coverage on one book](#accuracy)).
+  nothing in the plugin is specific to it ([Coverage on one book](#accuracy)). Their
+  explanatory text is in simplified characters, including MOE's (converted when you build it;
+  see [Simplified text](#simplified-text)).
 
 - **Pinyin pitched to your level, optional.** Choose how rare a character must be to get pinyin:
   outside the 1,500, 2,500, 3,500 (default), 5,000 or 7,000 most common characters in modern
@@ -68,7 +70,7 @@ It merges two plugins that are no longer developed:
 and [koreader-chinese-popup](https://github.com/scartoon/koreader-chinese-popup) (the popup). One
 plugin means one tap handler, one popup for every character, and one database.
 
-Status: **1.7.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **1.8.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -318,7 +320,7 @@ project to distribute them (see [Data](#optional-dictionaries-you-build-yourself
 - **CBDB office titles**: about 2,900 Ming and Southern Ming office titles with English
   translations (典史 *Clerk / District Jailor*, 巡按御史 *Regional Inspector*).
 - **MOE 重編國語辭典**: about 90,000 entries, monolingual, strong on historical and literary
-  vocabulary.
+  vocabulary, its definitions in simplified characters.
 - **Moegirlpedia slang**: about 350 internet-slang terms from 萌娘百科, each with its opening
   sentence or two in Chinese (问题不大, 王八之气, 大杀器).
 
@@ -549,7 +551,10 @@ They go in KOReader's data folder, where plugin updates leave them alone:
   from [g0v/moedict-data](https://github.com/g0v/moedict-data) (downloaded, 7 MB). Licence:
   [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/). Its headwords are
   traditional, also indexed under their simplified form (OpenCC `tw2s`, characters only); its
-  readings are Taiwan standard and stay inside its own entries.
+  readings are Taiwan standard and stay inside its own entries. Its definitions are converted
+  to simplified characters (since 1.8.0; see [Simplified text](#simplified-text)); to keep MOE's
+  own traditional text, build it with `tools/build_moe.py --traditional`. **Status** says which
+  your file has (a file built before 1.8.0 has traditional text: rebuild it to get simplified).
 - **CBDB office titles**: the Ming and Southern Ming office titles of the
   [China Biographical Database (CBDB)](https://cbdb.hsites.harvard.edu/), with CBDB's English
   translations ("office title (Ming)" where CBDB has none yet) and its toneless readings, from
@@ -576,6 +581,32 @@ The glosses of the newer sources (Wikipedia, CBDB, Moegirlpedia) are cleaned of 
 KOReader's fonts may not draw: emoji, kaomoji, decorative symbols and scripts other than Latin
 and CJK (Greek letters are spelt out: α → alpha).
 
+### Simplified text
+
+The explanatory text of every dictionary is in simplified characters. It is converted at build
+time by `tools/simplify.py`: OpenCC `tw2s` for MOE (Taiwan standard) and `t2s` for Wiktionary,
+character by character (not `tw2sp`, which also swaps vocabulary, 滑鼠 → 鼠标, and would rewrite
+classical quotations). On top of OpenCC:
+
+- **著 meaning "to write" stays 著**: OpenCC writes 着 in 著有, 所著, 撰著, 原著, 土著, 卓著, 著《…》
+  and a book's author (书名。清王国维著。). In MOE, 613 definitions keep 著 this way; 着 as the
+  aspect particle (低着头) is converted as before. 徵 the musical note stays 徵 (宫、商、角、徵、羽).
+- **One character quoted in 「」 stays as written** (优恤: 「恤」文献异作「卹」): the form is the
+  point. Longer quotations are converted.
+- **A character whose simplified form the device fonts lack stays traditional** (九针: 鍉针, not
+  𫔂针): OpenCC's simplified forms of some rare characters are outside the BMP and would be drawn as
+  boxes.
+- **Wiktionary's "traditional／simplified" pairs** are shortened to the simplified side (鹊渚:
+  synonym of 鹊洲), a single character named as a form stays as written (苍铅: variant of 鉍), and Japanese is left alone.
+- **CC-CEDICT** cross-references show the simplified form, as before (`variant of 够 gòu`), now
+  including forms with digits or Latin letters (`95后`, `B型超声`).
+- CBDB's glosses are English, Wikipedia's are English article titles, and Moegirlpedia's text is
+  already simplified (the few traditional-looking characters in it are Japanese), so they are
+  not converted.
+
+Headwords and readings are not converted: the reading tables have the same checksum as before,
+and MOE's headwords and readings are identical with and without the conversion.
+
 The database changes completely with each CC-CEDICT update, so it is **not committed** (every
 rebuild would add another 33 MB of binary history); it is attached to each GitHub release inside
 the ready-to-install zip. The small hand-made and learned inputs it is built from are in
@@ -584,7 +615,7 @@ the ready-to-install zip. The small hand-made and learned inputs it is built fro
 To rebuild it (Python 3):
 
 ```sh
-python3 -m venv .venv && .venv/bin/pip install wordfreq==3.1.1 pypinyin==0.55.0 lupa
+python3 -m venv .venv && .venv/bin/pip install wordfreq==3.1.1 pypinyin==0.55.0 lupa opencc
 .venv/bin/python tools/build_db.py                 # downloads the current CC-CEDICT
 .venv/bin/python tools/build_db.py --cedict build/cedict_1_0_ts_utf-8_mdbg.txt.gz   # or a local copy
 .venv/bin/python tools/build_db.py --learn         # also re-learn the context rules (downloads the CPP dataset)
@@ -622,7 +653,8 @@ The tests (`tests/run.py`, under LuaJIT through lupa) cover the reading resolver
 layout and hit testing, the popup's content and placement, the sentence finder and the
 Translate button (mode, Wi-Fi), the settings migration, the menu, and the database code, which runs its real SQL against the built database. `test_integration.lua`
 checks the resolver and the popup together, including that for every character the pinyin layer
-draws, the popup marks the same reading.
+draws, the popup marks the same reading. `tools/check.sh` also runs the build's Python unit tests
+(`tests/test_*.py`, needs OpenCC): the simplified-text converter's fixes.
 
 | File | |
 |---|---|

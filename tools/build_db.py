@@ -111,8 +111,11 @@ def syllable_pinyin(numbered):
 
 
 # Cross-references inside CC-CEDICT senses: 夠|够[gou4], 乘[cheng2], [jue2].
-XREF_RE = re.compile(r"(?:([^\x00-\x7f\s\[\]|,;:()/]+)(?:\|([^\x00-\x7f\s\[\]|,;:()/]+))?)?\[([A-Za-z0-9:, ·]+)\]")
-BARE_XREF_RE = re.compile(r"([^\x00-\x7f\s\[\]|,;:()/]+)\|([^\x00-\x7f\s\[\]|,;:()/]+)")
+# A form is Chinese characters, possibly with ASCII letters and digits inside
+# it (95後|95后, B型超聲|B型超声, 237號房間|237号房间).
+XREF_FORM = r"[0-9A-Za-z]*(?:[^\x00-\x7f\s\[\]|,;:()/][0-9A-Za-z]*)+"
+XREF_RE = re.compile(rf"(?:({XREF_FORM})(?:\|({XREF_FORM}))?)?\[([A-Za-z0-9:, ·]+)\]")
+BARE_XREF_RE = re.compile(rf"({XREF_FORM})\|({XREF_FORM})")
 
 
 def clean_sense(sense):

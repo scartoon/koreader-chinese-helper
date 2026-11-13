@@ -28,8 +28,12 @@ Sources:
         extraction (CC BY-SA 4.0): Mandarin readings only, dialect-only senses
         dropped, soft redirects (simplified pages) and alternative forms
         resolved to their entries, entries that only name places dropped.
+        Chinese in the glosses is simplified (simplify.py, t2s): "廩／廪"
+        pairs collapse to 廪, other text is converted.
   moe   教育部《重編國語辭典修訂本》 via g0v/moedict-data (CC BY-ND 3.0 TW):
-        built only into the user's own local file, never the release.
+        built only into the user's own local file, never the release. The
+        definitions are simplified (simplify.py, tw2s) unless the user asks
+        for the original text.
   wp    Chinese Wikipedia article titles with an English article, filtered
         to technology, engineering, military and history (CC BY-SA 4.0):
         the gloss is the English article's title.
@@ -48,8 +52,12 @@ import lzma
 import os
 import re
 import sqlite3
+import sys
 import unicodedata
 from collections import OrderedDict
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from simplify import Simplifier  # noqa: E402
 
 HAN = "㐀-䶿一-鿿豈-﫿\U00020000-\U0003134f"
 HAN_WORD = re.compile(f"[{HAN}]{{1,8}}")
@@ -224,6 +232,7 @@ def read_wiktionary(path, stats):
 def wiktionary_rows(path, cedict, measure, stats, dropped=None):
     """Rows (simp, trad, pinyin, syllables, defs, "wikt") for the fallback table."""
     entries, redirects = read_wiktionary(path, stats)
+    simplifier = Simplifier("t2s")
     simp_of = {}
     for form, targets in redirects.items():
         for t in targets:
@@ -245,7 +254,10 @@ def wiktionary_rows(path, cedict, measure, stats, dropped=None):
             if dropped is not None:
                 dropped.append((simp, reason, senses[0] if senses else ""))
             return
-        rows.append((simp, trad, pinyin, "", "/".join(senses), "wikt"))
+        simple = [simplifier.wiktionary(x) for x in senses]
+        if simple != senses:
+            stats["wikt: rows with glosses simplified"] += 1
+        rows.append((simp, trad, pinyin, "", "/".join(simple), "wikt"))
 
     for word, ent in entries.items():
         senses_by_py = ent["pinyin"]
@@ -273,12 +285,15 @@ def wiktionary_rows(path, cedict, measure, stats, dropped=None):
 PUA = re.compile("[-]|\\{\\[[0-9a-f]+\\]\\}")
 
 
-def moe_rows(path, cedict, measure, stats, dropped=None):
+def moe_rows(path, cedict, measure, stats, dropped=None, simplify=True):
     """Rows (simp, trad, pinyin, syllables, defs, "moe"). The simplified form is
     OpenCC's tw2s (characters only: tw2sp would also swap vocabulary, 滑鼠 ->
-    鼠标, and index a word under another word)."""
+    鼠标, and index a word under another word). simplify: the definitions in
+    simplified characters (simplify.py, tw2s with its fixes); False keeps
+    MOE's text as written."""
     import opencc
     tw2s = opencc.OpenCC("tw2s")
+    simplifier = Simplifier("tw2s")
     rows = []
     for e in json.load(lzma.open(path, "rt", encoding="utf-8")):
         stats["moe: entries read"] += 1
@@ -313,6 +328,11 @@ def moe_rows(path, cedict, measure, stats, dropped=None):
                 dropped.append((simp, reason, hets[0][1][0] if hets else ""))
             continue
         for pinyin, senses in hets:
+            if simplify:
+                simple = [simplifier.convert(x) for x in senses]
+                if simple != senses:
+                    stats["moe: rows with definitions simplified"] += 1
+                senses = simple
             rows.append((simp, trad, pinyin, "", "/".join(senses), "moe"))
     stats["moe: rows"] = len(rows)
     return rows

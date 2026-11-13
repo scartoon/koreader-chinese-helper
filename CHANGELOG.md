@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.8.0 (2026-11-13)
+
+Popup
+- **All explanatory text is in simplified characters.** MOE's definitions, which were
+  traditional, are converted when you build its file (`tools/build_moe.py`; `--traditional`
+  keeps MOE's own text, and **Status** says which a file has: a file built before 1.8.0 has
+  traditional text, so rebuild it). Wiktionary's Chinese in English glosses is converted too
+  ("synonym of 鵲洲 ／鹊洲" → "synonym of 鹊洲", "variant of 伊斯蘭曆" → "variant of 伊斯兰历",
+  "(～屬)" → "(～属)"), and CC-CEDICT's last cross-references that still showed both forms
+  ("95後|95后", "B型超聲|B型超声", "237號房間|237号房间") show the simplified one.
+- **Characters that are the point stay as written**: one character quoted in 「」 (优恤:
+  「恤」文献异作「卹」; 314 MOE definitions), a single character Wiktionary names as a form
+  ("variant of 鉍", "same as 穩"; 46 rows), and Wiktionary pairs whose simplified side
+  OpenCC does not produce (髼鬆／髼鬙; 83 rows).
+- **著 "to write"** stays 著 (著有《昌言》, 所著, 撰著, 土著, 卓著, 见微知著, and a book's author:
+  书名。清王国维著。), where OpenCC writes 着: 613 MOE definitions. 徵 the musical note stays 徵
+  (宫、商、角、徵、羽; 5). 甚麼 becomes 甚么, as OpenCC gives it.
+- **No boxes**: where OpenCC's simplified form of a rare character is outside the BMP, which
+  the device fonts draw as a box, the traditional character stays (九针: 鍉针, not 𫔂针; 顗 not 𫖮;
+  321 MOE definitions).
+- Japanese kanji (followed by kana) are left as written; the Chinese around a Japanese word is
+  converted (为日语さようなら的音译).
+
+Data
+- The converter is a shared module, `tools/simplify.py` (OpenCC `tw2s` for MOE, `t2s`
+  otherwise; never `tw2sp`, which swaps vocabulary: 滑鼠 → 鼠标), with unit tests for each fix
+  (`tests/test_simplify.py`, run by `tools/check.sh` and CI; the build now needs OpenCC).
+  Phase 3's 成語典 will use it.
+- MOE: 85,192 of 90,501 rows have their definitions converted; the headword and reading
+  columns are identical to 1.7.0's file, and `--traditional` reproduces 1.7.0's file exactly.
+- Release database: 2,475 Wiktionary rows and 8 CC-CEDICT senses changed text (the CC-CEDICT
+  fix also repairs five that were garbled, such as "阿Q阿Q正传" → "阿Q正传"). Every other table, and
+  every headword and reading column, is identical to 1.7.0; the reading tables' checksum is
+  unchanged (`9ee87108…`). Database 36.4 MB, as before.
+- CBDB (English glosses), Wikipedia titles (English article titles) and Moegirlpedia (already
+  simplified; the 8 entries OpenCC would change are Japanese quotations) are not converted.
+
 ## 1.7.0 (2026-11-13)
 
 Popup

@@ -7,7 +7,7 @@ sessions.
 | Phase | What | Release | Status |
 |---|---|---|---|
 | 1 | Character component breakdowns in the popup | 1.7.0 | released 2026-11-13 |
-| 2 | All explanatory text in simplified characters | 1.8.0 | not started |
+| 2 | All explanatory text in simplified characters | 1.8.0 | released 2026-11-13 |
 | 3 | Richer chengyu entries (two build-it-yourself dictionaries) | 1.9.0 | not started |
 | 4 | New README screenshots and sample book | 1.9.1 | not started |
 
@@ -445,7 +445,63 @@ is reproduced exactly (93/88/67/27%). "Neither" is left to yi-bai/ids
   three extra primary-key lookups.
 
 ### Phase 2
-(none yet)
+
+**The converter** is `tools/simplify.py`: `Simplifier("tw2s")` (MOE, and
+phase 3's 成語典) or `Simplifier("t2s")`; `convert(text)` for prose,
+`wiktionary(sense)` for Wiktionary glosses (pairs collapsed, single
+characters named as forms kept). Unit tests: `tests/test_simplify.py`, run by
+`tools/check.sh` and CI (both now install OpenCC). OpenCC 1.4.2's t2s/tw2s
+never changed a string's length on MOE, so fixes work by position; the
+module falls back to converting between kept characters if one ever does.
+
+Measurements (2026-11-13; MOE file 90,501 rows = 102,264 senses, 1.7.0
+database), and where they differ from the plan:
+
+- **MOE**: OpenCC changes 94,182 senses. Fixes on top: 著 kept in 613 senses,
+  「X」 kept in 314 (plan: 305), outside-BMP kept in 321 (plan: 326), 徵
+  kept in 5. The plan's 著 list was not enough: 著有 after a verb is the
+  aspect particle (趁著有利, 拉著有兩個輪子的), so 著有 needs a clause start,
+  並/又/所/曾… before it, or a title after it; and book descriptions name
+  the author with a bare 著 (書名。清王國維著。; 53 senses), handled by
+  `AUTHOR_ZHE`. 見微知著 also needed adding. I read 60 random remaining
+  著 → 着 by eye, plus the 70 most frequent clause-final ones: nearly all are the aspect particle or 着 senses (着色,
+  着重, 附着, 沉着); the misses seen were rare (裴頠遂著崇有論). OpenCC itself
+  keeps 魏徵 and 徵調.
+- **Japanese** in MOE (8 senses: バール, さようなら) and Wiktionary: a
+  first rule (leave any text with kana alone) left whole MOE definitions
+  traditional, and the katakana middle dot ・ that MOE uses in 唐・劉禹錫
+  is in the kana block. The rule now keeps only Han characters followed by
+  hiragana after kana, a quote or a colon.
+- **Wiktionary**: 2,597 rows (plan: 2,591) had text OpenCC changes. 1,328
+  had a pair collapsed; pairs come as `A／B`, `A ／B`, chains `A ／B ／C`
+  (煙袋鍋 ／菸袋鍋 ／烟袋锅) and sayings with a comma (宁为鸡口，無為牛後
+  ／…). 83 rows keep a pair OpenCC disagrees with (髼鬆／髼鬙). Single
+  characters after "variant of", "same as", "form of", "interchangeable with"
+  are kept (46 rows: 苍铅 "variant of 鉍"). 192 rows still contain
+  characters OpenCC would change, all for these reasons or the BMP rule.
+- **CC-CEDICT**: the plan's 71 could not be reproduced. The build already
+  collapsed `trad|simp[pinyin]` and bare `trad|simp`; only 3 senses still
+  showed a pair, all forms with digits or Latin letters (95後|95后,
+  B型超聲|B型超声, 237號房間|237号房间), which the regex excluded. The fixed
+  regex also repairs 5 senses the old one garbled (阿Q阿Q正传,
+  殲擊8歼击8型). 95后 and B超 themselves can never be tapped (the popup's
+  context stops at non-Han characters). Not fixed, outside this phase:
+  CC-CEDICT pinyin with capitals is mangled (九价HPV疫苗 "jiǔjià Hpüyìmiáo").
+- **Moegirlpedia**: already simplified; the 8 rows OpenCC would change are
+  Japanese quotations (時の涙, 裏山死刑, 特別な気分). Not converted.
+- **CBDB**: English glosses, 0 rows changed. **Wikipedia titles**: 0 rows
+  changed. Not converted.
+- **Unchanged**: reading tables (resolver checksum `9ee87108…`), every
+  headword/reading column of `entries` and `fallback`, `components` and
+  `component_notes` (Wiktionary's origin texts keep their traditional forms
+  on purpose: shared rule 1), the meta table. MOE: headword and reading
+  columns identical, `--traditional` reproduces the 1.7.0 file byte for
+  byte; `meta.moe_text` says which text a file has (Status shows it).
+- **Phase 3**: run 成語典 through `Simplifier("tw2s").convert`. Its 典故原文
+  and 書證 are classical quotations; spot-check 著 there (the AUTHOR_ZHE
+  rule only fires in texts that look like book descriptions). Xinhua is
+  already simplified. **Phase 4**: `Simplifier("t2s")` for any traditional
+  Wikisource text.
 
 ### Phase 3
 (none yet)

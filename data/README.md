@@ -29,7 +29,7 @@ into the database with CC-CEDICT by `tools/build_db.py`:
   found automatically) and the overlap guards that keep it from matching by accident.
 - `entries`: CC-CEDICT itself, one row per entry, with numbered pinyin converted to tone marks
   and cross-references made readable (`variant of 夠|够[gou4]` → `variant of 够 gòu`,
-  `鮮卑|鲜卑` → `鲜卑`).
+  `鮮卑|鲜卑` → `鲜卑`, `95後|95后` → `95后`).
 - `fallback`: entries from English Wiktionary and Chinese Wikipedia titles for words CC-CEDICT
   does not have (`tools/fallback_sources.py`). Same columns as `entries` plus `source` ("wikt" or
   "wp"); `syllables` is empty (fallback entries take no part in reading markers).
@@ -82,7 +82,11 @@ dropped; headwords CC-CEDICT has (in either script) dropped; everyday combinatio
 numeral, demonstrative, pronoun, adverb, measure word or particle before a word CC-CEDICT has, or
 a locative or particle after one, e.g. 很多, 这次, 一天, 脸上; entries Wiktionary marks historical or
 classical are kept) and numerals dropped; senses kept with their qualifiers ("(historical)"), one
-"/" between senses, a "/" inside a sense written "／".
+"/" between senses, a "/" inside a sense written "／"; Chinese in the senses converted to
+simplified characters (`tools/simplify.py`, OpenCC `t2s`): a "traditional／simplified" pair is
+shortened to its simplified side (`original form of 廩／廪` → `original form of 廪`), a single
+character named as a form (`variant of 乾`) and Japanese are left as written, and so is a
+character whose simplified form is outside the BMP.
 
 Changes made to the Wikipedia data: articles only (no redirects), titles of 3–8 Han characters
 with an English article; disambiguation pages, lists and people dropped; kept only with a

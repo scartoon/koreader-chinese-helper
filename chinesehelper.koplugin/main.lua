@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "1.7.0"
+ChineseHelper.VERSION = "1.8.0"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -282,8 +282,10 @@ function ChineseHelper:fallbackStatus()
             m.wp_dump or "?", m.wp_rows or "?") end,
         cbdb = function(m) return T(_("CBDB office titles: %1 (CBDB %2, %3 entries)"), state("cbdb"),
             (m.cbdb_date or "?"):sub(1, 10), m.cbdb_rows or "?") end,
-        moe = function(m) return T(_("MOE 重編國語辭典: %1 (moedict-data %2, %3 entries)"), state("moe"),
-            (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?") end,
+        -- Files built before 1.8.0 have no moe_text: their text is traditional.
+        moe = function(m) return T(_("MOE 重編國語辭典: %1 (moedict-data %2, %3 entries, %4)"), state("moe"),
+            (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?",
+            m.moe_text == "simplified" and _("simplified text") or _("traditional text")) end,
         moegirl = function(m) return T(_("Moegirlpedia slang: %1 (snapshot %2, %3 entries)"), state("moegirl"),
             (m.moegirl_snapshot or "?"):sub(1, 10), m.moegirl_rows or "?") end,
     }

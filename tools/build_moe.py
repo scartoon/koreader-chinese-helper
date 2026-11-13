@@ -6,6 +6,7 @@ Mandarin Chinese Dictionary), via g0v/moedict-data.
     pip install opencc
     python3 tools/build_moe.py                 # -> build/chinesehelper-moe.sqlite
     python3 tools/build_moe.py --push          # ... and adb push it to the device
+    python3 tools/build_moe.py --traditional   # definitions as MOE writes them
 
 The dictionary is licensed CC BY-ND 3.0 TW (© 中華民國教育部). That allows
 copying it for your own use, but not distributing adaptations, so this file is
@@ -22,6 +23,10 @@ What the file holds: one `fallback` table, the same as the release database's
 (see tools/fallback_sources.py), with source "moe", and a `meta` table.
   * Headwords are traditional; each is also indexed under its simplified form
     from OpenCC's tw2s (character conversion only).
+  * Definitions are in simplified characters (tools/simplify.py: OpenCC
+    tw2s with fixes: 著 "to write" stays 著, one character quoted in 「」
+    stays as written, a character whose simplified form the device fonts
+    lack stays traditional). --traditional keeps MOE's own text.
   * Readings are MOE's, Taiwan standard.
   * Left out: headwords with private-use characters, headwords that are not
     1-8 Han characters, headwords CC-CEDICT has (read from the plugin
@@ -80,6 +85,8 @@ def main():
     ap.add_argument("--db", default=DEFAULT_DB, help="the plugin database (for CC-CEDICT's headwords)")
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--push", action="store_true", help=f"adb push the file to {DEVICE_DIR}/")
+    ap.add_argument("--traditional", action="store_true",
+                    help="keep the definitions in MOE's traditional characters (default: simplified)")
     args = ap.parse_args()
     if not os.path.exists(args.db):
         sys.exit(f"missing {args.db}: build the plugin database first (tools/build_db.py)")
@@ -93,13 +100,14 @@ def main():
 
     cedict, measure = fallback_sources.cedict_forms(args.db)
     stats = Counter()
-    rows = fallback_sources.moe_rows(src, cedict, measure, stats)
+    rows = fallback_sources.moe_rows(src, cedict, measure, stats, simplify=not args.traditional)
     for k in sorted(stats):
         print(f"  {k}: {stats[k]:,}")
 
     meta = {"fallback_sources": "moe", "moe_rows": str(len(set(rows))), "moe_sha256": sha,
             "moe_url": info.get("url", URL), "moe_commit": info.get("commit", ""),
-            "moe_commit_date": info.get("commit_date", ""), "moe_license": LICENSE}
+            "moe_commit_date": info.get("commit_date", ""), "moe_license": LICENSE,
+            "moe_text": "traditional" if args.traditional else "simplified"}
     fallback_sources.write_local_file(args.out, rows, meta, "MOE")
     print(f"MOE: {meta['moe_rows']} rows, source SHA-256 {sha}"
           + (f", moedict-data {info['commit'][:7]} ({info.get('commit_date', '')[:10]})" if info.get("commit") else ""))

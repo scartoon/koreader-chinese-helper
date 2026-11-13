@@ -257,7 +257,7 @@ for _, it in ipairs(fb_item.sub_item_table) do assert(it.enabled_func() and it.c
 local status = table.concat(plugin:fallbackStatus(), "\n")
 assert(status:find("Wiktionary: on (dump 2026-10-01", 1, true), status)
 assert(status:find("CBDB office titles: on (CBDB 2026-11-07, 3 entries)", 1, true), status)
-assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 3 entries)", 1, true), status)
+assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 3 entries, simplified text)", 1, true), status)
 assert(status:find("Wikipedia titles: on %(dump %d%d%d%d%-%d%d%-%d%d, %d+ entries%)"), status)
 assert(status:find("Moegirlpedia slang: on (snapshot 2023-05-07, 3 entries)", 1, true), status)
 assert(status:find("^Wiktionary.*\nCBDB.*\nMOE.*\nWikipedia.*\nMoegirlpedia"), "Status in priority order")
