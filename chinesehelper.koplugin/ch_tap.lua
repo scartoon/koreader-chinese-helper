@@ -276,47 +276,17 @@ function Tap:openDb()
     return db
 end
 
--- The popup of one character on its own, outside the text: a component's
--- button opens it. No reading is marked (there is no occurrence to resolve).
-function Tap:showCharPopup(char, box)
-    local db = self:openDb()
-    if not db then return end
-    local cands, texts = Text.candidates({}, char, {})
-    local rows = db:lookup(texts)
-    for _, row in ipairs(self:fallbackRows(texts, rows)) do rows[#rows + 1] = row end
-    local data = self.plugin:readings()
-    local matches = Model.matches{
-        cands = cands, rows = rows, order = self.plugin.settings:fallbackOrder(),
-        default = data and select(2, data:char(char)) or nil,
-    }
-    self:present{ db = db, char = char, box = box, cands = cands, rows = rows, matches = matches,
-                  annotated = false }
-end
-
 -- The components to show for `char` (ch_components.lua), or nil.
 function Tap:components(db, char, cands, rows)
     if not self.plugin.settings:componentsEnabled() then return nil end
-    local ok, c, via, changes, note_chars = pcall(Components.resolve, char,
+    local ok, c, via, changes = pcall(Components.resolve, char,
         function(list) return db:components(list) end, cands, rows)
     if not ok then
         logger.warn("chinesehelper: components failed:", tostring(c))
         return nil
     end
     if not c then return nil end
-    return { c = c, via = via, changes = changes, note_chars = note_chars }
-end
-
--- Wiktionary's origin text for the characters (the tapped one, then the
--- traditional form shown), or "".
-function Tap:originText(db, chars)
-    local notes = db:notes(chars)
-    local out = {}
-    for _, ch in ipairs(chars) do
-        if notes[ch] and notes[ch] ~= "" then
-            out[#out + 1] = (#chars > 1 and (ch .. "\n") or "") .. notes[ch]
-        end
-    end
-    return table.concat(out, "\n\n")
+    return { c = c, via = via, changes = changes }
 end
 
 -- The idiom information for the matches of two or more characters
@@ -341,14 +311,6 @@ function Tap:showChuchu(word, source, text)
     local TextViewer = require("ui/widget/textviewer")
     UIManager:show(TextViewer:new{
         title = T("%1 · %2 · %3", word, Model.CHUCHU, Tap.CHUCHU_SOURCES[source] or source),
-        text = text,
-    })
-end
-
-function Tap:showOrigin(char, text)
-    local TextViewer = require("ui/widget/textviewer")
-    UIManager:show(TextViewer:new{
-        title = T(_("%1: origin (English Wiktionary, CC BY-SA 4.0)"), char),
         text = text,
     })
 end
@@ -390,33 +352,15 @@ function Tap:present(args)
     for _, c in ipairs(Model.chuchu(args.matches)) do
         words[#words + 1] = { text = c.text, callback = function() self:showChuchu(c.word, c.source, c.view) end }
     end
-    local close_button = { text = _("Close"), callback = close }
-    local button_rows
+    -- Buttons: the character, the words around it, 出处, Close. The
+    -- components block has none of its own.
+    words[#words + 1] = { text = _("Close"), callback = close }
+    local button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
     local block = comp and Components.block(comp.c, b0, b1, comp.via, comp.changes)
     if block then
         -- Below the character's own entry (when it has one).
         local first = args.matches[1]
         table.insert(blocks, (first and first.len == 1) and 2 or 1, block)
-        local extra = {}
-        for _, part in ipairs(Components.buttons(comp.c)) do
-            extra[#extra + 1] = {
-                text = part.text,
-                callback = function()
-                    popup:onClose()
-                    self:showCharPopup(part.char, args.box)
-                end,
-            }
-        end
-        local origin = self:originText(args.db, comp.note_chars)
-        if origin ~= "" then
-            extra[#extra + 1] = { text = _("Origin"), callback = function() self:showOrigin(args.char, origin) end }
-        end
-        extra[#extra + 1] = close_button
-        button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
-        for _, row in ipairs(Text.rows(extra, Tap.BUTTONS_PER_ROW)) do button_rows[#button_rows + 1] = row end
-    else
-        words[#words + 1] = close_button
-        button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
     end
     local sentence_row = args.sentence and args.sentence(close)
     if sentence_row then button_rows[#button_rows + 1] = sentence_row end

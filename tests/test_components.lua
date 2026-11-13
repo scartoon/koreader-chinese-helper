@@ -44,11 +44,6 @@ block = Components.block(Components.parse("H\twikt\tpictogram\td\t\t\t"))
 eq(table.concat(block.lines, "\n"), "pictogram (象形)", "disputed: no extra line")
 eq(Components.block(Components.parse("H\t\t\t\t\t\t發=")), nil, "nothing of its own")
 
--- Buttons: one per part with something to show, each character once.
-local b = Components.buttons(Components.parse(
-    "H\tids\t\t\t\t\t\nP\t木\t木\t\tmù\twood\t\t\nP\t木\t木\t\tmù\twood\t\t\nP\t?\t\t\t\t\t\t"))
-eq(#b, 1); eq(b[1].text, "木"); eq(b[1].char, "木")
-
 -- The traditional form from the word: 发 in 头发 is 髮, in 发现 發.
 local choices = { ["發"] = {}, ["髮"] = {} }
 local function cands(left, right)

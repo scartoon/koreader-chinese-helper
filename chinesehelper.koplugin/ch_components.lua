@@ -165,20 +165,6 @@ function Components.block(c, b0, b1, via, changes)
     return { source = c.source, lines = lines, components = true }
 end
 
--- The parts that get a button: { {text=form, char=lookup}, ... }, each
--- character once.
-function Components.buttons(c)
-    local out, seen = {}, {}
-    if not c then return out end
-    for _, p in ipairs(c.parts) do
-        if p.lookup and not seen[p.lookup] then
-            seen[p.lookup] = true
-            out[#out + 1] = { text = p.form, char = p.lookup }
-        end
-    end
-    return out
-end
-
 --[[--
 What the popup shows for character `ch`: the components to display and the
 characters whose origin notes apply.

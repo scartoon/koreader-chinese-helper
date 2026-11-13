@@ -108,13 +108,25 @@ def read_xlsx(path):
 # The 成語典's editorial marks (※ before 語本, ＃ and ◎ before a passage
 # or as a separator line): never shown.
 EDITORIAL = re.compile(r"◎\d*|[#＃※]")
+# Separators between the parts of a field: ＆ between senses (語義說明,
+# 使用類別, 例句: "比喻…。褒義。＆比喻…") and between source passages, ＋
+# between source passages (典源, 注解, 典故說明). Never shown: a part starts
+# a new line (a new paragraph in the source text).
+SEPARATOR = re.compile(r"[＆＋]")
 
 
 def lines_of(text):
     """Non-empty stripped lines, carriage returns, editorial marks and
-    full-width spaces at the ends removed."""
+    full-width spaces at the ends removed; a separator starts a new line."""
     text = EDITORIAL.sub("", text.replace("_x000D_", "").replace("\r", ""))
+    text = SEPARATOR.sub("\n", text)
     return [x.strip(" \t　") for x in text.split("\n") if x.strip(" \t　")]
+
+
+def one_line(text):
+    """A field as one line: whitespace and separators out (the parts end
+    with 。 already: "形容計數的仔細。＆比喻…" -> "形容計數的仔細。比喻…")."""
+    return SEPARATOR.sub("", re.sub(r"\s+", "", text.replace("_x000D_", "")))
 
 
 def no_boxes(lines, stats=None, name=""):
@@ -174,11 +186,15 @@ def source_text(text):
     as its own paragraph."""
     text = NOTE_MARK.sub("", text.replace("_x000D_", "").replace("\r", ""))
     paras, current = [], []
-    pieces = text.split("\n")
+    pieces = SEPARATOR.sub("\n＋\n", text).split("\n")
     k = 0
     while k < len(pieces):
         piece = pieces[k]
-        if piece.lstrip().startswith(("#", "＃", "◎")):
+        if piece.strip() == "＋":                 # the next source passage
+            if current:
+                paras.append("".join(current))
+                current = []
+        elif piece.lstrip().startswith(("#", "＃", "◎")):
             if current:
                 paras.append("".join(current))
                 current = []
@@ -246,7 +262,7 @@ def idioms_entries(rows, stats):
         if is_main:
             stats["idioms: main entries"] += 1
             sense = r["用法說明-語義說明"].replace("_x000D_", "").strip()
-            short = re.sub(r"\s+", "", sense) or own
+            short = one_line(sense) or own
             sections = [("释义", no_boxes([own], stats, "idioms"))] + main_sections(r) + [
                 ("书证", no_boxes(numbered(lines_of(r["書證"]))[:VIEW_LIST_MAX], stats, "idioms")),
                 ("用法", no_boxes(lines_of(sense) + lines_of(r["用法說明-使用類別"]), stats, "idioms")),
@@ -260,7 +276,7 @@ def idioms_entries(rows, stats):
             short = own
             if main is not None:
                 stats["idioms: related entries with their main entry"] += 1
-                main_sense = re.sub(r"\s+", "", main["用法說明-語義說明"].replace("_x000D_", ""))
+                main_sense = one_line(main["用法說明-語義說明"])
                 if ONLY_EQUALS.match(own) and main_sense:
                     short = own.rstrip("。") + "：" + main_sense
             sections = [("释义", no_boxes([own], stats, "idioms")),

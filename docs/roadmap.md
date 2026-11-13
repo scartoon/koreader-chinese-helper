@@ -9,7 +9,7 @@ sessions.
 | 1 | Character component breakdowns in the popup | 1.7.0 | released 2026-11-13 |
 | 2 | All explanatory text in simplified characters | 1.8.0 | released 2026-11-13 |
 | 3 | Richer chengyu entries (two build-it-yourself dictionaries) | 1.9.0 | released 2026-11-13 |
-| 4 | New README screenshots and sample book | 1.9.1 | not started |
+| 4 | New README screenshots and sample book | 1.9.1 | released 2026-11-13 |
 
 ## How to use this file
 
@@ -572,4 +572,71 @@ was not re-measured: a popup now makes up to two more indexed queries.
 shot, pick a chengyu the 成語典 has (刻舟求剑, 一毛不拔, 掩耳盗铃).
 
 ### Phase 4
-(none yet)
+
+**Changed decisions (user, during the session).**
+
+- **No Origin button**: "not interesting to me. whatever happens to show about the character in
+  the popup is enough." `Tap:originText`/`showOrigin` are gone. The `component_notes` table
+  (6,591 notes, 1.1 MB of text) is still in the database, unused, because 1.9.1 reuses 1.9.0's
+  database byte for byte; drop it (`tools/build_db.py`, `COMPONENTS`/`NOTES` SQL,
+  `DB:notes`, the note checks in `tests/test_components.lua`) at the next database rebuild.
+- **No component buttons**: every popup button is the character, a word from the text
+  containing it, 出处 or Close (plus Translate). `Tap:showCharPopup` (a part's own popup) and
+  `Components.buttons` are gone. So the shot list's **three-frame strip (茴 → 回's popup) is
+  dropped**: shot 3 is the single 茴 popup.
+- **Shot 7 shows the button, not KOAssistant's answer.** Pressed on 窃书不能算偷, Gemini
+  (gemini-3.5-flash-lite) wrote 涨红了脸 as *zhǎng hóng le liǎn* (it is *zhàng*, which the plugin
+  gets right), and the text differs on every run, so the gate cannot vouch for it.
+
+**Sample book** (`samples/xiaoshuo.epub`, `tools/make_sample_epub.py`; guwen.epub rebuilds
+byte-identical). Wikisource pages via the parse API at pinned revisions (三國演義/第001回
+2583915, 孔乙己 2605389, 阿Q正傳 2633268), cached in `build/sources/wikisource/`. The 鲁迅 pages
+transclude scanned-page text (`prp-pages-output`), which a revision id does not pin.
+- 三国演义: the 毛宗岗 edition opens with 词曰 and the 临江仙 as `<dl><dd><dl><dd>` lines (the
+  innermost elements only, or the first line is lost); `{{YL|建寧二年}}` renders with a
+  TemplateStyles `<style>` block inside the paragraph (stripped).
+- The 1938 《鲁迅全集》 uses old glyph variants OpenCC leaves alone: 偸 淸 靑 嬾 煑 儍 汚 尙 鎗
+  揑 礮 朶 盌 鬭 嘷 簷 燄 尅 呪 寃 鑪 (and 儅 in 伴儅 in 三国), mapped to the standard forms, and
+  𩓐子 (outside the BMP) = 脖子. Words are left alone (豫备, 钞书, 推著). Corner quotes become
+  “” ‘’ (三国 「」 outer, 鲁迅 『』 outer). Simplifier("t2s")'s extra rules never fired versus
+  plain OpenCC except the BMP rule (礮, 鑪), then mapped. The book ends each story at its date
+  line, so the PD licence boxes are left out.
+
+**Capture** (`tools/make_screenshots.py`, gate `tools/shot_gate.py`).
+- Reader: Noto Serif SC, `copt_font_size` 20 (about 43 px characters), line spacing 100, h
+  margins 50/50, landscape 1680×1264. Page 1 of 第一回 is then exactly title + 临江仙 + the
+  话说天下大势 paragraph. Pages used: 1 and 2 (三国), 13 and 14 (孔乙己), 59 (阿Q正传: 观音).
+- The sidecar must contain `cre_dom_version` (20240114), or KOReader asks to upgrade the
+  rendering. The device had **night mode on** (`night_mode`, with `autowarmth_control_nightmode`):
+  the script turns both off for the shots, and `debug = true` so the tap log lines appear. It
+  backs up `settings.reader.lua` and restores it in a `finally`.
+- **Pinyin changes pagination** (74 pages on, 69 off: the plugin adds line space), so the
+  off/on image uses page 1 in both modes, each crop ending after the same line.
+- A TextViewer (出处) takes several seconds to appear after the tap: wait 9 s.
+- Popups taller than half the screen are centred and cover the tapped character (then the
+  header phrase shows it); 窃's short popup goes to the top half with the 窃书 line visible.
+- The device log check catches wrong tap positions (间 first tapped one character off) and the
+  gate catches wrong occurrences (the first 也 on page 13 is 主顾也, not 之乎者也's).
+
+**Gate results.** Drawn readings, each checked by hand: page 1 樵 qiáo 渚 zhǔ 锢 gù 宦 huàn
+涓 juān (as planned; 宦 drawn once per page); page 2 蟠 pán 臾 yú 雹 báo 邕 yōng 霓 ní 谞 xū
+蹇 jiǎn 恽 yùn 藜 lí 讫 qì; page 13 茴 huí; page 14 砚 yàn 拭 shì 颓 tuí; page 59 诧 chà 愕 è.
+Not shot: 朱隽 (later in 第一回) is drawn as the pair *jùn/juàn*; 陈蕃 at 2,500 as planned.
+
+**Wrong or poor popup content seen while choosing taps** (common characters, nothing drawn;
+none in a screenshot; not fixed):
+- 我整天的靠着火: 着 marked *zháo*, "着火 decides" (it is 靠着 + 火).
+- 他还比秀才长三辈呢: 长 *cháng*, "长三 decides" (it is *zhǎng*, senior).
+- 也是汗流满面的唱: 的 *dī*, "面的 decides" (taxi).
+- 倘使他号叫月亭: 号 *háo*, "号叫 decides" (it is *hào*, his style name).
+- 加以最近观察所得: "观察所 decides 观's reading" (MOE's word, wrong split; the reading guān is right).
+- 涨红了脸 shows "no definition in CC-CEDICT" (an empty CC-CEDICT entry), so shot 2 uses 间或.
+- 鸡 (雞) has no "simplified:" line (its `Han simp` lacks f/t), so shot 4 uses 观 in 观音.
+- In 第一回, 孔乙己 and the first 40 paragraphs of 阿Q正传, no popup had more than three labelled sources;
+  CBDB and WP labels never appeared. Shot 6 is 秋 (MMAH, MOE, Wikt).
+
+**成語典 fix (found by the gate).** The ministry's file separates senses with **＆** (in
+語義說明, 使用類別, 例句) and source passages with **＆**/**＋** (典源, 注解, 典故說明). They were
+shown as written ("形容计数的仔细。＆比喻…" in 753 short lines, 519 views). `tools/chengyu.py`
+now drops them (`SEPARATOR`, `one_line`; tests in `tests/test_chengyu.py`). Rebuilt file: only
+those short lines (each equal to the old one minus ＆) and views changed; pushed to the device.

@@ -100,6 +100,17 @@ class IdiomsText(unittest.TestCase):
                 "#子莫執中，執中為近之。")
         self.assertEqual(chengyu.source_text(text), ["孟子曰：「楊子取為我，拔一毛而利天下，不為也。", "子莫執中，執中為近之。"])
 
+    def test_separators(self):
+        # ＋ (and ＆) between two source passages: a new paragraph, never shown.
+        text = "昔日*1*齷齪_x000D_\n不足誇。_x000D_\n＋_x000D_\n唐詩*1*情深詞婉_x000D_\n，故有久久莫知其意者。"
+        self.assertEqual(chengyu.source_text(text), ["昔日齷齪不足誇。", "唐詩情深詞婉，故有久久莫知其意者。"])
+        self.assertEqual(chengyu.source_text("甲。_x000D_\n＆_x000D_\n乙。"), ["甲。", "乙。"])
+        # ＆ between senses: a new line in the view, nothing in the short line.
+        self.assertEqual(chengyu.lines_of("比喻甲。褒義。＆比喻乙。褒義。"), ["比喻甲。褒義。", "比喻乙。褒義。"])
+        self.assertEqual(chengyu.lines_of("例一。_x000D_\n＆_x000D_\n例二。"), ["例一。", "例二。"])
+        self.assertEqual(chengyu.lines_of("注一。_x000D_\n＋_x000D_\n注二。"), ["注一。", "注二。"])
+        self.assertEqual(chengyu.one_line("比喻甲。褒義。＆比喻乙。_x000D_\n"), "比喻甲。褒義。比喻乙。")
+
     def test_source_title(self):
         self.assertEqual(chengyu.source_title("＃《莊子．山木》*1*"), "《莊子．山木》")
         self.assertEqual(chengyu.source_title("※《醒世姻緣傳》第三四回_x000D_\n※《水滸傳》第二四回"),

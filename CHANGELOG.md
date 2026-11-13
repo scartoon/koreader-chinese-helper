@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.9.1 (2026-11-13)
+
+Popup
+- **No Origin button.** The popup no longer offers Wiktionary's account of a character's
+  origin; the components lines are what it shows about a character.
+- **No buttons for a character's components.** Every button is now the tapped character, a word
+  from the text containing it, 出处 or Close (plus Translate while Wi-Fi is on). The popup of a
+  component on its own, which those buttons opened, is gone too. Popups with components are
+  usually a button row shorter (茴: 2 rows → 1), so more of them fit in the half of the screen
+  away from the tapped character.
+
+成語典 file (rebuild it: `tools/build_idioms.py --push`)
+- The ministry's separators are no longer shown: **＆** between senses (一五一十: 形容计数的仔细。
+  ＆比喻… → 形容计数的仔细。比喻…) in 753 short lines, and **＆** and **＋** between source passages,
+  notes and stories, now a paragraph break, in 519 出处 views. Nothing else in the file changed
+  (unit tests in `tests/test_chengyu.py`).
+
+README and sample book
+- **New screenshots**, all from the new sample book: the opening of 《三国演义》 第一回 at the top
+  (pinyin at the default 3,500, popup on 涓), then a gallery: pinyin off and on, a reading
+  decided by its word (间或), components (茴), a part hidden by simplification (观 ← 觀), a
+  chengyu with its 出处 (之乎者也), source labels (秋), and the Translate & Analyze button
+  (窃书不能算偷). They replace the test-page screenshots.
+- **`samples/xiaoshuo.epub`** (小说三篇): 《三国演义》 第一回 (毛宗岗 edition), 鲁迅's 《孔乙己》 and
+  《阿Q正传》, built from Chinese Wikisource by `tools/make_sample_epub.py` (pinned revisions,
+  simplified with `tools/simplify.py`, the 1938 text's old glyph variants normalised).
+- **`tools/make_screenshots.py`** retakes every screenshot over adb. Each one is gated: the page's
+  exact text is run through the plugin's own code (`tools/shot_gate.py`, every dictionary
+  installed), the drawn pinyin must match a hand-checked list (21 readings over 5 pages) and each
+  popup the expected lines, and KOReader's log must agree on the number of annotations and on
+  each tap's context and reading.
+
+Unchanged: the plugin database (byte-identical to 1.9.0; reading tables checksum the same), the
+pinyin drawn, every reading.
+
 ## 1.9.0 (2026-11-13)
 
 Popup

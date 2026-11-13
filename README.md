@@ -11,7 +11,29 @@ also turn on pinyin, drawn only above characters that are rarer than a cutoff yo
 ones get help and the rest of the page stays clean. It works on any reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as
 you open it.
 
-![Tapping 单 in 匈奴单于入塞: chán is shown above it and marked in the popup; 单于 decides the reading; a button per word](docs/popup.png)
+![The opening of 三国演义 第一回 on a Boox Go 7: the chapter title, and below the popup the last lines of the 话说天下大势 paragraph with pinyin above the rare characters only (gù over 锢, huàn over 宦, juān over 涓). The popup is open on 涓: juān, "brook; to select", "Juān: surname Juan"; its parts, labelled MMAH: 氵 shuǐ water → meaning, 肙 yuān "a small worm; to twist" → sound (same ending); then 中涓 zhōngjuān "(archaic) eunuch", labelled Wikt; buttons 涓, 中涓, Close and Translate & Analyze](docs/main.png)
+
+<table>
+<tr>
+<td width="50%"><a href="#line-spacing"><img src="docs/off-on.png" alt="The 临江仙 that opens 三国演义, pinyin off (top) and on (bottom): with it on, only 樵 qiáo and 渚 zhǔ get pinyin, the rest of the page stays clean"></a><br><b>Pinyin only above the hard characters</b>, at the level you choose (here the default: outside the 3,500 most common)</td>
+<td width="50%"><a href="#the-popup"><img src="docs/context.png" alt="Popup for 间 in 孔乙己's 虽然间或没有现钱: 间 jiàn · likely here, jiān listed after it; 间或 jiànhuò · decides 间's reading, occasionally; now and then"></a><br><b>The reading it has here</b>, and the word that decides it: 间 is <i>jiàn</i> in 间或</td>
+</tr>
+<tr>
+<td><a href="#character-components"><img src="docs/components.png" alt="Popup for 茴 in 孔乙己's 要一碟茴香豆: 茴 huí; its parts, labelled Wikt: 艹 cǎo grass; plant (草字头) → meaning, 回 huí to go back → sound (same sound); then 茴香豆 and 茴香"></a><br><b>What each character is made of</b>: 茴 is 艹 for the meaning and 回 <i>huí</i> for the sound</td>
+<td><a href="#character-components"><img src="docs/traditional.png" alt="Popup for 观 in 阿Q正传's 观音娘娘: 观 guān · likely here; traditional 觀: 雚 guàn (archaic) stork; heron → sound (same sound), 見 jiàn see → meaning, simplified: 雚 → 又; 观音 Guānyīn · decides 观's reading"></a><br><b>Parts the simplification hid</b>: 观 is read through 觀, 雚 <i>guàn</i> → sound</td>
+</tr>
+<tr>
+<td><a href="#chengyu"><img src="docs/chengyu.png" alt="Popup for 也 in 孔乙己's 满口之乎者也: 满口之乎者也 and 之乎者也 from CC-CEDICT, 之乎者也 with a Chinese line labelled 新华: 这四个字都是文言虚词，讽刺人说话喜欢咬文嚼字。也形容半文不白的话或文章。; a 出处 button"></a><br><b>Chengyu explained</b>: 之乎者也 with Xinhua's line (optional file) …</td>
+<td><a href="#chengyu"><img src="docs/chengyu-2.png" alt="The 出处 view for 之乎者也 from 新华成语: 释义; 出处 宋·文莹《湘山野录》：“之乎者也，助得甚事？”; 例句 他对人说话，总是满口之乎者也，叫人半懂不懂的。"></a><br>… and its <b>出处</b>: the classical source and an example (this very line of 孔乙己)</td>
+</tr>
+<tr>
+<td><a href="#fallback-dictionaries"><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月春风 labelled MOE with its Chinese definition; 秋月 labelled Wikt; a 出处 button"></a><br><b>Several dictionaries, each labelled</b>: CC-CEDICT, then MOE (optional) and Wiktionary for 秋月春风 and 秋月</td>
+<td><a href="#translating-the-sentence"><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, with a Translate &amp; Analyze button; below it the page of 孔乙己 with the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"></a><br><b>Translate &amp; Analyze the sentence</b> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
+</tr>
+</table>
+
+All screenshots: a Boox Go 7 (landscape), the [sample book](#the-sample-book), default settings,
+with every optional dictionary installed. `tools/make_screenshots.py` takes them again.
 
 - **One tap, no selecting.** A single tap on a Chinese character, or on the pinyin above one,
   opens the popup. Taps anywhere else turn pages and open menus as usual.
@@ -58,7 +80,7 @@ you open it.
   drawn is the one the popup marks (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥).
 - **What each character is made of.** Below a character's entry, one line per part gives its
   reading, a short gloss and whether it carries the meaning or the sound (清: 氵 *shuǐ* water → meaning,
-  青 *qīng* → sound, same sound). Each part is a button that opens its own popup. A
+  青 *qīng* → sound, same sound). A
   simplified character whose simplification hid a part shows its traditional form's parts (观:
   traditional 觀, 雚 *guàn* → sound; simplified: 雚 → 又).
 - **Translate the sentence**: while Wi-Fi is on and connected, a button in the popup sends the
@@ -69,14 +91,12 @@ you open it.
 - **Long-press and KOReader's own dictionary are untouched**, and each word in the popup has a
   button that looks it up there.
 
-![Pinyin above rare characters on a Boox Go 7](docs/screenshot.png)
-
 It merges two plugins that are no longer developed:
 [koreader-interlinear-pinyin](https://github.com/scartoon/koreader-interlinear-pinyin) (the pinyin)
 and [koreader-chinese-popup](https://github.com/scartoon/koreader-chinese-popup) (the popup). One
 plugin means one tap handler, one popup for every character, and one database.
 
-Status: **1.9.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **1.9.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -186,8 +206,9 @@ stretch containing the tapped character, against both simplified and traditional
   with a short note, such as 冒顿 *mò dú*).
 - **The character's components** (below), indented under its own entry.
 - **Buttons**: one per entry, labelled with the character or word, which opens KOReader's
-  dictionary lookup for it; **出处** for a chengyu (see [Chengyu](#chengyu)); then one per
-  component and **Origin** (below); and **Close**. Tapping outside the popup also closes it.
+  dictionary lookup for it; **出处** for a chengyu (see [Chengyu](#chengyu)); and **Close**.
+  Every button is the character, a word from the text containing it, or one of those two.
+  Tapping outside the popup also closes it.
 - **Translate the sentence**: a full-width button on its own row below them, shown only while
   Wi-Fi is on and connected (see below).
 - Words CC-CEDICT does not have can come from the fallback dictionaries (below). If no dictionary has
@@ -215,9 +236,6 @@ character's own entry:
   names a sound part, about 56% are same sound, 20% same ending and 23% loose.
 - **Ideogrammic compounds** (Wiktionary's) mark every part → meaning (武: 戈 + 止). A
   **pictogram** or **indicative** character says so (象形, 指事).
-- **Each part is a button** that opens that part's own popup (its entry and its own parts, with
-  no reading marked, since it is not in the text). **Origin** opens Wiktionary's account of the
-  character's origin, in full, when there is one.
 - **Simplified characters** whose simplification hid a part show the traditional form's
   analysis, then the parts replaced:
 
@@ -236,9 +254,9 @@ character's own entry:
   shows its own parts, if any.
 - **Sources**, in this order, labelled like the dictionaries:
   - **Wikt**: English Wiktionary's analysis (its `Han compound` template; bundled, CC BY-SA
-    4.0). Where Wiktionary records more than one analysis (造, 何, 秋), the first is shown and
-    the others are in **Origin**. Some analyses describe an older form of the character than
-    the one written today (期: semantic 日, from the variant 㫷); Origin explains.
+    4.0). Where Wiktionary records more than one analysis (造, 何, 秋), the first is shown. Some
+    analyses describe an older form of the character than the one written today (期: semantic
+    日, from the variant 㫷).
   - **MMAH**: [Make Me a Hanzi](https://github.com/skishore/makemeahanzi) (bundled, LGPL v3),
     for characters Wiktionary does not analyse. Its learner mnemonics are never shown (they
     are wrong for many simplified characters: 观 "to see 见 again 又"), and where a
@@ -254,7 +272,7 @@ character's own entry:
 - **Nothing undisplayable**: an analysis containing a character outside Unicode's Basic
   Multilingual Plane is skipped (KOReader's fonts would draw an empty box), and the next
   source's is used (秋: Wiktionary's semantic 禾 + abbreviated phonetic 𤒅 is skipped; Make Me a
-  Hanzi's 禾 + 火 is shown). The same goes for Origin texts.
+  Hanzi's 禾 + 火 is shown).
 - Coverage of the characters in the frequency list (no analysis: 4–8% per band, mostly
   characters whose only analyses contain such characters):
 
@@ -266,7 +284,7 @@ character's own entry:
   | 5,001–7,000 | 30% | 40% | 23% | 7% |
   | beyond 7,000 | 17% | 18% | 56% | 8% |
 
-- **Show character components** in the menu turns the block (and its buttons) off.
+- **Show character components** in the menu turns the block off.
 
 ### Translating the sentence
 
@@ -405,7 +423,7 @@ up to the full screen height, scrolling beyond that. A short popup goes in the h
 screen away from the tapped character, so the text stays visible. A taller one starts with the
 phrase around the character, the character in bold:
 
-![A tall popup: the phrase 他的确来了 at the top, 的 marked dí, decided by 的确](docs/popup-tall.png)
+![A tall popup over a page of 阿Q正传: the phrase 而且又不见了观音娘娘座前的一 at the top with 观 in bold, then 观 guān · likely here, its traditional form 觀's parts, and 观音 Guānyīn · decides 观's reading](docs/traditional.png)
 
 ### Readings
 
@@ -501,7 +519,7 @@ The pinyin goes in the space between lines, so while it is on the plugin sets a 
 leaves room for it, taking KOReader's line-spacing setting into account. Turning it off restores
 the book's own spacing (KOReader lays the book out again, which takes a moment).
 
-![The same page with pinyin off (left) and on (right)](docs/off-on.png)
+![The 临江仙 and the start of 第一回 with pinyin off (top) and on (bottom): the same lines, a little further apart with pinyin on, and qiáo over 樵 and zhǔ over 渚](docs/off-on.png)
 
 Books with tight spacing get more pages; books that already set generous spacing can end up with
 tighter lines, because the plugin replaces the book's line height rather than adding to it.
@@ -568,7 +586,7 @@ Everything is in one SQLite database, `chinesehelper.koplugin/data/chinesehelper
 - **Character components** (`components`, `component_notes`): about 13,400 characters' parts,
   roles, readings, glosses and sound labels, built once from Wiktionary, Make Me a Hanzi and
   yi-bai/ids (see [Character components](#character-components)), and Wiktionary's origin texts
-  for the **Origin** view. About 2.9 MB.
+  (1.1 MB of text, shown by the popup until 1.9.0; no longer used). About 2.9 MB.
 - **The reading tables** (every character's frequency rank and default reading, words, context
   rules, uncertain characters, unusual readings). The fallback dictionaries never feed these: the
   build records a checksum of them, which is the same with and without the fallback table. (At
@@ -724,7 +742,28 @@ tools/deploy.sh "/sdcard/Books/book.epub"   # check, push to a USB-connected And
 .venv/bin/python tools/eval_readings.py     # reading accuracy on the CPP test split (--fallback none: without Wiktionary's words)
 .venv/bin/python tools/scan_special.py BOOK.epub   # the unusual readings a book gets
 .venv/bin/python tools/make_test_epub.py build/chinesehelper-test.epub   # a book for tap tests on a device
+.venv/bin/python tools/make_sample_epub.py  # the sample books in samples/
+.venv/bin/python tools/make_screenshots.py  # the README screenshots, over adb (see below)
 ```
+
+### The sample book
+
+`samples/xiaoshuo.epub` (小说三篇) holds 《三国演义》 第一回 (the 毛宗岗 edition, which opens
+with 杨慎's 临江仙), and 鲁迅's 《孔乙己》 (1919) and 《阿Q正传》 (1921), all in the public
+domain. `tools/make_sample_epub.py` builds it from Chinese Wikisource (pinned revisions),
+converted to simplified characters with `tools/simplify.py`; the 1938 《鲁迅全集》 text's old
+glyph variants (偸, 淸, 鎗) become the standard forms and its corner quotes “”. It also
+rebuilds `samples/guwen.epub` (桃花源记, 陋室铭, 爱莲说).
+
+### Screenshots
+
+`tools/make_screenshots.py` regenerates every image in this README on a Boox Go 7 over adb:
+it opens the sample book at fixed pages with fixed reader settings, taps, and saves cropped
+16-grey PNGs to `docs/`. Before an image is saved, the page's exact text goes through the
+plugin's own Lua code (`tools/shot_gate.py`, with every dictionary): the pinyin drawn must be
+the shot's hand-checked list, each popup must show the expected lines, and KOReader's log must
+agree (the number of characters annotated, and each tap's context and reading). Your
+`settings.reader.lua` is backed up and restored.
 
 The tests (`tests/run.py`, under LuaJIT through lupa) cover the reading resolver, page walking,
 layout and hit testing, the popup's content and placement, the sentence finder and the
@@ -788,7 +827,7 @@ Hanzi:
   Changes made: titles filtered by category and length, converted to both scripts with OpenCC,
   readings generated with pypinyin; see `data/README.md`.
 - Wiktionary's `Han compound` analyses and etymology texts, as above, for the character
-  components and the Origin view.
+  components (the etymology texts are still in the database, no longer shown).
 - **[Make Me a Hanzi](https://github.com/skishore/makemeahanzi)** `dictionary.txt` by Shaunak
   Kishore (derived from Unihan and cjklib), under the
   [GNU LGPL v3](https://www.gnu.org/licenses/lgpl-3.0.html) or later: decompositions and
@@ -823,4 +862,5 @@ originals for the user's own device:
   party's offline snapshot (`tools/build_moegirl.py`).
 
 [`data/README.md`](data/README.md) lists the changes made and the versions used. The texts in
-the sample book (`samples/guwen.epub`: 陶渊明, 刘禹锡, 周敦颐) are in the public domain.
+the sample books are in the public domain: `samples/xiaoshuo.epub` (罗贯中, 鲁迅; from
+[Chinese Wikisource](https://zh.wikisource.org/)) and `samples/guwen.epub` (陶渊明, 刘禹锡, 周敦颐).
