@@ -1,30 +1,35 @@
 # koreader-chinese-helper
 
-**A [KOReader](https://github.com/koreader/koreader) plugin designed specifically for reading
-Chinese.** Chinese has no spaces between words, so this plugin lets you tap a single character
-and shows every dictionary word it belongs to, drawing on several dictionaries in one popup: CC-CEDICT
-first, then fallback dictionaries for the words it lacks, each fallback entry labelled with its
-source. No long-press, no selecting, no
-choosing a dictionary. Optional pinyin appears above rare characters only (plus the few common
-characters read in an unusual way, such as 单 in 单于), with readings chosen from the surrounding
-words, so the page stays clean while the hard characters get help. Works on any reflowable book
-(EPUB, FB2, MOBI, TXT and the like) as soon as you open it, with no preprocessing.
+**A [KOReader](https://github.com/koreader/koreader) plugin for reading Chinese: tap any character
+and see the words it forms in this sentence, with the reading it has here.**
 
-- **One tap on a character.** A single tap on a Chinese character, or on the pinyin above one,
+Chinese has no spaces between words, so an ordinary dictionary lookup means long-pressing,
+dragging a selection and guessing where the word ends. Here you tap one character. The plugin
+reads the text on both sides of it, finds the dictionary words actually written there, and marks
+the reading the character takes in this context: 行 is *háng* in 银行 but *xíng* in 行人. Optional
+pinyin above rare characters only keeps the page clean while the hard characters get help. It
+works on any reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
+
+![Tapping 单 in 匈奴单于入塞: chán is shown above it and marked in the popup; 单于 decides the reading; a button per word](docs/popup.png)
+
+- **One tap, no selecting.** A single tap on a Chinese character, or on the pinyin above one,
   opens the popup. Taps anywhere else turn pages and open menus as usual.
-- **Every word around it.** The popup collects every dictionary word of 1–8 characters that
-  contains the tapped character, looking on both sides of it rather than guessing how the
-  sentence divides into words.
-- **The reading it has here, marked.** For every character, common ones included, the popup marks
-  the reading it takes in this sentence and names the word that decided it (的 is *dí* in 的确,
-  行 is *háng* in 银行). The plugin uses the 2–4 character dictionary word around the character
-  (the more common one, by [wordfreq](https://github.com/rspeer/wordfreq), when two overlap),
-  then about 950 context rules learned from labelled Wikipedia sentences, then the character's
-  most frequent reading. Particles default to their neutral tone. Where nothing decides, both
-  likely readings are marked. On held-out test sentences built around the hard cases among the
-  1,000 most common characters, the marked reading is right 97.5% of the time
-  (see [Readings](#readings) and [Accuracy](#accuracy)).
-- **CC-CEDICT first, then fallback dictionaries** for the words it lacks, in this order:
+- **Only the words on the page.** The plugin checks every stretch of 1–8 characters through the
+  tapped one, up to 7 characters on each side, and lists those that are dictionary words, longest
+  first. Tap 宛 in 很大宛如 and you get 宛, 大宛 and 宛如, not every word in the dictionary that
+  contains 宛. Nothing guesses where the words break, so when a sentence could divide two ways,
+  you see both.
+- **The reading it has here, marked.** For every character, common ones included, the popup
+  marks the reading it takes in this sentence and names the word that decided it (的 is *dí* in
+  的确). The deciding word is the 2–4 character dictionary word around the character (the more
+  common one, by [wordfreq](https://github.com/rspeer/wordfreq), when two overlap); failing that,
+  one of about 950 context rules learned from labelled Wikipedia sentences; failing that, the
+  character's most frequent reading. Where nothing decides, both likely readings are marked. On
+  held-out test sentences built around the hard cases among the 1,000 most common characters,
+  the marked reading is right 97.5% of the time (see [Readings](#readings) and
+  [Accuracy](#accuracy)).
+- **Several dictionaries, one popup.** CC-CEDICT first, then fallback dictionaries for the words
+  it lacks, each entry labelled with its source, in this order:
 
   | Dictionary | Label | | Mainly covers |
   |---|---|---|---|
@@ -35,19 +40,17 @@ words, so the page stays clean while the hard characters get help. Works on any 
   | Moegirlpedia slang | Moegirl | a file you build yourself | internet slang (in Chinese) |
 
 - **Optional pinyin above rare characters**: those outside the 1,500 / 2,500 / 3,500 (default) /
-  5,000 / 7,000 most common, by wordfreq. The reading drawn is the one the popup marks
-  (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥).
-- **Translate the sentence**: while Wi-Fi is on and connected, a button in the popup sends the whole sentence
-  to [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) if you have it (tested with
-  KOAssistant 0.23.0), or to KOReader's built-in translator.
+  5,000 / 7,000 most common, by wordfreq, plus the few common characters read in an unusual way
+  (单 in 单于). The reading drawn is the one the popup marks (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥).
+- **Translate the sentence**: while Wi-Fi is on and connected, a button in the popup sends the
+  whole sentence to [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) if you have it
+  (tested with KOAssistant 0.23.0), or to KOReader's built-in translator.
 - **No per-book preprocessing**, and the book file is never modified.
 - **Pinyin and popup are separate switches**: either one, or both.
 - **Long-press and KOReader's own dictionary are untouched**, and each word in the popup has a
   button that looks it up there.
 
 ![Pinyin above rare characters on a Boox Go 7](docs/screenshot.png)
-
-![Tapping 单 in 匈奴单于入塞: chán is shown above it and marked in the popup; 单于 decides the reading; a button per word](docs/popup.png)
 
 It merges two plugins that are no longer developed:
 [koreader-interlinear-pinyin](https://github.com/scartoon/koreader-interlinear-pinyin) (the pinyin)
