@@ -48,8 +48,8 @@ you open it.
   outside the 1,500, 2,500, 3,500 (default), 5,000 or 7,000 most common characters in modern
   written Chinese. Common characters read in an unusual way (单 in 单于) get it too. The reading
   drawn is the one the popup marks (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥).
-- **Character components**: below a character's entry, one line per part, giving its reading,
-  a short gloss and whether it gives the meaning or the sound (清: 氵 *shuǐ* water → meaning,
+- **What each character is made of.** Below a character's entry, one line per part gives its
+  reading, a short gloss and whether it carries the meaning or the sound (清: 氵 *shuǐ* water → meaning,
   青 *qīng* → sound, same sound). Each part is a button that opens its own popup. A
   simplified character whose simplification hid a part shows its traditional form's parts (观:
   traditional 觀, 雚 *guàn* → sound; simplified: 雚 → 又).

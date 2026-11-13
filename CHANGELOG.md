@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.7.0 (2026-11-13)
+
+Popup
+- **Character components.** Every single-character popup now shows what the character is made
+  of, one line per part below its own entry: the part as written, its reading, a short gloss and
+  its role (髡: 髟 *biāo* hair → meaning; 兀 *wù* → sound, loose). Sound parts say how well they
+  still match: **same sound** (茴 / 回 *huí*), **same ending** (郎 *láng* / 良 *liáng*) or **loose**.
+  Of the characters outside the 2,500 most common whose analysis names a sound part (5,169),
+  56% are same sound, 20% same ending, 23% loose. Radical forms are read as their full
+  character, with their name (氵 *shuǐ* 三点水, 钅 *jīn* 金字旁); 阝 is 阜 on the left (左耳旁) and
+  邑 on the right (右耳旁).
+- **Each part is a button** opening its own popup (no reading marked: it is not in the text), and
+  **Origin** shows Wiktionary's account of the character's origin in full.
+- **Simplified characters whose simplification hid a part** show the traditional form's parts and
+  what replaced them (观: traditional 觀, 雚 *guàn* → sound, same sound; simplified: 雚 → 又). Where
+  the simplification only writes the same parts the simplified way (铳 from 銃, 陈 from 陳), the
+  simplified forms are shown with the traditional form's roles. 发, 干 and the like take the
+  traditional form of the word tapped (头发: 髮, 发现: 發).
+- **Sources**: English Wiktionary's `Han compound` analyses first (bundled with the Wiktionary
+  data already used), then [Make Me a Hanzi](https://github.com/skishore/makemeahanzi) (LGPL v3),
+  then [yi-bai/ids](https://github.com/yi-bai/ids) (MIT, structure only), labelled Wikt, MMAH and
+  IDS. Before building, the two were compared (`tools/measure_components.py`): in 40 random
+  disagreements Wiktionary was wrong once (曙), Make Me a Hanzi in most (it often calls a
+  phono-semantic character "ideographic"). Make Me a Hanzi's mnemonics are never shown, its
+  roles are dropped where a simplification hid a part, and its "ideographic" parts get no role
+  unless its note names the sound part (钺: 戉 *yuè*).
+- **Nothing undisplayable**: an analysis or origin text with a character outside the BMP (which
+  the device fonts draw as a box) is skipped for the next source's (秋: Wiktionary's 禾 + 𤒅
+  gives way to 禾 + 火). 1,604 such analyses were skipped.
+- Coverage of characters with a frequency rank, by band (Wikt / MMAH / IDS / none): 1–2,500 79 /
+  12 / 5 / 4%; 2,501–3,500 66 / 23 / 6 / 5%; 3,501–5,000 50 / 36 / 9 / 5%; 5,001–7,000 30 / 40 /
+  23 / 7%; beyond 7,000 17 / 18 / 56 / 8%.
+- A menu switch, **Show character components** (on by default), and a Status line.
+
+Data
+- New `components` and `component_notes` tables: 13,362 characters, 6,591 origin texts. Database
+  36.4 MB (was 33.5), zip 17.3 MB (was 16.4). The reading tables are unchanged (checksum `9ee87108…`, as in 1.6.1).
+- The plugin folder now carries `LGPL-3.0.txt` (and `GPL-3.0.txt`, which it refers to) for the
+  Make Me a Hanzi rows.
+
 ## 1.6.1 (2026-11-12)
 
 Readings

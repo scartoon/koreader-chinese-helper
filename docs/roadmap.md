@@ -6,7 +6,7 @@ sessions.
 
 | Phase | What | Release | Status |
 |---|---|---|---|
-| 1 | Character component breakdowns in the popup | 1.7.0 | not started |
+| 1 | Character component breakdowns in the popup | 1.7.0 | released 2026-11-13 |
 | 2 | All explanatory text in simplified characters | 1.8.0 | not started |
 | 3 | Richer chengyu entries (two build-it-yourself dictionaries) | 1.9.0 | not started |
 | 4 | New README screenshots and sample book | 1.9.1 | not started |
@@ -343,7 +343,106 @@ Re-running it after a release should regenerate all screenshots.
 Each phase adds what later phases need to know.
 
 ### Phase 1
-(none yet)
+
+**Measurement (step 1), 2026-11-13**, `tools/measure_components.py` against
+the v1.6.1 database's `chars` table (the 12,295 characters with a rank), the kaikki dump of
+2026-10-30 (Wiktionary 2026-10-01) and Make Me a Hanzi `dictionary.txt`
+(master, 9,574 entries):
+
+| Rank | Chars | Wikt `Han compound` | Wikt via the traditional form only | MMAH has the character | MMAH only | Neither | Both | Disagree on parts | Disagree on roles |
+|---|---|---|---|---|---|---|---|---|---|
+| 1–2,500 | 3,780 | 2,220 (59%) | 810 (21%) | 3,545 (94%) | 443 (12%) | 307 (8%) | 2,000 | 325 (16%) | 316 (16%) |
+| 2,501–3,500 | 1,427 | 757 (53%) | 258 (18%) | 1,334 (93%) | 319 (22%) | 93 (7%) | 718 | 87 (12%) | 90 (13%) |
+| 3,501–5,000 | 2,091 | 841 (40%) | 351 (17%) | 1,833 (88%) | 732 (35%) | 167 (8%) | 742 | 82 (11%) | 92 (12%) |
+| 5,001–7,000 | 2,595 | 625 (24%) | 336 (13%) | 1,745 (67%) | 1,018 (39%) | 616 (24%) | 424 | 43 (10%) | 61 (14%) |
+| 7,001+ | 2,402 | 382 (16%) | 256 (11%) | 660 (27%) | 433 (18%) | 1,331 (55%) | 121 | 18 (15%) | 17 (14%) |
+
+(Parts disagreements as the final `tools/measure_components.py` prints them; a
+few fewer than in the first run, after empty template arguments were
+ignored.) "MMAH only" and "Neither" count a character as covered by Wiktionary when
+its traditional form has a `Han compound`. The planning column "MMAH has it"
+is reproduced exactly (93/88/67/27%). "Neither" is left to yi-bai/ids
+(structure only).
+
+- **Stop condition not met.** I read 40 random disagreements (more than the
+  30 asked). Wiktionary was plainly wrong in one: 曙, phonetic 暑 where the
+  character is written with 署. In two more it analyses an older form than
+  the one written: 期 (semantic 日, from the variant 㫷) and 峭 ("originally"
+  阜, later 山). 實, 去, 保 and 失 analyse the oracle-bone forms: correct, but
+  the parts don't match the modern shape, so the **more** text matters
+  there. Make Me a Hanzi was wrong far more often. 19 of the 40 were MMAH
+  calling a phono-semantic character "ideographic" (晚, 遺, 譯, 衷, 倔, 髀...),
+  and 準, 贖, 邃 and 旖 had the wrong parts. The priority order stands.
+- **Simplified characters (the open question):** they carry no `Han compound`
+  of their own (丛 is a rare exception). Each one has either a `Han simp`
+  template (1,119 characters: `1` = the traditional form, `f`/`t`, `f2`/`t2`
+  = the parts replaced, as in 观: 雚 → 又, 見 → 见) or a soft redirect to the
+  traditional entry (铳 → 銃, 钺 → 鉞, 廪 → 廩). So the traditional-form
+  rule is what gives most simplified characters a Wiktionary analysis.
+- **MMAH role errors can be partly repaired.** 749 "ideographic" entries
+  have a hint saying "X also provides the pronunciation" (钺, 郎, 晚, 倔...).
+  Where Wiktionary also has the character (392), it names the same phonetic
+  in 320. The build uses that phrase to set the phonetic role. The hint text
+  itself is never shown.
+- Wiktionary marks 169 characters with a second `Han compound` (disputed),
+  often common ones (造, 何, 秋). "Abbreviated" parts (`abb`) occur in 140.
+  The `alt` argument gives the written form of a part (水 written 氵, 辵
+  written 辶).
+- The roadmap's 观 example labels 雚 "same ending", but its sense "stork" is
+  read guàn, which is the same syllable as 觀 guān. The planning numbers seem
+  to have used 雚's default reading huán (from `chars`). For a sound part the
+  build uses the part's reading that best matches the character, and the
+  gloss of that reading.
+
+**What was built (1.7.0)**, and what differs from the plan:
+
+- Tables `components(ch, body)` (one text row per character: an `H` line and
+  one `P` line per part, format documented in `tools/components.py`
+  Builder) and `component_notes(ch, text)` (Wiktionary's origin text).
+  13,362 characters, 6,591 notes, **+2.9 MB** (33.5 → 36.4 MB). The reading
+  tables' checksum is unchanged. Popup code: `ch_components.lua`;
+  `ch_tap.lua` now has `present()` (shared by the text popup and a part's
+  popup) and `showCharPopup()`.
+- **Undisplayable characters (user's decision during the session):** nothing
+  containing a character outside the BMP is shown. The device fonts draw a
+  box with a question mark for most of them (seen on 秋's 𤒅). The build
+  skips such an analysis and uses the next source's; origin texts with one
+  are dropped (Origin button absent). 1,604 analyses were skipped, and 715
+  ranked characters have no row at all (37 before the rule). **Phase 2:**
+  this matches its "keep the traditional character when the simplified one
+  is outside the BMP" fix. Phase 4's screenshot gate should treat a box as a
+  failure too.
+- **No "disputed" line (user's decision):** a line like "other analyses
+  exist: see Origin" was removed. The first analysis is shown with no
+  marker, and the others are in the Origin text. The `d` flag is still in
+  the data, unused. Avoid pointer language of that kind in later phases.
+- The **more** button is labelled **Origin**. It opens a TextViewer with
+  Wiktionary's text (and, for a simplified character, the traditional
+  form's too).
+- yi-bai/ids rows are built only for the ranked characters and for parts,
+  not for the 29,000 unranked ones (that would have added about 2.5 MB).
+- The match label "same ending" compares the final **without the medial**
+  (良 *liáng* / 郎 *láng*, 奚 *xī* / 鸡 *jī*). Rank > 2,500 characters with a
+  sound part: 56% same sound, 20% same ending, 23% loose.
+- Make Me a Hanzi's "ideographic" parts get no role (it is too often wrong),
+  unless its hint names the sound part. Wiktionary's ideogrammic compounds
+  mark every part → meaning.
+- A simplified character whose simplification only writes the same parts the
+  simplified way (铳 ← 銃: 金 → 钅; 陈 ← 陳: 東 → 东) shows the simplified
+  forms, with the traditional analysis's roles and no "traditional" line.
+  Only a simplification that hides a part (观, 鸡, 这 ← 這: 言 → 文) shows
+  the traditional form.
+- **Phase 4 (茴 shot):** 茴 shows `艹 cǎo grass; plant (草字头) → meaning` /
+  `回 huí to go back; to return → sound (same sound)`, label Wikt, buttons
+  艹, 回, Origin. 回's own popup shows "pictogram (象形)", plus a "traditional
+  迴" breakdown when it is tapped in a word CC-CEDICT writes with 迴.
+  Traditional-form candidates on a sample page: 观/觀, 鸡/雞, 这/這, 让/讓,
+  赵/趙.
+- Device test book: `build/chinesehelper-components.epub` (pushed to
+  `/sdcard/Download/`), made with `make_test_epub.py`'s builders: 髡发之刑。清水。
+  观察。/ 鸡蛋。茴香豆。仓廪实。/ 秋天。火铳。陈列。新郎。/ 阿姨。首都。卍字。/ 头发很长。他发现了。
+  卍 has no data. I did not redo the tap-timing A/B: a popup now makes one to
+  three extra primary-key lookups.
 
 ### Phase 2
 (none yet)
