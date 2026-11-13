@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "1.6.0"
+ChineseHelper.VERSION = "1.6.1"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database

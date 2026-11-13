@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.6.1 (2026-11-12)
+
+Readings
+- **Neutral tones follow the standard mainland spoken form.** Where CC-CEDICT gives a word's
+  syllable only as a neutral tone, that is drawn above a rare character, in any position after
+  the first: 刺猬 *cì wei*, 鼓捣 *gǔ dao*, 疙瘩 *gē da*, 衣裳 *yī shang*, 扫帚 *sào zhou*, 大猩猩 *dà xīng
+  xing*, 唠唠叨叨 *láo lao dāo dāo*. Before, the character's own tone was drawn (*wèi*, *dǎo*), and
+  pypinyin's full tone won where the two differed only by it. Words CC-CEDICT lists both ways
+  (大爷 *dà yé* / *dà ye*, 裁缝 *cái féng* / *cái feng*) are drawn as before, and the popup still
+  marks the neutral one. Hand-checked readings, erhua *r*, and 一 and 不 are unchanged.
+- **495 words added** (simplified and traditional forms) that exist only for such a neutral tone,
+  such as 鼓捣: 捣 has the one reading *dǎo*, so no word was looked up for it before. They are
+  loaded with the other rare-character words, so page turns still make no query. Words whose
+  drawn reading changes, simplified forms (of them added): 574 (239) at 1,500, 306 (140) at 2,500,
+  133 (65) at 3,500, 40 (22) at 5,000, 13 (5) at 7,000.
+- **Popup**: tapping a character drawn with a neutral tone marks its entry with the same letters
+  (猬 *wèi* · shown above), even when it is the only reading, and tags the word that decided it
+  (刺猬 · decides 猬's reading). Where several tones have those letters (糊 *hù*, *hú*, *hū*, drawn
+  *hu* in 含糊), only the character's default reading is marked.
+- **Accuracy**: CPP labels some of these words with the full tone (枇杷 *pá*, 姥姥 *lǎo*, 收拾 *shí*,
+  铃铛 *dāng*, 唠叨 *dāo*, 播弄 *nòng*): 22 test sentences now count as wrong, 0.4 to 0.7 points of
+  the "most likely" figures, 0.04 to 0.08 points of the ordinary-text estimate (99.67% at 3,500).
+  `tools/eval_readings.py` counts a neutral label drawn as it is as right, and takes `--data` to
+  compare two builds.
+- Database 33.5 MB, as before.
+
 ## 1.6.0 (2026-11-12)
 
 Readings
