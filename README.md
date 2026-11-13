@@ -6,9 +6,10 @@ and see the words it forms in this sentence, with the reading it has here.**
 Chinese has no spaces between words, so an ordinary dictionary lookup means long-pressing,
 dragging a selection and guessing where the word ends. Here you tap one character. The plugin
 reads the text on both sides of it, finds the dictionary words actually written there, and marks
-the reading the character takes in this context: 行 is *háng* in 银行 but *xíng* in 行人. Optional
-pinyin above rare characters only keeps the page clean while the hard characters get help. It
-works on any reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
+the reading the character takes in this context: 行 is *háng* in 银行 but *xíng* in 行人. You can
+also turn on pinyin, drawn only above rare characters: the hard ones get help and the rest of the
+page stays clean. It works on any reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as
+you open it.
 
 ![Tapping 单 in 匈奴单于入塞: chán is shown above it and marked in the popup; 单于 decides the reading; a button per word](docs/popup.png)
 
