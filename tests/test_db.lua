@@ -24,6 +24,21 @@ local words = db:words({ "东西", "银行", "不存在的词" })
 eq(words["东西"][1], "dōng xi"); eq(words["银行"][1], "yín háng")
 assert(words["东西"][2] > 0, "frequency"); assert(words["不存在的词"] == nil)
 
+-- Lists are padded, so the statement cache stays small however many
+-- different list lengths come by.
+eq(DB.padded(1), 1); eq(DB.padded(3), 4); eq(DB.padded(36), 64); eq(DB.padded(1025), 2048)
+local probe = DB.open(PLUGIN_DIR .. "/data/chinesehelper.sqlite", require("sq3_shim").SQ3)
+for n = 1, 40 do
+    local list = {}
+    for k = 1, n do list[k] = "东西" end
+    probe:lookup(list); probe:words(list); probe:fallback(list)
+end
+local cached = 0
+for _ in pairs(probe.stmts) do cached = cached + 1 end
+assert(cached <= 21, "statements cached: " .. cached .. " (3 queries x 7 sizes; 120 unpadded)")
+eq(#probe:lookup({ "东西" }), 2, "padding finds the same rows")
+probe:close()
+
 local meta = db:meta()
 assert(meta.cedict_entries and tonumber(meta.cedict_entries) > 100000, "meta")
 

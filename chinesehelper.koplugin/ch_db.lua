@@ -1,6 +1,7 @@
 -- The plugin's one database, data/chinesehelper.sqlite (built by
 -- tools/build_db.py), through KOReader's bundled SQLite binding
--- (lua-ljsqlite3). Opened on first use and kept open while the book is.
+-- (lua-ljsqlite3). Opened on first use and kept open for the rest of the
+-- KOReader session, shared by every book (main.lua).
 --
 --   entries(simp, trad, pinyin, syllables, defs)   CC-CEDICT, one row per entry;
 --                         indexes on simp and trad (the popup's lookup)
@@ -51,6 +52,27 @@ local function marks(n)
     return string.rep("?,", n - 1) .. "?"
 end
 
+-- Statements are prepared once per SQL text and kept, and the text depends on
+-- the number of words. So that the cache does not grow with every distinct
+-- count, lists are padded with "" (which no row has) to a power of two up to
+-- 1,024, then to a multiple of 1,024.
+function DB.padded(n)
+    if n > 1024 then return math.ceil(n / 1024) * 1024 end
+    local m = 1
+    while m < n do m = m * 2 end
+    return m
+end
+
+-- `list` padded to DB.padded(#list), repeated `times` times (simp IN, trad IN).
+local function padded_args(list, times)
+    local n, m = #list, DB.padded(#list)
+    local args = {}
+    for t = 0, times - 1 do
+        for k = 1, m do args[t * m + k] = k <= n and list[k] or "" end
+    end
+    return args, m
+end
+
 -- CC-CEDICT rows for n candidate words (simplified or traditional form).
 function DB.entriesSql(n)
     return "SELECT simp, trad, pinyin, syllables, defs FROM entries WHERE simp IN (" .. marks(n)
@@ -92,10 +114,8 @@ end
 -- entry whose simplified or traditional form is one of `words`, in
 -- CC-CEDICT order.
 function DB:lookup(words)
-    local n = #words
-    if n == 0 then return {} end
-    local args = {}
-    for k = 1, n do args[k], args[n + k] = words[k], words[k] end
+    if #words == 0 then return {} end
+    local args, n = padded_args(words, 2)
     local rows = {}
     self:each(DB.entriesSql(n), args, function(row)
         rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5] }
@@ -107,10 +127,8 @@ end
 -- fallback table for `words`, in table order. A database without the table
 -- (built before fallback sources existed) gives none.
 function DB:fallback(words)
-    local n = #words
-    if n == 0 then return {} end
-    local args = {}
-    for k = 1, n do args[k], args[n + k] = words[k], words[k] end
+    if #words == 0 then return {} end
+    local args, n = padded_args(words, 2)
     local rows = {}
     local ok, err = pcall(self.each, self, DB.fallbackSql(n), args, function(row)
         rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
@@ -124,7 +142,8 @@ end
 function DB:words(list)
     local out = {}
     if #list == 0 then return out end
-    self:each(DB.wordsSql(#list), list, function(row)
+    local args, n = padded_args(list, 1)
+    self:each(DB.wordsSql(n), args, function(row)
         out[row[1]] = { row[2], tonumber(row[3]) or 0 }
     end)
     return out

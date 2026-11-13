@@ -160,7 +160,6 @@ function ChineseHelper:loadReadings()
     return data
 end
 
--- The special words, or nil while that setting is off (nothing is loaded then).
 ------------------------------------------------------------------------
 -- Fallback dictionaries
 ------------------------------------------------------------------------
@@ -173,7 +172,6 @@ ChineseHelper.BUNDLED_SOURCES = { wikt = true, wp = true }
 -- them): tools/build_moe.py, build_cbdb.py, build_moegirl.py.
 ChineseHelper.LOCAL_FILES = { moe = "chinesehelper-moe.sqlite", cbdb = "chinesehelper-cbdb.sqlite",
                               moegirl = "chinesehelper-moegirl.sqlite" }
-ChineseHelper.MOE_FILE = ChineseHelper.LOCAL_FILES.moe
 
 -- Where the user's own files go: KOReader's data folder, which plugin
 -- updates leave alone (Android: /sdcard/koreader/data/chinesehelper/).
@@ -193,9 +191,6 @@ function ChineseHelper:localDb(source)
     session.local_dbs[source] = db or false
     return db or nil
 end
-
-function ChineseHelper:moePath() return self:localPath("moe") end
-function ChineseHelper:moeDb() return self:localDb("moe") end
 
 -- A database's meta table (cached for the session), or {}.
 local function metaOf(db)
@@ -245,16 +240,23 @@ end
 
 -- Rows { {simp=, trad=, pinyin=, syllables=, defs=, source=}, ... } from the
 -- fallback dictionaries for `words` (none of them CC-CEDICT's): each source in
--- priority order, one query per source, and a word one source has is not
--- looked up in the next. only: { [source] = true } to use only those.
+-- priority order, and a word one source has is not taken from the next. One
+-- query per database: Wiktionary and the Wikipedia titles share the plugin's,
+-- which is asked once for every word and its rows then shared out by source.
+-- only: { [source] = true } to use only those.
 function ChineseHelper:fallbackLookup(words, only)
     local Model = require("ch_popup_model")
-    local remaining, out = words, {}
+    local remaining, out, fetched = words, {}, {}
     for _i, src in ipairs(self:fallbackSources()) do
         if #remaining == 0 then break end
         if not only or only[src.source] then
+            local rows = fetched[src.db]
+            if not rows then
+                rows = src.db:fallback(words)
+                fetched[src.db] = rows
+            end
             local got = {}
-            for _j, row in ipairs(src.db:fallback(remaining)) do
+            for _j, row in ipairs(rows) do
                 if (row.source or src.source) == src.source then
                     row.source = src.source
                     got[#got + 1] = row
@@ -298,6 +300,7 @@ function ChineseHelper:fallbackStatus()
     return lines
 end
 
+-- The special words, or nil while that setting is off (nothing is loaded then).
 function ChineseHelper:special()
     if not self.settings:specialEnabled() then return nil end
     if session.special then return session.special end

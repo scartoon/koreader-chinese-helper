@@ -1,0 +1,43 @@
+# tools/check.sh on every push and pull request: luac and luajit on every Lua
+# file, then the offline tests. The tests run the plugin's SQL against the
+# real database, which is not in the repository (see README, Data): it comes
+# from the latest release's zip. A branch that changes the reading data needs
+# a release with its database before the data tests pass here.
+name: check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lua and LuaJIT
+        run: sudo apt-get update && sudo apt-get install -y lua5.4 luajit
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: lupa (runs the Lua tests under LuaJIT)
+        run: python -m pip install lupa
+
+      - name: Database from the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern chinesehelper.koplugin.zip --dir "$RUNNER_TEMP"
+          unzip -q "$RUNNER_TEMP/chinesehelper.koplugin.zip" "chinesehelper.koplugin/data/*" -d "$RUNNER_TEMP/release"
+          mkdir -p chinesehelper.koplugin/data
+          cp "$RUNNER_TEMP/release/chinesehelper.koplugin/data/chinesehelper.sqlite" chinesehelper.koplugin/data/
+          python -c "import sqlite3; c = sqlite3.connect('chinesehelper.koplugin/data/chinesehelper.sqlite'); print(dict(c.execute(\"SELECT key, value FROM meta WHERE key IN ('cedict_date', 'words', 'rules')\")))"
+
+      - name: tools/check.sh
+        run: tools/check.sh

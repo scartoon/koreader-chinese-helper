@@ -337,5 +337,12 @@ local fb2 = {}
 for _, r in ipairs(plugin2:fallbackLookup(Model.uncovered(texts_, rows))) do fb2[#fb2 + 1] = r.simp .. ":" .. r.source end
 table.sort(fb2)
 eq(table.concat(fb2, ","), "尚书省:wikt,红夷大炮:wp")
+-- One query for both: they share the plugin database.
+local pdb = plugin2:db()
+local real_fallback, queries = pdb.fallback, 0
+pdb.fallback = function(self, list) queries = queries + 1; return real_fallback(self, list) end
+plugin2:fallbackLookup(Model.uncovered(texts_, rows))
+pdb.fallback = real_fallback
+eq(queries, 1, "Wiktionary and Wikipedia titles in one statement")
 
 G_reader_settings = nil

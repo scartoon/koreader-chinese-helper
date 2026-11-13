@@ -132,8 +132,13 @@ function Settings:labelMode()
     return Settings.DEFAULTS.labels
 end
 
+-- One of THRESHOLDS; anything else (a hand-edited or old value) is the default.
 function Settings:threshold()
-    return tonumber(self:get("threshold")) or Settings.DEFAULTS.threshold
+    local threshold = tonumber(self:get("threshold"))
+    for _, choice in ipairs(Settings.THRESHOLDS) do
+        if threshold == choice then return threshold end
+    end
+    return Settings.DEFAULTS.threshold
 end
 
 function Settings:sizePercent()

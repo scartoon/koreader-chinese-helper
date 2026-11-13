@@ -114,7 +114,8 @@ function Resolve.word_reading(data, items, i)
 end
 
 -- Reading of items[i] from the longest fallback-dictionary word around it
--- (Wiktionary, MOE: words CC-CEDICT lacks; see Readings:prefetchFallback),
+-- (Wiktionary's, the only source main.lua attaches for readings: words
+-- CC-CEDICT lacks; see Readings:prefetchFallback),
 -- or nil. Also returns the word, the index of its first item and its cache
 -- entry ({ source=, syllables= }). Only words that give the character one
 -- reading count. When two words of the longest such length give it

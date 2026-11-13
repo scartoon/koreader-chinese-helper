@@ -61,6 +61,9 @@ for _, mm in ipairs({ 0, 2.5, 5, 7.5, 10 }) do
 end
 eq(Settings.new(store{ chinesehelper_edge_mm = 7 }):edgeMm(), 5)
 s:set("threshold", 1500); eq(s:threshold(), 1500)
+s:set("threshold", 1234); eq(s:threshold(), 3500, "not one of THRESHOLDS: the default")
+s:set("threshold", "2500"); eq(s:threshold(), 2500)
+s:set("threshold", 1500)
 -- Source labels: default "fallback"; anything else unknown falls back to it.
 eq(Settings.new(store()):labelMode(), "fallback")
 eq(Settings.new(store{ chinesehelper_labels = "all" }):labelMode(), "all")

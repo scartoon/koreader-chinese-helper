@@ -253,7 +253,8 @@ function Tap:showPopup(hit)
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }
     if #matches == 0 then
-        -- Nothing in CC-CEDICT: straight to KOReader's dictionaries.
+        -- No dictionary (CC-CEDICT or a fallback dictionary) has the
+        -- character or any word around it: straight to KOReader's dictionaries.
         self:lookupInKOReader(hit.char, hit.box)
         return
     end
