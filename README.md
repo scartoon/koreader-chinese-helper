@@ -7,8 +7,8 @@ Chinese has no spaces between words, so an ordinary dictionary lookup means long
 dragging a selection and guessing where the word ends. Here you tap one character. The plugin
 reads the text on both sides of it, finds the dictionary words actually written there, and marks
 the reading the character takes in this context: 行 is *háng* in 银行 but *xíng* in 行人. You can
-also turn on pinyin, drawn only above rare characters: the hard ones get help and the rest of the
-page stays clean. It works on any reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as
+also turn on pinyin, drawn only above characters that are rarer than a cutoff you choose: the hard
+ones get help and the rest of the page stays clean. It works on any reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as
 you open it.
 
 ![Tapping 单 in 匈奴单于入塞: chán is shown above it and marked in the popup; 单于 decides the reading; a button per word](docs/popup.png)
@@ -40,9 +40,10 @@ you open it.
   | Wikipedia titles | WP | bundled | technology, engineering, military and history terms, and many proper names: places, organisations, works (English article title) |
   | Moegirlpedia slang | Moegirl | a file you build yourself | internet slang (in Chinese) |
 
-- **Optional pinyin above rare characters**: those outside the 1,500 / 2,500 / 3,500 (default) /
-  5,000 / 7,000 most common, by wordfreq, plus the few common characters read in an unusual way
-  (单 in 单于). The reading drawn is the one the popup marks (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥).
+- **Pinyin pitched to your level, optional.** Choose how rare a character must be to get pinyin:
+  outside the 1,500, 2,500, 3,500 (default), 5,000 or 7,000 most common characters in modern
+  written Chinese. Common characters read in an unusual way (单 in 单于) get it too. The reading
+  drawn is the one the popup marks (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥).
 - **Translate the sentence**: while Wi-Fi is on and connected, a button in the popup sends the
   whole sentence to [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) if you have it
   (tested with KOAssistant 0.23.0), or to KOReader's built-in translator.
