@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.6.0 (2026-11-12)
+
+Readings
+- **Words with several CC-CEDICT readings** take the one pypinyin's phrase list gives (便宜
+  *piányi*, not *biànyí*; 明朝 *Míngcháo*, the dynasty), and 61 more were checked by hand (教授
+  *jiàoshòu*, 妻子 *qīzi*, 说法 *shuōfa*, 开通 *kāitōng*, 下水 *xiàshuǐ*, 老公 *lǎogōng*). The
+  popup now marks the right sense where a rare character's drawn tone matched another entry
+  (大爷 *dàye* "uncle", not *dàyé*).
+- **Particles take their neutral reading**: 吧 *ba*, 啦 *la*, 呗 *bei*, 喽 *lou*, 咯 *lo*, 们 *men*;
+  得 shows *de/děi* where no word decides (得到 is still *dé*). Some words now mark 得 in bold as
+  an unusual reading (总得 *zǒngděi*, 得陇望蜀 *dé*).
+- **Learned rules can be excluded by hand** (`data/rules_exclude.tsv`); six bad ones removed
+  (累官 is now *lěi guān*, 为攒 and 粘着 no longer forced to *cuán*, *nián*). 圩 is *xū* in 圩市,
+  圩日, 赶圩, 圩集.
+- **Accuracy scoring** no longer counts a particle's neutral label as the toned reading (啦 *la* is
+  not *lā*); figures in the README's Accuracy section. On the CPP test split no accuracy figure
+  drops; the popup's markers on common characters go from 97.4% to 97.5% right.
+
+Display
+- **Continuous (scroll) view**: pinyin for everything on screen. Before, only the page at the top
+  of the screen was read, from that page's start, so the lower part of the screen, and often all
+  of it, had none.
+- **Headings**: pinyin above rare characters in h1–h6 no longer overlaps them.
+- **〇** (二〇二六年) no longer gets *líng* drawn on every page with a date, and tapping it opens
+  its popup.
+
+Other
+- A tap queries Wiktionary and the Wikipedia titles in one statement; the database's prepared
+  statements no longer pile up with every distinct number of words; the threshold setting is
+  validated.
+- GitHub Actions runs `tools/check.sh` against the latest release's database.
+- README: what is drawn on a page (first occurrence only, crowded lines), only 2–4 character
+  words decide readings, how the accuracy estimate is made, the KOAssistant version tested.
+- Database 33.5 MB (about 4,500 more words, for the particles' neutral readings); zip 16.4 MB.
+
 ## 1.5.0 (2026-11-12)
 
 - **Wikipedia titles** in the popup for words no dictionary has: about 39,000 Chinese Wikipedia

@@ -46,7 +46,7 @@ It merges two plugins that are no longer developed:
 and [koreader-chinese-popup](https://github.com/scartoon/koreader-chinese-popup) (the popup). One
 plugin means one tap handler, one popup for every character, and one database.
 
-Status: **1.5.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **1.6.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -296,10 +296,10 @@ Some word-level choices need the meaning, which the plugin does not have: 东西
 `tools/eval_readings.py` runs the plugin's own resolver over the test split of the
 [CPP polyphone dataset](https://github.com/kakaobrain/g2pM) (labelled sentences from Chinese
 Wikipedia; the context rules are learned from its train split only). CPP holds only characters
-with several readings, so it is the hard case. Current figures (since the release after 1.5.0, a
+with several readings, so it is the hard case. Figures for 1.6.0 (since 1.6.0, a
 CPP label with a neutral tone that CC-CEDICT lists as an entry of its own, such as 啦 *la*, no
 longer counts as the toned reading with the same letters; that stricter scoring alone lowered
-the 1,500 figures by 0.1 points, which the reading changes of the same release won back):
+the 1,500 figures by 0.1 points, which 1.6.0's reading changes won back):
 
 | Pinyin for characters outside | Characters tested | Most likely reading right | Right counting both of a pair | Shown as a pair | Estimated, ordinary text (both shown) |
 |---|---|---|---|---|---|
