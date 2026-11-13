@@ -192,6 +192,8 @@ For reference, the user files built here (not distributed):
 
 | File | Built | Source | Rows |
 |---|---|---|---|
-| MOE | 2026-11-11 | g0v/moedict-data commit 925fa83 (2026-07-11), `dict-revised.json.xz` SHA-256 `5cc4ec0efd7e549621edf9b46d261989230c1729d9dc2c8e2056f4b21c8a93da` | 90,501 |
+| MOE | 2026-11-13 | g0v/moedict-data commit 925fa83 (2026-07-11), `dict-revised.json.xz` SHA-256 `5cc4ec0efd7e549621edf9b46d261989230c1729d9dc2c8e2056f4b21c8a93da` | 90,501 |
 | CBDB | 2026-11-12 | `cbdb_20261107.sqlite3` (generated 2026-11-07), SHA-256 `df3ee4961e7def9643ed78b967c753b560249e8e3c7aa660955bf598d9834e28` | 2,920 |
+| 成語典 | 2026-11-13 | `dict_idioms_2020_20260929.zip`, SHA-256 `33dc230ceb126cccfe3dc6e17e3b38b99618b8d6c6ff85ee911493065dc2850e` | 5,473 idioms (3,704 fallback rows) |
+| Xinhua idioms | 2026-11-13 | chinese-xinhua commit 8de1001 (2018-12-16), `idiom.json` SHA-256 `1d4b4f454ce1c416d6a1ab2369d6e66c0ff99e04390172eef70790499e21ce19` | 30,212 idioms (23,485 fallback rows) |
 | Moegirlpedia | 2026-11-12 | `zhmoegirl-20230507-alpha.slob` (snapshot 2023-05-07), SHA-256 `75e246cf8e601e389ff72edfe0ced2ded5095347f103316b282883c707af36f8` | 352 |

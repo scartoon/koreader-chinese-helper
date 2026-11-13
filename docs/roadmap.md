@@ -2,7 +2,7 @@
 
 Written 2026-11-13 from a planning discussion, against v1.6.1 (database from the
 v1.6.1 release). Four phases, one release each, run as separate Claude Code
-sessions.
+sessions. Phase 5 (a README pass) was added after phase 4.
 
 | Phase | What | Release | Status |
 |---|---|---|---|
@@ -10,6 +10,7 @@ sessions.
 | 2 | All explanatory text in simplified characters | 1.8.0 | released 2026-11-13 |
 | 3 | Richer chengyu entries (two build-it-yourself dictionaries) | 1.9.0 | released 2026-11-13 |
 | 4 | New README screenshots and sample book | 1.9.1 | released 2026-11-13 |
+| 5 | README readability pass | 1.9.2 | released 2026-11-13 |
 
 ## How to use this file
 
@@ -338,6 +339,23 @@ Re-running it after a release should regenerate all screenshots.
 - Keep the current style of detailed alt text.
 - Check the optional-dictionary sections still read as one-command steps.
 
+## Phase 5: README readability pass (1.9.2)
+
+README only (plus `data/README.md` where numbers must agree); no code changes. Make the README
+shorter, consistent and easy to scan, describing the plugin as it is now, without losing
+anything a user needs (target about 5,500 words, completeness first; alt texts unchanged):
+
+- Top: main image, gallery and captions kept; feature bullets cut to one or two lines with
+  links, bullets the captions cover dropped; a dictionary table after them (label, entries
+  added, bundled or optional), CC-CEDICT first, in the popup's order, every count from the data.
+- Fix wrong or inconsistent facts (sizes, counts, menu table, file table, joined pinyin, the
+  popup's buttons, leftover Origin history), checking every number.
+- Move misplaced material (popup placement, database building, coverage on one book, the merge
+  note); say each thing once (dictionaries, the reading decision order, accuracy figures);
+  remove release history, after checking the CHANGELOG has it.
+- Outline: intro, Install, Usage, Readings, Accuracy, Fallback dictionaries, Data, Speed,
+  Development, Credits. Every internal link resolves.
+
 ## Findings
 
 Each phase adds what later phases need to know.
@@ -640,3 +658,69 @@ none in a screenshot; not fixed):
 shown as written ("形容计数的仔细。＆比喻…" in 753 short lines, 519 views). `tools/chengyu.py`
 now drops them (`SEPARATOR`, `one_line`; tests in `tests/test_chengyu.py`). Rebuilt file: only
 those short lines (each equal to the old one minus ＆) and views changed; pushed to the device.
+
+### Phase 5
+
+**Word count** (`wc -w`, which counts a run of Chinese characters as one word): 8,973 → 6,648.
+Alt texts unchanged (369 words, checked string by string). Further cuts would have lost user
+information (credits, per-source build notes, the components and chengyu tables), so the
+5,500 target was not met.
+
+**Numbers checked against the data** (release database SHA-256 `20cc7ff8…`, 36,364,288 bytes;
+optional files in `build/`; `tools/eval_readings.py` rerun, every Accuracy figure reproduced):
+
+- Wrong in the README and fixed: database "about 33 MB" (36.4 MB); MOE download "7 MB"
+  (`dict-revised.json.xz` is 15 MB); CBDB "about 110 MB zipped" (`cbdb_20261107.zip` is 140 MB);
+  "about 200" unusual-reading words (298 in `special`; 65 of the 71 curated ones are in it);
+  MOE "about 90,000 entries" vs "about 160,000" (the source has 161,194; the file keeps 90,501);
+  成語典 5,489 / 5,473 / "about 5,500" (the file's `idioms` table has 5,473, used throughout;
+  5,489 is the xlsx's entry count, and 5,489 less the 17 dropped headwords is 5,472: the
+  difference of one was not looked into).
+- Right: 125,397 CC-CEDICT entries, 60,950 Wiktionary rows (60,415 headwords), 39,122 Wikipedia
+  titles, 2,920 CBDB, 352 Moegirlpedia, 3,704 / 23,485 idiom fallback rows, 30,212 Xinhua idioms
+  (24,110 with a 出处 view), 952 rules, 535 uncertain characters, 13,362 components.
+- `data/README.md`: the user-files table gained the 成語典 and Xinhua rows; MOE's build date is
+  2026-11-13 (the 1.8.0 rebuild), not 2026-11-11.
+
+**Removed from the README and not in the CHANGELOG** (kept here so they are not lost):
+
+- Speed against koreader-interlinear-pinyin 0.5.0, same book and pages: 13.7 ms per page (this
+  plugin 13.4 ms); 0.5.0 read its text files in 190–270 ms (this plugin's tables about 230 ms);
+  pages were pixel-for-pixel identical until 1.4.0's Wiktionary readings.
+- Tap timings (1.2.0–1.4.0): 14.7 ms median (16.9 ms mean) with Wiktionary and MOE, 13.8 ms
+  (16.6 ms) without; first tap after opening a book 20–30 ms either way; MOE opened in 1–3 ms;
+  memory 133 MB against 131 MB. 1.5.0, all five fallback dictionaries: 17–20 ms median (18–29 ms
+  mean) against 14–15 ms (about 15.5 ms mean) with Wiktionary and MOE, over the same 31 taps,
+  two runs each, Translate button showing; the first run after installing had five taps of
+  70–85 ms that did not recur. The README keeps only the current figures. The two idiom files
+  (1.9.0) were never timed.
+- Translate button (1.3.0): Wi-Fi check and mode choice 1–2 ms when the popup opens (popup built
+  in 9–15 ms against 7–10 ms without the button, same character); finding the sentence 2–3 ms.
+- Edge band in pixels at 300 dpi: 2.5 mm 30 px, 5 mm 59 px, 7.5 mm 89 px, 10 mm 118 px (the
+  README keeps 5 mm = 59 px).
+- Settings the migration copies from the old plugins: pinyin on or off, the frequency threshold,
+  pinyin size, uncertain readings, unusual readings, and whether the popup is on; neither old
+  plugin had per-book settings.
+- The Accuracy measurement continues the one published with koreader-interlinear-pinyin, on the
+  same split.
+- Which glosses go through `font_safe()` (Wikipedia, CBDB, Moegirlpedia: emoji, kaomoji,
+  symbols, non-Latin/CJK scripts, Greek spelt out): now only in `tools/fallback_sources.py` and,
+  for Wikipedia and Moegirlpedia, `data/README.md`.
+
+**Code changes recommended** (not made: this phase was README only):
+
+1. Resolver-only words show spaced pinyin in the popup (`冒顿  mò dú`, `tests/test_special.lua`),
+   while CC-CEDICT words are joined (单于 chányú). Join the syllables in `ch_popup_model.lua`
+   (`decided.syllables`), and in the menu help text of "Mark unusual readings" (`main.lua`).
+2. Menu help texts are out of date: **Fallback dictionaries** names only CBDB, MOE and
+   Moegirlpedia as files you build (not the 成語典 and Xinhua), and **Source labels** lists the
+   labels without 成语典 and 新华.
+3. The Source labels choice "Other dictionaries only (not CC-CEDICT)" could be "Fallback
+   dictionaries only", the README's name (the README now notes the mismatch once).
+4. `build_moe.py`, `build_cbdb.py` and `build_moegirl.py` fail without the plugin database; the
+   two idiom scripts fetch it from the latest release (`fallback_sources`). Doing the same in all
+   five would make every optional dictionary one command from a fresh clone (shared rule 2).
+5. The MOE file has 5 senses with private-use characters shown as □ (build log), against the
+   no-boxes rule; drop those lines as the 成語典 build does.
+6. Drop `component_notes` at the next database build (already decided in phase 4).
+

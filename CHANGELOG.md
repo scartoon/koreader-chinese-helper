@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.9.2 (2026-11-13)
+
+README
+- **Shorter and easier to scan** (about 8,970 → 6,650 words): short feature bullets under the
+  gallery, and a table of every dictionary in the order the popup checks it, with the entries
+  each adds, counted from the release database and the optional files.
+- **One place for each thing**: how a reading is decided (a numbered list in Readings), the
+  accuracy figures (Accuracy), the fallback dictionaries' behaviour (Fallback dictionaries) and
+  how to build them (one table of commands, download and file sizes, licences).
+- **Facts fixed**: database 36.4 MB (not 33); MOE adds 90,501 of its 161,194 entries; 成語典
+  5,473 idioms; download sizes (MOE 15 MB, CBDB 140 MB); about 300 unusual-reading words (not
+  200); the menu table lists all seven fallback dictionaries and **Show character components**;
+  the file table lists every Lua module; word pinyin written joined, as the popup shows it.
+- **Present tense only**: release history (since, as before, until) and comparisons with the old
+  plugins are left to this changelog.
+- `data/README.md` lists the 成語典 and Xinhua files built here.
+
+Unchanged: the plugin database (byte-identical to 1.9.0), the code apart from the version number,
+every reading.
+
 ## 1.9.1 (2026-11-13)
 
 Popup
