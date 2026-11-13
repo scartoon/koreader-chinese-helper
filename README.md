@@ -14,7 +14,16 @@ words, so the page stays clean while the hard characters get help. Works on any 
   opens the popup. Taps anywhere else turn pages and open menus as usual.
 - **Every word around it.** The popup collects every dictionary word of 1–8 characters that
   contains the tapped character, looking on both sides of it rather than guessing how the
-  sentence divides into words, and marks the reading the character has here.
+  sentence divides into words.
+- **The reading it has here, marked.** For every character, common ones included, the popup marks
+  the reading it takes in this sentence and names the word that decided it (的 is *dí* in 的确,
+  行 is *háng* in 银行). The plugin uses the 2–4 character dictionary word around the character
+  (the more common one, by [wordfreq](https://github.com/rspeer/wordfreq), when two overlap),
+  then about 950 context rules learned from labelled Wikipedia sentences, then the character's
+  most frequent reading. Particles default to their neutral tone. Where nothing decides, both
+  likely readings are marked. On held-out test sentences built around the hard cases among the
+  1,000 most common characters, the marked reading is right 97.5% of the time
+  (see [Readings](#readings) and [Accuracy](#accuracy)).
 - **CC-CEDICT first, then fallback dictionaries** for the words it lacks, in this order:
 
   | Dictionary | Label | | Mainly covers |
@@ -26,9 +35,8 @@ words, so the page stays clean while the hard characters get help. Works on any 
   | Moegirlpedia slang | Moegirl | a file you build yourself | internet slang (in Chinese) |
 
 - **Optional pinyin above rare characters**: those outside the 1,500 / 2,500 / 3,500 (default) /
-  5,000 / 7,000 most common. A character with several readings gets the one its word of 2–4
-  characters decides (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥), then context rules, then its most
-  frequent reading.
+  5,000 / 7,000 most common, by wordfreq. The reading drawn is the one the popup marks
+  (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥).
 - **Translate the sentence**: while Wi-Fi is on and connected, a button in the popup sends the whole sentence
   to [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) if you have it (tested with
   KOAssistant 0.23.0), or to KOReader's built-in translator.
