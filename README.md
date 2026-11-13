@@ -2,23 +2,13 @@
 
 **A [KOReader](https://github.com/koreader/koreader) plugin designed specifically for reading
 Chinese.** Chinese has no spaces between words, so this plugin lets you tap a single character
-and shows every dictionary word it belongs to, drawing on several dictionaries in one popup, with
-each entry from beyond CC-CEDICT labelled with its source. No long-press, no selecting, no
+and shows every dictionary word it belongs to, drawing on several dictionaries in one popup: CC-CEDICT
+first, then fallback dictionaries for the words it lacks, each fallback entry labelled with its
+source. No long-press, no selecting, no
 choosing a dictionary. Optional pinyin appears above rare characters only (plus the few common
 characters read in an unusual way, such as 单 in 单于), with readings chosen from the surrounding
 words, so the page stays clean while the hard characters get help. Works on any reflowable book
 (EPUB, FB2, MOBI, TXT and the like) as soon as you open it, with no preprocessing.
-
-Its fallback dictionaries were tuned with one book in mind, 临高启明, per the plugin author's latest
-reading interests. It is still a general-purpose plugin: nothing in it is specific to that novel, it
-works the same on any Chinese book, and the sources it added (Wikipedia titles, CBDB office titles,
-Moegirlpedia slang) help with history, technical writing and internet fiction generally. 临高启明
-was a demanding test because it mixes Ming dynasty officialdom, early-industrial technical
-vocabulary and 2010s internet and forum slang. On it, 81% of 8,000 simulated taps landed in a word or
-character the dictionaries have, and another 11.5% in an everyday combination of such words (很多,
-连连点头). Most of the remaining 7.5% are the novel's character names and its own coinages (髡贼,
-归化民), which no dictionary has. Ming forms of address and technical compounds are covered only in
-part (典史 and 红夷大炮 are in; 赵老爷 and 米尼步枪 are not).
 
 - **One tap on a character.** A single tap on a Chinese character, or on the pinyin above one,
   opens the popup. Taps anywhere else turn pages and open menus as usual.
@@ -36,11 +26,12 @@ part (典史 and 红夷大炮 are in; 赵老爷 and 米尼步枪 are not).
   | Moegirlpedia slang | Moegirl | a file you build yourself | internet slang (in Chinese) |
 
 - **Optional pinyin above rare characters**: those outside the 1,500 / 2,500 / 3,500 (default) /
-  5,000 / 7,000 most common. A character with several readings gets the one its word decides
-  (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥), then context rules, then its most frequent reading.
+  5,000 / 7,000 most common. A character with several readings gets the one its word of 2–4
+  characters decides (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥), then context rules, then its most
+  frequent reading.
 - **Translate the sentence**: while Wi-Fi is on and connected, a button in the popup sends the whole sentence
-  to [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) if you have it, or to
-  KOReader's built-in translator.
+  to [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) if you have it (tested with
+  KOAssistant 0.23.0), or to KOReader's built-in translator.
 - **No per-book preprocessing**, and the book file is never modified.
 - **Pinyin and popup are separate switches**: either one, or both.
 - **Long-press and KOReader's own dictionary are untouched**, and each word in the popup has a
@@ -103,7 +94,7 @@ all books.
 | Mark unusual readings of common characters (names, historical terms) | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [The edge band](#the-edge-band) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
-| Fallback dictionaries | Source labels (all entries / other dictionaries only, the default / none); then each dictionary on/off, in priority order: Wiktionary, CBDB office titles, MOE 重編國語辭典, Wikipedia titles, Moegirlpedia slang (CBDB, MOE and Moegirlpedia are marked "(your own file)" when installed, and greyed out with "(not installed)" when not). See [Other dictionaries](#other-dictionaries) |
+| Fallback dictionaries | Source labels (all entries / "other dictionaries only", meaning the fallback dictionaries only, the default / none); then each dictionary on/off, in priority order: Wiktionary, CBDB office titles, MOE 重編國語辭典, Wikipedia titles, Moegirlpedia slang (CBDB, MOE and Moegirlpedia are marked "(your own file)" when installed, and greyed out with "(not installed)" when not). See [Fallback dictionaries](#fallback-dictionaries) |
 | Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed), what the current page needed, and any old plugin still installed |
 
 The two switches are independent: pinyin without the popup, the popup without pinyin, or both.
@@ -167,7 +158,7 @@ stretch containing the tapped character, against both simplified and traditional
   dictionary lookup for it, and **Close**. Tapping outside the popup also closes it.
 - **Translate the sentence**: a full-width button on its own row below them, shown only while
   Wi-Fi is on and connected (see below).
-- Words CC-CEDICT does not have can come from other dictionaries (below). If no dictionary has
+- Words CC-CEDICT does not have can come from the fallback dictionaries (below). If no dictionary has
   the character or any word around it, the tap goes straight to KOReader's dictionary lookup.
 
 ### Translating the sentence
@@ -175,7 +166,9 @@ stretch containing the tapped character, against both simplified and traditional
 While Wi-Fi is on and connected, the popup has one more button on a row of its own. It closes
 the popup and sends **the whole sentence containing the tapped character**:
 
-- **With [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) installed**, the button
+- **With [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) installed** (tested with
+  KOAssistant 0.23.0; the button uses its internals, so a later version may fall back to the
+  built-in translator), the button
   reads **Translate & Analyze** and runs the sentence through KOAssistant with a built-in prompt:
   a natural English translation, then a chunk-by-chunk analysis (characters, pinyin with tone
   marks, a literal gloss and the grammatical role), then any construction that governs the
@@ -206,10 +199,10 @@ At most **200 characters** go out: a longer sentence is kept to 200 around the t
 character (centred, or shifted when it is near one end), each cut end moved inward to a
 clause mark (，；：) when there is one close by. Nothing is highlighted in the book.
 
-### Other dictionaries
+### Fallback dictionaries
 
-For words CC-CEDICT does not have, the popup also looks in other dictionaries. Two are part of
-the plugin:
+For words CC-CEDICT does not have, the popup also looks in the fallback dictionaries. Two are part
+of the plugin:
 
 - **Wiktionary**: about 61,000 words, many of them historical and literary terms, chengyu,
   technical terms and some slang.
@@ -227,8 +220,8 @@ project to distribute them (see [Data](#optional-dictionaries-you-build-yourself
 - **Moegirlpedia slang**: about 350 internet-slang terms from 萌娘百科, each with its opening
   sentence or two in Chinese (问题不大, 王八之气, 大杀器).
 
-CC-CEDICT always comes first: a word it has never gets an entry from another dictionary. After
-it, each word shows the entry of the first dictionary that has it, in this order: Wiktionary,
+CC-CEDICT always comes first: a word it has never gets an entry from a fallback dictionary. After
+it, each word shows the entry of the first fallback dictionary that has it, in this order: Wiktionary,
 CBDB, MOE, Wikipedia titles, Moegirlpedia. (CBDB's narrow office titles beat MOE's general
 definitions; an English article title is a label rather than a definition, so it comes after
 the real dictionaries; Moegirlpedia is only for words nothing else has.) The order is the
@@ -236,20 +229,20 @@ the real dictionaries; Moegirlpedia is only for words nothing else has.) The ord
 while KOReader is closed (e.g. `"moe,wikt"`: dictionaries left out keep their default place
 after those named).
 
-- An entry from another dictionary shows that dictionary's own reading (MOE's are Taiwan
+- An entry from a fallback dictionary shows that dictionary's own reading (MOE's are Taiwan
   standard; CBDB's have no tone marks) and is never marked *shown above* or *likely here*: those
   markers come from the reading resolver and appear on CC-CEDICT entries only, so the popup and
   the pinyin always agree. Wikipedia and Moegirlpedia give no readings: the popup shows one
   generated with pypinyin, marked *generated pinyin*. A word that decides the reading but is
-  missing from CC-CEDICT shows the other dictionary's definition, still tagged *decides X's
+  missing from CC-CEDICT shows the fallback dictionary's definition, still tagged *decides X's
   reading*.
 - A Wiktionary word can decide a reading in one case: the character's reading is uncertain
   and nothing else decides it (see [Readings](#readings)), as 累世 does for 累 in 累世公卿.
-  The other dictionaries' words never decide readings.
+  The other fallback dictionaries' words never decide readings.
 - A small grey line above an entry names its dictionary: **CEDICT**, **Wikt**, **CBDB**,
-  **MOE**, **WP** or **Moegirl**. By default only entries from the other dictionaries are
+  **MOE**, **WP** or **Moegirl**. By default only entries from the fallback dictionaries are
   labelled; **Source labels** can label every entry or none.
-- Each dictionary can be switched off under **Fallback dictionaries**; with all of them off the
+- Each fallback dictionary can be switched off under **Fallback dictionaries**; with all of them off the
   popup shows CC-CEDICT alone, as before. **Status** lists each dictionary's version and size, or
   that it is not installed.
 
@@ -267,21 +260,33 @@ the spoken tone changes (一定 *yídìng*, 不是 *búshì*). In the pinyin dra
 characters, a word's neutral tone shows as the character's own tone (刺猬: *wèi* over 猬).
 
 For each character, in order: an unusual reading in a listed name or term (单于 *chán yú*), if
-that option is on; the longest dictionary word around it (侥 is *jiǎo* in 侥幸 but *yáo* in
-僬侥; when two words overlap, the more common one); a context rule for the character next to it
-(about 950, learned from labelled sentences); its most frequent reading. For the about 530
+that option is on; the longest dictionary word of 2–4 characters around it (侥 is *jiǎo* in 侥幸
+but *yáo* in 僬侥; when two words overlap, the more common one; longer words in the popup, up to
+8 characters, do not decide readings); a context rule for the character next to it
+(about 950, learned from labelled sentences); its most frequent reading. Particles take their
+neutral reading by default (吧 *ba*, 啦 *la*, 得 *de*), since their toned readings live in words
+(酒吧 *jiǔbā*, 啦啦队, 得到 *dédào*). For the about 530
 characters whose most frequent reading is unreliable, a Wiktionary word around it (one CC-CEDICT
 lacks) can pick one of the two likeliest readings, while that dictionary is on; Wiktionary words
 decide nothing else, since letting them override rules or reliable defaults broke more readings
 than it fixed. Characters whose reading stays uncertain show both likely readings, or the most
-likely, or none (the menu). Measured on
-held-out labelled sentences, about 99.7% of the pinyin drawn in ordinary text is right; see
-[Accuracy](#accuracy).
+likely, or none (the menu). An estimate puts about 99.7% of the pinyin drawn in ordinary text
+right at the default setting: it is worked out from held-out labelled Wikipedia sentences,
+weighted by how often each character occurs, and counts a pair as right when either reading is;
+see [Accuracy](#accuracy).
+
+What is drawn on a page:
+
+- A character gets pinyin only the first time it appears on the page with a given reading: later
+  repeats are left bare, but a repeat with a different reading (刨 *páo* in 刨根, then *bào* in
+  刨子) is annotated again.
+- When a line is too crowded for all its pinyin to fit, the pinyin of the line's most common
+  annotated character is dropped first, and so on until the rest fit; the rarest are kept.
 
 The popup's markers use the same resolver on the same page, for every character, common ones
 included (的 is *dí* in 的确, *de* or *dì* on its own; 行 is *háng* in 银行, *xíng* in 行人). On
 held-out labelled sentences built around the 1,000 most common characters' hard cases (those with
-several readings), the marked reading is right 97.4% of the time (98.1% counting both of an
+several readings), the marked reading is right 97.5% of the time (98.2% counting both of an
 uncertain pair).
 Some word-level choices need the meaning, which the plugin does not have: 东西 is always marked
 *dōngxi* ("thing"), also where it means "east and west".
@@ -291,24 +296,42 @@ Some word-level choices need the meaning, which the plugin does not have: 东西
 `tools/eval_readings.py` runs the plugin's own resolver over the test split of the
 [CPP polyphone dataset](https://github.com/kakaobrain/g2pM) (labelled sentences from Chinese
 Wikipedia; the context rules are learned from its train split only). CPP holds only characters
-with several readings, so it is the hard case. Figures for 1.5.0:
+with several readings, so it is the hard case. Current figures (since the release after 1.5.0, a
+CPP label with a neutral tone that CC-CEDICT lists as an entry of its own, such as 啦 *la*, no
+longer counts as the toned reading with the same letters; that stricter scoring alone lowered
+the 1,500 figures by 0.1 points, which the reading changes of the same release won back):
 
 | Pinyin for characters outside | Characters tested | Most likely reading right | Right counting both of a pair | Shown as a pair | Estimated, ordinary text (both shown) |
 |---|---|---|---|---|---|
-| 1,500 most common | 5,353 | 96.3% | 98.0% | 6.9% | 99.63% |
-| 2,500 | 3,189 | 96.7% | 98.2% | 7.7% | 99.70% |
-| 3,500 (default) | 1,482 | 96.7% | 98.3% | 10.6% | 99.75% |
+| 1,500 most common | 5,353 | 96.3% | 98.0% | 7.2% | 99.60% |
+| 2,500 | 3,189 | 96.7% | 98.3% | 8.0% | 99.69% |
+| 3,500 (default) | 1,482 | 96.7% | 98.3% | 10.7% | 99.75% |
 | 5,000 | 260 | 95.4% | 98.8% | 28.8% | 99.84% |
 | 7,000 | 42 | 97.6% | 100.0% | 45.2% | 100.00% |
 
 The last column weights every character the plugin would draw by how often it occurs in ordinary
 text (wordfreq), counting characters with a single reading as right; CPP over-represents
-minority readings, so the estimate leans pessimistic. The popup's markers on the 1,000 most
-common characters (3,687 test examples): 97.4% right, 98.1% counting both of a pair. Unusual
+minority readings, so the estimate leans pessimistic. It is an estimate from Wikipedia
+sentences, not a count on books. The popup's markers on the 1,000 most common characters (3,687
+test examples): 97.5% right, 98.2% counting both of a pair. Unusual
 readings (单于 *chán yú*) agree with CPP's label in 25 of the 36 test sentences that contain one;
 8 of the 11 others are the place name 黄陂, *Huángpí*, which CPP labels *bēi*. This measurement continues the one
 published with [koreader-interlinear-pinyin](https://github.com/scartoon/koreader-interlinear-pinyin#accuracy),
 this plugin's predecessor, on the same split.
+
+**Coverage on one book.** The fallback dictionaries were tuned with one book in mind, 临高启明,
+per the plugin author's latest reading interests. It is still a general-purpose plugin: nothing in
+it is specific to that novel, and the sources it added (Wikipedia titles, CBDB office titles,
+Moegirlpedia slang) help with history, technical writing and internet fiction generally. 临高启明
+was a demanding test because it mixes Ming dynasty officialdom, early-industrial technical
+vocabulary and 2010s internet and forum slang. `tools/measure_book.py` split the book into words
+with jieba (its big dictionary, no HMM) plus the words it discovered in the book itself (frequent,
+cohesive character sequences such as 元老院 and 归化民, which jieba alone would break up), then
+simulated 8,000 taps on random characters. 81% landed in a word or character the dictionaries
+have, and another 11.5% in an everyday combination of such words (很多, 连连点头). Most of the
+remaining 7.5% are the novel's character names and its own coinages (髡贼, 归化民), which no
+dictionary has. Ming forms of address and technical compounds are covered only in part (典史 and
+红夷大炮 are in; 赵老爷 and 米尼步枪 are not).
 
 ### Line spacing
 
@@ -326,7 +349,7 @@ tighter lines, because the plugin replaces the book's line height rather than ad
 Common characters are never annotated, but some take a rare reading in particular words, mostly
 historical names, titles and places: 单于 *chán yú*, 冒顿 *mò dú*, 龟兹 *qiū cí*, 尉迟 *yù chí*,
 番禺 *pān yú*. With **Mark unusual readings of common characters** on, the plugin knows about
-190 such words (65 hand-checked) and draws, in bold, only the characters whose reading there
+200 such words (65 hand-checked) and draws, in bold, only the characters whose reading there
 differs from their usual one. A guard keeps them from matching by accident: 订单于3日发货 is
 订单 + 于, not 单于.
 
@@ -343,7 +366,7 @@ Measured on a Boox Go 7 against the two old plugins, same book, same pages:
   (results are cached).
 - **A tap**: from the tap to the popup built, 14.7 ms median (16.9 ms mean) with Wiktionary and
   the MOE dictionary, against 13.8 ms (16.6 ms) without them: one query to CC-CEDICT, then one to
-  each other dictionary for the words CC-CEDICT does not have. The first tap after opening a book
+  each fallback dictionary for the words CC-CEDICT does not have. The first tap after opening a book
   takes 20–30 ms either way; the MOE file opens on the first tap, in 1–3 ms. Memory: about
   2 MB more (KOReader's total about 133 MB against 131 MB); the dictionaries are read from the
   database, not loaded into memory.
