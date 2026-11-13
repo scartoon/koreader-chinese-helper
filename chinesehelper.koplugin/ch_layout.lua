@@ -91,6 +91,20 @@ Vertical band the glyphs actually occupy within a line box: the extra line
 height is split evenly above and below the text, so the box top is not the top
 of the characters.
 ]]
+-- The text size to assume for a character in `box`: the book's text size,
+-- unless the line box is clearly taller than a line of that text (a heading,
+-- set larger), when it is the box height over the line height
+-- (line_ratio: the line-height the plugin sets times KOReader's line
+-- spacing). Ordinary lines keep exactly text_height.
+Layout.TALLER_LINE = 1.15
+function Layout.lineTextHeight(box, text_height, line_ratio)
+    if text_height and line_ratio and line_ratio > 0
+            and box.h > text_height * line_ratio * Layout.TALLER_LINE then
+        return box.h / line_ratio
+    end
+    return text_height
+end
+
 function Layout.textBand(box, text_height)
     local height = text_height or box.h
     if height > box.h then height = box.h end

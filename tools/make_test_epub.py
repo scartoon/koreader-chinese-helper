@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Write a small EPUB for testing on a device: mixed Chinese/English text,
 traditional characters, digits, punctuation, words split by inline tags, the
-resolver-and-popup cases (的确 / 的, 东西, 行, 一 and 不), and rare characters
-that get pinyin.
+resolver-and-popup cases (的确 / 的, 东西, 行, 一 and 不), rare characters
+that get pinyin, and after page 1 headings with rare characters, 〇 in a date
+and text to scroll through.
 
     python3 tools/make_test_epub.py build/chinesehelper-test.epub
 """
@@ -36,6 +37,15 @@ PARAS = [
     "A paragraph in English only, to tap on Latin text: the quick brown fox jumps over the lazy dog.",
 ]
 
+# After page 1 (whose positions earlier device notes rely on): a heading with
+# rare characters (line spacing in h1-h6), 〇 in a date, and enough text with
+# rare characters spread through it to check continuous (scroll) view.
+LATER = (
+    ["<h1>饕餮与魑魅</h1>", "<p>二〇二六年十一月，他读完了这本书。</p>", "<h3>魍魉之章</h3>"]
+    + [f"<p>第{n}段：两军对峙，饕餮之徒侥幸逃脱，魑魅魍魉皆遁形。这里还有一些普通的句子，"
+       f"用来把页面填满，好让连续滚动时屏幕下半部分也有生僻字。</p>" for n in range(1, 41)]
+)
+
 CONTAINER = """<?xml version="1.0"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   <rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>
@@ -64,7 +74,7 @@ NCX = """<?xml version="1.0" encoding="utf-8"?>
 
 
 def xhtml():
-    body = "\n".join(f"<p>{p}</p>" for p in PARAS)
+    body = "\n".join([f"<p>{p}</p>" for p in PARAS] + LATER)
     return f"""<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh"><head><title>Test</title></head>
 <body><h2>测试页</h2>

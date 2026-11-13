@@ -60,6 +60,24 @@ glosses = Page.build(doc, 2, data, 3500)
 out = {}
 for _, g in ipairs(glosses) do out[#out + 1] = g.char end
 assert(table.concat(out) == "饕餮", "last page annotations: " .. table.concat(out, " "))
+-- Continuous (scroll) view: the screen starts at the top-of-screen position
+-- (here 之, index 6, inside page 2) and runs into page 3, up to page 4's
+-- start; boxes below the screen are left out.
+doc = fake_document(text, { 1, 5, 9, 12 })
+function doc:getXPointer() return 6 end
+items = Page.collect(doc, 2, true)
+on = {}
+for _, it in ipairs(items) do if it.on_page then on[#on + 1] = it.text end end
+assert(table.concat(on) == "之国饕餮之", "scroll on-screen items: " .. table.concat(on))
+glosses = Page.build(doc, 2, data, 3500, nil, nil, true, 1000)
+out = {}
+for _, g in ipairs(glosses) do out[#out + 1] = g.char end
+assert(table.concat(out) == "饕餮", "scroll annotations reach the next page: " .. table.concat(out))
+function doc:getScreenBoxesFromPositions(a) return { { x = 0, y = a >= 10 and 1000 or 0, w = 10, h = 20 } } end
+glosses = Page.build(doc, 2, data, 3500, nil, nil, true, 1000)
+out = {}
+for _, g in ipairs(glosses) do out[#out + 1] = g.char end
+assert(table.concat(out) == "饕", "below the screen left out: " .. table.concat(out))
 print("page walking: ok")
 
 -- Glosses carry their character's position, and Page.find locates a tapped

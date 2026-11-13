@@ -19,7 +19,8 @@ for _, c in ipairs({ "中", "国", "饕", "㐀", "䶿", "𠀀", "𪜀", "𰀀", 
 end
 -- 丽 above is U+4E3D; the compatibility supplement U+2F800 is "丽" too:
 assert(Text.isHan("\240\175\160\128"), "U+2F800 compatibility supplement")
-for _, c in ipairs({ "，", "。", "“", "a", "Z", "1", "１", " ", "\n", "〇", "ー", "あ", "한", "", "中国" }) do
+assert(Text.isHan("〇"), "〇 (U+3007) is read as a character")
+for _, c in ipairs({ "，", "。", "“", "a", "Z", "1", "１", " ", "\n", "ー", "あ", "한", "", "中国" }) do
     assert(not Text.isHan(c), "should not be Han: [" .. c .. "]")
 end
 assert(not Text.isHan("\228\184"), "truncated UTF-8")

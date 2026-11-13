@@ -34,12 +34,16 @@ local function visible_pages(document)
 end
 
 -- Items for the page plus context, each { text=, ws=, we=, joined=, on_page= }.
-function Page.collect(document, page)
+-- scroll: continuous view, where the screen starts anywhere in a page and
+-- ends in the next one: "the page" is then what is on screen, from the top of
+-- the screen (document:getXPointer()) to the start of the page after next
+-- (a page is a screen high); Page.build leaves out what falls below it.
+function Page.collect(document, page, scroll)
     if not document then return {} end
     page = page or call(document, "getCurrentPage") or 1
-    local start_xp = call(document, "getPageXPointer", page)
+    local start_xp = scroll and call(document, "getXPointer") or call(document, "getPageXPointer", page)
     if not start_xp then return {} end
-    local end_xp = call(document, "getPageXPointer", page + visible_pages(document))
+    local end_xp = call(document, "getPageXPointer", page + (scroll and 2 or visible_pages(document)))
     -- Past the last page the engine returns "" rather than nil.
     if end_xp == "" then end_xp = nil end
 
@@ -90,14 +94,16 @@ function Page.collect(document, page)
     return items
 end
 
--- Screen box for one item; nil when it is not on screen.
+-- Screen box for one item; nil when it is not on screen (screen_h: the
+-- screen's height, to leave out boxes below or above it in continuous view).
 -- get_segments must be true: in word mode crengine returns the box of every
 -- word the range touches, and the range end (`we`) is the start of the next
 -- CJK character, so each box would also cover the following character.
-local function boxes_for(document, item)
+local function boxes_for(document, item, screen_h)
     local boxes = call(document, "getScreenBoxesFromPositions", item.ws, item.we, true)
     for _, box in ipairs(boxes or {}) do
-        if box and box.w and box.w > 0 and box.h and box.h > 0 then
+        if box and box.w and box.w > 0 and box.h and box.h > 0
+                and not (screen_h and (box.y >= screen_h or box.y + box.h <= 0)) then
             return box
         end
     end
@@ -111,14 +117,15 @@ Annotations for the current page, ready for the overlay:
 (ws/we: the character's xpointers; index: its position in items), plus stats
 { items=, annotated=, special= } and the items themselves (for Page.find).
 special: loaded special words, or nil when that setting is off.
+scroll: continuous view (see Page.collect), with screen_h the screen height.
 ]]
-function Page.build(document, page, data, threshold, uncertain, special)
-    local items = Page.collect(document, page)
+function Page.build(document, page, data, threshold, uncertain, special, scroll, screen_h)
+    local items = Page.collect(document, page, scroll)
     local stats = { items = #items, annotated = 0, special = 0 }
     local glosses = {}
     for _, a in ipairs(Resolve.annotate(data, items, threshold, uncertain, special)) do
         local item = items[a.index]
-        local box = boxes_for(document, item)
+        local box = boxes_for(document, item, scroll and screen_h or nil)
         if box then
             glosses[#glosses + 1] = {
                 text = a.reading, box = box, rank = a.rank, char = item.text,

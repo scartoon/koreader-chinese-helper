@@ -115,7 +115,8 @@ function Annotator:gapCss(document)
     local ok, size = pcall(function() return document:getFontSize() end)
     if ok and tonumber(size) then font_size = tonumber(size) end
     local lh = Annotator.lineHeightFor(font_size, self:settings():sizePercent(), self:lineSpacingPercent())
-    return string.format("p,li,dd,dt,blockquote,div,td,pre{line-height:%.2f !important;}", lh)
+    -- Headings too: a rare character in a title gets pinyin like any other.
+    return string.format("p,li,dd,dt,blockquote,div,td,pre,h1,h2,h3,h4,h5,h6{line-height:%.2f !important;}", lh)
 end
 
 function Annotator:styleSignature()
@@ -173,6 +174,18 @@ end
 -- Current page
 ------------------------------------------------------------------------
 
+-- Where the reader is: the page number, whether the view is continuous
+-- (scroll), and a key for the items on screen (the page in page view; the
+-- top-of-screen position in continuous view, where scrolling stays on one
+-- page number).
+function Annotator:position(document)
+    local view = self:ui().view
+    local scroll = view ~= nil and view.view_mode == "scroll"
+    local page = document:getCurrentPage()
+    local key = scroll and ("scroll:" .. tostring(document:getXPointer())) or page
+    return page, scroll, key
+end
+
 function Annotator:refreshPage()
     local ui = self:ui()
     local document = ui and ui.document
@@ -192,12 +205,16 @@ function Annotator:refreshPage()
     local t0 = time.monotonic()
     local ok, err = pcall(function()
         local font_size = document:getFontSize()
-        local page = document:getCurrentPage()
+        local page, scroll, key = self:position(document)
         local glosses, stats, items = Page.build(document, page, data, settings:threshold(),
-            settings:uncertainMode(), self.plugin:special())
-        self.items, self.items_page = items, page
+            settings:uncertainMode(), self.plugin:special(), scroll,
+            scroll and require("device").screen:getHeight() or nil)
+        self.items, self.items_page = items, key
         self.overlay.special_style = settings:specialStyle()
         self.overlay.font_size = math.max(8, math.floor(font_size * settings:sizePercent() / 100 + 0.5))
+        -- Line box height per pixel of text, to tell headings (larger text) apart.
+        self.overlay.line_ratio = Annotator.lineHeightFor(font_size, settings:sizePercent(),
+            self:lineSpacingPercent()) * self:lineSpacingPercent() / 100
         self.overlay:setGlosses(glosses, font_size)
         stats.ms = time.to_ms(time.monotonic() - t0)
         self.last_stats = stats
@@ -245,10 +262,10 @@ end
 -- they are on, otherwise collected now (a few ms).
 function Annotator:pageItems()
     local document = self:ui().document
-    local page = document:getCurrentPage()
-    if self.items and self.items_page == page then return self.items end
-    local items = Page.collect(document, page)
-    self.items, self.items_page = items, page
+    local page, scroll, key = self:position(document)
+    if self.items and self.items_page == key then return self.items end
+    local items = Page.collect(document, page, scroll)
+    self.items, self.items_page = items, key
     return items
 end
 

@@ -127,7 +127,8 @@ function Overlay:paintTo(bb, x, y)
     for _, entry in ipairs(self.placed) do
         local item = entry.item
         local descent, ascent = self._descent or 0, self._ascent or self.font_size
-        local baseline = Layout.pinyinBaseline(item.box, self.text_height, ascent, descent, self.gap)
+        local text_height = Layout.lineTextHeight(item.box, self.text_height, self.line_ratio)
+        local baseline = Layout.pinyinBaseline(item.box, text_height, ascent, descent, self.gap)
         local px, py = x + math.floor(entry.x), y + math.floor(baseline)
         local bold = item.gloss.special and self.special_style == "bold" or false
         pcall(RenderText.renderUtf8Text, RenderText, bb, px, py, face, item.text, true, bold, color)
@@ -152,7 +153,7 @@ function Overlay:hitTest(x, y)
     local placed = self:plan(max_x)
     if not placed or #placed == 0 then return nil end
     local entry = Hit.find(placed, {
-        text_height = self.text_height, ascent = self._ascent or self.font_size,
+        text_height = self.text_height, line_ratio = self.line_ratio, ascent = self._ascent or self.font_size,
         descent = self._descent or 0, gap = self.gap,
         ox = self._paint_x or 0, oy = self._paint_y or 0,
     }, x, y)

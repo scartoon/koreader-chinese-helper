@@ -25,16 +25,17 @@ Rectangles for one placed annotation.
 
   entry   { item = {box={x,y,w,h}, w=pinyin width, ...}, x = pinyin left }
           (an element of Layout.plan's result, as kept by the overlay)
-  m       { text_height=, ascent=, descent=, gap= } as used to draw it
+  m       { text_height=, line_ratio=, ascent=, descent=, gap= } as used to draw it
 
 Returns pinyin_rect, column_rect, each { x0, y0, x1, y1 } (x1/y1 exclusive).
 ]]
 function Hit.rects(entry, m)
     local item = entry.item
     local box = item.box
-    local baseline = Layout.pinyinBaseline(box, m.text_height, m.ascent, m.descent, m.gap)
+    local text_height = Layout.lineTextHeight(box, m.text_height, m.line_ratio)
+    local baseline = Layout.pinyinBaseline(box, text_height, m.ascent, m.descent, m.gap)
     local top, bottom = baseline - m.ascent, baseline + m.descent
-    local _, glyph_bottom = Layout.textBand(box, m.text_height)
+    local _, glyph_bottom = Layout.textBand(box, text_height)
     local pinyin = { entry.x, top, entry.x + (item.w or 0), bottom }
     local column = { box.x, top, box.x + box.w, glyph_bottom }
     return pinyin, column

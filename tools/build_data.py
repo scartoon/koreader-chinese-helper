@@ -240,6 +240,11 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
         return round(f * 1e9)
 
     def rank_of(ch):
+        """Frequency rank; 〇 (not a Han character to wordfreq, so never
+        counted) takes 零's: it is the same word in dates, and unranked would
+        make it the rarest character, with pinyin drawn on every page."""
+        if ch == "〇":
+            ch = "零"
         if ch in simp_rank:
             return simp_rank[ch]
         if ch in t2s_counts:

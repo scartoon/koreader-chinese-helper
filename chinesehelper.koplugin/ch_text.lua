@@ -27,10 +27,13 @@ function Text.codepoint(s)
     return cp
 end
 
--- CJK Unified Ideographs, all extensions, and the compatibility ideographs.
+-- CJK Unified Ideographs, all extensions, the compatibility ideographs, and
+-- 〇 (U+3007, the zero of 二〇二六年: Unicode files it under CJK symbols, but
+-- it is read and looked up as a character, líng).
 function Text.isHanCodepoint(cp)
     if not cp then return false end
     return (cp >= 0x4E00 and cp <= 0x9FFF)      -- CJK Unified Ideographs
+        or cp == 0x3007                          -- 〇
         or (cp >= 0x3400 and cp <= 0x4DBF)      -- Extension A
         or (cp >= 0x20000 and cp <= 0x2EE5F)    -- Extensions B, C, D, E, F, I
         or (cp >= 0x30000 and cp <= 0x323AF)    -- Extensions G, H
