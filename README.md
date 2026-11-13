@@ -40,6 +40,10 @@ you open it.
   | Wikipedia titles | WP | bundled | technology, engineering, military and history terms, and many proper names: places, organisations, works (English article title) |
   | Moegirlpedia slang | Moegirl | a file you build yourself | internet slang (in Chinese) |
 
+  The fallback set was chosen with the time-travel novel 临高启明 in mind, which mixes Ming
+  officialdom, early-industrial technology and internet slang, so its readers are well served;
+  nothing in the plugin is specific to it ([Coverage on one book](#accuracy)).
+
 - **Pinyin pitched to your level, optional.** Choose how rare a character must be to get pinyin:
   outside the 1,500, 2,500, 3,500 (default), 5,000 or 7,000 most common characters in modern
   written Chinese. Common characters read in an unusual way (单 in 单于) get it too. The reading
