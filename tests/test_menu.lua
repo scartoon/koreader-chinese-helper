@@ -83,7 +83,16 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 10 + 5 + 5 + 3 + 5 + 5 + 6 + 3, "menu size")   -- fallback: labels + 5 dictionaries
+eq(count, 11 + 5 + 5 + 3 + 5 + 5 + 6 + 3, "menu size")   -- fallback: labels + 5 dictionaries
+
+-- Character components: on by default, a toggle.
+local comp_item = entry.sub_item_table[9]
+eq(comp_item.text, "Show character components")
+assert(plugin.settings:componentsEnabled() and comp_item.checked_func())
+comp_item.callback()
+assert(not plugin.settings:componentsEnabled() and not comp_item.checked_func())
+comp_item.callback()
+assert(plugin.settings:componentsEnabled())
 
 -- The two toggles are independent.
 local pinyin_item, popup_item = entry.sub_item_table[1], entry.sub_item_table[2]
@@ -225,7 +234,7 @@ local function names(list)
     return table.concat(out, ",")
 end
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,wp,moegirl")
-local fb_item = entry.sub_item_table[9]
+local fb_item = entry.sub_item_table[10]
 eq(fb_item.text, "Fallback dictionaries")
 -- Source labels: default "other dictionaries only".
 local labels_item = fb_item.sub_item_table[1]
@@ -304,7 +313,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,红夷大炮:moegirl,试百户
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[9].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[10].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,wp")
@@ -320,7 +329,7 @@ plugin2:init()
 eq(names(plugin2:fallbackSources()), "wikt,wp")
 local items2 = {}
 plugin2:addToMainMenu(items2)
-local dict_items = items2.chinesehelper.sub_item_table[9].sub_item_table
+local dict_items = items2.chinesehelper.sub_item_table[10].sub_item_table
 table.remove(dict_items, 1)
 eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典 (not installed)"
     .. " | Wikipedia titles | Moegirlpedia slang (not installed)")

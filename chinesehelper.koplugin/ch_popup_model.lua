@@ -359,8 +359,9 @@ end
 
 -- Short names of the dictionaries, shown as the entries' source labels.
 -- (Moegirlpedia is "Moegirl", not "Moe", which would read as MOE.)
+-- mmah and ids label the components block (ch_components.lua).
 Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", wp = "WP", cbdb = "CBDB", moe = "MOE",
-                        moegirl = "Moegirl" }
+                        moegirl = "Moegirl", mmah = "MMAH", ids = "IDS" }
 
 --[[--
 The popup's content as blocks, one per match:

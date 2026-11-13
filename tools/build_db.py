@@ -22,7 +22,10 @@ Steps:
      Chinese Wikipedia titles (the zhwiki SQL dumps, about 1.1 GB, parsed in
      a few minutes; tools/wikipedia_dump.py), both downloaded into
      build/sources/ when missing (see tools/fallback_sources.py).
-  5. Everything into one SQLite file; the lookup queries' plans are checked
+  5. Character components (tools/components.py): English Wiktionary's
+     `Han compound` analyses, Make Me a Hanzi's dictionary.txt (LGPL v3) and
+     yi-bai/ids (MIT), both downloaded into build/sources/ at a fixed commit.
+  6. Everything into one SQLite file; the lookup queries' plans are checked
      and the build fails if any of them scans a table.
 
 Schema:
@@ -36,6 +39,8 @@ Schema:
                               the one drawn (see build_data.py, word_marks.tsv)
     rules(ch, side, neighbour, reading, n)  uncertain(ch, confidence, first, second)
     special(word, pinyin, marks, freq, note)  special_guard(ordinary, word, offset)
+    components(ch, body)      a character's parts (format: tools/components.py Builder)
+    component_notes(ch, text) Wiktionary's glyph-origin text (the popup's Origin view)
     meta(key, value)          source versions and counts
 See chinesehelper.koplugin/ch_db.lua and ch_readings.lua for how they are used.
 
@@ -59,6 +64,7 @@ from importlib.metadata import version
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pinyin_util import numbered_to_marked  # noqa: E402
 import fallback_sources  # noqa: E402
+import components  # noqa: E402
 import wikipedia_dump  # noqa: E402
 
 URL = "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz"
@@ -204,6 +210,8 @@ SCHEMA = """
                           freq INTEGER NOT NULL, note TEXT);
     CREATE TABLE special_guard (ordinary TEXT NOT NULL, word TEXT NOT NULL, offset INTEGER NOT NULL);
     CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+    CREATE TABLE components (ch TEXT PRIMARY KEY, body TEXT NOT NULL) WITHOUT ROWID;
+    CREATE TABLE component_notes (ch TEXT NOT NULL, text TEXT NOT NULL);
 """
 
 
@@ -246,6 +254,44 @@ def wiktionary_info(path):
     return info
 
 
+MMAH_COMMIT = "618dbab8a8ddefb958763c8b4afbaa741a4460de"
+MMAH_URL = f"https://raw.githubusercontent.com/skishore/makemeahanzi/{MMAH_COMMIT}/dictionary.txt"
+MMAH_DEFAULT = os.path.join(BUILD_DIR, "sources", "mmah", "dictionary.txt")
+IDS_COMMIT = "2597437b928e8d530b7ae09cf53fe5ec7868569c"
+IDS_URL = f"https://raw.githubusercontent.com/yi-bai/ids/{IDS_COMMIT}/ids_lv2.txt"
+IDS_DEFAULT = os.path.join(BUILD_DIR, "sources", "ids", "ids_lv2.txt")
+
+
+def fetch(url, path):
+    """Download `url` to `path` unless it is there already."""
+    if os.path.exists(path):
+        return path
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    print(f"Downloading {url}")
+    headers = {"User-Agent": "koreader-chinese-helper build script"}
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=300) as r, \
+            open(path + ".tmp", "wb") as f:
+        f.write(r.read())
+    os.replace(path + ".tmp", path)
+    return path
+
+
+def sha256_of(path):
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def component_rows(cedict_entries, wikt_path, mmah_path, ids_path, stats):
+    """The components and component_notes rows (tools/components.py)."""
+    chars = [(ch, int(rank), reading) for ch, rank, reading in tsv(os.path.join(BUILD_DATA, "chars.tsv"), 3)]
+    builder = components.Builder(cedict_entries, chars,
+                                 components.load_wiktionary(os.path.dirname(wikt_path)),
+                                 components.load_mmah(mmah_path), components.load_ids(ids_path))
+    bodies, notes = builder.build([ch for ch, _, _ in chars], {ch for ch, rank, _ in chars if rank > 0})
+    stats.update(builder.stats)
+    return sorted(bodies.items()), sorted(notes.items())
+
+
 def resolver_digest(*tables):
     """One checksum over the resolver's tables, recorded in meta: fallback
     data must never change it (compare builds with and without fallback)."""
@@ -257,9 +303,10 @@ def resolver_digest(*tables):
     return h.hexdigest()
 
 
-def build(cedict_entries, header, sha, out, wikt=None, wp=None):
+def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None):
     """wikt: (path, rows, stats) for the Wiktionary fallback rows, or None;
-    wp: (dump folder, rows, stats) for the Wikipedia titles, or None."""
+    wp: (dump folder, rows, stats) for the Wikipedia titles, or None;
+    comps: (bodies, notes, {source: (url, sha256)}) for the components, or None."""
     os.makedirs(os.path.dirname(out), exist_ok=True)
     tmp = out + ".tmp"
     if os.path.exists(tmp):
@@ -295,6 +342,11 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None):
     # Fallback entries live in their own table: `entries` stays CC-CEDICT
     # alone, and nothing here feeds the resolver's tables above.
     fallback_sources.write_fallback(con, (wikt[1] if wikt else []) + (wp[1] if wp else []))
+    # Character components: their own tables, read only by the popup.
+    if comps:
+        con.executemany("INSERT INTO components VALUES (?, ?)", comps[0])
+        con.executemany("INSERT INTO component_notes VALUES (?, ?)", comps[1])
+        con.execute("CREATE INDEX component_notes_ch ON component_notes(ch)")
 
     meta = {
         "cedict_date": header.get("date", ""), "cedict_entries": str(len(cedict_entries)),
@@ -316,6 +368,12 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None):
         meta.update({"wp_rows": str(len(set(wp[1]))), "wp_dump": wikipedia_dump.dump_date(wp[0]),
                      "wp_url": wikipedia_dump.URL.format("*"),
                      "wp_license": "CC BY-SA 4.0 (Wikipedia contributors)"})
+    if comps:
+        meta.update({"components": str(len(comps[0])), "component_notes": str(len(comps[1])),
+                     "mmah_url": comps[2]["mmah"][0], "mmah_sha256": comps[2]["mmah"][1],
+                     "mmah_license": "LGPL v3 or later (Make Me a Hanzi dictionary.txt)",
+                     "ids_url": comps[2]["ids"][0], "ids_sha256": comps[2]["ids"][1],
+                     "ids_license": "MIT (yi-bai/ids)"})
     con.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
     con.commit()
     con.execute("VACUUM")
@@ -336,6 +394,11 @@ def words_sql(n):
     return f"SELECT word, syllables, freq FROM words WHERE word IN ({','.join('?' * n)})"
 
 
+# Keep in step with DB.componentsSql and DB.notesSql in ch_db.lua.
+COMPONENTS_SQL = "SELECT ch, body FROM components WHERE ch IN (?, ?)"
+NOTES_SQL = "SELECT ch, text FROM component_notes WHERE ch IN (?, ?) ORDER BY rowid"
+
+
 def check_query_plans(path):
     """Fail the build unless every lookup searches an index (no table scan).
     n: 1 and 36 candidate words for the popup (7+1+7 characters, words up to
@@ -348,11 +411,13 @@ def check_query_plans(path):
         (words_sql(9), 9, ("USING PRIMARY KEY",)),
         (fallback_sources.fallback_sql(1), 2, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
         (fallback_sources.fallback_sql(36), 72, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
+        (COMPONENTS_SQL, 2, ("USING PRIMARY KEY",)),
+        (NOTES_SQL, 2, ("USING INDEX component_notes_ch",)),
     ]
     try:
         for sql, nargs, wanted in checks:
             plan = "\n".join(row[3] for row in con.execute("EXPLAIN QUERY PLAN " + sql, ["x"] * nargs))
-            if any(w not in plan for w in wanted) or re.search(r"\bSCAN (entries|words|fallback)\b", plan):
+            if any(w not in plan for w in wanted) or re.search(r"\bSCAN (entries|words|fallback|components|component_notes)\b", plan):
                 sys.exit(f"Query does not use its index:\n{sql}\n{plan}")
             print(f"Query plan ok: {sql[:60]}...\n    " + plan.replace("\n", "\n    "))
     finally:
@@ -373,6 +438,9 @@ def main():
     ap.add_argument("--wikipedia", default=WP_DEFAULT,
                     help="folder of zhwiki-latest-*.sql.gz dumps; missing files are downloaded")
     ap.add_argument("--no-wikipedia", action="store_true", help="build without the Wikipedia title rows")
+    ap.add_argument("--mmah", default=MMAH_DEFAULT, help="Make Me a Hanzi dictionary.txt; downloaded when missing")
+    ap.add_argument("--ids", default=IDS_DEFAULT, help="yi-bai/ids ids_lv2.txt; downloaded when missing")
+    ap.add_argument("--no-components", action="store_true", help="build without the character components")
     args = ap.parse_args()
     path = args.cedict or download()
     with open(path, "rb") as f:
@@ -405,7 +473,17 @@ def main():
         for k in sorted(stats):
             print(f"  {k}: {stats[k]:,}")
         wp = (args.wikipedia, rows, stats)
-    meta = build(entries, header, sha, args.out, wikt, wp)
+    comps = None
+    if not args.no_components:
+        wpath = args.wiktionary if os.path.exists(args.wiktionary) else download_wiktionary(args.wiktionary)
+        mmah = fetch(MMAH_URL, args.mmah)
+        ids = fetch(IDS_URL, args.ids)
+        stats = Counter()
+        bodies, notes = component_rows(entries, wpath, mmah, ids, stats)
+        for k in sorted(stats):
+            print(f"  components, {k}: {stats[k]:,}")
+        comps = (bodies, notes, {"mmah": (MMAH_URL, sha256_of(mmah)), "ids": (IDS_URL, sha256_of(ids))})
+    meta = build(entries, header, sha, args.out, wikt, wp, comps)
     check_query_plans(args.out)
     size = os.path.getsize(args.out)
     print(f"CC-CEDICT {header.get('date', '(no date)')}: {len(entries)} entries, SHA-256 {sha}")
@@ -418,6 +496,8 @@ def main():
               f"extracted {meta['wikt_extracted']}, SHA-256 {meta['wikt_sha256']})")
     if wp:
         print(f"Wikipedia titles: {meta['wp_rows']} rows (dump {meta['wp_dump']})")
+    if comps:
+        print(f"Components: {meta['components']} characters, {meta['component_notes']} origin notes")
     print(f"Wrote {args.out} ({size / 1e6:.1f} MB)")
 
 

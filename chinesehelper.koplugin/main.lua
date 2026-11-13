@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "1.6.1"
+ChineseHelper.VERSION = "1.7.0"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -485,6 +485,12 @@ function ChineseHelper:addToMainMenu(menu_items)
                     function() return settings:popupTextPercent() end),
             },
             {
+                text = _("Show character components"),
+                help_text = _("Below the tapped character's entry, one line per part: its form, reading, a short gloss, and whether it gives the meaning or the sound (same sound, same ending, or loose). Each part has a button that opens its own popup; Origin shows English Wiktionary's account of the character's origin. A simplified character whose simplification hid a part shows its traditional form's parts. Sources: English Wiktionary, then Make Me a Hanzi, then yi-bai/ids (structure only)."),
+                checked_func = function() return settings:componentsEnabled() end,
+                callback = function() settings:set("components", not settings:componentsEnabled()) end,
+            },
+            {
                 text = _("Fallback dictionaries"),
                 help_text = _("For words CC-CEDICT does not have, the popup can show entries from other dictionaries, in the order listed here. CC-CEDICT always comes first: a word it has never gets an entry from another dictionary, and each word gets the entry of the first dictionary that has it. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE and Moegirlpedia are files you build and install yourself (see the README)."),
                 sub_item_table = plugin:fallbackItems(apply, {
@@ -564,6 +570,10 @@ function ChineseHelper:showStatus()
                 meta.cedict_entries or "?")
         end
         for _i, line in ipairs(self:fallbackStatus()) do lines[#lines + 1] = line end
+        if ok and meta.components then
+            lines[#lines + 1] = T(_("Character components: %1 (%2 characters)"),
+                self.settings:componentsEnabled() and _("on") or _("off"), meta.components)
+        end
         if session.readings_ms then
             lines[#lines + 1] = T(_("Reading tables loaded in %1 ms"), string.format("%.0f", session.readings_ms))
         end

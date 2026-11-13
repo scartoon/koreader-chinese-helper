@@ -32,7 +32,7 @@ TESTS = [
     "test_text.lua", "test_context.lua", "test_pinyin.lua", "test_settings.lua",
     "test_layout.lua", "test_hit.lua", "test_popup_model.lua", "test_edge.lua",
     "test_db.lua", "test_resolve.lua", "test_special.lua", "test_page.lua",
-    "test_integration.lua", "test_menu.lua", "test_sentence.lua", "test_translate.lua",
+    "test_integration.lua", "test_menu.lua", "test_sentence.lua", "test_translate.lua", "test_components.lua",
 ]
 
 
@@ -146,6 +146,8 @@ def main():
         g.PY_ENTRIES_SQL = build_db.entries_sql
         g.PY_WORDS_SQL = build_db.words_sql
         g.PY_FALLBACK_SQL = build_db.fallback_sources.fallback_sql
+        g.PY_COMPONENTS_SQL = build_db.COMPONENTS_SQL
+        g.PY_NOTES_SQL = build_db.NOTES_SQL
         g.TEST_KOREADER_DIR = test_data
         g.BUILD_DIR = os.path.join(ROOT, "build")
         lua.execute(f'package.path = "{PLUGIN}/?.lua;{ROOT}/tests/?.lua;" .. package.path')

@@ -48,6 +48,11 @@ you open it.
   outside the 1,500, 2,500, 3,500 (default), 5,000 or 7,000 most common characters in modern
   written Chinese. Common characters read in an unusual way (单 in 单于) get it too. The reading
   drawn is the one the popup marks (侥 is *jiǎo* in 侥幸, *yáo* in 僬侥).
+- **Character components**: below a character's entry, one line per part, giving its reading,
+  a short gloss and whether it gives the meaning or the sound (清: 氵 *shuǐ* water → meaning,
+  青 *qīng* → sound, same sound). Each part is a button that opens its own popup. A
+  simplified character whose simplification hid a part shows its traditional form's parts (观:
+  traditional 觀, 雚 *guàn* → sound; simplified: 雚 → 又).
 - **Translate the sentence**: while Wi-Fi is on and connected, a button in the popup sends the
   whole sentence to [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) if you have it
   (tested with KOAssistant 0.23.0), or to KOReader's built-in translator.
@@ -63,7 +68,7 @@ It merges two plugins that are no longer developed:
 and [koreader-chinese-popup](https://github.com/scartoon/koreader-chinese-popup) (the popup). One
 plugin means one tap handler, one popup for every character, and one database.
 
-Status: **1.6.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **1.7.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -171,12 +176,88 @@ stretch containing the tapped character, against both simplified and traditional
 - **The word that decides the reading** is tagged **· decides X's reading**, also when
   CC-CEDICT does not have it (a word from pypinyin's phrase list, or an unusual-reading word
   with a short note, such as 冒顿 *mò dú*).
+- **The character's components** (below), indented under its own entry.
 - **Buttons**: one per entry, labelled with the character or word, which opens KOReader's
-  dictionary lookup for it, and **Close**. Tapping outside the popup also closes it.
+  dictionary lookup for it; then one per component and **Origin** (below); and **Close**. Tapping outside the popup also closes it.
 - **Translate the sentence**: a full-width button on its own row below them, shown only while
   Wi-Fi is on and connected (see below).
 - Words CC-CEDICT does not have can come from the fallback dictionaries (below). If no dictionary has
   the character or any word around it, the tap goes straight to KOReader's dictionary lookup.
+
+### Character components
+
+Every single-character popup shows what the character is made of, one line per part, below the
+character's own entry:
+
+```
+髡 kūn   scalping; to make the head bald
+   髟 biāo  hair; shaggy  → meaning
+   兀 wù  (literary) rising to a height  → sound (loose)
+```
+
+- **Each part** shows its form as written in the character, its modern reading, a short gloss
+  and its role. Radical forms are looked up as their full character, with the common name:
+  氵 *shuǐ* water (三点水), 钅 *jīn* metal (金字旁), 艹 *cǎo* (草字头). 阝 is 阜 on the left
+  (左耳旁: 陈, 阿) and 邑 on the right (右耳旁: 郎, 都).
+- **Sound parts** say how well they still match the character's reading: **same sound** (same
+  syllable, tone aside: 茴 *huí* / 回 *huí*), **same ending** (same final, medial aside: 郎
+  *láng* / 良 *liáng*), or **loose** (髡 *kūn* / 兀 *wù*: the sounds have drifted apart since
+  the character was made). Among characters outside the 2,500 most common whose analysis
+  names a sound part, about 56% are same sound, 20% same ending and 23% loose.
+- **Ideogrammic compounds** (Wiktionary's) mark every part → meaning (武: 戈 + 止). A
+  **pictogram** or **indicative** character says so (象形, 指事).
+- **Each part is a button** that opens that part's own popup (its entry and its own parts, with
+  no reading marked, since it is not in the text). **Origin** opens Wiktionary's account of the
+  character's origin, in full, when there is one.
+- **Simplified characters** whose simplification hid a part show the traditional form's
+  analysis, then the parts replaced:
+
+  ```
+  观 guān  to look at; to watch
+     traditional 觀:
+     雚 guàn  (archaic) stork; heron  → sound (same sound)
+     見 jiàn  see  → meaning
+     simplified: 雚 → 又
+  ```
+
+  Where the simplification only writes the same parts the simplified way (铳 from 銃: 金 → 钅;
+  陈 from 陳: 東 → 东), the simplified forms are shown, with the traditional form's roles. A
+  character with several traditional forms (发: 發 and 髮) takes the traditional form of the
+  word it was tapped in, as CC-CEDICT gives it (头发 頭髮: 髮; 发现 發現: 發). With no such word, it
+  shows its own parts, if any.
+- **Sources**, in this order, labelled like the dictionaries:
+  - **Wikt**: English Wiktionary's analysis (its `Han compound` template; bundled, CC BY-SA
+    4.0). Where Wiktionary records more than one analysis (造, 何, 秋), the first is shown and
+    the others are in **Origin**. Some analyses describe an older form of the character than
+    the one written today (期: semantic 日, from the variant 㫷); Origin explains.
+  - **MMAH**: [Make Me a Hanzi](https://github.com/skishore/makemeahanzi) (bundled, LGPL v3),
+    for characters Wiktionary does not analyse. Its learner mnemonics are never shown (they
+    are wrong for many simplified characters: 观 "to see 见 again 又"), and where a
+    simplification hid a part, its roles are dropped and only the parts shown. Its
+    "ideographic" label is often wrong, so those parts get no role, unless its note names the
+    sound part (钺: 戉 *yuè*).
+  - **IDS**: [yi-bai/ids](https://github.com/yi-bai/ids) (bundled, MIT): the structure alone,
+    no roles, for characters neither has (龘: 龍 + 龖).
+- **Readings and glosses** of the parts come from CC-CEDICT (simplified and traditional forms),
+  except that Wiktionary's gloss of the sense a part contributes is used when it gives one
+  (見 "see", not every sense of 見). A sound part takes the reading that best matches the
+  character (雚 is *guàn* "stork", the sense behind 觀, not its default *huán*).
+- **Nothing undisplayable**: an analysis containing a character outside Unicode's Basic
+  Multilingual Plane is skipped (KOReader's fonts would draw an empty box), and the next
+  source's is used (秋: Wiktionary's semantic 禾 + abbreviated phonetic 𤒅 is skipped; Make Me a
+  Hanzi's 禾 + 火 is shown). The same goes for Origin texts.
+- Coverage of the characters in the frequency list (no analysis: 4–8% per band, mostly
+  characters whose only analyses contain such characters):
+
+  | Most common | Wikt | MMAH | IDS (structure) | None |
+  |---|---|---|---|---|
+  | 1–2,500 | 79% | 12% | 5% | 4% |
+  | 2,501–3,500 | 66% | 23% | 6% | 5% |
+  | 3,501–5,000 | 50% | 36% | 9% | 5% |
+  | 5,001–7,000 | 30% | 40% | 23% | 7% |
+  | beyond 7,000 | 17% | 18% | 56% | 8% |
+
+- **Show character components** in the menu turns the block (and its buttons) off.
 
 ### Translating the sentence
 
@@ -413,7 +494,7 @@ Measured on a Boox Go 7 against the two old plugins, same book, same pages:
 ## Data
 
 Everything is in one SQLite database, `chinesehelper.koplugin/data/chinesehelper.sqlite` (about
-33 MB):
+36 MB):
 
 - **CC-CEDICT** (`entries`): the popup's dictionary.
 - **Fallback dictionaries** (`fallback`): entries from English **Wiktionary** for words CC-CEDICT
@@ -432,6 +513,10 @@ Everything is in one SQLite database, `chinesehelper.koplugin/data/chinesehelper
   out (很多, 这次, 一天, 脸上: a closed-class word such as a numeral, measure word, adverb, locative
   or particle next to a word CC-CEDICT has), as are numerals and Wiktionary entries that only
   name places.
+- **Character components** (`components`, `component_notes`): about 13,400 characters' parts,
+  roles, readings, glosses and sound labels, built once from Wiktionary, Make Me a Hanzi and
+  yi-bai/ids (see [Character components](#character-components)), and Wiktionary's origin texts
+  for the **Origin** view. About 2.9 MB.
 - **The reading tables** (every character's frequency rank and default reading, words, context
   rules, uncertain characters, unusual readings). The fallback dictionaries never feed these: the
   build records a checksum of them, which is the same with and without the fallback table. (At
@@ -568,7 +653,8 @@ The code is licensed under the **GNU General Public License v3.0** (see [`LICENS
 like WordGloss and both plugins it merges.
 
 The data (the database, and the files in `data/`) is derived from, and distributed under,
-[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/):
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), except as noted for Make Me a
+Hanzi:
 
 - **[CC-CEDICT](https://www.mdbg.net/chinese/dictionary?page=cc-cedict)**, © MDBG and
   contributors, CC BY-SA 4.0: the dictionary, readings and words.
@@ -592,6 +678,19 @@ The data (the database, and the files in `data/`) is derived from, and distribut
   of their English articles (English Wikipedia, CC BY-SA 4.0), for the fallback dictionary.
   Changes made: titles filtered by category and length, converted to both scripts with OpenCC,
   readings generated with pypinyin; see `data/README.md`.
+- Wiktionary's `Han compound` analyses and etymology texts, as above, for the character
+  components and the Origin view.
+- **[Make Me a Hanzi](https://github.com/skishore/makemeahanzi)** `dictionary.txt` by Shaunak
+  Kishore (derived from Unihan and cjklib), under the
+  [GNU LGPL v3](https://www.gnu.org/licenses/lgpl-3.0.html) or later: decompositions and
+  etymology types for the character components. The components rows taken from it (labelled
+  MMAH) are under the LGPL v3; the licence text is in the plugin folder
+  (`LGPL-3.0.txt`, with the GPL v3 it refers to, `GPL-3.0.txt`), and the build script that
+  derives them is `tools/components.py`. Changes made: the `hint` text dropped, roles dropped
+  where a simplification hid a part, the sound part taken from the hint where it names one.
+  Its `graphics.txt` (Arphic licence) is not used.
+- **[yi-bai/ids](https://github.com/yi-bai/ids)** by Yi Bai, MIT License: character structures
+  (`ids_lv2.txt`) for the components of characters no other source analyses.
 
 Not distributed, never in the repository or a release; tools in `tools/` build them from the
 originals for the user's own device:

@@ -15,6 +15,9 @@
 --   fallback(simp, trad, pinyin, syllables, defs, source)   other dictionaries,
 --                         for words CC-CEDICT lacks (indexes on simp and trad);
 --                         the same table in the user's optional MOE file
+--   components(ch, body)                           a character's parts, for the popup
+--   component_notes(ch, text)                      (ch_components.lua); missing from
+--                         databases built before 1.7.0
 --   meta(key, value)
 --
 -- The SQL here must stay identical to tools/build_db.py's, which checks the
@@ -136,6 +139,34 @@ function DB:fallback(words)
     end)
     if not ok then return {}, err end
     return rows
+end
+
+-- Components rows and origin notes for one or two characters. Kept identical
+-- to tools/build_db.py's COMPONENTS_SQL and NOTES_SQL.
+DB.COMPONENTS_SQL = "SELECT ch, body FROM components WHERE ch IN (?, ?)"
+DB.NOTES_SQL = "SELECT ch, text FROM component_notes WHERE ch IN (?, ?) ORDER BY rowid"
+
+-- { [ch] = body } for the characters of `list` (one or two; more are
+-- looked up two at a time). A database without the table gives none.
+function DB:components(list)
+    local out = {}
+    for k = 1, #list, 2 do
+        pcall(self.each, self, DB.COMPONENTS_SQL, { list[k], list[k + 1] or "" }, function(row)
+            out[row[1]] = row[2]
+        end)
+    end
+    return out
+end
+
+-- { [ch] = text } of the origin notes for the characters of `list`.
+function DB:notes(list)
+    local out = {}
+    for k = 1, #list, 2 do
+        pcall(self.each, self, DB.NOTES_SQL, { list[k], list[k + 1] or "" }, function(row)
+            out[row[1]] = row[2]
+        end)
+    end
+    return out
 end
 
 -- { [word] = { "syllables", freq } } for the words of `list` in the words table.

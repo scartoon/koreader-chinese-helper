@@ -41,7 +41,8 @@ local Model = require("ch_popup_model")
 
 local Popup = InputContainer:extend{
     title = nil,       -- the character
-    blocks = nil,      -- the entries (ch_popup_model.lua Model.blocks)
+    blocks = nil,      -- the entries (ch_popup_model.lua Model.blocks), and the
+                       -- components block (ch_components.lua Components.block)
     labels = nil,      -- source -> label text (Model.SOURCE_LABELS)
     label_mode = "fallback", -- which entries carry a label: "all", "fallback", "none"
     header = nil,      -- PTF phrase around the character (Model.header)
@@ -188,22 +189,33 @@ function Popup:body(text_w, max_h)
     local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
     local label_face = Font:getFace("x_smallinfofont", unscaled(self:labelPx()))
     local block_gap = math.floor(self.face.size * 0.6)
-    local function stack(width)
+    -- A components block (ch_components.lua) is indented by one em, below
+    -- the character's own entry.
+    local indent = self.face.size
+    local function stack(full_width)
         local group = VerticalGroup:new{ align = "left" }
         for k, b in ipairs(self.blocks or {}) do
             if k > 1 then group[#group + 1] = VerticalSpan:new{ width = block_gap } end
+            local width = b.components and full_width - indent or full_width
+            local function add(widget)
+                if b.components then
+                    widget = HorizontalGroup:new{ align = "top", HorizontalSpan:new{ width = indent }, widget }
+                end
+                group[#group + 1] = widget
+            end
             if self:labelled(b) then
-                group[#group + 1] = TextWidget:new{
+                add(TextWidget:new{
                     text = (self.labels or {})[b.source] or b.source, face = label_face,
                     fgcolor = Blitbuffer.COLOR_GRAY_5, max_width = width,
-                }
+                })
             end
-            group[#group + 1] = TextBoxWidget:new{ text = TextBoxWidget.PTF_HEADER .. b.head, face = self.face,
-                                                   width = width }
+            if b.head then
+                add(TextBoxWidget:new{ text = TextBoxWidget.PTF_HEADER .. b.head, face = self.face, width = width })
+            end
             if #b.lines > 0 then
-                group[#group + 1] = TextBoxWidget:new{
+                add(TextBoxWidget:new{
                     text = TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n"), face = self.face, width = width,
-                }
+                })
             end
         end
         return group

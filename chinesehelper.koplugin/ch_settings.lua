@@ -35,6 +35,7 @@ Settings.DEFAULTS = {
     labels = "fallback",      -- source labels: "all", "fallback" (entries not from CC-CEDICT), "none"
     edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5, 7.5 or 10 mm
     popup_text_pct = 60,      -- 38 px on a Boox Go 7 with 64 px book text (the old popups used 43 px)
+    components = true,        -- "Show character components" in single-character popups
 }
 
 -- Old key -> new key. interlinearpinyin_tap_definitions has no successor:
@@ -96,6 +97,7 @@ end
 function Settings:pinyinEnabled() return self:get("pinyin_enabled") == true end
 function Settings:popupEnabled() return self:get("popup_enabled") == true end
 function Settings:specialEnabled() return self:get("special") == true end
+function Settings:componentsEnabled() return self:get("components") == true end
 
 -- "wikt", "wp", "cbdb", "moe" or "moegirl": is that fallback dictionary
 -- switched on?

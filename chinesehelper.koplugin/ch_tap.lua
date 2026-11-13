@@ -19,6 +19,7 @@ local time = require("ui/time")
 local _ = require("gettext")
 local T = require("ffi/util").template
 
+local Components = require("ch_components")
 local Context = require("ch_context")
 local Edge = require("ch_edge")
 local Model = require("ch_popup_model")
@@ -31,6 +32,13 @@ Tap.__index = Tap
 
 Tap.ZONE_ID = "chinesehelper_tap"
 Tap.BUTTONS_PER_ROW = 4
+
+-- TextBoxWidget's bold markers (ch_popup.lua loads KOReader's widgets, so
+-- only when a popup is shown).
+local function bold()
+    local Popup = require("ch_popup")
+    return Popup.BOLD_START, Popup.BOLD_END
+end
 
 function Tap.new(plugin)
     return setmetatable({ plugin = plugin }, Tap)
@@ -233,12 +241,8 @@ end
 
 function Tap:showPopup(hit)
     local t0 = time.monotonic()
-    local db, err = self.plugin:db()
-    if not db then
-        UIManager:show(InfoMessage:new{
-            text = T(_("Chinese helper: dictionary not available (%1)."), tostring(err)), timeout = 4 })
-        return
-    end
+    local db = self:openDb()
+    if not db then return end
     local document = self:ui().document
     local left, right = Context.around(document, hit)
     local cands, texts = Text.candidates(left, hit.char, right)
@@ -253,43 +257,150 @@ function Tap:showPopup(hit)
         default = data and select(2, data:char(hit.char)) or nil,
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }
-    if #matches == 0 then
-        -- No dictionary (CC-CEDICT or a fallback dictionary) has the
-        -- character or any word around it: straight to KOReader's dictionaries.
-        self:lookupInKOReader(hit.char, hit.box)
-        return
-    end
-    local Popup = require("ch_popup")
-    local popup
-    local buttons = {}
-    for _, m in ipairs(matches) do
-        local word = m.word
-        buttons[#buttons + 1] = {
-            text = word,
-            callback = function()
-                popup:onClose()
-                self:lookupInKOReader(word, hit.box)
-            end,
-        }
-    end
-    buttons[#buttons + 1] = { text = _("Close"), callback = function() popup:onClose() end }
-    local rows = Text.rows(buttons, Tap.BUTTONS_PER_ROW)
-    local sentence_row = self:sentenceRow(hit, function() popup:onClose() end)
-    if sentence_row then rows[#rows + 1] = sentence_row end
-    local font_size = self:textHeight()
-    popup = Popup:new{
-        title = hit.char,
-        blocks = Model.blocks(matches, hit.char, annotated, Popup.BOLD_START, Popup.BOLD_END),
-        labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
-        header = Model.header(left, hit.char, right, Popup.BOLD_START, Popup.BOLD_END),
-        buttons = rows,
-        anchor = hit.box,
-        text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),
+    self:present{
+        db = db, char = hit.char, box = hit.box, cands = cands, rows = rows, matches = matches,
+        annotated = annotated, header = Model.header(left, hit.char, right, bold()),
+        sentence = function(close) return self:sentenceRow(hit, close) end,
     }
-    UIManager:show(popup)
     logger.dbg(string.format("chinesehelper: %s [%s|%s] reading %s, %d matches in %.1f ms",
         hit.char, table.concat(left, ""), table.concat(right, ""), tostring(chosen), #matches,
         time.to_ms(time.monotonic() - t0)))
+end
+
+function Tap:openDb()
+    local db, err = self.plugin:db()
+    if not db then
+        UIManager:show(InfoMessage:new{
+            text = T(_("Chinese helper: dictionary not available (%1)."), tostring(err)), timeout = 4 })
+    end
+    return db
+end
+
+-- The popup of one character on its own, outside the text: a component's
+-- button opens it. No reading is marked (there is no occurrence to resolve).
+function Tap:showCharPopup(char, box)
+    local db = self:openDb()
+    if not db then return end
+    local cands, texts = Text.candidates({}, char, {})
+    local rows = db:lookup(texts)
+    for _, row in ipairs(self:fallbackRows(texts, rows)) do rows[#rows + 1] = row end
+    local data = self.plugin:readings()
+    local matches = Model.matches{
+        cands = cands, rows = rows, order = self.plugin.settings:fallbackOrder(),
+        default = data and select(2, data:char(char)) or nil,
+    }
+    self:present{ db = db, char = char, box = box, cands = cands, rows = rows, matches = matches,
+                  annotated = false }
+end
+
+-- The components to show for `char` (ch_components.lua), or nil.
+function Tap:components(db, char, cands, rows)
+    if not self.plugin.settings:componentsEnabled() then return nil end
+    local ok, c, via, changes, note_chars = pcall(Components.resolve, char,
+        function(list) return db:components(list) end, cands, rows)
+    if not ok then
+        logger.warn("chinesehelper: components failed:", tostring(c))
+        return nil
+    end
+    if not c then return nil end
+    return { c = c, via = via, changes = changes, note_chars = note_chars }
+end
+
+-- Wiktionary's origin text for the characters (the tapped one, then the
+-- traditional form shown), or "".
+function Tap:originText(db, chars)
+    local notes = db:notes(chars)
+    local out = {}
+    for _, ch in ipairs(chars) do
+        if notes[ch] and notes[ch] ~= "" then
+            out[#out + 1] = (#chars > 1 and (ch .. "\n") or "") .. notes[ch]
+        end
+    end
+    return table.concat(out, "\n\n")
+end
+
+function Tap:showOrigin(char, text)
+    local TextViewer = require("ui/widget/textviewer")
+    UIManager:show(TextViewer:new{
+        title = T(_("%1: origin (English Wiktionary, CC BY-SA 4.0)"), char),
+        text = text,
+    })
+end
+
+--[[--
+Show the popup.
+  args.db, args.char, args.box      the database, the character, its screen box (or nil)
+  args.cands, args.rows             Text.candidates and the rows looked up for them
+  args.matches                      Model.matches
+  args.annotated                    pinyin drawn above this occurrence
+  args.header                       the phrase around the character (or nil)
+  args.sentence                     function(close) -> the sentence button's row (or nil)
+]]
+function Tap:present(args)
+    local comp = self:components(args.db, args.char, args.cands, args.rows)
+    if #args.matches == 0 and not comp then
+        -- No dictionary (CC-CEDICT or a fallback dictionary) has the
+        -- character or any word around it: straight to KOReader's dictionaries.
+        self:lookupInKOReader(args.char, args.box)
+        return
+    end
+    local Popup = require("ch_popup")
+    local b0, b1 = bold()
+    local popup
+    local close = function() popup:onClose() end
+    local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1)
+    local words = {}
+    for _, m in ipairs(args.matches) do
+        local word = m.word
+        words[#words + 1] = {
+            text = word,
+            callback = function()
+                popup:onClose()
+                self:lookupInKOReader(word, args.box)
+            end,
+        }
+    end
+    local close_button = { text = _("Close"), callback = close }
+    local button_rows
+    local block = comp and Components.block(comp.c, b0, b1, comp.via, comp.changes)
+    if block then
+        -- Below the character's own entry (when it has one).
+        local first = args.matches[1]
+        table.insert(blocks, (first and first.len == 1) and 2 or 1, block)
+        local extra = {}
+        for _, part in ipairs(Components.buttons(comp.c)) do
+            extra[#extra + 1] = {
+                text = part.text,
+                callback = function()
+                    popup:onClose()
+                    self:showCharPopup(part.char, args.box)
+                end,
+            }
+        end
+        local origin = self:originText(args.db, comp.note_chars)
+        if origin ~= "" then
+            extra[#extra + 1] = { text = _("Origin"), callback = function() self:showOrigin(args.char, origin) end }
+        end
+        extra[#extra + 1] = close_button
+        button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
+        for _, row in ipairs(Text.rows(extra, Tap.BUTTONS_PER_ROW)) do button_rows[#button_rows + 1] = row end
+    else
+        words[#words + 1] = close_button
+        button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
+    end
+    local sentence_row = args.sentence and args.sentence(close)
+    if sentence_row then button_rows[#button_rows + 1] = sentence_row end
+    local font_size = self:textHeight()
+    popup = Popup:new{
+        title = args.char,
+        blocks = blocks,
+        labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
+        header = args.header,
+        buttons = button_rows,
+        anchor = args.box,
+        text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),
+    }
+    UIManager:show(popup)
 end
 
 return Tap

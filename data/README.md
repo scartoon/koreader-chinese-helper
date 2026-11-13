@@ -57,6 +57,22 @@ The data is derived from, and distributed under,
   Wikimedia SQL dumps (`page`, `langlinks`, `page_props`, `categorylinks`, `linktarget`),
   https://dumps.wikimedia.org/zhwiki/, for the `fallback` table; licence
   https://creativecommons.org/licenses/by-sa/4.0/.
+- **Wiktionary** again, for the `components` and `component_notes` tables: single-character
+  entries' `Han compound`, `liushu` and `Han simp` templates and their etymology text.
+
+Not CC BY-SA, in the `components` table only:
+
+- **Make Me a Hanzi** `dictionary.txt` by Shaunak Kishore, GNU LGPL v3 or later (licence text:
+  `chinesehelper.koplugin/LGPL-3.0.txt`) — https://github.com/skishore/makemeahanzi — rows
+  whose source is `mmah`. Changes: `hint` dropped; for a simplified character whose
+  simplification hid a part, roles dropped; an "ideographic" entry whose hint says "X also
+  provides the pronunciation" gets X as its sound part; parts' readings and glosses from
+  CC-CEDICT.
+- **yi-bai/ids** `ids_lv2.txt` by Yi Bai, MIT License — https://github.com/yi-bai/ids — rows
+  whose source is `ids` (structure only).
+
+Rows (and origin texts) containing a character outside the Basic Multilingual Plane are left
+out: the device fonts lack most of them.
 
 Changes made to the Wiktionary data: only entries with a Mandarin pinyin reading (mainland
 reading first); senses marked only for a non-Mandarin variety (Cantonese, Hokkien, Wu...) dropped;
@@ -133,7 +149,7 @@ cross-references reformatted; everything stored in SQLite.
 
 ## Versions used
 
-The release database was built on 2026-11-12 from:
+The release database was built on 2026-11-13 from:
 
 | Source | Version |
 |---|---|
@@ -143,6 +159,9 @@ The release database was built on 2026-11-12 from:
 | CPP dataset | train split, as fetched by `tools/learn_from_cpp.py` |
 | Wiktionary | English Wiktionary dump of **2026-10-01**, kaikki.org extraction of 2026-10-30 (wiktextract 19f9a30), `kaikki.org-dictionary-Chinese.jsonl.gz`, SHA-256 `9663c01322014cea417fbe4812cc073ca2d6a6998946edb244bf4f26853819c9`; 60,950 fallback rows |
 | Chinese Wikipedia | zhwiki dump of **2026-11-01** (`zhwiki-latest-*.sql.gz`, fetched 2026-11-11); 39,122 fallback rows |
+| Make Me a Hanzi | commit `618dbab` (2018-10-16), `dictionary.txt`, SHA-256 `744bb05d5b0742e9ee35c37791f94d56a173349b3367569e7ca11e510364d203` |
+| yi-bai/ids | commit `2597437` (2026-10-31), `ids_lv2.txt`, SHA-256 `b728e92679a9cb18a8f67f55f654f03875791dc34f6bab41ed1d4b4116bea7d6` |
+| Components | 13,362 characters, 6,591 origin texts (from the Wiktionary file above and these two) |
 
 `tools/build_db.py` prints the CC-CEDICT date, entry count and checksum, the Wiktionary dump
 date, extraction date and checksum and the Wikipedia dump date, and records them with the
