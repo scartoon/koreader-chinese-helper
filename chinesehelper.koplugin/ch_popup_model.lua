@@ -147,14 +147,15 @@ end
 
 ------------------------------------------------------------------------
 -- Fallback dictionaries (Wiktionary and Wikipedia titles in the plugin
--- database; CBDB, MOE and Moegirlpedia in the user's optional files):
+-- database; CBDB, MOE, the 成語典, Xinhua idioms and Moegirlpedia in the
+-- user's optional files):
 -- consulted only for candidate words CC-CEDICT has no row for, one source
 -- per word.
 ------------------------------------------------------------------------
 
 -- After CC-CEDICT, in this order (the default; Settings:fallbackOrder() can
 -- change it, passed to Model.matches as args.order).
-Model.SOURCE_ORDER = { "wikt", "cbdb", "moe", "wp", "moegirl" }
+Model.SOURCE_ORDER = { "wikt", "cbdb", "moe", "idioms", "xinhua", "wp", "moegirl" }
 -- Sources whose readings are generated (pypinyin), not the source's own:
 -- the popup says so.
 Model.GENERATED_READING = { wp = true, moegirl = true }
@@ -361,13 +362,84 @@ end
 -- (Moegirlpedia is "Moegirl", not "Moe", which would read as MOE.)
 -- mmah and ids label the components block (ch_components.lua).
 Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", wp = "WP", cbdb = "CBDB", moe = "MOE",
+                        idioms = "成语典", xinhua = "新华",
                         moegirl = "Moegirl", mmah = "MMAH", ids = "IDS" }
+
+------------------------------------------------------------------------
+-- Idioms (the user's 成語典 and Xinhua files, tools/chengyu.py): a short
+-- line of Chinese explanation under an English entry, and the 出处 view.
+------------------------------------------------------------------------
+
+-- Entries whose text is already Chinese: no short line added under them.
+Model.CHINESE_SOURCES = { moe = true, idioms = true, xinhua = true, moegirl = true }
+Model.CHUCHU = "出处"
+
+--[[--
+{ [form] = {source=, short=, view=} } from idiom rows ({simp, trad, short,
+view, source}), the first source in `order` (Model.SOURCE_ORDER by default)
+for each form; a source's empty field is filled from the next one that has
+it (an idiom whose 成語典 entry has no short line still gets Xinhua's).
+]]
+function Model.pickIdioms(rows, order)
+    local rank = {}
+    for k, s in ipairs(order or Model.SOURCE_ORDER) do rank[s] = k end
+    local sorted = {}
+    for k, row in ipairs(rows or {}) do sorted[#sorted + 1] = { row, rank[row.source] or 99, k } end
+    table.sort(sorted, function(a, b)
+        if a[2] ~= b[2] then return a[2] < b[2] end
+        return a[3] < b[3]
+    end)
+    local out = {}
+    for _, item in ipairs(sorted) do
+        local row = item[1]
+        for _, form in ipairs({ row.simp, row.trad }) do
+            if form then
+                local info = out[form]
+                if not info then
+                    info = {}
+                    out[form] = info
+                end
+                if (info.short or "") == "" and (row.short or "") ~= "" then
+                    info.short, info.short_source = row.short, row.source
+                end
+                if (info.view or "") == "" and (row.view or "") ~= "" then
+                    info.view, info.source = row.view, row.source
+                end
+            end
+        end
+    end
+    return out
+end
+
+-- Attach the idiom information to the matches of two or more characters
+-- (m.idiom = {short=, short_source=, view=, source=}).
+function Model.attachIdioms(matches, idioms)
+    for _, m in ipairs(matches) do
+        if m.len and m.len > 1 and idioms[m.word] then m.idiom = idioms[m.word] end
+    end
+    return matches
+end
+
+-- The 出处 buttons: { {word=, source=, view=, text=}, ... }, one per match
+-- with a view, labelled 出处 (or "一毛不拔 出处" when there are several).
+function Model.chuchu(matches)
+    local out = {}
+    for _, m in ipairs(matches) do
+        if m.idiom and (m.idiom.view or "") ~= "" then
+            out[#out + 1] = { word = m.word, source = m.idiom.source, view = m.idiom.view }
+        end
+    end
+    for _, b in ipairs(out) do b.text = #out > 1 and (b.word .. " " .. Model.CHUCHU) or Model.CHUCHU end
+    return out
+end
 
 --[[--
 The popup's content as blocks, one per match:
   { head = "**宛**  yuān · shown above" (the word, its first reading, markers),
     source = "cedict" / "wikt" / "wp" / "cbdb" / "moe" / "moegirl" (whose entry it is),
-    lines = { "winding; as if", "wǎn: ...", ... } (senses, further readings) }
+    lines = { "winding; as if", "wǎn: ...", ... } (senses, further readings),
+    note = { source = "idioms" / "xinhua", text = "比喻…" } or nil: an idiom's
+      Chinese short line, under an entry whose text is not Chinese already }
 b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
 The tapped character's marked readings are "shown above" when `annotated`,
 "one of these" when Model.matches set m.mark (the uncertainty pair), and
@@ -401,6 +473,10 @@ function Model.blocks(matches, char, annotated, b0, b1)
                 block.head = b0 .. m.word .. b1 .. "  " .. e.pinyin .. marked .. tag
                 block.source = e.source or "cedict"
                 block.lines[#block.lines + 1] = senses
+                local idiom = m.idiom
+                if idiom and (idiom.short or "") ~= "" and not Model.CHINESE_SOURCES[block.source] then
+                    block.note = { source = idiom.short_source, text = idiom.short }
+                end
             else
                 block.lines[#block.lines + 1] = e.pinyin .. marked .. ": " .. senses
             end
@@ -425,6 +501,7 @@ function Model.render(matches, char, annotated, b0, b1)
     local out = {}
     for _, block in ipairs(Model.blocks(matches, char, annotated, b0, b1)) do
         out[#out + 1] = block.head .. "\n" .. table.concat(block.lines, "\n")
+            .. (block.note and ("\n" .. block.note.text) or "")
     end
     return table.concat(out, "\n\n")
 end

@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "1.8.0"
+ChineseHelper.VERSION = "1.9.0"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -165,13 +165,19 @@ end
 ------------------------------------------------------------------------
 
 ChineseHelper.SOURCE_NAMES = { wikt = "Wiktionary", wp = "Wikipedia titles", cbdb = "CBDB office titles",
-                                moe = "MOE 重編國語辭典", moegirl = "Moegirlpedia slang" }
+                                moe = "MOE 重編國語辭典", idioms = "MOE 成語典", xinhua = "Xinhua idioms",
+                                moegirl = "Moegirlpedia slang" }
 -- In the plugin database (the release): their rows are in its fallback table.
 ChineseHelper.BUNDLED_SOURCES = { wikt = true, wp = true }
 -- Files the user builds and installs (licences that forbid distributing
--- them): tools/build_moe.py, build_cbdb.py, build_moegirl.py.
+-- them): tools/build_moe.py, build_cbdb.py, build_idioms.py, build_xinhua.py,
+-- build_moegirl.py.
 ChineseHelper.LOCAL_FILES = { moe = "chinesehelper-moe.sqlite", cbdb = "chinesehelper-cbdb.sqlite",
+                              idioms = "chinesehelper-idioms.sqlite", xinhua = "chinesehelper-xinhua.sqlite",
                               moegirl = "chinesehelper-moegirl.sqlite" }
+-- Fallback dictionaries whose files also hold idioms' short lines and 出处
+-- views (an idioms table) for words CC-CEDICT has.
+ChineseHelper.IDIOM_SOURCES = { idioms = true, xinhua = true }
 
 -- Where the user's own files go: KOReader's data folder, which plugin
 -- updates leave alone (Android: /sdcard/koreader/data/chinesehelper/).
@@ -270,6 +276,24 @@ function ChineseHelper:fallbackLookup(words, only)
     return out
 end
 
+-- { [form] = {short=, short_source=, view=, source=} } for the idioms among
+-- `words`, from the 成語典 and Xinhua files that are switched on and
+-- installed, in the fallback order (Model.pickIdioms).
+function ChineseHelper:idiomLookup(words)
+    local Model = require("ch_popup_model")
+    local rows = {}
+    if #words == 0 then return {} end
+    for _i, src in ipairs(self:fallbackSources()) do
+        if ChineseHelper.IDIOM_SOURCES[src.source] then
+            for _j, row in ipairs(src.db:idioms(words)) do
+                row.source = src.source
+                rows[#rows + 1] = row
+            end
+        end
+    end
+    return Model.pickIdioms(rows, self.settings:fallbackOrder())
+end
+
 -- One Status line per fallback dictionary, in priority order: version,
 -- size, on or off.
 function ChineseHelper:fallbackStatus()
@@ -286,6 +310,12 @@ function ChineseHelper:fallbackStatus()
         moe = function(m) return T(_("MOE 重編國語辭典: %1 (moedict-data %2, %3 entries, %4)"), state("moe"),
             (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?",
             m.moe_text == "simplified" and _("simplified text") or _("traditional text")) end,
+        idioms = function(m) return T(_("MOE 成語典: %1 (%2, %3 idioms, %4 not in CC-CEDICT, %5)"), state("idioms"),
+            m.idioms_version or "?", m.idioms_rows or "?", m.idioms_fallback_rows or "?",
+            m.idioms_text == "traditional" and _("traditional text") or _("simplified text")) end,
+        xinhua = function(m) return T(_("Xinhua idioms: %1 (chinese-xinhua %2, %3 idioms, %4 not in CC-CEDICT)"),
+            state("xinhua"), (m.xinhua_commit_date or "?"):sub(1, 10), m.xinhua_rows or "?",
+            m.xinhua_fallback_rows or "?") end,
         moegirl = function(m) return T(_("Moegirlpedia slang: %1 (snapshot %2, %3 entries)"), state("moegirl"),
             (m.moegirl_snapshot or "?"):sub(1, 10), m.moegirl_rows or "?") end,
     }

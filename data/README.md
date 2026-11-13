@@ -100,9 +100,9 @@ dropped; each title under its OpenCC `t2s` and `s2t` forms; the English title as
 (underscores as spaces, Greek letters spelt out, characters KOReader's fonts may not draw taken
 out); a reading generated with pypinyin, shown as such.
 
-Not part of this data, never committed or released: three optional dictionaries that
-`tools/build_moe.py`, `tools/build_cbdb.py` and `tools/build_moegirl.py` build into separate
-files for the user's own device.
+Not part of this data, never committed or released: five optional dictionaries that
+`tools/build_moe.py`, `tools/build_cbdb.py`, `tools/build_idioms.py`, `tools/build_xinhua.py`
+and `tools/build_moegirl.py` build into separate files for the user's own device.
 
 - **MOE**, 中華民國教育部《重編國語辭典修訂本》 — https://dict.revised.moe.edu.tw/ — © Ministry of
   Education, Republic of China (Taiwan), CC BY-ND 3.0 TW —
@@ -119,6 +119,21 @@ files for the user's own device.
   and alternative name of 1–8 Han characters, under its traditional form and OpenCC `t2s`; CBDB's
   English translation with "(Ming office title)" added, or "office title (Ming)" when CBDB has
   none ("[Not Yet Translated]"); CBDB's toneless reading. Names CC-CEDICT has dropped.
+- **成語典**, 中華民國教育部《成語典》 — https://dict.idioms.moe.edu.tw/ — © Ministry of Education,
+  Republic of China (Taiwan), CC BY-ND 3.0 TW — downloaded from 教育部國語辭典公眾授權網,
+  https://language.moe.gov.tw/001/Upload/Files/site_content/M0001/respub/dict_idiomsdict_download.html
+  (written against `dict_idioms_2020_20260929.zip`). Used: every entry's headword and first
+  reading; for main entries 釋義, 典源 (title, text, notes), 典故說明, 書證 and 例句 (first six
+  each), 用法說明, 辨識 (not its example table) and 近義/反義; for related entries their own
+  釋義 and 書證, and their main entry's 典源, notes and 典故說明 under its name. Editorial marks,
+  pointers to other entries and lines with characters the device fonts lack taken out; text
+  converted with `tools/simplify.py` (tw2s). Idioms CC-CEDICT has get no fallback row.
+- **Xinhua idioms**, `data/idiom.json` of chinese-xinhua — https://github.com/pwxcoo/chinese-xinhua
+  (the repository's MIT licence covers its code; the text is scraped from a published
+  dictionary). Used: idioms of 4–8 Han characters with their explanation, derivation and
+  example; punctuation lost in scraping put back where that is reliable (`tools/chengyu.py`),
+  symbols standing for lost text shown as …. Headwords also indexed under OpenCC `s2t`.
+  Idioms CC-CEDICT has get no fallback row.
 - **Moegirlpedia**, 萌娘百科 — https://zh.moegirl.org.cn — by its contributors, CC BY-NC-SA 3.0 CN —
   https://creativecommons.org/licenses/by-nc-sa/3.0/cn/ — read from a third party's offline
   snapshot, zhmoegirl-20230507-alpha.slob,

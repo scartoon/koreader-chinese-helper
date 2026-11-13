@@ -263,7 +263,39 @@ eq(Model.render(m, "尚", false), blocks[1].head .. "\n" .. table.concat(blocks[
     .. blocks[2].head .. "\n" .. table.concat(blocks[2].lines, "\n"))
 eq(Model.SOURCE_LABELS.cedict, "CEDICT"); eq(Model.SOURCE_LABELS.wikt, "Wikt"); eq(Model.SOURCE_LABELS.moe, "MOE")
 eq(Model.SOURCE_LABELS.wp, "WP"); eq(Model.SOURCE_LABELS.cbdb, "CBDB"); eq(Model.SOURCE_LABELS.moegirl, "Moegirl")
-eq(table.concat(Model.SOURCE_ORDER, ","), "wikt,cbdb,moe,wp,moegirl", "the default priority")
+eq(table.concat(Model.SOURCE_ORDER, ","), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl", "the default priority")
+eq(Model.SOURCE_LABELS.idioms, "成语典"); eq(Model.SOURCE_LABELS.xinhua, "新华")
+
+-- Idioms: the first source in the order for each field, the other filling
+-- a field it lacks; attached to matches of two or more characters; a short
+-- line under an entry that is not Chinese already; 出处 buttons.
+local picked = Model.pickIdioms({
+    { simp = "一毛不拔", trad = "一毛不拔", short = "新华的", view = "新华 view", source = "xinhua" },
+    { simp = "一毛不拔", trad = "一毛不拔", short = "成语典的", view = "成语典 view", source = "idioms" },
+    { simp = "玉石俱碎", trad = "玉石俱碎", short = "", view = "成语典 view", source = "idioms" },
+    { simp = "玉石俱碎", trad = "玉石俱碎", short = "犹玉石俱焚。", view = "", source = "xinhua" },
+})
+eq(picked["一毛不拔"].short, "成语典的"); eq(picked["一毛不拔"].source, "idioms")
+eq(picked["玉石俱碎"].short, "犹玉石俱焚。"); eq(picked["玉石俱碎"].short_source, "xinhua")
+eq(picked["玉石俱碎"].source, "idioms")
+eq(Model.pickIdioms({ { simp = "一毛不拔", trad = "一毛不拔", short = "新华的", view = "", source = "xinhua" },
+                      { simp = "一毛不拔", trad = "一毛不拔", short = "成语典的", view = "", source = "idioms" } },
+                    { "xinhua", "idioms" })["一毛不拔"].short, "新华的", "the order is the setting's")
+local im = matches("一", "毛", "不拔", { row("毛", "毛", "máo", "hair"),
+    row("一毛不拔", "一毛不拔", "yīmáobùbá", "(fig.) extremely stingy") })
+Model.attachIdioms(im, { ["一毛不拔"] = picked["一毛不拔"], ["毛"] = picked["一毛不拔"] })
+eq(im[1].idiom, nil, "a single character is never an idiom")
+local iblocks = Model.blocks(im, "毛", false)
+eq(iblocks[2].note.source, "idioms"); eq(iblocks[2].note.text, "成语典的"); eq(iblocks[1].note, nil)
+eq(Model.render(im, "毛", false), "毛  máo\nhair\n\n一毛不拔  yīmáobùbá\n(fig.) extremely stingy\n成语典的")
+local cb = Model.chuchu(im)
+eq(#cb, 1); eq(cb[1].text, "出处"); eq(cb[1].word, "一毛不拔"); eq(cb[1].view, "成语典 view")
+im[1].idiom = { view = "x", source = "xinhua" }; im[1].len = 2; im[1].word = "毛毛"
+cb = Model.chuchu(im)
+eq(cb[1].text, "毛毛 出处"); eq(cb[2].text, "一毛不拔 出处", "several: named")
+local cm = matches("一", "毛", "不拔", { frow("一毛不拔", "一毛不拔", "yī máo bù bá", "形容吝啬。", "moe") })
+Model.attachIdioms(cm, { ["一毛不拔"] = picked["一毛不拔"] })
+eq(Model.blocks(cm, "毛", false)[1].note, nil, "MOE's entry is Chinese already")
 
 -- The newer sources. Default order: CBDB before MOE, Wikipedia after MOE,
 -- Moegirlpedia last; CC-CEDICT before all of them.

@@ -83,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 11 + 5 + 5 + 3 + 5 + 5 + 6 + 3, "menu size")   -- fallback: labels + 5 dictionaries
+eq(count, 11 + 5 + 5 + 3 + 5 + 5 + 8 + 3, "menu size")   -- fallback: labels + 7 dictionaries
 
 -- Character components: on by default, a toggle.
 local comp_item = entry.sub_item_table[9]
@@ -233,7 +233,7 @@ local function names(list)
     for _, s in ipairs(list) do out[#out + 1] = s.source end
     return table.concat(out, ",")
 end
-eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,wp,moegirl")
+eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
 local fb_item = entry.sub_item_table[10]
 eq(fb_item.text, "Fallback dictionaries")
 -- Source labels: default "other dictionaries only".
@@ -252,6 +252,7 @@ local function texts(items)
     return table.concat(out, " | ")
 end
 eq(texts(fb_item.sub_item_table), "Wiktionary | CBDB office titles (your own file) | MOE 重編國語辭典 (your own file)"
+    .. " | MOE 成語典 (your own file) | Xinhua idioms (your own file)"
     .. " | Wikipedia titles | Moegirlpedia slang (your own file)")
 for _, it in ipairs(fb_item.sub_item_table) do assert(it.enabled_func() and it.checked_func()) end
 local status = table.concat(plugin:fallbackStatus(), "\n")
@@ -260,7 +261,10 @@ assert(status:find("CBDB office titles: on (CBDB 2026-11-07, 3 entries)", 1, tru
 assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 3 entries, simplified text)", 1, true), status)
 assert(status:find("Wikipedia titles: on %(dump %d%d%d%d%-%d%d%-%d%d, %d+ entries%)"), status)
 assert(status:find("Moegirlpedia slang: on (snapshot 2023-05-07, 3 entries)", 1, true), status)
-assert(status:find("^Wiktionary.*\nCBDB.*\nMOE.*\nWikipedia.*\nMoegirlpedia"), "Status in priority order")
+assert(status:find("MOE 成語典: on (2020_20260929, 2 idioms, 1 not in CC-CEDICT, simplified text)", 1, true), status)
+assert(status:find("Xinhua idioms: on (chinese-xinhua 2018-12-16, 4 idioms, 2 not in CC-CEDICT)", 1, true), status)
+assert(status:find("^Wiktionary.*\nCBDB.*\nMOE 重.*\nMOE 成.*\nXinhua.*\nWikipedia.*\nMoegirlpedia"),
+    "Status in priority order")
 
 -- The resolver gets Wiktionary's words only (the others are for the popup).
 eq(plugin:readings().fallback_key, "wikt")
@@ -274,7 +278,8 @@ eq(table.concat(seen, ","), "尚书省:wikt", "only Wiktionary asked for reading
 -- Moegirlpedia test file has a row for it); then one source per word, in
 -- priority order.
 local Model = require("ch_popup_model")
-local texts_ = { "尚", "尚书", "尚书省", "丁匠", "典史", "试百户", "红夷大炮", "问题不大", "东西" }
+local texts_ = { "尚", "尚书", "尚书省", "丁匠", "典史", "试百户", "红夷大炮", "问题不大", "东西", "玉石俱碎", "精兵强将",
+                 "一毛不拔" }
 local rows = plugin:db():lookup(texts_)
 local function lookup()
     local got = {}
@@ -282,7 +287,22 @@ local function lookup()
     table.sort(got)
     return table.concat(got, ",")
 end
-eq(lookup(), "丁匠:moe,典史:cbdb,尚书省:wikt,红夷大炮:wp,试百户:cbdb,问题不大:moegirl")
+eq(lookup(), "丁匠:moe,典史:cbdb,尚书省:wikt,玉石俱碎:idioms,精兵强将:xinhua,红夷大炮:wp,试百户:cbdb,问题不大:moegirl")
+-- Idioms: the short line and 出处 view, CC-CEDICT's idioms too, the 成語典
+-- first; a field it lacks comes from Xinhua.
+local function idioms(words)
+    local got = {}
+    for form, info in pairs(plugin:idiomLookup(words)) do
+        got[#got + 1] = form .. ":" .. tostring(info.short_source) .. "/" .. tostring(info.source)
+    end
+    table.sort(got)
+    return table.concat(got, ",")
+end
+eq(idioms({ "一毛不拔", "玉石俱碎", "精兵强将", "首鼠两端", "东西" }),
+   "一毛不拔:idioms/idioms,玉石俱碎:idioms/idioms,精兵強將:xinhua/xinhua,精兵强将:xinhua/xinhua,"
+   .. "首鼠两端:xinhua/xinhua,首鼠兩端:xinhua/xinhua")
+eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝啬。贬义。")
+eq(idioms({}), "")
 local function item(source)
     for _, it in ipairs(fb_item.sub_item_table) do
         if it.text_func():find(Plugin.SOURCE_NAMES[source], 1, true) then return it end
@@ -290,35 +310,92 @@ local function item(source)
 end
 -- Switch Wiktionary off: CBDB (before MOE) gives 尚书省.
 item("wikt").callback()
-eq(names(plugin:fallbackSources()), "cbdb,moe,wp,moegirl")
-eq(lookup(), "丁匠:moe,典史:cbdb,尚书省:cbdb,红夷大炮:wp,试百户:cbdb,问题不大:moegirl")
+eq(names(plugin:fallbackSources()), "cbdb,moe,idioms,xinhua,wp,moegirl")
+eq(lookup(), "丁匠:moe,典史:cbdb,尚书省:cbdb,玉石俱碎:idioms,精兵强将:xinhua,红夷大炮:wp,试百户:cbdb,问题不大:moegirl")
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("Wiktionary: off", 1, true))
 eq(plugin:readings().fallback, nil, "the resolver follows the switch: no Wiktionary, no fallback words")
 -- CBDB off too: MOE's 典史 and 尚书省. Wikipedia off: Moegirlpedia's 红夷大炮.
 item("cbdb").callback(); item("wp").callback()
-eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,红夷大炮:moegirl,问题不大:moegirl")
+eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强将:xinhua,红夷大炮:moegirl,问题不大:moegirl")
+-- The 成語典 off: Xinhua gives 玉石俱碎 and every idiom's line and view.
+item("idioms").callback()
+eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:xinhua,精兵强将:xinhua,红夷大炮:moegirl,问题不大:moegirl")
+eq(idioms({ "一毛不拔", "玉石俱碎" }), "一毛不拔:xinhua/xinhua,玉石俱碎:xinhua/nil", "Xinhua has no view for 玉石俱碎")
+item("xinhua").callback()
+eq(idioms({ "一毛不拔" }), "", "both off: no idiom lines")
 eq(plugin:readings().fallback, nil, "CBDB, MOE, Moegirlpedia never decide readings")
 -- All off: nothing beyond CC-CEDICT, for the resolver too.
 item("moe").callback(); item("moegirl").callback()
 eq(#plugin:fallbackSources(), 0); eq(lookup(), "")
 eq(plugin:readings().fallback, nil)
-for _, s in ipairs({ "wikt", "cbdb", "moe", "wp", "moegirl" }) do item(s).callback() end
-eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,wp,moegirl")
+for _, s in ipairs({ "wikt", "cbdb", "moe", "idioms", "xinhua", "wp", "moegirl" }) do item(s).callback() end
+eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
 
 -- The order is a setting (not in the menu): named sources first, the rest
 -- after in the default order.
 plugin.settings:set("fallback_order", "moe, moegirl,bogus,moe")
-eq(names(plugin:fallbackSources()), "moe,moegirl,wikt,cbdb,wp")
-eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,红夷大炮:moegirl,试百户:cbdb,问题不大:moegirl")
+eq(names(plugin:fallbackSources()), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
+eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强将:xinhua,红夷大炮:moegirl,试百户:cbdb,问题不大:moegirl")
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
 eq(items3.chinesehelper.sub_item_table[10].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
-eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,wp")
+eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
 plugin.settings:set("fallback_order", nil)
-eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,wp,moegirl")
+eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
+
+-- The popup with idioms (ch_tap.lua present, with a stand-in for the popup
+-- widget): CC-CEDICT's 一毛不拔 gets the 成語典's short line, labelled, and a
+-- 出处 button opening its view; 精兵强将 (Xinhua's fallback entry, Chinese
+-- already) gets no line under it, and its own 出处 button.
+local popups = {}
+stub("ch_popup", { BOLD_START = "", BOLD_END = "",
+                   new = function(_, args) popups[#popups + 1] = args; args.onClose = function() end; return args end })
+stub("ui/widget/textviewer", { new = function(_, args) return args end })
+local Text = require("ch_text")
+local function popupFor(left, char, right)
+    local cands, words = Text.candidates(Text.chars(left), char, Text.chars(right))
+    local prows = plugin:db():lookup(words)
+    for _, r in ipairs(plugin.tap:fallbackRows(words, prows)) do prows[#prows + 1] = r end
+    local m = Model.matches{ cands = cands, rows = prows, order = plugin.settings:fallbackOrder() }
+    plugin.tap:present{ db = plugin:db(), char = char, cands = cands, rows = prows, matches = m, annotated = false }
+    return popups[#popups]
+end
+local function buttonTexts(p)
+    local out = {}
+    for _, r in ipairs(p.buttons) do for _, b in ipairs(r) do out[#out + 1] = b.text end end
+    return table.concat(out, ",")
+end
+local function blockOf(p, word)
+    for _, b in ipairs(p.blocks) do if b.head and b.head:find(word, 1, true) == 1 then return b end end
+end
+local p = popupFor("一", "毛", "不拔")
+local b = blockOf(p, "一毛不拔")
+eq(b.source, "cedict"); eq(b.note.source, "idioms"); eq(b.note.text, "形容人非常吝啬。贬义。")
+eq(p.labels.idioms, "成语典")
+assert(buttonTexts(p):find("一毛不拔,出处,", 1, true), buttonTexts(p))
+local before = #shown
+for _, r in ipairs(p.buttons) do for _, btn in ipairs(r) do if btn.text == "出处" then btn.callback() end end end
+eq(#shown, before + 1, "the 出处 view is shown")
+eq(shown[#shown].title, "一毛不拔 · 出处 · 教育部《成语典》")
+assert(shown[#shown].text:find("典源　《孟子．尽心上》", 1, true), shown[#shown].text)
+p = popupFor("精", "兵", "强将")
+b = blockOf(p, "精兵强将")
+eq(b.source, "xinhua"); eq(b.note, nil, "a Chinese entry gets no short line under it")
+assert(buttonTexts(p):find("出处", 1, true))
+-- 首鼠两端: CC-CEDICT's entry, Xinhua's line and view.
+p = popupFor("首", "鼠", "两端")
+eq(blockOf(p, "首鼠两端").note.source, "xinhua")
+assert(buttonTexts(p):find("首鼠两端,出处,", 1, true), buttonTexts(p))
+-- Both idiom files off: no line, no button.
+item("idioms").callback(); item("xinhua").callback()
+p = popupFor("一", "毛", "不拔")
+eq(blockOf(p, "一毛不拔").note, nil)
+assert(not buttonTexts(p):find("出处", 1, true), buttonTexts(p))
+item("idioms").callback(); item("xinhua").callback()
+package.loaded["ch_popup"], package.loaded["ui/widget/textviewer"] = nil, nil
 
 -- No user files (a fresh session, with an empty data folder): the plugin's
 -- own two, and the menu and Status say the rest are not installed.
@@ -332,12 +409,14 @@ plugin2:addToMainMenu(items2)
 local dict_items = items2.chinesehelper.sub_item_table[10].sub_item_table
 table.remove(dict_items, 1)
 eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典 (not installed)"
+    .. " | MOE 成語典 (not installed) | Xinhua idioms (not installed)"
     .. " | Wikipedia titles | Moegirlpedia slang (not installed)")
-for _, k in ipairs({ 2, 3, 5 }) do
+for _, k in ipairs({ 2, 3, 4, 5, 7 }) do
     assert(not dict_items[k].enabled_func() and not dict_items[k].checked_func())
 end
 local status2 = table.concat(plugin2:fallbackStatus(), "\n")
 for _, line in ipairs({ "CBDB office titles: not installed", "MOE 重編國語辭典: not installed",
+                        "MOE 成語典: not installed", "Xinhua idioms: not installed",
                         "Moegirlpedia slang: not installed" }) do
     assert(status2:find(line, 1, true), status2)
 end
@@ -346,6 +425,7 @@ local fb2 = {}
 for _, r in ipairs(plugin2:fallbackLookup(Model.uncovered(texts_, rows))) do fb2[#fb2 + 1] = r.simp .. ":" .. r.source end
 table.sort(fb2)
 eq(table.concat(fb2, ","), "尚书省:wikt,红夷大炮:wp")
+eq(next(plugin2:idiomLookup({ "一毛不拔" })), nil, "no idiom files: no idiom lines")
 -- One query for both: they share the plugin database.
 local pdb = plugin2:db()
 local real_fallback, queries = pdb.fallback, 0

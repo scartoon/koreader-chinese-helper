@@ -15,6 +15,8 @@
 --   fallback(simp, trad, pinyin, syllables, defs, source)   other dictionaries,
 --                         for words CC-CEDICT lacks (indexes on simp and trad);
 --                         the same table in the user's optional MOE file
+--   idioms(simp, trad, short, view)                in the user's 成語典 and Xinhua
+--                         files only: an idiom's Chinese short line and 出处 view
 --   components(ch, body)                           a character's parts, for the popup
 --   component_notes(ch, text)                      (ch_components.lua); missing from
 --                         databases built before 1.7.0
@@ -136,6 +138,27 @@ function DB:fallback(words)
     local ok, err = pcall(self.each, self, DB.fallbackSql(n), args, function(row)
         rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
                             source = row[6] }
+    end)
+    if not ok then return {}, err end
+    return rows
+end
+
+-- An idiom's short line and 出处 view for n candidate words, from the
+-- user's 成語典 or Xinhua file (tools/chengyu.py). Kept identical to
+-- tools/chengyu.py's idioms_sql.
+function DB.idiomsSql(n)
+    return "SELECT simp, trad, short, view FROM idioms WHERE simp IN (" .. marks(n)
+        .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
+end
+
+-- Rows { {simp=, trad=, short=, view=}, ... } for `words`; none from a
+-- database without the table (every database but those two files).
+function DB:idioms(words)
+    if #words == 0 then return {} end
+    local args, n = padded_args(words, 2)
+    local rows = {}
+    local ok, err = pcall(self.each, self, DB.idiomsSql(n), args, function(row)
+        rows[#rows + 1] = { simp = row[1], trad = row[2], short = row[3], view = row[4] }
     end)
     if not ok then return {}, err end
     return rows

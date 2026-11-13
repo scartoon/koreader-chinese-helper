@@ -8,7 +8,7 @@ sessions.
 |---|---|---|---|
 | 1 | Character component breakdowns in the popup | 1.7.0 | released 2026-11-13 |
 | 2 | All explanatory text in simplified characters | 1.8.0 | released 2026-11-13 |
-| 3 | Richer chengyu entries (two build-it-yourself dictionaries) | 1.9.0 | not started |
+| 3 | Richer chengyu entries (two build-it-yourself dictionaries) | 1.9.0 | released 2026-11-13 |
 | 4 | New README screenshots and sample book | 1.9.1 | not started |
 
 ## How to use this file
@@ -504,7 +504,72 @@ database), and where they differ from the plan:
   Wikisource text.
 
 ### Phase 3
-(none yet)
+
+**Sources, as found (2026-11-13).**
+
+- **成語典**: the ministry's download page
+  (`language.moe.gov.tw/…/respub/dict_idiomsdict_download.html`) links
+  `download/dict_idioms_2020_20260929.zip`: one .xlsx, fetched by script (`build_idioms.py`
+  reads the link off the page, with that file as a fallback). It holds **5,489 entries, not
+  28,000**: 1,664 main entries (主條) with every field and 3,825 related entries (非主條). The
+  planning figure counted the 23,385 brief entries from 重編國語辭典, which are not in this file
+  (the MOE file already has them). A related entry carries its own 釋義 and 書證 and names its
+  main entry ("見「X」條", 3,769 of them); its 典源 and 典故說明 fields only say "此處所列為「X」之
+  典源，提供參考", so the build copies the main entry's, headed with its name. Markup: `_x000D_`,
+  `*N*` note numbers, newlines around annotated words, `#`/`＃` before a context paragraph, `※`,
+  `◎`/`◎1` editorial marks, `△…` related-idiom lists. 17 headwords contain a comma (never
+  tappable) or a non-BMP character and are dropped. 206 lines with private-use or non-BMP
+  characters are dropped (popup rule: no boxes).
+- **Short line, changed from the plan**: the plan said 成語典 釋義, but 釋義 is long (literal
+  meaning, figurative meaning, source, cross-references). The popup uses 用法說明's 語義說明
+  (形容人非常吝啬。贬义。), present for every main entry; the full 釋義 is in the 出处 view. A related
+  entry uses its own 釋義, completed with its main entry's 語義說明 when it only says which
+  idiom it equals (犹「玉石俱焚」：比喻…).
+- **Xinhua**: 30,895 words (no duplicates; the plan's 31,648 listed). Kept: 30,212 of 4–8 Han
+  characters. 550 contain commas; 126 three-character entries include scraping fragments
+  (沧横流, 涸石烂) and were dropped. Repairs and their limits are in `tools/chengyu.py`'s
+  docstring. Notably the colon rule is safe only for two-character glosses and for
+  one-character glosses after a 「；」 in a gloss list (a one-character match at the start is
+  wrong too often: 鼻子发青, 一百次中), and only when something follows the gloss (有国难投:
+  有国家却不能回去 is the whole explanation). Besides ★ and ◇, the scraping left about 20 other
+  symbols where text was lost (∶ ∥ ≤ ‖ ■ ⊥ § → ∝…), shown as ….
+- Both files: a `fallback` table for idioms CC-CEDICT lacks and an `idioms(simp, trad, short,
+  view)` table for all, so CC-CEDICT's idioms get the line and 出处 too. 21.7 MB and 14.9 MB.
+  The 成語典's related entries repeat their main entry's text (about half the size); fine for a
+  user file. Default order: wikt, cbdb, moe, idioms, xinhua, wp, moegirl. MOE stays ahead of
+  the 成語典 (its definitions are as good for the entry line), and the 出处 button does not depend
+  on which source gave the entry.
+
+**Coverage** (`tools/measure_chengyu.py`, report in `build/measure/chengyu-report.md`).
+The corpus in `build/corpus/` is **46 device books** plus 临高启明, not 184 (184 seems to have
+been a different count; `index.tsv` keeps 48 files including 临高启明's two). A chengyu is any
+headword CC-CEDICT tags *idiom* (3–8 characters) or either file lists (4–8), so "after" is
+100% by construction; the before figures and the newly covered ones are what matter.
+
+| | 46 books | 临高启明 |
+|---|---|---|
+| occurrences / distinct | 202,036 / 9,959 | 38,398 / 5,498 |
+| entry, release only | 93.2% | 93.7% |
+| entry, + MOE | 97.3% | 97.7% |
+| entry, + MOE + 成語典 + Xinhua | 100% | 100% |
+| Chinese short line | 94.7% | 94.6% |
+| 出处 view | 92.4% | 92.3% |
+| 出处 from the 成語典 | 30.3% | 28.9% |
+| newly covered (no entry even with MOE) | 1,282 idioms, 5,397 occ. | 353, 880 |
+
+39 of 40 random new-entry contexts were on jieba word boundaries.
+
+**Device check** (test book `build/chinesehelper-chengyu.epub`, pushed to `/sdcard/Download/`;
+rows at y = 395, 467, 540, 612, characters ≈ 47 px wide from x ≈ 100: 他一毛不拔。玉石俱碎。/
+精兵强将。首鼠两端。/ 之乎者也。十二万分。/ 刻舟求剑。科班出身。): line and label under
+CC-CEDICT's entry, 出处 views from both sources, MOE winning the entry for 玉石俱碎 with the
+成語典's 出处, no button for 十二万分 (Xinhua has no source or example), Status lines. Tap timing
+was not re-measured: a popup now makes up to two more indexed queries.
+
+**For phase 4**: 之乎者也 (孔乙己) has CC-CEDICT's entry, Xinhua's line
+(这四个字都是文言虚词…) and a Xinhua 出处 (宋·文莹《湘山野录》：“之乎者也，助得甚事？”); the
+成語典 does not have it. A screenshot of it needs the Xinhua file installed. For a 成語典 出处
+shot, pick a chengyu the 成語典 has (刻舟求剑, 一毛不拔, 掩耳盗铃).
 
 ### Phase 4
 (none yet)

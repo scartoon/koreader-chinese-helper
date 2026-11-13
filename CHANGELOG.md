@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.9.0 (2026-11-13)
+
+Popup
+- **Chengyu explained, with their source.** Two new optional dictionaries you build yourself:
+  the Taiwan Ministry of Education's **成語典** (`tools/build_idioms.py`, 5,473 idioms) and the
+  **Xinhua idiom data** of chinese-xinhua (`tools/build_xinhua.py`, 30,212 idioms). With either
+  installed, a chengyu gets one line of Chinese explanation under CC-CEDICT's English entry,
+  labelled 成语典 or 新华 (一毛不拔: 形容人非常吝啬。贬义。), and a **出处** button opening a
+  full-screen view: from the 成語典 the 典源 passage with its notes, the story (典故说明),
+  citations, usage, examples, 辨识 and near and opposite idioms; from Xinhua the explanation,
+  the classical source and an example. A related form (玉石俱碎) shows its main idiom's source
+  and story under that idiom's name. The 成語典 comes first when both have an idiom.
+- **Chengyu CC-CEDICT lacks** get an entry from these files (精兵强将, 科班出身, 十二万分): 3,704
+  from the 成語典 and 23,485 from Xinhua, in the fallback order Wiktionary, CBDB, MOE, 成語典,
+  Xinhua, Wikipedia titles, Moegirlpedia. Each has a switch under **Fallback dictionaries** and a
+  **Status** line. Their readings stay inside their own entries and never decide the pinyin drawn.
+
+Coverage (`tools/measure_chengyu.py`; a chengyu is any headword CC-CEDICT tags *idiom* or
+either file lists, occurrences scanned longest first)
+- **46 books on the test device** (202,036 occurrences, 9,959 idioms): an entry for 93.2% with
+  the release alone, 97.3% with the MOE file, 100% with MOE, 成語典 and Xinhua (1,282 idioms,
+  5,397 occurrences had no entry even with MOE: 精兵强将, 受制于人, 由来已久). 94.7% get the
+  Chinese line and 92.4% a 出处 view (30.3% from the 成語典); of the occurrences CC-CEDICT has,
+  92.6% now get a 出处 view.
+- **临高启明** (38,398 occurrences, 5,498 idioms): 93.7% → 97.7% with MOE → 100%; 94.6% get the
+  line, 92.3% a 出处 view (28.9% from the 成語典); 353 idioms (880 occurrences) newly covered.
+- Of 40 random new entries read in context, 39 fall on word boundaries; the other is
+  置之死地 inside 置之死地而后生.
+
+Data
+- The 成語典 file is read with the standard library (one .xlsx sheet); its markup (note
+  numbers, ＃ ※ ◎ marks, cross-reference lists, "見「X」條" pointers) is taken out, and the
+  text goes through `tools/simplify.py` (tw2s). 206 lines with characters the device fonts lack
+  are dropped. 21.7 MB.
+- Xinhua's scraped text is repaired where that is reliable (`tools/chengyu.py`, unit tests in
+  `tests/test_chengyu.py`): the colon after a glossed word (首鼠鼠性多疑 → 首鼠：鼠性多疑; 8,037
+  explanations), the colon and quotes after a source's title (21,965 derivations), missing
+  opening quotes, ◇ and ★ markers, and symbols standing for lost text shown as …. Typos and
+  titles followed by 诗 or 词 are left as they are. 14.9 MB.
+- Both scripts take the plugin database from the latest release when there is none, so one
+  command works right after cloning.
+- The release database is unchanged, byte for byte (SHA-256 `20cc7ff8…`), so the reading
+  tables are too.
+
 ## 1.8.0 (2026-11-13)
 
 Popup

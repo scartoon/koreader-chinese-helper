@@ -69,15 +69,18 @@ eq(Settings.new(store()):labelMode(), "fallback")
 eq(Settings.new(store{ chinesehelper_labels = "all" }):labelMode(), "all")
 eq(Settings.new(store{ chinesehelper_labels = "x" }):labelMode(), "fallback")
 eq(Settings.new(store()):fallbackEnabled("wikt"), true); eq(Settings.new(store()):fallbackEnabled("moe"), true)
-for _, src in ipairs({ "wp", "cbdb", "moegirl" }) do eq(Settings.new(store()):fallbackEnabled(src), true) end
+for _, src in ipairs({ "wp", "cbdb", "moegirl", "idioms", "xinhua" }) do eq(Settings.new(store()):fallbackEnabled(src), true) end
 -- The fallback priority: the default, a setting naming some (the rest
 -- follow in the default order), unknown names, repeats and junk ignored.
-eq(table.concat(Settings.new(store()):fallbackOrder(), ","), "wikt,cbdb,moe,wp,moegirl")
+eq(table.concat(Settings.new(store()):fallbackOrder(), ","), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
 eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = "moegirl,wikt" }):fallbackOrder(), ","),
-   "moegirl,wikt,cbdb,moe,wp")
+   "moegirl,wikt,cbdb,moe,idioms,xinhua,wp")
 eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = " wp , x,wp" }):fallbackOrder(), ","),
-   "wp,wikt,cbdb,moe,moegirl")
+   "wp,wikt,cbdb,moe,idioms,xinhua,moegirl")
+-- A saved order from before 1.9.0 (no idiom sources): they follow in the default order.
+eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = "wikt,cbdb,moe,wp,moegirl" }):fallbackOrder(),
+   ","), "wikt,cbdb,moe,wp,moegirl,idioms,xinhua")
 eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = 5 }):fallbackOrder(), ","),
-   "wikt,cbdb,moe,wp,moegirl")
+   "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
 -- No settings store at all (tests, odd starts): defaults, no errors.
 s = Settings.new(nil); eq(s:threshold(), 3500); s:set("threshold", 1); eq(#s:migrate(), 0)

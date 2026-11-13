@@ -319,6 +319,32 @@ function Tap:originText(db, chars)
     return table.concat(out, "\n\n")
 end
 
+-- The idiom information for the matches of two or more characters
+-- (main.lua idiomLookup), attached to them (Model.attachIdioms).
+function Tap:attachIdioms(matches)
+    local words = {}
+    for _, m in ipairs(matches) do
+        if m.len and m.len > 1 then words[#words + 1] = m.word end
+    end
+    if #words == 0 or not self.plugin.idiomLookup then return end
+    local ok, idioms = pcall(self.plugin.idiomLookup, self.plugin, words)
+    if not ok then
+        logger.warn("chinesehelper: idioms failed:", tostring(idioms))
+        return
+    end
+    Model.attachIdioms(matches, idioms)
+end
+
+Tap.CHUCHU_SOURCES = { idioms = "教育部《成语典》", xinhua = "新华成语" }
+
+function Tap:showChuchu(word, source, text)
+    local TextViewer = require("ui/widget/textviewer")
+    UIManager:show(TextViewer:new{
+        title = T("%1 · %2 · %3", word, Model.CHUCHU, Tap.CHUCHU_SOURCES[source] or source),
+        text = text,
+    })
+end
+
 function Tap:showOrigin(char, text)
     local TextViewer = require("ui/widget/textviewer")
     UIManager:show(TextViewer:new{
@@ -348,6 +374,7 @@ function Tap:present(args)
     local b0, b1 = bold()
     local popup
     local close = function() popup:onClose() end
+    self:attachIdioms(args.matches)
     local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1)
     local words = {}
     for _, m in ipairs(args.matches) do
@@ -359,6 +386,9 @@ function Tap:present(args)
                 self:lookupInKOReader(word, args.box)
             end,
         }
+    end
+    for _, c in ipairs(Model.chuchu(args.matches)) do
+        words[#words + 1] = { text = c.text, callback = function() self:showChuchu(c.word, c.source, c.view) end }
     end
     local close_button = { text = _("Close"), callback = close }
     local button_rows

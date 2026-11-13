@@ -662,9 +662,11 @@ def forms_from_entries(entries):
 DEVICE_DIR = "/sdcard/koreader/data/chinesehelper"
 
 
-def write_local_file(out, rows, meta, name):
+def write_local_file(out, rows, meta, name, extra=None):
     """Write `rows` and `meta` to `out` (through a temporary file), checking
-    that the plugin's lookup uses the indexes. `name` is for messages."""
+    that the plugin's lookup uses the indexes. `name` is for messages.
+    extra: function(connection) adding further tables (the chengyu files'
+    idioms table, tools/chengyu.py)."""
     import sqlite3 as _sqlite3
     tmp = out + ".tmp"
     if os.path.exists(tmp):
@@ -673,6 +675,8 @@ def write_local_file(out, rows, meta, name):
     con = _sqlite3.connect(tmp)
     con.execute("PRAGMA page_size = 4096")
     write_fallback(con, rows)
+    if extra:
+        extra(con)
     con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
     con.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
     con.commit()
@@ -695,6 +699,33 @@ def push_or_explain(path, push):
         print(f"Pushed to {target}")
     else:
         print(f"To install: adb shell mkdir -p {DEVICE_DIR} && adb push {os.path.relpath(path)} {target}")
+
+
+RELEASE_ZIP = "https://github.com/scartoon/koreader-chinese-helper/releases/latest/download/chinesehelper.koplugin.zip"
+
+
+def ensure_db(path):
+    """The plugin database at `path`; when it is missing, taken from the
+    latest release's zip, so that a build script works right after cloning
+    (the database is a release asset, not in the repository)."""
+    if os.path.exists(path):
+        return path
+    import zipfile
+    zpath = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "build",
+                         "chinesehelper.koplugin.zip")
+    print(f"{path} is missing: taking it from the latest release")
+    download_file(RELEASE_ZIP, zpath)
+    with zipfile.ZipFile(zpath) as z:
+        name = "chinesehelper.koplugin/data/chinesehelper.sqlite"
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        with z.open(name) as src, open(path + ".part", "wb") as dst:
+            while True:
+                chunk = src.read(1 << 20)
+                if not chunk:
+                    break
+                dst.write(chunk)
+    os.replace(path + ".part", path)
+    return path
 
 
 def sha256_of(path):

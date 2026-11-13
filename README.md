@@ -37,6 +37,8 @@ you open it.
   | Wiktionary | Wikt | bundled | historical and literary terms, chengyu, technical terms, some slang |
   | CBDB office titles | CBDB | a file you build yourself | Ming and Southern Ming office titles |
   | MOE 重編國語辭典 | MOE | a file you build yourself | historical and literary vocabulary (in Chinese) |
+  | MOE 成語典 | 成语典 | a file you build yourself | chengyu, with their source texts and stories (in Chinese) |
+  | Xinhua idioms | 新华 | a file you build yourself | about 30,000 chengyu and set phrases, with classical sources (in Chinese) |
   | Wikipedia titles | WP | bundled | technology, engineering, military and history terms, and many proper names: places, organisations, works (English article title) |
   | Moegirlpedia slang | Moegirl | a file you build yourself | internet slang (in Chinese) |
 
@@ -46,6 +48,10 @@ you open it.
   explanatory text is in simplified characters, including MOE's (converted when you build it;
   see [Simplified text](#simplified-text)).
 
+- **Chengyu explained, with their source.** With the optional 成語典 or Xinhua idiom files, a
+  chengyu gets one line of Chinese explanation under CC-CEDICT's English entry, and a **出处**
+  button opens the source text, the story behind it, usage and examples. Chengyu CC-CEDICT
+  lacks get an entry from them ([Chengyu](#chengyu)).
 - **Pinyin pitched to your level, optional.** Choose how rare a character must be to get pinyin:
   outside the 1,500, 2,500, 3,500 (default), 5,000 or 7,000 most common characters in modern
   written Chinese. Common characters read in an unusual way (单 in 单于) get it too. The reading
@@ -70,7 +76,7 @@ It merges two plugins that are no longer developed:
 and [koreader-chinese-popup](https://github.com/scartoon/koreader-chinese-popup) (the popup). One
 plugin means one tap handler, one popup for every character, and one database.
 
-Status: **1.8.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **1.9.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -180,7 +186,8 @@ stretch containing the tapped character, against both simplified and traditional
   with a short note, such as 冒顿 *mò dú*).
 - **The character's components** (below), indented under its own entry.
 - **Buttons**: one per entry, labelled with the character or word, which opens KOReader's
-  dictionary lookup for it; then one per component and **Origin** (below); and **Close**. Tapping outside the popup also closes it.
+  dictionary lookup for it; **出处** for a chengyu (see [Chengyu](#chengyu)); then one per
+  component and **Origin** (below); and **Close**. Tapping outside the popup also closes it.
 - **Translate the sentence**: a full-width button on its own row below them, shown only while
   Wi-Fi is on and connected (see below).
 - Words CC-CEDICT does not have can come from the fallback dictionaries (below). If no dictionary has
@@ -314,19 +321,23 @@ of the plugin:
   organisations (斐济足球协会 *Fiji Football Association*) and works (恋爱的滋味 *Taste of
   Love (South Korean TV series)*).
 
-Three more are files you build and install yourself, because their licences do not allow this
+Five more are files you build and install yourself, because their licences do not allow this
 project to distribute them (see [Data](#optional-dictionaries-you-build-yourself)):
 
 - **CBDB office titles**: about 2,900 Ming and Southern Ming office titles with English
   translations (典史 *Clerk / District Jailor*, 巡按御史 *Regional Inspector*).
 - **MOE 重編國語辭典**: about 90,000 entries, monolingual, strong on historical and literary
   vocabulary, its definitions in simplified characters.
+- **MOE 成語典**: the Taiwan Ministry of Education's idiom dictionary, about 5,500 chengyu with
+  source texts, notes, stories, citations and usage (see [Chengyu](#chengyu)).
+- **Xinhua idioms**: about 30,000 chengyu and set phrases with explanation, classical source
+  and an example.
 - **Moegirlpedia slang**: about 350 internet-slang terms from 萌娘百科, each with its opening
   sentence or two in Chinese (问题不大, 王八之气, 大杀器).
 
 CC-CEDICT always comes first: a word it has never gets an entry from a fallback dictionary. After
 it, each word shows the entry of the first fallback dictionary that has it, in this order: Wiktionary,
-CBDB, MOE, Wikipedia titles, Moegirlpedia. (CBDB's narrow office titles beat MOE's general
+CBDB, MOE, 成語典, Xinhua, Wikipedia titles, Moegirlpedia. (CBDB's narrow office titles beat MOE's general
 definitions; an English article title is a label rather than a definition, so it comes after
 the real dictionaries; Moegirlpedia is only for words nothing else has.) The order is the
 `chinesehelper_fallback_order` setting in KOReader's `settings.reader.lua`, which you can edit
@@ -344,11 +355,50 @@ after those named).
   and nothing else decides it (see [Readings](#readings)), as 累世 does for 累 in 累世公卿.
   The other fallback dictionaries' words never decide readings.
 - A small grey line above an entry names its dictionary: **CEDICT**, **Wikt**, **CBDB**,
-  **MOE**, **WP** or **Moegirl**. By default only entries from the fallback dictionaries are
+  **MOE**, **成语典**, **新华**, **WP** or **Moegirl**. By default only entries from the fallback dictionaries are
   labelled; **Source labels** can label every entry or none.
 - Each fallback dictionary can be switched off under **Fallback dictionaries**; with all of them off the
   popup shows CC-CEDICT alone, as before. **Status** lists each dictionary's version and size, or
   that it is not installed.
+
+### Chengyu
+
+With the optional **MOE 成語典** or **Xinhua idioms** file installed (see
+[Data](#optional-dictionaries-you-build-yourself)), a chengyu in the popup gets more than
+CC-CEDICT's English gloss:
+
+- **One line of Chinese explanation** under CC-CEDICT's (or Wiktionary's) entry, with its own
+  small label: 一毛不拔 → *形容人非常吝啬。贬义。* (成语典). It is the 成語典's meaning when it has
+  the idiom, otherwise Xinhua's explanation. Entries already in Chinese (MOE, the idiom files
+  themselves) get no extra line.
+- **A 出处 button** opens a full-screen view. From the 成語典: 释义, the 典源 passage with its
+  notes, 典故说明 (the story retold in modern Chinese), 书证 (later citations), usage and example
+  sentences, 辨识 and near and opposite idioms. A related form (玉石俱碎) shows its own
+  explanation and citations, then its main idiom's source text and story, headed with that
+  idiom's name (典源（玉石俱焚）). From Xinhua: the explanation, the classical source quoted, and
+  an example with its source. The 成語典 comes first when both have the idiom; with several
+  idioms in one popup, each button is named (首鼠两端 出处). No button appears when there is
+  nothing beyond the one line.
+- **Chengyu CC-CEDICT lacks** (精兵强将, 科班出身, 十二万分) get an entry from these files, in
+  the fallback order above.
+
+Both are converted to simplified characters if needed (the 成語典 with
+[`tools/simplify.py`](#simplified-text)); their readings appear only on their own entries and never
+decide the pinyin drawn. Measured with `tools/measure_chengyu.py` on the 46 Chinese books on the
+test device (202,036 chengyu occurrences) and on 临高启明 (38,398):
+
+| Popup | 46 books | 临高启明 |
+|---|---|---|
+| an entry, release only (CC-CEDICT, Wiktionary) | 93.2% | 93.7% |
+| an entry, with the MOE file | 97.3% | 97.7% |
+| an entry, with MOE, 成語典 and Xinhua | 100% | 100% |
+| a Chinese short line | 94.7% | 94.6% |
+| a 出处 view | 92.4% | 92.3% |
+| a 出处 view from the 成語典 | 30.3% | 28.9% |
+
+(Here a chengyu is any headword CC-CEDICT tags *idiom* or either file lists, so "100%" only
+means the two files cover their own lists; the gain is the 1,282 idioms, 5,397 occurrences,
+that had no entry even with MOE, such as 精兵强将, 受制于人, 由来已久.)
 
 The popup is the full width of the screen (minus a small margin) and as tall as its content,
 up to the full screen height, scrolling beyond that. A short popup goes in the half of the
@@ -529,16 +579,19 @@ The popup's lookups use indexes on the simplified and traditional forms; the bui
 
 ### Optional dictionaries you build yourself
 
-Three more fallback dictionaries can be added, each as a separate file. Their licences allow
+Five more fallback dictionaries can be added, each as a separate file. Their licences allow
 copying them for your own use but not this project's distributing them, so none is in the
 repository or the release: you build the files yourself and copy them to your device. The plugin
 works the same without them, and opens each only if it is there. Build the plugin database first
 (or use the one from the release zip): headwords CC-CEDICT has are left out of these files too.
+(The 成語典 and Xinhua scripts take the database from the latest release when you have none.)
 
 ```sh
 .venv/bin/pip install opencc pypinyin
 .venv/bin/python tools/build_moe.py              # -> build/chinesehelper-moe.sqlite (about 17 MB)
 .venv/bin/python tools/build_cbdb.py             # -> build/chinesehelper-cbdb.sqlite (about 0.5 MB)
+.venv/bin/python tools/build_idioms.py           # -> build/chinesehelper-idioms.sqlite (about 22 MB)
+.venv/bin/python tools/build_xinhua.py           # -> build/chinesehelper-xinhua.sqlite (about 15 MB)
 .venv/bin/python tools/build_moegirl.py          # -> build/chinesehelper-moegirl.sqlite (about 0.1 MB)
 # add --push to any of them to copy the file to a USB-connected Android device (adb)
 ```
@@ -566,6 +619,30 @@ They go in KOReader's data folder, where plugin updates leave them alone:
 it). This project
   follows the stricter of the two: it ships only the build script, never CBDB data, and the file
   is meant for your own non-commercial reading on your own device. Don't share it.
+- **MOE 成語典**: the Taiwan Ministry of Education's
+  [《成語典》](https://dict.idioms.moe.edu.tw/) (5,489 entries: 1,664 main entries with every
+  field and about 3,800 related forms), downloaded from the ministry's
+  [download page](https://language.moe.gov.tw/001/Upload/Files/site_content/M0001/respub/dict_idiomsdict_download.html)
+  (an .xlsx in a 5 MB zip; the script finds the current file there). Licence:
+  [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/). Text converted to
+  simplified characters (`--traditional` keeps the original). One command, from a fresh clone,
+  with the Boox connected over USB (leave out `--push` to only build the file):
+
+  ```sh
+  python3 -m venv .venv && .venv/bin/pip install opencc && .venv/bin/python tools/build_idioms.py --push
+  ```
+- **Xinhua idioms**: `data/idiom.json` of
+  [chinese-xinhua](https://github.com/pwxcoo/chinese-xinhua) (30,895 idioms; 30,212 kept: the
+  ones of 4–8 Chinese characters, since the popup's context stops at punctuation). The
+  repository's MIT licence covers its code; the text was scraped from a published dictionary,
+  so it is build-it-yourself too. The scraping lost punctuation; the build puts back what can be
+  put back reliably (the colon after a glossed word, 首鼠鼠性多疑 → 首鼠：鼠性多疑; the colon and
+  quotes after a source's title; ◇ and ★ markers) and shows symbols that stand for lost text as
+  …; typos stay. One command, as above:
+
+  ```sh
+  python3 -m venv .venv && .venv/bin/pip install opencc && .venv/bin/python tools/build_xinhua.py --push
+  ```
 - **Moegirlpedia slang**: the internet-slang pages of [萌娘百科](https://zh.moegirl.org.cn) (the
   page's opening sentence or two, with 黑幕 and struck-through text removed; a hand-checked list
   of characters, works and plain words left out), from the offline snapshot
@@ -736,6 +813,11 @@ originals for the user's own device:
   Sinica and Peking University;
   [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms),
   CC BY-NC-SA 4.0) (`tools/build_cbdb.py`);
+- the optional 成語典, [中華民國教育部《成語典》](https://dict.idioms.moe.edu.tw/) (© Ministry of
+  Education, Republic of China (Taiwan),
+  [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/)) (`tools/build_idioms.py`);
+- the optional Xinhua idioms, from [chinese-xinhua](https://github.com/pwxcoo/chinese-xinhua)'s
+  `data/idiom.json` (text scraped from a published dictionary) (`tools/build_xinhua.py`);
 - the optional Moegirlpedia slang, from [萌娘百科](https://zh.moegirl.org.cn)
   ([CC BY-NC-SA 3.0 CN](https://creativecommons.org/licenses/by-nc-sa/3.0/cn/)), via a third
   party's offline snapshot (`tools/build_moegirl.py`).

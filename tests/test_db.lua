@@ -80,6 +80,15 @@ data.lookup = real
 for _, n in ipairs({ 1, 2, 36 }) do
     eq(DB.fallbackSql(n), PY_FALLBACK_SQL(n), "fallback SQL for " .. n)
 end
+for _, n in ipairs({ 1, 2, 16 }) do
+    eq(DB.idiomsSql(n), PY_IDIOMS_SQL(n), "idioms SQL for " .. n)
+end
+eq(#db:idioms({ "一毛不拔" }), 0, "the release database has no idioms table")
+local idb = DB.open(TEST_KOREADER_DIR .. "/data/chinesehelper/chinesehelper-idioms.sqlite", H.SQ3)
+local irows = idb:idioms({ "一毛不拔", "玉石俱碎", "东西" })
+eq(#irows, 2); eq(irows[1].short ~= nil, true)
+eq(#idb:idioms({}), 0)
+idb:close()
 local fb = db:fallback({ "尚书省" })
 eq(#fb, 1, "尚书省 from Wiktionary"); eq(fb[1].source, "wikt"); eq(fb[1].trad, "尚書省")
 assert(fb[1].defs:find("Department of State Affairs", 1, true), fb[1].defs)

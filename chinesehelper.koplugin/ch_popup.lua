@@ -183,7 +183,7 @@ end
 
 -- The entries, one block each: the source label (when shown) on a small grey
 -- line of its own, left-aligned, then the headline (word, reading, markers)
--- and the senses. The blocks stack vertically; only when they are taller
+-- and the senses, then an idiom's Chinese short line with its own label. The blocks stack vertically; only when they are taller
 -- than the room left do they scroll (ScrollableContainer, with a scroll bar).
 function Popup:body(text_w, max_h)
     local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
@@ -216,6 +216,15 @@ function Popup:body(text_w, max_h)
                 add(TextBoxWidget:new{
                     text = TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n"), face = self.face, width = width,
                 })
+            end
+            if b.note then
+                if self:labelled(b.note) then
+                    add(TextWidget:new{
+                        text = (self.labels or {})[b.note.source] or b.note.source, face = label_face,
+                        fgcolor = Blitbuffer.COLOR_GRAY_5, max_width = width,
+                    })
+                end
+                add(TextBoxWidget:new{ text = b.note.text, face = self.face, width = width })
             end
         end
         return group
