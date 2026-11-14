@@ -18,7 +18,7 @@ local Model = {}
 
 Model.MARK_SHOWN = "shown above"     -- the reading drawn above the character
 Model.MARK_LIKELY = "likely here"    -- the resolver's reading, nothing drawn
-Model.MARK_UNSURE = "one of these"   -- the uncertainty pair: no word or rule decided
+Model.MARK_UNSURE = ""               -- the uncertainty pair: no word or rule decided, so no marker
 
 -- A sense that only says the entry is a variant of the very word being shown
 -- ("variant of 着 zháo" on a 着 entry) tells the reader nothing.
@@ -442,8 +442,8 @@ The popup's content as blocks, one per match:
       Chinese short line, under an entry whose text is not Chinese already }
 b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
 The tapped character's marked readings are "shown above" when `annotated`,
-"one of these" when Model.matches set m.mark (the uncertainty pair), and
-"likely here" otherwise. A reading a source does not give itself
+unmarked when Model.matches set m.mark (the uncertainty pair: both readings
+are simply listed), and "likely here" otherwise. A reading a source does not give itself
 (Model.GENERATED_READING) is followed by "· generated pinyin".
 ]]
 function Model.blocks(matches, char, annotated, b0, b1)
@@ -452,7 +452,8 @@ function Model.blocks(matches, char, annotated, b0, b1)
     local blocks = {}
     for _, m in ipairs(matches) do
         local block = { lines = {} }
-        local mark = " · " .. (m.mark or default_mark)
+        local label = m.mark or default_mark
+        local mark = label ~= "" and (" · " .. label) or ""
         for k, e in ipairs(m.entries) do
             local senses = table.concat(e.senses, "; ")
             if #e.senses == 0 then

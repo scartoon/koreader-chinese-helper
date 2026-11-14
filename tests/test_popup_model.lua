@@ -342,9 +342,9 @@ eq(join(m[1].entries, "pinyin"), "lěi,léi,lèi", "resolver's order")
 eq(m[1].entries[1].rank, nil, "the sort key is not left behind")
 m = matches("", "累", "", lei, { chosen = "léi/lěi" })
 eq(join(m[1].entries, "pinyin"), "léi,lěi,lèi")
--- The uncertainty pair (nothing decided, nothing drawn): "one of these".
+-- The uncertainty pair (nothing decided, nothing drawn): no marker.
 m = matches("", "累", "", lei, { chosen = "lěi/léi", unsure = true })
-eq(Model.render(m, "累", false), "累  lěi · one of these\nto accumulate\nléi · one of these: rope; to bind\n"
+eq(Model.render(m, "累", false), "累  lěi\nto accumulate\nléi: rope; to bind\n"
     .. "lèi: tired")
 -- Drawn as a pair, it is what the page shows.
 m = matches("", "累", "", lei, { chosen = "lěi/léi", unsure = true, annotated = true })

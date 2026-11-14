@@ -32,7 +32,7 @@ PARAS = [
     # Fallback dictionaries: 帐 (CC-CEDICT), 甲帐 (MOE), 帐下吏 (Wiktionary); 尚书省 (Wiktionary).
     "汉武帝的甲帐下吏都是名将。唐代尚书省下设六部。",
     # A Wiktionary word picks one of an uncertain pair: 累 is lěi in 累世 (popup:
-    # "likely here", 累世 decides). Nothing decides 累 in 他累: "one of these".
+    # "likely here", 累世 decides). Nothing decides 累 in 他累: both readings, unmarked.
     "后来发展成门第望族累世公卿。他累，就睡了。",
     "A paragraph in English only, to tap on Latin text: the quick brown fox jumps over the lazy dog.",
 ]

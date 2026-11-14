@@ -264,18 +264,19 @@ for _, a in ipairs(Resolve.annotate(fdata, items, 1000, "both", special)) do
 end
 
 -- Without the fallback words (as before this change): nothing decides, so
--- the pair is shown with "one of these", in the resolver's order (lěi
+-- the pair is shown unmarked, in the resolver's order (lěi
 -- first, although CC-CEDICT lists léi first), and lèi stays unmarked.
 p = popup("发展成门第望族累世公卿", "累")
 eq(p.chosen, "lěi/léi"); assert(p.unsure); eq(p.decided, nil)
 eq(marked(p, "累"), "lěi,léi")
-assert(p.text:find("累  lěi · one of these\n", 1, true), p.text)
-assert(p.text:find("\nléi · one of these: ", 1, true), p.text)
+assert(p.text:find("累  lěi\n", 1, true), p.text)
+assert(p.text:find("\nléi: ", 1, true), p.text)
+assert(not p.text:find(" · \n", 1, true), p.text)
 assert(not p.text:find("likely here", 1, true), p.text)
 -- With them too, when no word covers the character (他累: no word, no rule).
 p = popup("他累。", "累", { data = fdata })
 eq(p.chosen, "lěi/léi"); assert(p.unsure)
-assert(p.text:find("累  lěi · one of these\n", 1, true), p.text)
+assert(p.text:find("累  lěi\n", 1, true), p.text)
 -- Drawn as a pair: "shown above", as before (that is what the page shows).
 p = popup("他累。", "累", { data = fdata, threshold = 1000 })
 eq(p.drawn, "lěi/léi"); assert(not p.unsure)

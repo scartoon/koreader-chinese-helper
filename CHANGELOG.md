@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.1 (2026-11-13)
+
+Popup
+- **No "· one of these" label.** When nothing decides between a character's two likely readings,
+  both are now simply listed, the likelier first, with no marker. The label repeated on both
+  lines and said nothing the list itself didn't.
+
+Unchanged: the plugin database (byte-identical to 2.0.0), every reading.
+
 ## 2.0.0 (2026-11-13)
 
 The major version marks how far the plugin has come since 1.0. Nothing breaks: settings, the

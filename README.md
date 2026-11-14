@@ -75,7 +75,7 @@ Optional dictionaries are files you build yourself, because their licences do no
 project to distribute them. All explanatory text is in simplified characters
 ([Simplified text](#simplified-text)).
 
-Status: **2.0.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **2.0.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -166,7 +166,7 @@ where the words break.
   too, with the whole word marked.
 - **The tapped character first**, with all its readings. The reading it has here comes first,
   marked **· shown above** when its pinyin is drawn, or **· likely here** when not. When nothing
-  decides between its two likely readings, both are marked **· one of these**, the likelier
+  decides between its two likely readings, both are simply listed, unmarked, the likelier
   first ([Readings](#readings)).
 - **The character's components**, indented under its own entry ([below](#character-components)).
 - **Then every dictionary word containing it**, longest first; words of the same length in
