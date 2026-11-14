@@ -158,7 +158,7 @@ eq(settings.chinesehelper_edge_mm, 2.5, "saved"); eq(edge_item.text_func(), "Edg
 -- The tap handler: the edge band is checked first, before any hit testing,
 -- and a change applies to the next tap.
 local hits = 0
-plugin.tap.hitAt = function() hits = hits + 1; return nil end
+plugin.tap.target = function() hits = hits + 1; return { outcome = "pass" } end
 plugin.ui = { document = {}, highlight = {} }
 local function tap(x, y) return plugin.tap:onTap({ pos = { x = x, y = y } }) end
 for k, mm in ipairs({ 2.5, 5, 7.5, 10 }) do
@@ -203,6 +203,29 @@ screen.dpi = nil
 edge_item.sub_item_table[3].callback()
 eq(plugin.tap:edgeBand(), 59)
 screen.dpi = 300
+
+-- Outside the band, the decision (ch_area.lua) decides: a popup and a
+-- swallowed tap keep the page; a pass, a link or a highlight turn it.
+local shown_hits = {}
+local real_show = plugin.tap.showPopup
+plugin.tap.showPopup = function(_, hit) shown_hits[#shown_hits + 1] = hit.char end
+local decision
+plugin.tap.target = function() return decision end
+decision = { outcome = "popup", hit = { char = "中" }, dist = 12, why = "gap", chars = 30 }
+eq(tap(600, 600), true, "popup: no page turn"); eq(shown_hits[1], "中")
+assert(plugin.tap.last_tap:find("popup 中 at %?, 12 px from its glyph, gap, 30 chars"), plugin.tap.last_tap)
+decision = { outcome = "swallow", why = "no Han within reach", chars = 20 }
+eq(tap(600, 600), true, "swallow: no page turn"); eq(#shown_hits, 1, "and no popup")
+decision = { outcome = "pass", why = "outside the text", chars = 10 }
+eq(tap(600, 600), false, "pass: KOReader's")
+decision = { outcome = "popup", hit = { char = "中" }, dist = 0, why = "on glyph", chars = 1 }
+plugin.ui.document = { getLinkFromPosition = function() return "#note1" end }
+eq(tap(600, 600), false, "on a link: KOReader's"); eq(#shown_hits, 1)
+assert(plugin.tap.last_tap:find("pass, link or highlight", 1, true), plugin.tap.last_tap)
+plugin.ui.document = {}
+plugin.tap.target = function() error("boom") end
+eq(tap(600, 600), false, "an error: KOReader's")
+plugin.tap.showPopup = real_show
 plugin.ui = nil
 
 -- Data through the real database: loaded once, shared.

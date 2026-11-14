@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.1.0"
+ChineseHelper.VERSION = "2.1.1"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -474,7 +474,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Tap characters for popup"),
-                help_text = _("A single tap on a Chinese character, or on the pinyin above one, shows its CC-CEDICT entry and every dictionary word around it that contains it, with a button per word for KOReader's dictionary lookup. Other taps turn the page as usual; long-press is unchanged."),
+                help_text = _("A single tap in the text shows the nearest Chinese character's CC-CEDICT entry and every dictionary word around it that contains it, with a button per word for KOReader's dictionary lookup. A tap between lines, between characters or on punctuation takes the nearest character; a tap on the pinyin above one takes that character. Taps outside the text (margins, blank space, the rest of a short line, lines with no Chinese) turn the page as usual; long-press is unchanged."),
                 checked_func = function() return settings:popupEnabled() end,
                 callback = function()
                     settings:set("popup_enabled", not settings:popupEnabled())
@@ -515,7 +515,7 @@ function ChineseHelper:addToMainMenu(menu_items)
                 text_func = function()
                     return T(_("Edge pass-through width: %1"), plugin:edgeLabel(settings:edgeMm()))
                 end,
-                help_text = _("A tap this close to any edge of the screen always goes to KOReader (page turn, menus, corner actions), even on a Chinese character or its pinyin. 0 mm turns this off: then only taps that miss a character go to KOReader."),
+                help_text = _("A tap this close to any edge of the screen always goes to KOReader (page turn, menus, corner actions), even on a Chinese character or its pinyin. 0 mm turns this off: then only taps outside the text go to KOReader."),
                 sub_item_table = edge_items,
             },
             {
@@ -654,6 +654,9 @@ function ChineseHelper:showStatus()
     local dpi = Device.screen and Device.screen.getDPI and Device.screen:getDPI()
     lines[#lines + 1] = T(_("Edge pass-through: %1 = %2 px (screen %3 dpi)"), self:edgeLabel(self.settings:edgeMm()),
         self.tap:edgeBand(), tostring(dpi))
+    if self.tap.last_tap then
+        lines[#lines + 1] = T(_("Last tap: %1"), self.tap.last_tap)
+    end
     local old = self:oldPluginsPresent()
     if #old > 0 then
         lines[#lines + 1] = T(_("Old plugins still installed: %1"), table.concat(old, ", "))

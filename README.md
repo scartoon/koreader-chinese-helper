@@ -35,8 +35,9 @@ reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 All screenshots: a Boox Go 7 (landscape), the [sample book](#the-sample-book), default settings,
 with every optional dictionary installed. `tools/make_screenshots.py` takes them again.
 
-- **One tap, no selecting**: tap a character, or the pinyin above one; every other tap turns
-  pages and opens menus as usual ([What a tap does](#what-a-tap-does)).
+- **One tap, no selecting**: tap anywhere in the text (on a character, between lines, on
+  punctuation) and the nearest character opens; taps outside the text turn pages and open menus
+  as usual ([What a tap does](#what-a-tap-does)).
 - **Only the words on the page**: tap 宛 in 很大宛如 and you get 宛, 大宛 and 宛如, longest first,
   so a sentence that could divide two ways shows both ([The popup](#the-popup)).
 - **A reading for every character**, common ones included, right 97.5% of the time on the hard
@@ -75,7 +76,7 @@ Optional dictionaries are files you build yourself, because their licences do no
 project to distribute them. All explanatory text is in simplified characters
 ([Simplified text](#simplified-text)).
 
-Status: **2.1.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **2.1.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -129,17 +130,31 @@ Tools menu). Settings apply to all books.
 
 ### What a tap does
 
-- **A single tap on a Chinese character's glyph** (CJK Unified Ideographs, all extensions, and
-  the compatibility ideographs), **or on the pinyin drawn above one**, opens the popup.
-- **Every other tap is KOReader's**: margins, the space between lines, blank space after a
-  paragraph, punctuation, Latin text and digits turn the page or open the menus. Links and your
-  highlights keep their usual behaviour; long-press and every other gesture are untouched.
+- **A single tap inside the text opens the popup for the nearest Chinese character** (CJK
+  Unified Ideographs, all extensions, and the compatibility ideographs), and the underline on
+  the page marks the one chosen. That covers a tap on a character's glyph, between two lines,
+  between two characters, in a paragraph's indent, and on punctuation (a tap on ， takes the
+  nearer of its neighbours). A tap on the **pinyin drawn above a character** opens that
+  character. Inside the text the page never turns.
+- **The text** is each line from its first to its last character, plus 1.5 mm either side, the
+  full height of the line, and the space between two lines when it is less than a line high
+  (so normal paragraph spacing counts as text).
+- **Every other tap is KOReader's**: the margins, the blank space after the last paragraph on a
+  page, the empty rest of a short line, the space around images, and any line with no Chinese
+  characters at all (an English paragraph, a line of numbers) turn the page or open the menus.
+  Links and your highlights keep their usual behaviour; long-press and every other gesture are
+  untouched.
+- **Latin text inside a Chinese line** takes the nearest Chinese character on that line or the
+  line above or below, if one is within three characters' width; if none is, the tap does
+  nothing (no popup, no page turn).
 - **The edge band**: a tap within **Edge pass-through width** of any screen edge always goes to
   KOReader, even on a character, so page turns stay reliable with small margins. The width is
   converted with the screen DPI KOReader reports (300 dpi if it reports none, where 5 mm is
   59 px), follows rotation, and applies from the next tap.
-- KOReader's menu and corner zones reach further than the band: inside them, a tap on a character
-  opens the popup; tap in the band, or on blank space or punctuation, to open the menus.
+- KOReader's menu and corner zones reach further than the band: inside them, a tap in the text
+  opens the popup; tap in the band, or outside the text, to open the menus.
+- The plugin's **Status** screen shows what the last tap did: the character chosen, how far the
+  tap was from it, and the time taken (a few milliseconds).
 - PDF and DjVu are not supported: there, every tap is KOReader's and no pinyin is drawn.
 
 ### Line spacing

@@ -11,16 +11,21 @@ local M = {}
 M.CW, M.LH, M.TH, M.X0 = 40, 100, 40, 100
 local CW, LH, X0 = M.CW, M.LH, M.X0
 
-function M.fakeDoc(paras, per_line)
+-- opts.indent: the first line of each paragraph starts this many cells in;
+-- opts.gap: extra pixels between paragraphs (both 0 by default);
+-- opts.prev_skips_end: see getPrevVisibleChar.
+function M.fakeDoc(paras, per_line, opts)
+    opts = opts or {}
+    local indent, gap = opts.indent or 0, opts.gap or 0
     local doc = { cells = {} }    -- flat list of { p=, i=, ch=, box= }
     local line = 0
     for p, s in ipairs(paras) do
         local chars = Text.chars(s)
         for i, ch in ipairs(chars) do
-            local col = (i - 1) % per_line
+            local col = (i - 1 + indent) % per_line
             if i > 1 and col == 0 then line = line + 1 end
             doc.cells[#doc.cells + 1] = { p = p, i = i - 1, ch = ch,
-                box = { x = X0 + col * CW, y = line * LH, w = CW, h = LH } }
+                box = { x = X0 + col * CW, y = line * LH + (p - 1) * gap, w = CW, h = LH } }
         end
         doc.cells[#doc.cells + 1] = { p = p, i = #chars, ch = nil }   -- end of paragraph
         line = line + 1
@@ -43,11 +48,13 @@ function M.fakeDoc(paras, per_line)
         local c = self.cells[best]
         return { text = c.ch, pos0 = xp(c), pos1 = c.p .. "/" .. (c.i + 1), sboxes = { c.box } }
     end
+    -- From a paragraph's first character: the previous paragraph's end, or
+    -- (opts.prev_skips_end, as crengine does on the device) its last character.
     function doc:getPrevVisibleChar(x)
         local k = index[x]
         if not k or k == 1 then return nil end
         local c = self.cells[k]
-        if c.i == 0 then return xp(self.cells[k - 1]) end      -- end of the previous paragraph
+        if c.i == 0 and opts.prev_skips_end and k > 2 then return xp(self.cells[k - 2]) end
         return xp(self.cells[k - 1])
     end
     function doc:getNextVisibleChar(x)
@@ -81,6 +88,13 @@ function M.fakeDoc(paras, per_line)
         if c and not c.box then c = self.cells[k - 1] end   -- end of paragraph: its last character
         local y = c and c.box and c.box.y or 0
         return math.floor(y / LH / (self.lines_per_page or 10)) + 1
+    end
+    -- One box per character (a paragraph's end has none), like crengine's
+    -- line segments for a one-character range.
+    function doc:getScreenBoxesFromPositions(a, b)
+        local c = self.cells[index[a]]
+        if not c or not c.ch then return {} end
+        return { c.box }
     end
     -- The hit for the n-th character (1-based) of paragraph p.
     function doc:hit(p, n)

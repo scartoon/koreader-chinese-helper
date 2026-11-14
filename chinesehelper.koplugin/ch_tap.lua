@@ -1,13 +1,17 @@
--- The one tap handler: a single tap on a Chinese character's glyph, or on the
--- pinyin drawn above one, opens the popup; every other tap is KOReader's.
+-- The one tap handler: a single tap inside the text opens the popup for the
+-- nearest Chinese character (ch_area.lua), a tap on the pinyin drawn above
+-- one opens its character's; every other tap is KOReader's.
 --
 -- One full-screen "tap" zone, like ReaderHighlight's readerhighlight_tap:
 -- it overrides the page-turn, menu, footer and corner zones so it is asked
 -- first, and returns false (the tap falls through to them, and the page
--- turns) unless the tap is on a Chinese character's glyph or drawn pinyin.
--- Links and highlights come earlier (registered before plugins) and are also
--- checked in the handler. A tap in the edge band ("Edge pass-through width")
--- is always KOReader's: that is checked first, before any hit testing. Nothing is registered for hold, swipe or any other
+-- turns) only for a tap outside the text: margins, blank space after the
+-- text, the rest of a short line, a line with no Han characters. A tap in
+-- the text with no Han character within reach (in a run of Latin text) does
+-- nothing. Links and highlights come earlier (registered before plugins) and
+-- are also checked in the handler. A tap in the edge band ("Edge
+-- pass-through width") is always KOReader's: that is checked first, before
+-- any hit testing. Nothing is registered for hold, swipe or any other
 -- gesture, and nothing at all while "Tap characters for popup" is off or the
 -- document is not reflowable (PDF, DjVu, CBZ: every tap is KOReader's).
 
@@ -19,6 +23,7 @@ local time = require("ui/time")
 local _ = require("gettext")
 local T = require("ffi/util").template
 
+local Area = require("ch_area")
 local Components = require("ch_components")
 local Context = require("ch_context")
 local Edge = require("ch_edge")
@@ -134,14 +139,41 @@ function Tap:textHeight()
     return ok and tonumber(size) or nil
 end
 
--- The character a tap is on: { char=, pos0=, pos1=, box= }, or nil. Drawn
--- pinyin counts as its character.
-function Tap:hitAt(pos)
+-- How far past a line's first and last character a tap still counts as in
+-- the text (Area.PAD_MM), in pixels.
+function Tap:pad()
+    return Edge.px(Area.PAD_MM, Device.screen:getDPI())
+end
+
+--[[--
+What a tap does (ch_area.lua): { outcome = "popup" | "swallow" | "pass",
+hit= (for a popup: { char=, pos0=, pos1=, box= }), dist=, why=, chars= }.
+Drawn pinyin counts as its character.
+]]
+function Tap:target(pos)
     local gloss = self.plugin.annotator:hitTest(pos.x, pos.y)
     if gloss and gloss.ws and gloss.we then
-        return { char = gloss.char, pos0 = gloss.ws, pos1 = gloss.we, box = gloss.box }
+        return { outcome = "popup", dist = 0, why = "pinyin", chars = 0,
+                 hit = { char = gloss.char, pos0 = gloss.ws, pos1 = gloss.we, box = gloss.box } }
     end
-    return Context.charAt(self:ui().document, pos, self:textHeight())
+    local th = self:textHeight()
+    return Context.tapTarget(self:ui().document, pos, {
+        text_height = th, pad = self:pad(), em = th, screen_h = Device.screen:getHeight(),
+    })
+end
+
+-- Log the tap's decision (and keep it for the Status screen): the point, the
+-- outcome, the character chosen with its box and its distance from the tap,
+-- why, how many characters were looked at, and the time taken.
+function Tap:note(pos, r, ms)
+    local hit = r.hit
+    local box = hit and hit.box
+    local text = string.format("(%d,%d) %s%s, %s, %d chars, %.1f ms", pos.x, pos.y, r.outcome,
+        hit and string.format(" %s at %s, %.0f px from its glyph", tostring(hit.char),
+            box and string.format("%d,%d", box.x, box.y) or "?", r.dist or 0) or "",
+        r.why or "", r.chars or 0, ms)
+    self.last_tap = text
+    logger.dbg("chinesehelper: tap " .. text)
 end
 
 function Tap:onTap(ges)
@@ -151,20 +183,29 @@ function Tap:onTap(ges)
     local highlight = self:ui().highlight
     -- A tap while selecting text, or in highlight select mode, is ReaderHighlight's.
     if highlight and (highlight.hold_pos or highlight.select_mode) then return false end
-    local ok, result = pcall(function()
-        local pos = { x = ges.pos.x, y = ges.pos.y }
-        local hit = self:hitAt(pos)
-        if not hit then return false end
-        if self:tapIsOnLink(ges.pos) or self:tapIsOnHighlight(pos) then return false end
-        self:showPopup(hit)
-        return true
-    end)
+    local t0 = time.monotonic()
+    local pos = { x = ges.pos.x, y = ges.pos.y }
+    local ok, r = pcall(self.target, self, pos)
     if not ok then
-        logger.warn("chinesehelper: tap failed:", tostring(result))
+        logger.warn("chinesehelper: tap failed:", tostring(r))
         self:unmark()   -- no popup: no underline either
         return false
     end
-    return result
+    if r.outcome ~= "pass" and (self:tapIsOnLink(ges.pos) or self:tapIsOnHighlight(pos)) then
+        r = { outcome = "pass", why = "link or highlight", chars = r.chars }
+    end
+    self:note(pos, r, time.to_ms(time.monotonic() - t0))
+    if r.outcome == "pass" then return false end
+    if r.outcome == "popup" then
+        local shown, err = pcall(self.showPopup, self, r.hit)
+        if not shown then
+            logger.warn("chinesehelper: popup failed:", tostring(err))
+            self:unmark()
+        end
+    end
+    -- A popup, or a tap in the text with no Han character near enough
+    -- ("swallow"): never a page turn.
+    return true
 end
 
 --[[--

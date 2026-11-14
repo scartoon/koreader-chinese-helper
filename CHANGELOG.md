@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.1.1 (2026-11-14)
+
+Tapping the page
+- **A tap inside the text always opens the popup, for the nearest Chinese character.** Before,
+  only a tap on a character's glyph did; a tap between two lines (the empty half-line below the
+  characters), on punctuation (，。《》) or in a paragraph's indent fell through to KOReader and
+  turned the page. Now the character whose glyph is nearest to the tap is taken (a tap on ，
+  takes the nearer of its neighbours), and the underline on the page marks it.
+- **The text** is each line from its first to its last character, plus 1.5 mm either side, the
+  full height of the line, and the gap between two lines while it is less than a line high (so
+  paragraph spacing counts). A paragraph's first line also covers its indent.
+- **Still KOReader's**: the edge band (checked first, unchanged), links, highlights, text
+  selection; the margins, the blank space after the last paragraph on a page, the empty rest of
+  a short line, the space around images; and any line with no Chinese characters (an English
+  paragraph, a line of numbers).
+- **Latin text in a Chinese line** takes the nearest Chinese character on that line or the line
+  above or below, if one is within three characters' width; otherwise the tap does nothing (no
+  popup, no page turn).
+- The plugin works the geometry out at tap time, around the tap only: from the character
+  crengine snaps the tap to, it reads the characters of the tapped line and the lines above and
+  below it (12–100 characters), one box each. Page turns do no extra work. The **Status**
+  screen shows the last tap's decision (the character, its distance from the tap, the time),
+  and KOReader's debug log has a line for every tap.
+
+Measured on the Boox Go 7 (adb taps, 48 in all, on a dense page of 张宏杰's 历史的正面与侧面, 64 px
+text in 103 px lines, and on two test books). On the dense page: below 皇's glyphs (8 px) took
+皇, above 计's took 计, the line boundary took 帝; the left and right halves of ， after 终
+took 终 and 我; 。 after 键 and 好 took them; the indent before 其三 took 其 (68 px from its
+glyph); the tail of the short line 大戏。他的运气非常好。 took 好 within the pad and turned the
+page beyond it. In the test books: Latin and digits in Chinese lines took 了, 的, 年 or the
+character above or below (47–63 px); the English-only paragraph, the space right of short lines
+and the blank space below the last paragraph went to KOReader. None of the 30 taps that opened
+a popup turned the page; all 15 pass-through taps went to KOReader. Deciding takes 1–2 ms for a
+tap on a glyph and 3–13 ms otherwise.
+
+Unchanged: the plugin database (byte-identical to 2.0.0, SHA-256 `20cc7ff8…`), every reading,
+the optional dictionary files.
+
 ## 2.1.0 (2026-11-14)
 
 Popup

@@ -1,5 +1,6 @@
 -- From a tap to the tapped Chinese character and the Han characters around it,
--- through CreDocument (reflowable documents only). Uses the same engine calls
+-- through CreDocument (reflowable documents only). Context.tapTarget decides
+-- what a tap does (the geometry is in ch_area.lua). Uses the same engine calls
 -- as ReaderHighlight: getTextFromPositions for the text under a point,
 -- getPrevVisibleChar/getNextVisibleChar to move by character (they cross line
 -- breaks and inline tags), getTextFromXPointers for the text in between.
@@ -10,6 +11,7 @@
 
 local Text = require("ch_text")
 local Layout = require("ch_layout")
+local Area = require("ch_area")
 
 local Context = {}
 
@@ -54,6 +56,132 @@ function Context.charAt(document, pos, text_height)
         end
     end
     return nil
+end
+
+Context.WINDOW_MAX = 400   -- characters walked at most each way (Context.window)
+
+-- One character from xpointer a to b: { text=, pos0=, pos1=, box= }; box is
+-- nil off screen and at a paragraph's end (empty text).
+local function cell(document, a, b, screen_h)
+    local text = call(document, "getTextFromXPointers", a, b) or ""
+    local boxes = call(document, "getScreenBoxesFromPositions", a, b, true)
+    local box = boxes and boxes[1]
+    if box and (not box.w or box.w <= 0 or not box.h or box.h <= 0
+            or (screen_h and (box.y >= screen_h or box.y + box.h <= 0))) then
+        box = nil
+    end
+    return { text = text, pos0 = a, pos1 = b, box = box }
+end
+
+-- A paragraph's end, between two paragraphs' characters: no text and no box.
+local function isBreak(c) return c.box == nil and (c.text == "" or c.text == "\n") end
+
+--[[--
+The characters on screen around the snapped character at xpointer pos0, in
+reading order, for Area.decide: { text=, pos0=, pos1=, box=, brk= }, brk
+marking the first character after a paragraph break.
+
+Walks back from pos0 and forward from it one visible character at a time
+(one text and one box lookup each: a few hundredths of a millisecond on a
+Boox Go 7) and stops at the first character whose line lies wholly outside
+y_lo..y_hi (so every line it keeps is complete), at a character off screen,
+or after Context.WINDOW_MAX characters.
+]]
+function Context.window(document, pos0, y_lo, y_hi, screen_h)
+    -- Backwards: (prev, cur) is the character before cur. A break met just
+    -- after keeping a character means that character starts its paragraph;
+    -- one met before keeping any means the snapped character does.
+    local before, anchor_brk = {}, nil
+    local cur = pos0
+    for _ = 1, Context.WINDOW_MAX do
+        local prev = call(document, "getPrevVisibleChar", cur)
+        if not prev or prev == cur then
+            -- The start of the text starts a paragraph too.
+            if #before > 0 then before[#before].brk = true else anchor_brk = true end
+            break
+        end
+        local c = cell(document, prev, cur, screen_h)
+        if isBreak(c) then
+            if #before > 0 then before[#before].brk = true else anchor_brk = true end
+        else
+            if not c.box or c.box.y + c.box.h <= y_lo then break end
+            -- Walking back, crengine steps from a paragraph's first character
+            -- straight to the last one of the paragraph before; forwards it
+            -- stops at the paragraph's end in between. So where the line
+            -- changes (and at the snapped character), a forward step that
+            -- does not come back to cur means a paragraph starts at cur.
+            local last = before[#before]
+            if (not last or last.box.y ~= c.box.y)
+                    and call(document, "getNextVisibleChar", prev) ~= cur then
+                if last then last.brk = true else anchor_brk = true end
+            end
+            before[#before + 1] = c
+        end
+        cur = prev
+    end
+    local chars = {}
+    for k = #before, 1, -1 do chars[#chars + 1] = before[k] end
+    -- Forwards from pos0: the snapped character first.
+    cur = pos0
+    local pending = anchor_brk
+    for _ = 1, Context.WINDOW_MAX do
+        local nxt = call(document, "getNextVisibleChar", cur)
+        if not nxt or nxt == cur then break end
+        local c = cell(document, cur, nxt, screen_h)
+        if isBreak(c) then
+            pending = true
+        else
+            if not c.box or c.box.y >= y_hi then break end
+            c.brk = pending or nil
+            pending = nil
+            chars[#chars + 1] = c
+        end
+        cur = nxt
+    end
+    return chars
+end
+
+--[[--
+What a tap at screen point pos does (see ch_area.lua), through the engine.
+
+  m  { text_height=, pad=, em=, screen_h= }
+
+Returns Area.decide's result plus, for a popup, hit = { char=, pos0=, pos1=,
+box= } (the character chosen, as Context.charAt returns it), and chars =
+how many characters were looked at.
+
+crengine snaps any point to the nearest text; that character is where the
+walk starts (Context.window, over the lines within a line's height of the
+tap and of the snapped character). A tap right on a Han character's glyph
+takes it at once, without the walk.
+]]
+function Context.tapTarget(document, pos, m)
+    local range = call(document, "getTextFromPositions", pos, pos, true)
+    if not range or not range.pos0 or not range.pos1 then
+        return { outcome = "pass", why = "no text", chars = 0 }
+    end
+    local boxes = range.sboxes
+    if not boxes or #boxes == 0 then
+        boxes = call(document, "getScreenBoxesFromPositions", range.pos0, range.pos1, true) or {}
+    end
+    if Text.isHan(range.text) then
+        for _, box in ipairs(boxes) do
+            if Context.onGlyph(box, m.text_height, pos.x, pos.y) then
+                return { outcome = "popup", dist = 0, why = "on glyph", chars = 1,
+                         hit = { char = range.text, pos0 = range.pos0, pos1 = range.pos1, box = box } }
+            end
+        end
+    end
+    local anchor = boxes[1]
+    local lh = anchor and anchor.h or (m.text_height or 0) * 2
+    local top = anchor and math.min(pos.y, anchor.y) or pos.y
+    local bottom = anchor and math.max(pos.y, anchor.y + anchor.h) or pos.y
+    local chars = Context.window(document, range.pos0, top - lh, bottom + lh, m.screen_h)
+    local r = Area.decide(chars, pos.x, pos.y, m)
+    r.chars = #chars
+    local c = r.index and chars[r.index]
+    if c then r.hit = { char = c.text, pos0 = c.pos0, pos1 = c.pos1, box = c.box } end
+    return r
 end
 
 -- Move up to n visible characters from xp with `step`; the last position reached.
