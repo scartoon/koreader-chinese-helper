@@ -27,3 +27,18 @@ are on `main`:
 4. `tools/deploy.sh` to put the plugin on the Boox over USB (`adb devices` should list it). It
    reruns check.sh, pushes the plugin and restarts KOReader; confirm KOReader is running again
    (`adb shell pidof org.koreader.launcher`).
+
+## Task queue
+
+GitHub issues on scartoon/koreader-chinese-helper are the backlog; all queue state lives there,
+not in local files. `/next` (`.claude/commands/next.md`) is the entry point: it resumes the
+`in-progress` issue or takes the top open one. Each issue body is the brief for its task (the
+**Brief** template: Goal, Context, Steps, Done when, Stop and ask if); later comments from Simon
+override the body.
+
+- `P1`, `P2`, `P3`: priority, P1 most urgent; unlabelled goes last. Within a label, lowest issue
+  number first.
+- `in-progress`: the item currently being worked on (at most one).
+- `needs-simon`: blocked on a question or decision from Simon; /next skips it.
+- `draft`: a quick capture, not yet a full brief; /next skips it.
+- An issue whose body says "Depends on #X" waits until #X is closed.
