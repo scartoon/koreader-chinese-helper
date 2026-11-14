@@ -24,7 +24,7 @@ reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 </tr>
 <tr>
 <td><a href="#chengyu"><img src="docs/chengyu.png" alt="Popup for 也 in 孔乙己's 满口之乎者也: at the top the line 他对人说话，总是满口之乎者也，教人半懂不懂的。 with 也 marked; then 也 yě, 满口之乎者也 and 之乎者也 from CC-CEDICT, 之乎者也 with a Chinese line labelled 新华: 这四个字都是文言虚词，讽刺人说话喜欢咬文嚼字。也形容半文不白的话或文章。; a 出处 button"></a><br><b>Chengyu explained</b>: 之乎者也 with Xinhua's line (optional file) …</td>
-<td><a href="#chengyu"><img src="docs/chengyu-2.png" alt="The 出处 view for 之乎者也 from 新华成语: 释义; 出处 宋·文莹《湘山野录》：“之乎者也，助得甚事？”; 例句 他对人说话，总是满口之乎者也，叫人半懂不懂的。"></a><br>… and its <b>出处</b>: the classical source and an example (this very line of 孔乙己)</td>
+<td><a href="#chengyu"><img src="docs/chengyu-2.png" alt="The 出处 view for 之乎者也 from 新华成语: 释义; 出处 宋·文莹《湘山野录》：“之乎者也，助得甚事？”; 例句 他对人说话，总是满口之乎者也，叫人半懂不懂的。"></a><br>… and its <b>出处</b>: the classical source and an example from this same passage of 孔乙己</td>
 </tr>
 <tr>
 <td><a href="#fallback-dictionaries"><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月春风 labelled MOE with its Chinese definition; 秋月 labelled Wikt; a 出处 button"></a><br><b>Several dictionaries, each labelled</b>: CC-CEDICT, then MOE (optional) and Wiktionary for 秋月春风 and 秋月</td>
@@ -75,7 +75,7 @@ Optional dictionaries are files you build yourself, because their licences do no
 project to distribute them. All explanatory text is in simplified characters
 ([Simplified text](#simplified-text)).
 
-Status: **1.9.2**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **2.0.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
