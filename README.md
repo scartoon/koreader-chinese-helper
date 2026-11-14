@@ -11,24 +11,24 @@ the reading the character takes in this context: 行 is *háng* in 银行 but *x
 cutoff you choose: the hard ones get help and the rest of the page stays clean. It works on any
 reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 
-![The opening of 三国演义 第一回 on a Boox Go 7: the chapter title, and below the popup the last lines of the 话说天下大势 paragraph with pinyin above the rare characters only (gù over 锢, huàn over 宦, juān over 涓). The popup is open on 涓: juān, "brook; to select", "Juān: surname Juan"; its parts, labelled MMAH: 氵 shuǐ water → meaning, 肙 yuān "a small worm; to twist" → sound (same ending); then 中涓 zhōngjuān "(archaic) eunuch", labelled Wikt; buttons 涓, 中涓, Close and Translate & Analyze](docs/main.png)
+![The opening of 三国演义 第一回 on a Boox Go 7: the chapter title, then the popup on 密. At its top, the line 时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不密，反为所害，中涓自此愈横。 with 密 in bold and underlined; then 密 mì, "dense; close; … (bound form) secret; confidential …", "Mì: surname Mi"; its parts, labelled Wikt: 宓 mì still; silent → sound (same sound), 山 shān mountain → meaning; then 不密 bùmì "(literary) not well thought out; (literary) not secret", labelled Wikt; buttons 密, 不密, Close and Translate & Analyze. Below the popup, the last lines of the 话说天下大势 paragraph, with juān above 涓 and 密 underlined on the page](docs/main.png)
 
 <table>
 <tr>
 <td width="50%"><a href="#line-spacing"><img src="docs/off-on.png" alt="The 临江仙 that opens 三国演义, pinyin off (top) and on (bottom): with it on, only 樵 qiáo and 渚 zhǔ get pinyin, the rest of the page stays clean"></a><br><b>Pinyin only above the hard characters</b>, at the level you choose (here the default: outside the 3,500 most common)</td>
-<td width="50%"><a href="#the-popup"><img src="docs/context.png" alt="Popup for 间 in 孔乙己's 虽然间或没有现钱: 间 jiàn · likely here, jiān listed after it; 间或 jiànhuò · decides 间's reading, occasionally; now and then"></a><br><b>The reading it has here</b>, and the word that decides it: 间 is <i>jiàn</i> in 间或</td>
+<td width="50%"><a href="#the-popup"><img src="docs/context.png" alt="Popup for 间 in 孔乙己's 虽然间或没有现钱: at the top the line 但他在我们店里，品行却比别人都好，就是从不拖欠；虽然间或没有现钱，… with 间 marked; 间 jiàn · likely here, jiān listed after it; 间或 jiànhuò · decides 间's reading, occasionally; now and then"></a><br><b>The reading it has here</b>, and the word that decides it: 间 is <i>jiàn</i> in 间或</td>
 </tr>
 <tr>
-<td><a href="#character-components"><img src="docs/components.png" alt="Popup for 茴 in 孔乙己's 要一碟茴香豆: 茴 huí; its parts, labelled Wikt: 艹 cǎo grass; plant (草字头) → meaning, 回 huí to go back → sound (same sound); then 茴香豆 and 茴香"></a><br><b>What each character is made of</b>: 茴 is 艹 for the meaning and 回 <i>huí</i> for the sound</td>
-<td><a href="#character-components"><img src="docs/traditional.png" alt="Popup for 观 in 阿Q正传's 观音娘娘: 观 guān · likely here; traditional 觀: 雚 guàn (archaic) stork; heron → sound (same sound), 見 jiàn see → meaning, simplified: 雚 → 又; 观音 Guānyīn · decides 观's reading"></a><br><b>Parts the simplification hid</b>: 观 is read through 觀, 雚 <i>guàn</i> → sound</td>
+<td><a href="#character-components"><img src="docs/components.png" alt="Popup for 茴 in 孔乙己's 要一碟茴香豆: at the top the line 他不回答，对柜里说：“温两碗酒，要一碟茴香豆。” with 茴 marked; 茴 huí; its parts, labelled Wikt: 艹 cǎo grass; plant (草字头) → meaning, 回 huí to go back → sound (same sound); then 茴香豆 and 茴香"></a><br><b>What each character is made of</b>: 茴 is 艹 for the meaning and 回 <i>huí</i> for the sound</td>
+<td><a href="#character-components"><img src="docs/traditional.png" alt="Popup for 观 in 阿Q正传's 观音娘娘: at the top the line …而且又不见了观音娘娘座前的一个宣德炉。 with 观 marked; 观 guān · likely here; traditional 觀: 雚 guàn (archaic) stork; heron → sound (same sound), 見 jiàn see → meaning, simplified: 雚 → 又; 观音 Guānyīn · decides 观's reading"></a><br><b>Parts the simplification hid</b>: 观 is read through 觀, 雚 <i>guàn</i> → sound</td>
 </tr>
 <tr>
-<td><a href="#chengyu"><img src="docs/chengyu.png" alt="Popup for 也 in 孔乙己's 满口之乎者也: 满口之乎者也 and 之乎者也 from CC-CEDICT, 之乎者也 with a Chinese line labelled 新华: 这四个字都是文言虚词，讽刺人说话喜欢咬文嚼字。也形容半文不白的话或文章。; a 出处 button"></a><br><b>Chengyu explained</b>: 之乎者也 with Xinhua's line (optional file) …</td>
+<td><a href="#chengyu"><img src="docs/chengyu.png" alt="Popup for 也 in 孔乙己's 满口之乎者也: at the top the line 他对人说话，总是满口之乎者也，教人半懂不懂的。 with 也 marked; then 也 yě, 满口之乎者也 and 之乎者也 from CC-CEDICT, 之乎者也 with a Chinese line labelled 新华: 这四个字都是文言虚词，讽刺人说话喜欢咬文嚼字。也形容半文不白的话或文章。; a 出处 button"></a><br><b>Chengyu explained</b>: 之乎者也 with Xinhua's line (optional file) …</td>
 <td><a href="#chengyu"><img src="docs/chengyu-2.png" alt="The 出处 view for 之乎者也 from 新华成语: 释义; 出处 宋·文莹《湘山野录》：“之乎者也，助得甚事？”; 例句 他对人说话，总是满口之乎者也，叫人半懂不懂的。"></a><br>… and its <b>出处</b>: the classical source and an example (this very line of 孔乙己)</td>
 </tr>
 <tr>
-<td><a href="#fallback-dictionaries"><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月春风 labelled MOE with its Chinese definition; 秋月 labelled Wikt; a 出处 button"></a><br><b>Several dictionaries, each labelled</b>: CC-CEDICT, then MOE (optional) and Wiktionary for 秋月春风 and 秋月</td>
-<td><a href="#translating-the-sentence"><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, with a Translate &amp; Analyze button; below it the page of 孔乙己 with the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"></a><br><b>Translate &amp; Analyze the sentence</b> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
+<td><a href="#fallback-dictionaries"><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月春风 labelled MOE with its Chinese definition; 秋月 labelled Wikt; a 出处 button"></a><br><b>Several dictionaries, each labelled</b>: CC-CEDICT, then MOE (optional) and Wiktionary for 秋月春风 and 秋月</td>
+<td><a href="#translating-the-sentence"><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked, and a Translate &amp; Analyze button; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"></a><br><b>Translate &amp; Analyze the sentence</b> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
 </tr>
 </table>
 
@@ -44,6 +44,8 @@ with every optional dictionary installed. `tools/make_screenshots.py` takes them
 - **Five pinyin levels**, from outside the 1,500 to outside the 7,000 most common characters;
   common characters in an unusual reading (单 in 单于) get pinyin too
   ([Unusual readings](#unusual-readings-of-common-characters)).
+- **The sentence on one line** at the top of every popup, the character marked, and the
+  character underlined on the page while the popup is open ([The popup](#the-popup)).
 - **Translate** uses KOReader's built-in translator when KOAssistant is not installed
   ([Translating the sentence](#translating-the-sentence)).
 - **Pinyin and popup are separate switches**; nothing is prepared per book, the book file is
@@ -119,6 +121,8 @@ Tools menu). Settings apply to all books.
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [What a tap does](#what-a-tap-does) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
 | Show character components | On (default) / off. See [Character components](#character-components) |
+| Show the text around the character in the popup | On (default) / off. See [The popup](#the-popup) |
+| Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
 | Fallback dictionaries | Source labels (all entries / other dictionaries only (default) / none); then each dictionary on/off, in order: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang. See [Fallback dictionaries](#fallback-dictionaries) |
 | Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed), what the current page needed, and any old plugin still installed |
 
@@ -155,6 +159,11 @@ punctuation, a paragraph break or any non-Chinese character) and looks up every 
 stretch containing the tapped character, in simplified and traditional forms. Nothing guesses
 where the words break.
 
+- **The text around the character**, on one line at the top: as much of its sentence as fits,
+  at the popup's text size, the character in bold and underlined. It grows outwards from the
+  character, a cut side ends in "…", and it stops at a sentence end, a paragraph break or the
+  edge of the page. Popups from KOReader's dictionary that the word buttons open get the line
+  too, with the whole word marked.
 - **The tapped character first**, with all its readings. The reading it has here comes first,
   marked **· shown above** when its pinyin is drawn, or **· likely here** when not. When nothing
   decides between its two likely readings, both are marked **· one of these**, the likelier
@@ -175,10 +184,11 @@ where the words break.
 
 The popup is the full width of the screen (minus a small margin) and as tall as its content, up
 to the full screen height, scrolling beyond that. A short popup goes in the half of the screen
-away from the tapped character, so the text stays visible. A taller one starts with the phrase
-around the character, the character in bold:
+away from the tapped character, so the text stays visible; a taller one is centred. While it is
+open, the tapped character is **underlined on the page**, so you can see which one the tap hit;
+the underline goes when the popup closes.
 
-![A tall popup over a page of 阿Q正传: the phrase 而且又不见了观音娘娘座前的一 at the top with 观 in bold, then 观 guān · likely here, its traditional form 觀's parts, and 观音 Guānyīn · decides 观's reading](docs/traditional.png)
+![A tall popup for 观 in 阿Q正传: at the top the line 尼姑待他们走后，定了神来检点，龙牌固然已经碎在地上了，而且又不见了观音娘娘座前的一个宣德炉。 with 观 in bold and underlined, then 观 guān · likely here, its traditional form 觀's parts, and 观音 Guānyīn · decides 观's reading](docs/traditional.png)
 
 ### Character components
 
@@ -543,14 +553,16 @@ tools/deploy.sh "/sdcard/Books/book.epub"   # check, push to a USB-connected And
 .venv/bin/python tools/eval_readings.py     # reading accuracy on the CPP test split (--fallback none: without Wiktionary's words)
 .venv/bin/python tools/scan_special.py BOOK.epub   # the unusual readings a book gets
 .venv/bin/python tools/make_test_epub.py build/chinesehelper-test.epub   # a book for tap tests on a device
+.venv/bin/python tools/make_snippet_epub.py build/chinesehelper-snippet.epub   # a book for testing the popup's line of text on a device
 .venv/bin/python tools/make_sample_epub.py  # the sample books in samples/
 .venv/bin/python tools/make_screenshots.py  # the README screenshots, over adb (see below)
 ```
 
 The tests (`tests/run.py`, LuaJIT through lupa) cover the reading resolver, page walking,
 layout, hit testing and the edge band, the popup's content and placement, the components, the
-sentence finder and Translate button, the settings migration, the menu, and the database code
-(its real SQL against the built database). `test_integration.lua` checks that the popup marks the
+popup's line of text around the character, the sentence finder and Translate button, the
+settings migration, the menu, and the database code (its real SQL against the built database).
+`test_integration.lua` checks that the popup marks the
 reading the pinyin layer draws. `tools/check.sh` also runs the build's Python
 unit tests (`tests/test_*.py`, needs OpenCC): the simplified-text converter and the idiom files'
 text repairs.
@@ -570,6 +582,7 @@ text repairs.
 | `ch_context.lua`, `ch_text.lua` | tap → character → the characters around it; candidate words |
 | `ch_pinyin.lua` | pinyin comparisons |
 | `ch_popup_model.lua`, `ch_popup.lua` | what the popup shows, and the popup |
+| `ch_snippet.lua` | the line of text around the tapped character, at the top of the popup |
 | `ch_components.lua` | the character components lines |
 | `ch_sentence.lua` | the sentence around the tapped character |
 | `ch_translate.lua` | the Translate button: KOAssistant (with the prompt snapshot) or KOReader's translator |

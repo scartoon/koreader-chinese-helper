@@ -1,5 +1,77 @@
 # Changelog
 
+## 2.0.0 (2026-11-13)
+
+The major version marks how far the plugin has come since 1.0. Nothing breaks: settings, the
+database and the optional dictionary files all carry over. Since 1.0.0:
+
+- **One plugin** for pinyin above rare characters and tap-to-define (1.0.0, merging
+  koreader-interlinear-pinyin and koreader-chinese-popup), with an edge band that keeps page
+  turns reliable and a choice of popup text sizes (1.1.0).
+- **More dictionaries, each labelled**: Wiktionary (bundled) and MOE 重編國語辭典 for words
+  CC-CEDICT lacks (1.2.0), Wikipedia titles, CBDB office titles and Moegirlpedia slang (1.5.0),
+  the 成語典 and Xinhua idioms (1.9.0); a small grey line names each entry's source.
+- **Better readings**: Wiktionary words settle uncertain readings (1.4.0), word readings from
+  pypinyin's phrase list, neutral particles and hand-checked words (1.6.0), mainland neutral
+  tones (1.6.1).
+- **Character components**: what a character is made of, which part gives the meaning and which
+  the sound, and the parts a simplification hid (1.7.0).
+- **Simplified characters** in all explanatory text (1.8.0).
+- **Chengyu explained, with their source**: a line of Chinese explanation and a 出处 view with
+  the classical passage, story and examples (1.9.0).
+- **Translate & Analyze** the sentence with KOAssistant or KOReader's translator (1.3.0).
+- **A new README** with gated screenshots from a public-domain sample book (1.9.1, 1.9.2).
+- **This release**: the text around the tapped character at the top of every popup, and an
+  underline under the character on the page.
+
+Popup
+- **The text around the character, on one line at the top.** Every popup opened from a tap on
+  the book now starts with as much of the character's sentence as fits on one line, at the
+  popup's text size, with the character in bold and underlined
+  (时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不**密**，反为所害，中涓自此愈横。). It grows outwards from
+  the character, the shorter side first, and a side that is cut ends in "…". It never goes past a
+  sentence end (。！？, and . ! ? before a space, with any closing quotes or brackets after it), a
+  paragraph break or the edge of the page: after 。” the line starts with the next sentence, not
+  the ”. Line breaks and runs of spaces in the book's source, `<br/>` included, become nothing
+  between Chinese characters and one space next to Latin text.
+- **Replaces the old phrase header**, which showed the run of Chinese characters around the
+  tapped one, and only when the popup covered it. With the new line off there is no line at all.
+- **KOReader's dictionary popup gets the line too** when opened from the popup's word and
+  character buttons (or when no dictionary has the character, so the tap goes straight to
+  KOReader's lookup). A word button marks the whole word. The dictionary popup keeps its size and
+  place: the definition gives up a line or two, which it scrolls. Other lookups are unchanged.
+  This uses KOReader internals (checked on v2026.07.1); if they change, the popup opens without
+  the line and the error is logged.
+- Every popup is one line taller (84 px on a Boox Go 7 at 60%), so some that fit in half the
+  screen are now centred.
+
+Page
+- **The tapped character is underlined on the page** while the popup is open, so you can see
+  which character the tap hit. It is drawn by the plugin's own page layer (also with pinyin off),
+  clears however the popup closes (tap outside, Close, Back, Translate, closing the dictionary
+  popup a word button opened), and moves with the next tap. It sits clear of the pinyin on the
+  line below. The e-ink refresh covers only the line; no ghost is left after it clears.
+
+Menu
+- **Show the text around the character in the popup** and **Underline the tapped character on
+  the page**, both on by default, right after **Show character components**.
+
+Speed: reading the page text for the line takes 1–4 ms per tap; page turns are unchanged.
+
+Known limits
+- In continuous (scroll) view the line can include text just below the screen.
+- A dictionary lookup that never opens a popup leaves the underline until the next tap or page
+  turn.
+
+README
+- New screenshots: every popup now shows the line. The main image taps 密 in
+  作事不密 (the line shows text on both sides, and 密 is underlined on the page) instead of 涓.
+  The screenshot script pins both new settings on, and two crops start exactly at the popup's
+  frame.
+
+Unchanged: the plugin database (byte-identical to 1.9.0, SHA-256 `20cc7ff8…`), the pinyin drawn,
+every reading.
+
 ## 1.9.2 (2026-11-13)
 
 README

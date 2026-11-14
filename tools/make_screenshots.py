@@ -84,9 +84,11 @@ PAGES = {
 # screen position, lines the popup must show), then the crop (y0, y1) of each
 # frame: frame 0 is the page before any tap, frame k the screen after tap k.
 SHOTS = {
-    "main": dict(page="sg1", taps=[("涓", 1, (520, 1150), [
-        "**涓**  juān", "**氵** shuǐ", "**肙** yuān", "→ sound (same ending)",
-        "[Wikt]", "**中涓**  zhōngjuān", "(archaic) eunuch"])],
+    # 密, two thirds into the page's longest sentence: the popup's context
+    # line shows text on both sides of it.
+    "main": dict(page="sg1", taps=[("密", 1, (172, 1150), [
+        "**密**  mì", "**宓** mì  still; silent  → sound (same sound)", "**山** shān  mountain  → meaning",
+        "[Wikt]", "**不密**  bùmì", "(literary) not well thought out; (literary) not secret"])],
         frames=[(1, (95, 1185))]),
     "context": dict(page="kyj14", taps=[("间", 1, (773, 500), [
         "**间**  jiàn · likely here", "**间或**  jiànhuò · decides 间's reading"])],
@@ -94,7 +96,7 @@ SHOTS = {
     "components": dict(page="kyj13", taps=[("茴", 1, (988, 790), [
         "**茴**  huí", "**艹** cǎo  grass; plant (草字头)  → meaning",
         "**回** huí  to go back; to return  → sound (same sound)", "**茴香豆**  huíxiāngdòu"])],
-        frames=[(1, (245, 1018))]),
+        frames=[(1, (247, 1019))]),
     "traditional": dict(page="aq59", taps=[("观", 1, (170, 965), [
         "**观**  guān · likely here", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
         "simplified: 雚 → 又", "**观音**  Guānyīn · decides 观's reading"])],
@@ -104,7 +106,7 @@ SHOTS = {
         frames=[(1, (140, 1120)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
         "**秋**  qiū", "[MMAH]", "[MOE]", "**秋月春风**  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
-        frames=[(1, (125, 1138))]),
+        frames=[(1, (127, 1137))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
         frames=[(1, (15, 1160))]),
     # Page 1 with pinyin off, then on: the plugin adds line space where it
@@ -163,7 +165,8 @@ def settings_variant(original, pinyin=True):
     keys = {"chinesehelper_threshold": THRESHOLD, "chinesehelper_pinyin_enabled": "true" if pinyin else "false",
             "chinesehelper_popup_enabled": "true", "chinesehelper_popup_text_pct": 60,
             "chinesehelper_labels": '"fallback"', "chinesehelper_uncertain": '"both"',
-            "chinesehelper_components": "true", "night_mode": "false", "autowarmth_control_nightmode": "false",
+            "chinesehelper_components": "true", "chinesehelper_popup_context": "true",
+            "chinesehelper_page_underline": "true", "night_mode": "false", "autowarmth_control_nightmode": "false",
             "debug": "true"}
     out = original
     for k in keys:
