@@ -81,7 +81,8 @@ PAGES = {
 }
 
 # Shots: the page, the settings, the taps (character, which one on the page,
-# screen position, lines the popup must show), then the crop (y0, y1) of each
+# screen position, lines the popup must show; or "nested" for a character in
+# the popup's text, and the sentence the device must log for it), then the crop (y0, y1) of each
 # frame: frame 0 is the page before any tap, frame k the screen after tap k.
 SHOTS = {
     # 密, two thirds into the page's longest sentence: the popup's context
@@ -103,10 +104,16 @@ SHOTS = {
         frames=[(1, (220, 1042))]),
     "chengyu": dict(page="kyj13", taps=[("也", 3, (170, 590), [
         "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 862), [])],
-        frames=[(1, (140, 1120)), (2, (20, 700))]),
+        frames=[(1, (134, 1130)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
         "**秋**  qiū", "[MMAH]", "[MOE]", "**秋月春风**  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
-        frames=[(1, (127, 1137))]),
+        frames=[(1, (112, 1150))]),
+    # A character of the popup's own text: 欢, inside MOE's quotation of 〈琵琶行〉,
+    # opens its popup on top; the context line is the quotation (the device's
+    # log must give it as the sentence), the 欢 below underlined.
+    "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["[MOE]", "**秋月春风**  qiū yuè chūn fēng"]),
+                                     ("欢", "nested", (1323, 753), ["「今年欢笑复明年，秋月春风等闲度。」"])],
+                   frames=[(2, (112, 1150))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
         frames=[(1, (15, 1160))]),
     # Page 1 with pinyin off, then on: the plugin adds line space where it
@@ -147,7 +154,7 @@ def gate_shot(gate, name, shot):
         sys.exit(f"{name}: the gate draws\n  {drawn}\nnot the checked\n  {page['drawn']}")
     popups = []
     for char, nth, _, expect in shot["taps"]:
-        if nth is None:
+        if nth is None or nth == "nested":
             popups.append(None)
             continue
         p = gate.popup(text, THRESHOLD, char, nth)
@@ -248,9 +255,15 @@ def run_shot(gate, name, shot, original):
     if annotated is not None and annotated != n_drawn:
         sys.exit(f"{name}: the device annotated {annotated} characters, the gate {n_drawn}")
     frames = [screencap()]
-    for (char, nth, pos, _), p in zip(shot["taps"], popups):
+    for (char, nth, pos, expect), p in zip(shot["taps"], popups):
         before = len(log().splitlines())
-        if p is None:   # a button in the popup (nth None): no log line to check
+        if nth == "nested":   # a character in the popup's text: its sentence is checked
+            adb("shell", "input", "tap", *map(str, pos))
+            m = wait_for(rf'chinesehelper: nested {char} \[[^]]*\] depth \d+, sentence "([^"]*)"', before)
+            if m.group(1) != expect[0]:
+                sys.exit(f"{name}: the nested {char} popup's sentence is {m.group(1)}, not {expect[0]}")
+            time.sleep(3)
+        elif p is None:   # a button in the popup (nth None): no log line to check
             adb("shell", "input", "tap", *map(str, pos))
             time.sleep(9)   # a TextViewer takes several seconds to show
         else:

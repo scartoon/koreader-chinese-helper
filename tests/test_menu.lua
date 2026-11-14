@@ -83,10 +83,10 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 13 + 5 + 5 + 3 + 5 + 5 + 8 + 3, "menu size")   -- fallback: labels + 7 dictionaries
+eq(count, 14 + 5 + 5 + 3 + 5 + 5 + 5 + 8 + 3, "menu size")   -- fallback: labels + 7 dictionaries
 
 -- Character components: on by default, a toggle.
-local comp_item = entry.sub_item_table[9]
+local comp_item = entry.sub_item_table[10]
 eq(comp_item.text, "Show character components")
 assert(plugin.settings:componentsEnabled() and comp_item.checked_func())
 comp_item.callback()
@@ -95,7 +95,7 @@ comp_item.callback()
 assert(plugin.settings:componentsEnabled())
 
 -- The context line and the page underline: on by default, each its own toggle.
-local ctx_item, ul_item = entry.sub_item_table[10], entry.sub_item_table[11]
+local ctx_item, ul_item = entry.sub_item_table[11], entry.sub_item_table[12]
 eq(ctx_item.text, "Show the text around the character in the popup")
 eq(ul_item.text, "Underline the tapped character on the page")
 assert(plugin.settings:contextEnabled() and ctx_item.checked_func())
@@ -135,6 +135,12 @@ end
 entry.sub_item_table[8].sub_item_table[4].callback()
 eq(plugin.settings:popupTextPercent(), 100)
 assert(entry.sub_item_table[8].text_func():find("100%%"))
+-- Chinese text size: right after it, default 130%, choices saved.
+assert(entry.sub_item_table[9].text_func():find("Chinese text size: 130%%"))
+assert(entry.sub_item_table[9].sub_item_table[3].checked_func(), "130% checked")
+entry.sub_item_table[9].sub_item_table[4].callback()
+eq(plugin.settings:chineseTextPercent(), 150)
+assert(entry.sub_item_table[9].text_func():find("150%%"))
 
 -- Edge pass-through width: default 5 mm, five radio choices, label follows.
 local edge_item = entry.sub_item_table[7]
@@ -247,7 +253,7 @@ local function names(list)
     return table.concat(out, ",")
 end
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
-local fb_item = entry.sub_item_table[12]
+local fb_item = entry.sub_item_table[13]
 eq(fb_item.text, "Fallback dictionaries")
 -- Source labels: default "other dictionaries only".
 local labels_item = fb_item.sub_item_table[1]
@@ -352,7 +358,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[12].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[13].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
@@ -392,8 +398,15 @@ assert(buttonTexts(p):find("一毛不拔,出处,", 1, true), buttonTexts(p))
 local before = #shown
 for _, r in ipairs(p.buttons) do for _, btn in ipairs(r) do if btn.text == "出处" then btn.callback() end end end
 eq(#shown, before + 1, "the 出处 view is shown")
-eq(shown[#shown].title, "一毛不拔 · 出处 · 教育部《成语典》")
-assert(shown[#shown].text:find("典源　《孟子．尽心上》", 1, true), shown[#shown].text)
+local view = shown[#shown]
+eq(view.title, "一毛不拔 · 出处 · 教育部《成语典》")
+-- A full-height popup on the stack: the text in the larger Chinese size,
+-- no label, Back and Close; a character tapped in it opens its own popup.
+eq(view.full, true); eq(view.blocks[1].large, true); eq(view.blocks[1].nolabel, true)
+assert(view.blocks[1].lines[1]:find("典源　《孟子．尽心上》", 1, true), view.blocks[1].lines[1])
+eq(buttonTexts(view), "Back,Close")
+eq(view.chinese_pct, 150, "the Chinese text size set above")
+assert(view.on_char_tap and view.on_back and view.on_outside)
 p = popupFor("精", "兵", "强将")
 b = blockOf(p, "精兵强将")
 eq(b.source, "xinhua"); eq(b.note, nil, "a Chinese entry gets no short line under it")
@@ -419,7 +432,7 @@ plugin2:init()
 eq(names(plugin2:fallbackSources()), "wikt,wp")
 local items2 = {}
 plugin2:addToMainMenu(items2)
-local dict_items = items2.chinesehelper.sub_item_table[12].sub_item_table
+local dict_items = items2.chinesehelper.sub_item_table[13].sub_item_table
 table.remove(dict_items, 1)
 eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典 (not installed)"
     .. " | MOE 成語典 (not installed) | Xinhua idioms (not installed)"

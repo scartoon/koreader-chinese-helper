@@ -372,6 +372,8 @@ Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", wp = "WP", cbdb = "CBD
 
 -- Entries whose text is already Chinese: no short line added under them.
 Model.CHINESE_SOURCES = { moe = true, idioms = true, xinhua = true, moegirl = true }
+-- Whose Chinese text the popup draws larger (the "Chinese text size" setting).
+Model.LARGE_SOURCES = { moe = true, idioms = true, xinhua = true }
 Model.CHUCHU = "出处"
 
 --[[--
@@ -484,6 +486,20 @@ function Model.blocks(matches, char, annotated, b0, b1)
         end
         blocks[#blocks + 1] = block
     end
+    return blocks
+end
+
+-- The Chinese-language dictionaries' entries (MOE, the 成語典, Xinhua:
+-- Model.LARGE_SOURCES, drawn larger) go last, after everything else (the
+-- components block included), in the order they came: `blocks` is
+-- reordered in place.
+function Model.chineseLast(blocks)
+    local rest, chinese = {}, {}
+    for _, b in ipairs(blocks) do
+        if Model.LARGE_SOURCES[b.source] then chinese[#chinese + 1] = b else rest[#rest + 1] = b end
+    end
+    for k, b in ipairs(rest) do blocks[k] = b end
+    for k, b in ipairs(chinese) do blocks[#rest + k] = b end
     return blocks
 end
 

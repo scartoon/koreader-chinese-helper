@@ -38,6 +38,7 @@ local VerticalSpan = require("ui/widget/verticalspan")
 local TextWidget = require("ui/widget/textwidget")
 local Screen = Device.screen
 
+local Glyphs = require("ch_glyphs")
 local Model = require("ch_popup_model")
 local Snippet = require("ch_snippet")
 local Widget = require("ui/widget/widget")
@@ -53,6 +54,13 @@ local Popup = InputContainer:extend{
     buttons = nil,     -- ButtonTable rows
     anchor = nil,      -- screen box of the tapped character {x, y, w, h}
     text_px = nil,     -- body text size in screen pixels (nil: KOReader's default)
+    chinese_pct = 100, -- MOE's, the 成語典's and Xinhua's text: % of text_px
+    full = false,      -- the whole screen's height (the 出处 view), the body scrolling
+    -- Taps and keys (ch_tap.lua keeps the stack of popups):
+    on_char_tap = nil, -- function(popup, hit): a Han character of the body tapped
+                       -- (hit: Popup:charAt)
+    on_outside = nil,  -- a tap outside the popup (nil: the popup closes)
+    on_back = nil,     -- the Back key (nil: the popup closes)
 }
 
 -- Source labels: a small grey line just above an entry, left-aligned.
@@ -77,7 +85,7 @@ function Popup:init()
     self.width = screen_w - 2 * self.margin
 
     if Device:hasKeys() then
-        self.key_events = { Close = { { Device.input.group.Back } } }
+        self.key_events = { BackKey = { { Device.input.group.Back } } }
     end
     if Device:isTouchDevice() then
         self.ges_events = {
@@ -94,9 +102,13 @@ function Popup:init()
         title_face = Font:getFace("x_smalltfont", 26)
     end
     self.face, self.title_face = face, title_face
+    -- Chinese text: the same font, larger (Font:getFace takes the size
+    -- unscaled, so the ratio carries over).
+    self.chinese_face = Font:getFace("x_smallinfofont",
+        math.floor(face.orig_size * (self.chinese_pct or 100) / 100 + 0.5))
 
     self:build()
-    local y = Model.place(self.frame:getSize().h, screen_h, self.margin, self.anchor)
+    local y = self.full and self.margin or Model.place(self.frame:getSize().h, screen_h, self.margin, self.anchor)
     local size = self.frame:getSize()
     self.frame_x = math.floor((screen_w - size.w) / 2)
     self.frame_y = y
@@ -146,7 +158,7 @@ function Popup:build()
     local max_h = screen_h - 2 * self.margin - header_h - titlebar:getHeight() - button_table:getSize().h
         - 2 * padding - 2 * Size.border.window
     max_h = math.max(max_h, self.face.size * 3)
-    self.scroll = self:body(text_w, max_h)
+    self.scroll = self:body(text_w, max_h, self.full)
     parts[#parts + 1] = FrameContainer:new{ padding = padding, bordersize = 0, margin = 0, self.scroll }
     parts[#parts + 1] = CenterContainer:new{
         dimen = Geom:new{ w = inner_w, h = button_table:getSize().h },
@@ -280,7 +292,7 @@ end
 
 -- Should this block carry its source label?
 function Popup:labelled(block)
-    if self.label_mode == "none" then return false end
+    if block.nolabel or self.label_mode == "none" then return false end
     if self.label_mode == "fallback" then return block.source ~= "cedict" end
     return true
 end
@@ -292,9 +304,13 @@ end
 
 -- The entries, one block each: the source label (when shown) on a small grey
 -- line of its own, left-aligned, then the headline (word, reading, markers)
--- and the senses, then an idiom's Chinese short line with its own label. The blocks stack vertically; only when they are taller
--- than the room left do they scroll (ScrollableContainer, with a scroll bar).
-function Popup:body(text_w, max_h)
+-- and the senses, then an idiom's Chinese short line with its own label.
+-- The senses and short lines of MOE, the 成語典 and Xinhua (Model.LARGE_SOURCES)
+-- are in the larger Chinese face. The blocks stack vertically; only when they
+-- are taller than the room left (or `full`) do they scroll
+-- (ScrollableContainer, with a scroll bar). Every text box is kept in
+-- self.tap_boxes, for Popup:charAt.
+function Popup:body(text_w, max_h, full)
     local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
     local label_face = Font:getFace("x_smallinfofont", unscaled(self:labelPx()))
     local block_gap = math.floor(self.face.size * 0.6)
@@ -302,7 +318,13 @@ function Popup:body(text_w, max_h)
     -- the character's own entry.
     local indent = self.face.size
     local function stack(full_width)
+        self.tap_boxes = {}
         local group = VerticalGroup:new{ align = "left" }
+        local function box(text, face, width)
+            local tbw = TextBoxWidget:new{ text = text, face = face, width = width }
+            self.tap_boxes[#self.tap_boxes + 1] = { widget = tbw, chars = Glyphs.chars(text) }
+            return tbw
+        end
         for k, b in ipairs(self.blocks or {}) do
             if k > 1 then group[#group + 1] = VerticalSpan:new{ width = block_gap } end
             local width = b.components and full_width - indent or full_width
@@ -319,12 +341,11 @@ function Popup:body(text_w, max_h)
                 })
             end
             if b.head then
-                add(TextBoxWidget:new{ text = TextBoxWidget.PTF_HEADER .. b.head, face = self.face, width = width })
+                add(box(TextBoxWidget.PTF_HEADER .. b.head, self.face, width))
             end
             if #b.lines > 0 then
-                add(TextBoxWidget:new{
-                    text = TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n"), face = self.face, width = width,
-                })
+                local face = (b.large or Model.LARGE_SOURCES[b.source]) and self.chinese_face or self.face
+                add(box(TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n"), face, width))
             end
             if b.note then
                 if self:labelled(b.note) then
@@ -333,13 +354,14 @@ function Popup:body(text_w, max_h)
                         fgcolor = Blitbuffer.COLOR_GRAY_5, max_width = width,
                     })
                 end
-                add(TextBoxWidget:new{ text = b.note.text, face = self.face, width = width })
+                local face = Model.LARGE_SOURCES[b.note.source] and self.chinese_face or self.face
+                add(box(b.note.text, face, width))
             end
         end
         return group
     end
     local group = stack(text_w)
-    if group:getSize().h <= max_h then
+    if group:getSize().h <= max_h and not full then
         self.scrolls = false
         return group
     end
@@ -352,8 +374,58 @@ function Popup:body(text_w, max_h)
     return ScrollableContainer:new{ dimen = Geom:new{ w = text_w, h = max_h }, show_parent = self, group }
 end
 
+-- The visible part of the body: the scroll window, or nil (all visible).
+function Popup:clip()
+    local scroll = self.scrolls and self.scroll
+    if not scroll or not scroll.dimen or not scroll.dimen.x then return nil end
+    if scroll._is_scrollable and scroll.getCropRegion then return scroll:getCropRegion() end
+    return Geom:new{ x = scroll.dimen.x, y = scroll.dimen.y, w = scroll.dimen.w, h = scroll.dimen.h }
+end
+
+-- The boxes as last painted (Glyphs.layout), in tap_boxes' order.
+function Popup:layouts()
+    local clip = self:clip()
+    local out = {}
+    for k, reg in ipairs(self.tap_boxes or {}) do
+        out[k] = Glyphs.layout(reg.widget, reg.chars, clip)
+            or { x = 0, y = 0, line_h = 1, lines = {}, chars = reg.chars, clip = clip }
+    end
+    return out
+end
+
+--[[--
+The Han character of the body at screen position `pos`, or nil:
+{ box=, index=, char=, chars= (the box's text), rect= (its screen box) }.
+]]
+function Popup:charAt(pos)
+    local boxes = self:layouts()
+    local k, i, rect = Glyphs.find(boxes, pos.x, pos.y)
+    if not k then return nil end
+    local chars = self.tap_boxes[k].chars
+    return { box = k, index = i, char = chars[i], chars = chars, rect = rect }
+end
+
+-- Underline a character of the body (a hit from charAt) while a popup opened
+-- from it is shown; nil takes the line away.
+function Popup:setMark(hit)
+    if self.marked == hit then return end
+    self.marked = hit
+    if self.frame.dimen then
+        UIManager:setDirty(self, function() return "ui", self.frame.dimen end)
+    end
+end
+
 function Popup:paintTo(bb, x, y)
     self.frame:paintTo(bb, x + self.frame_x, y + self.frame_y)
+    local hit = self.marked
+    if hit and self.tap_boxes and self.tap_boxes[hit.box] then
+        local reg = self.tap_boxes[hit.box]
+        local layout = Glyphs.layout(reg.widget, reg.chars, self:clip())
+        local size = reg.widget.face and reg.widget.face.size or self.face.size
+        local rect = layout and Glyphs.underline(layout, hit.index, math.max(2, math.floor(size / 10 + 0.5)),
+            math.max(2, math.floor(size * 0.12 + 0.5)))
+        if rect then bb:paintRect(rect.x, rect.y, rect.w, rect.h, Blitbuffer.COLOR_BLACK) end
+    end
 end
 
 function Popup:onShow()
@@ -361,8 +433,16 @@ function Popup:onShow()
     return true
 end
 
-function Popup:onClose()
-    UIManager:close(self, self.tall and "flashpartial" or "partial", self.frame.dimen)
+-- Close this popup. region: what to refresh (default its own frame), for a
+-- stack closed at once (ch_tap.lua); tall: refresh with a flash.
+function Popup:onClose(region, tall)
+    if tall == nil then tall = self.tall end
+    UIManager:close(self, tall and "flashpartial" or "partial", region or self.frame.dimen)
+    return true
+end
+
+function Popup:onBackKey()
+    if self.on_back then self.on_back() else self:onClose() end
     return true
 end
 
@@ -374,11 +454,18 @@ function Popup:onCloseWidget()
     end
 end
 
--- A tap outside the popup closes it (and goes no further: it does not also
--- turn the page). Taps inside that no button took are ignored.
+-- A tap outside the popup closes it (or the whole stack: on_outside), and
+-- goes no further: it does not also turn the page. A tap in the body on a
+-- Han character opens that character's popup (on_char_tap); other taps
+-- inside that no button took are ignored.
 function Popup:onTapClose(_, ges)
     if self.frame.dimen and ges.pos:notIntersectWith(self.frame.dimen) then
-        self:onClose()
+        if self.on_outside then self.on_outside() else self:onClose() end
+        return true
+    end
+    if self.on_char_tap then
+        local hit = self:charAt(ges.pos)
+        if hit then self.on_char_tap(self, hit) end
     end
     return true
 end

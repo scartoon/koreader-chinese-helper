@@ -27,7 +27,7 @@ reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 <td><img src="docs/chengyu-2.png" alt="The 出处 view for 之乎者也 from 新华成语: 释义; 出处 宋·文莹《湘山野录》：“之乎者也，助得甚事？”; 例句 他对人说话，总是满口之乎者也，叫人半懂不懂的。"><br>… and its <a href="#chengyu"><b>出处</b></a>: the classical source and an example from this same passage of 孔乙己</td>
 </tr>
 <tr>
-<td><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月春风 labelled MOE with its Chinese definition; 秋月 labelled Wikt; a 出处 button"><br><a href="#fallback-dictionaries"><b>Several dictionaries, each labelled</b></a>: CC-CEDICT, then MOE (optional) and Wiktionary for 秋月春风 and 秋月</td>
+<td><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月 labelled Wikt; last, 秋月春风 labelled MOE with its Chinese definition in larger type; a 出处 button"><br><a href="#fallback-dictionaries"><b>Several dictionaries, each labelled</b></a>: CC-CEDICT, Wiktionary for 秋月, and last, in larger type, MOE (optional) for 秋月春风</td>
 <td><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked, and a Translate &amp; Analyze button; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"><br><a href="#translating-the-sentence"><b>Translate &amp; Analyze the sentence</b></a> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
 </tr>
 </table>
@@ -75,7 +75,7 @@ Optional dictionaries are files you build yourself, because their licences do no
 project to distribute them. All explanatory text is in simplified characters
 ([Simplified text](#simplified-text)).
 
-Status: **2.0.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **2.1.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -120,6 +120,7 @@ Tools menu). Settings apply to all books.
 | Mark unusual readings of common characters (names, historical terms) | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [What a tap does](#what-a-tap-does) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
+| Chinese text size | 100 / 115 / 130 (default) / 150 / 175% of the popup text size, for MOE's, the 成語典's and Xinhua's Chinese text. See [Tapping a character in the popup](#tapping-a-character-in-the-popup) |
 | Show character components | On (default) / off. See [Character components](#character-components) |
 | Show the text around the character in the popup | On (default) / off. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
@@ -170,13 +171,15 @@ where the words break.
   first ([Readings](#readings)).
 - **The character's components**, indented under its own entry ([below](#character-components)).
 - **Then every dictionary word containing it**, longest first; words of the same length in
-  reading order. A word with several readings (东西 *dōngxī* "east and west" / *dōngxi*
+  reading order. Entries from the Chinese-language dictionaries (MOE, the 成語典 and Xinhua) come
+  last, after everything else, in larger type (**Chinese text size**). A word with several readings (东西 *dōngxī* "east and west" / *dōngxi*
   "thing") has the likely one marked and first.
 - **The word that decides the reading** is tagged **· decides X's reading**, also when CC-CEDICT
   does not have it: then it shows a fallback dictionary's definition, or the short note of an
   unusual-reading word (冒顿 *mòdú*), or only its reading (a word from pypinyin's phrase list).
 - **Buttons**: one for each entry, labelled with the character or word, which looks it up in
-  KOReader's dictionary; **出处** for a chengyu with a source view; **Close**; and, on a row of its
+  KOReader's dictionary; **出处** for a chengyu with a source view; **Back** in a popup opened
+  from another ([below](#tapping-a-character-in-the-popup)); **Close**; and, on a row of its
   own while Wi-Fi is connected, **Translate** ([below](#translating-the-sentence)). Tapping
   outside the popup also closes it.
 - If no dictionary has the character or any word around it, the tap goes straight to KOReader's
@@ -189,6 +192,34 @@ open, the tapped character is **underlined on the page**, so you can see which o
 the underline goes when the popup closes.
 
 ![A tall popup for 观 in 阿Q正传: at the top the line 尼姑待他们走后，定了神来检点，龙牌固然已经碎在地上了，而且又不见了观音娘娘座前的一个宣德炉。 with 观 in bold and underlined, then 观 guān · likely here, its traditional form 觀's parts, and 观音 Guānyīn · decides 观's reading](docs/traditional.png)
+
+### Tapping a character in the popup
+
+Any Chinese character in the popup's text opens its own popup on top: in a definition, a
+quotation, a 出处 view, a component (艹, 回) or a word's headline. It is looked up like a tap in
+the book, the character and every word around it in that text that contains it, and the
+character stays underlined in the popup below while the new one is open.
+
+![Popup for 秋 in the 临江仙, and on top of it the popup for 欢, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年欢笑复明年，秋月春风等闲度。」 with 欢 marked, then 欢 huān, its parts, 欢笑 huānxiào, and the buttons 欢, 欢笑, Back, Close and Translate & Analyze](docs/nested.png)
+
+- **Its text is the popup's, not the book's.** The line at the top and the sentence **Translate**
+  sends are the sentence around the character in the popup text: cut at 。！？；, a line break, or
+  a closing quote after one of them (。」). Inside a quotation (「…」 or 『…』 with a comma or end
+  mark in it), it is the whole quotation, so 秃 in 首鼠两端's 典源 gives
+  「与长孺共一老秃翁，何为首鼠两端？」. A quoted word (如：「秃子」) is not a quotation; in an
+  English line (a gloss, a component), it is only the Chinese around the character.
+- **Where a tap lands**: on a character, or within half a character's width of one (beside it,
+  just above or below, on the punctuation next to it), takes the nearest, on the tapped line
+  first. A tap on Latin text, on a button or on empty space does what it did before. This holds
+  after the popup is scrolled.
+- **Back** (the button, or the device's Back key) closes the top popup and shows the one below;
+  **Close**, a tap outside or **Translate** closes them all. At most **5** popups are open at once
+  (a 出处 view counts); past that, a tap says so and opens nothing.
+- **Chinese text size**: MOE's, the 成語典's and Xinhua's Chinese text (definitions, short lines,
+  the 出处 view) is drawn larger than the rest of the popup, 130% by default, so its characters
+  are easier to tap. English glosses, source labels and buttons keep the popup text size. On a
+  Boox Go 7 (300 dpi) with 64 px book text and the default 60% popup text, that is 38 px
+  (3.2 mm) for English and 49 px (4.2 mm) for Chinese.
 
 ### Character components
 
@@ -242,7 +273,8 @@ than CC-CEDICT's English gloss:
 - **One line of Chinese explanation** under CC-CEDICT's (or Wiktionary's) entry, with its own
   small label: 一毛不拔 → *形容人非常吝啬。贬义。* (成语典). It comes from MOE idioms when it has
   the chengyu, otherwise from Xinhua idioms. Entries already in Chinese get no extra line.
-- **A 出处 button** opens a full-screen view. From MOE idioms: 释义, the 典源 passage with its
+- **A 出处 button** opens a full-screen view, in the larger Chinese size, with **Back** and
+  **Close**; any character in it can be tapped ([above](#tapping-a-character-in-the-popup)). From MOE idioms: 释义, the 典源 passage with its
   notes, 典故说明 (the story retold in modern Chinese), 书证, usage, examples, 辨识 and near and
   opposite idioms; a related form (玉石俱碎) adds its main idiom's source and story under that
   idiom's name. From Xinhua idioms: the explanation, the classical source and an example. MOE
@@ -288,6 +320,9 @@ popup and sends **the whole sentence containing the tapped character**:
   or turn that option off.
 
 The row is left out without a Wi-Fi connection; the check reads KOReader's network state only.
+In a popup opened from another popup's text, the sentence is the popup text's
+([above](#tapping-a-character-in-the-popup)), and KOAssistant's context is the text around it in
+that entry, not the page.
 
 **The sentence** is found in the book's text, across pages: forward to the next 。！？ (or . ! ?
 followed by a space) with any closing quotes after it (。” ？」), backward to just after the
@@ -603,7 +638,8 @@ opens the sample book at fixed pages with fixed reader settings, taps, and saves
 PNGs to `docs/`. Before an image is saved, the page's exact text goes through the plugin's own
 Lua code (`tools/shot_gate.py`, with every dictionary): the pinyin drawn must be the shot's
 hand-checked list, each popup must show the expected lines, and KOReader's log must agree (the
-number of characters annotated, and each tap's context and reading). Your `settings.reader.lua`
+number of characters annotated, and each tap's context and reading; for a character tapped in
+a popup, its sentence). Your `settings.reader.lua`
 is backed up and restored.
 
 ## Credits and licences

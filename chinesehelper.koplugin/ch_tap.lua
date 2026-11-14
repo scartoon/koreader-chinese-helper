@@ -31,8 +31,13 @@ local Text = require("ch_text")
 local Tap = {}
 Tap.__index = Tap
 
+local function Translate() return require("ch_translate") end
+
 Tap.ZONE_ID = "chinesehelper_tap"
 Tap.BUTTONS_PER_ROW = 4
+-- Popups opened from popups (a character tapped in a popup's text, a 出处
+-- view): at most this many shown at once, the first included.
+Tap.MAX_DEPTH = 5
 
 -- TextBoxWidget's bold markers (ch_popup.lua loads KOReader's widgets, so
 -- only when a popup is shown).
@@ -183,16 +188,27 @@ function Tap:resolve(hit, left, right)
     end
     if not i then
         -- Not found among the page's items: resolve on the Han run around it.
-        items = {}
-        for _, c in ipairs(left) do items[#items + 1] = { text = c, joined = #items > 0 } end
-        items[#items + 1] = { text = hit.char, joined = #items > 0 }
-        i = #items
-        for _, c in ipairs(right) do items[#items + 1] = { text = c, joined = true } end
+        return self:resolveRun(left, hit.char, right)
     end
     local drawn = items[i].ws and self.plugin.annotator:drawnAt(i)
     local reading, decided, unsure = Resolve.forPopup(data, items, i, settings:uncertainMode(), special,
         drawn and drawn.text)
     return reading, decided, drawn ~= nil, unsure
+end
+
+-- Tap:resolve on the Han run left .. char .. right alone (a character not on
+-- the page's items, or in a popup's text): nothing is drawn above it.
+function Tap:resolveRun(left, char, right)
+    local data = self.plugin:readings()
+    if not data then return nil end
+    local items = {}
+    for _, c in ipairs(left) do items[#items + 1] = { text = c, joined = #items > 0 } end
+    items[#items + 1] = { text = char, joined = #items > 0 }
+    local i = #items
+    for _, c in ipairs(right) do items[#items + 1] = { text = c, joined = true } end
+    local reading, decided, unsure = Resolve.forPopup(data, items, i, self.plugin.settings:uncertainMode(),
+        self.plugin:special(), nil)
+    return reading, decided, false, unsure
 end
 
 -- Rows from the fallback dictionaries for the candidate words CC-CEDICT has
@@ -278,26 +294,31 @@ end
 -- The sentence button's row (ch_translate.lua), or nil while Wi-Fi is not
 -- connected. The sentence is only looked for when the button is pressed.
 function Tap:sentenceRow(hit, close)
+    local Sentence = require("ch_sentence")
+    local document = self:ui().document
+    return self:translateRow(function()
+        local t0 = time.monotonic()
+        local ok2, s = pcall(Sentence.find, document, hit)
+        if not ok2 then logger.warn("chinesehelper: sentence failed:", tostring(s)) end
+        s = ok2 and s or { text = hit.char }
+        logger.dbg(string.format("chinesehelper: sentence of %d bytes%s%s in %.1f ms", #s.text,
+            s.pos0 and "" or " (no positions)", s.capped and " (capped)" or "",
+            time.to_ms(time.monotonic() - t0)))
+        return s
+    end, close)
+end
+
+-- The Translate button's row for a sentence (function returning it, called
+-- on press), or nil.
+function Tap:translateRow(sentence, close)
     local t0 = time.monotonic()
     local ok, row, mode = pcall(function()
-        local Sentence = require("ch_sentence")
-        local Translate = require("ch_translate")
-        local document = self:ui().document
-        return Translate.row{
+        return Translate().row{
             ui = self:ui(),
             network = require("ui/network/manager"),
             close = close,
             logger = logger,
-            sentence = function()
-                local t0 = time.monotonic()
-                local ok2, s = pcall(Sentence.find, document, hit)
-                if not ok2 then logger.warn("chinesehelper: sentence failed:", tostring(s)) end
-                s = ok2 and s or { text = hit.char }
-                logger.dbg(string.format("chinesehelper: sentence of %d bytes%s%s in %.1f ms", #s.text,
-                    s.pos0 and "" or " (no positions)", s.capped and " (capped)" or "",
-                    time.to_ms(time.monotonic() - t0)))
-                return s
-            end,
+            sentence = sentence,
         }
     end)
     if not ok then
@@ -309,32 +330,85 @@ function Tap:sentenceRow(hit, close)
     return row
 end
 
-function Tap:showPopup(hit)
-    local t0 = time.monotonic()
-    local db = self:openDb()
-    if not db then return end
-    local document = self:ui().document
-    local left, right = Context.around(document, hit)
-    local cands, texts = Text.candidates(left, hit.char, right)
+-- The lookup for `char` with the Han run around it: { cands=, rows=,
+-- matches=, chosen= }. resolve() -> chosen, decided, annotated, unsure.
+function Tap:lookup(db, char, left, right, resolve)
+    local cands, texts = Text.candidates(left, char, right)
     local rows = db:lookup(texts)
     for _, row in ipairs(self:fallbackRows(texts, rows)) do rows[#rows + 1] = row end
-    local chosen, decided, annotated, unsure = self:resolve(hit, left, right)
+    local chosen, decided, annotated, unsure = resolve()
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = annotated, decided = decided,
         unsure = unsure, order = self.plugin.settings:fallbackOrder(),
-        default = data and select(2, data:char(hit.char)) or nil,
+        default = data and select(2, data:char(char)) or nil,
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }
+    return { cands = cands, rows = rows, matches = matches, chosen = chosen, annotated = annotated }
+end
+
+function Tap:showPopup(hit)
+    local t0 = time.monotonic()
+    local db = self:openDb()
+    if not db then return end
+    -- A tap on the page starts afresh: any popups still shown go.
+    self:closeAll()
+    local document = self:ui().document
+    local left, right = Context.around(document, hit)
+    local found = self:lookup(db, hit.char, left, right, function() return self:resolve(hit, left, right) end)
     self:present{
-        db = db, char = hit.char, box = hit.box, cands = cands, rows = rows, matches = matches,
-        annotated = annotated, context = self:context(hit), mark = self:mark(hit),
+        db = db, char = hit.char, box = hit.box, cands = found.cands, rows = found.rows, matches = found.matches,
+        annotated = found.annotated, context = self:context(hit), mark = self:mark(hit),
         sentence = function(close) return self:sentenceRow(hit, close) end,
     }
     logger.dbg(string.format("chinesehelper: %s [%s|%s] reading %s, %d matches in %.1f ms",
-        hit.char, table.concat(left, ""), table.concat(right, ""), tostring(chosen), #matches,
+        hit.char, table.concat(left, ""), table.concat(right, ""), tostring(found.chosen), #found.matches,
         time.to_ms(time.monotonic() - t0)))
+end
+
+--[[--
+A Han character tapped in a popup's text (`layer`, a Popup; hit: Popup:charAt):
+its own popup on top, looked up like a tap in the book (the character and
+every word around it that contains it, in that text), with that text's
+sentence (Sentence.inText) as its context line and Translate text. The
+character is underlined in `layer` while the new popup is shown.
+]]
+function Tap:openNested(layer, hit)
+    if #self:stack() >= Tap.MAX_DEPTH then
+        UIManager:show(InfoMessage:new{
+            text = T(_("At most %1 popups at once: go back first."), Tap.MAX_DEPTH), timeout = 2 })
+        return
+    end
+    local db = self:openDb()
+    if not db then return end
+    local t0 = time.monotonic()
+    local Sentence = require("ch_sentence")
+    local chars, i = hit.chars, hit.index
+    local left = Text.hanSuffix(table.concat(chars, "", 1, i - 1))
+    local right = Text.hanPrefix(table.concat(chars, "", i + 1))
+    local sentence = Sentence.inText(chars, i) or { text = hit.char, from = i, to = i }
+    local context
+    if self.plugin.settings:contextEnabled() then
+        context = { chars = Snippet.chars(sentence.text, "\n"), index = i - sentence.from + 1 }
+    end
+    local found = self:lookup(db, hit.char, left, right, function() return self:resolveRun(left, hit.char, right) end)
+    local text = {
+        text = sentence.text,
+        prev = table.concat(chars, "", math.max(1, sentence.from - Translate().POPUP_CONTEXT), sentence.from - 1),
+        next = table.concat(chars, "", sentence.to + 1, math.min(#chars, sentence.to + Translate().POPUP_CONTEXT)),
+    }
+    -- (Also kept while KOReader's dictionary popup is shown instead: its
+    -- close takes it away, Tap:present.)
+    layer:setMark(hit)
+    self:present{
+        db = db, char = hit.char, box = hit.rect, cands = found.cands, rows = found.rows, matches = found.matches,
+        annotated = false, context = context, parent = layer,
+        sentence = function(close) return self:translateRow(function() return text end, close) end,
+    }
+    logger.dbg(string.format("chinesehelper: nested %s [%s|%s] depth %d, sentence %q, %d matches in %.1f ms",
+        hit.char, table.concat(left, ""), table.concat(right, ""), #self:stack(), sentence.text,
+        #found.matches, time.to_ms(time.monotonic() - t0)))
 end
 
 function Tap:openDb()
@@ -377,45 +451,126 @@ end
 
 Tap.CHUCHU_SOURCES = { idioms = "教育部《成语典》", xinhua = "新华成语" }
 
-function Tap:showChuchu(word, source, text)
-    local TextViewer = require("ui/widget/textviewer")
-    UIManager:show(TextViewer:new{
+--[[--
+The stack of popups shown (first: the one opened from the page). Each is a
+Popup; one opened from another's text or 出处 button sits on it. Closing
+the top one (Back) shows the one below; Close, a tap outside or a
+Translate closes them all.
+]]
+function Tap:stack()
+    self.layers = self.layers or {}
+    return self.layers
+end
+
+function Tap:push(popup)
+    local stack = self:stack()
+    stack[#stack + 1] = popup
+end
+
+-- `popup` has closed (however it closed): out of the stack.
+function Tap:forget(popup)
+    local stack = self:stack()
+    for k = #stack, 1, -1 do
+        if stack[k] == popup then table.remove(stack, k) end
+    end
+end
+
+-- Close the top popup and show the one below, its character no longer
+-- underlined. keep_mark: leave the line (a dictionary popup opened from the
+-- closed one sits on it now; see Tap:present).
+function Tap:back(popup, keep_mark)
+    local stack = self:stack()
+    if stack[#stack] ~= popup then
+        popup:onClose()
+        return
+    end
+    popup:onClose()   -- (forgets it)
+    local below = stack[#stack]
+    if below and not keep_mark then below:setMark(nil) end
+end
+
+-- Close every popup in the stack, with one refresh over all of them.
+function Tap:closeAll()
+    local stack = self:stack()
+    if #stack == 0 then return end
+    local region, tall
+    for _, p in ipairs(stack) do
+        if p.frame and p.frame.dimen then
+            region = region and region:combine(p.frame.dimen) or p.frame.dimen:copy()
+        end
+        tall = tall or p.tall
+    end
+    for k = #stack, 2, -1 do UIManager:close(stack[k]) end
+    stack[1]:onClose(region, tall)
+    self.layers = {}
+end
+
+-- An idiom's 出处 view: a full-height popup on the stack, its text in the
+-- larger Chinese size; a character tapped in it opens its own popup.
+function Tap:showChuchu(word, source, text, parent)
+    if #self:stack() >= Tap.MAX_DEPTH then
+        UIManager:show(InfoMessage:new{
+            text = T(_("At most %1 popups at once: go back first."), Tap.MAX_DEPTH), timeout = 2 })
+        return
+    end
+    local Popup = require("ch_popup")
+    local view
+    view = Popup:new{
         title = T("%1 · %2 · %3", word, Model.CHUCHU, Tap.CHUCHU_SOURCES[source] or source),
-        text = text,
-    })
+        blocks = { { source = source, lines = { text }, large = true, nolabel = true } },
+        labels = Model.SOURCE_LABELS, label_mode = "none",
+        full = true,
+        buttons = { { { text = _("Back"), callback = function() self:back(view) end },
+                      { text = _("Close"), callback = function() self:closeAll() end } } },
+        text_px = parent and parent.text_px,
+        chinese_pct = self.plugin.settings:chineseTextPercent(),
+        on_char_tap = function(p, hit) self:openNested(p, hit) end,
+        on_outside = function() self:closeAll() end,
+        on_back = function() self:back(view) end,
+        on_close = function() self:forget(view) end,
+    }
+    self:push(view)
+    UIManager:show(view)
 end
 
 --[[--
-Show the popup.
+Show the popup. Returns it, or nil (straight to KOReader's dictionaries).
   args.db, args.char, args.box      the database, the character, its screen box (or nil)
   args.cands, args.rows             Text.candidates and the rows looked up for them
   args.matches                      Model.matches
   args.annotated                    pinyin drawn above this occurrence
-  args.context                      the page text around the tap (Tap:context), or nil
+  args.context                      the text around the tap (Tap:context), or nil
   args.mark                         the page underline's id (Tap:mark), or nil
   args.sentence                     function(close) -> the sentence button's row (or nil)
+  args.parent                       the popup whose text was tapped, or nil (the page)
 ]]
 function Tap:present(args)
     local comp = self:components(args.db, args.char, args.cands, args.rows)
+    local parent = args.parent
+    local popup
     -- KOReader's dictionary popup, opened from this tap: keeps the underline
-    -- on the tapped character until it closes.
+    -- on the tapped character (on the page, or in the popup below) until it
+    -- closes.
+    local function unmark()
+        if parent then
+            parent:setMark(nil)
+        elseif args.mark then
+            self:unmark(args.mark)
+        end
+    end
     local function lookup(text, word)
-        self:lookupInKOReader(text, args.box, {
-            context = args.context, word = word,
-            on_close = args.mark and function() self:unmark(args.mark) end,
-        })
+        self:lookupInKOReader(text, args.box, { context = args.context, word = word, on_close = unmark })
     end
     if #args.matches == 0 and not comp then
         -- No dictionary (CC-CEDICT or a fallback dictionary) has the
         -- character or any word around it: straight to KOReader's dictionaries.
         lookup(args.char)
-        return
+        return nil
     end
     local Popup = require("ch_popup")
     local b0, b1 = bold()
-    local popup
     local keep_mark = false
-    local close = function() popup:onClose() end
+    local close_all = function() self:closeAll() end
     self:attachIdioms(args.matches)
     local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1)
     local words = {}
@@ -424,18 +579,21 @@ function Tap:present(args)
         words[#words + 1] = {
             text = word,
             callback = function()
+                -- This popup goes (the ones below stay); the dictionary's
+                -- popup takes its place.
                 keep_mark = true
-                popup:onClose()
+                if parent then self:back(popup, true) else self:closeAll() end
                 lookup(word, { text = word, start = m.start })
             end,
         }
     end
     for _, c in ipairs(Model.chuchu(args.matches)) do
-        words[#words + 1] = { text = c.text, callback = function() self:showChuchu(c.word, c.source, c.view) end }
+        words[#words + 1] = { text = c.text, callback = function() self:showChuchu(c.word, c.source, c.view, popup) end }
     end
-    -- Buttons: the character, the words around it, 出处, Close. The
-    -- components block has none of its own.
-    words[#words + 1] = { text = _("Close"), callback = close }
+    -- Buttons: the character, the words around it, 出处, Back (a popup opened
+    -- from another), Close. The components block has none of its own.
+    if parent then words[#words + 1] = { text = _("Back"), callback = function() self:back(popup) end } end
+    words[#words + 1] = { text = _("Close"), callback = close_all }
     local button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
     local block = comp and Components.block(comp.c, b0, b1, comp.via, comp.changes)
     if block then
@@ -443,7 +601,8 @@ function Tap:present(args)
         local first = args.matches[1]
         table.insert(blocks, (first and first.len == 1) and 2 or 1, block)
     end
-    local sentence_row = args.sentence and args.sentence(close)
+    Model.chineseLast(blocks)
+    local sentence_row = args.sentence and args.sentence(close_all)
     if sentence_row then button_rows[#button_rows + 1] = sentence_row end
     local font_size = self:textHeight()
     popup = Popup:new{
@@ -451,16 +610,24 @@ function Tap:present(args)
         blocks = blocks,
         labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
         context = args.context,
-        -- However it closes (tap outside, Close, Back, Translate): the
-        -- underline goes, unless a word button opened a dictionary popup.
+        -- However it closes (tap outside, Close, Back, Translate): out of the
+        -- stack, and the underline below it goes, unless a word button
+        -- opened a dictionary popup.
         on_close = function()
-            if not keep_mark and args.mark then self:unmark(args.mark) end
+            self:forget(popup)
+            if not keep_mark and not parent and args.mark then self:unmark(args.mark) end
         end,
+        on_char_tap = function(p, hit) self:openNested(p, hit) end,
+        on_outside = close_all,
+        on_back = function() if parent then self:back(popup) else self:closeAll() end end,
         buttons = button_rows,
         anchor = args.box,
         text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),
+        chinese_pct = self.plugin.settings:chineseTextPercent(),
     }
+    self:push(popup)
     UIManager:show(popup)
+    return popup
 end
 
 return Tap

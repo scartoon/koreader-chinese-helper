@@ -11,6 +11,7 @@ Settings.PREFIX = "chinesehelper_"
 Settings.THRESHOLDS = { 1500, 2500, 3500, 5000, 7000 }
 Settings.SIZES = { 35, 40, 45, 50, 55 }            -- pinyin size, % of the book's text size
 Settings.POPUP_SIZES = { 40, 60, 80, 100, 120 }     -- popup text size, % of the book's text size
+Settings.CHINESE_SIZES = { 100, 115, 130, 150, 175 } -- Chinese text in the popup, % of the popup text size
 
 Settings.UNCERTAIN_BOTH = "both"
 Settings.UNCERTAIN_BEST = "best"
@@ -37,6 +38,7 @@ Settings.DEFAULTS = {
     labels = "fallback",      -- source labels: "all", "fallback" (entries not from CC-CEDICT), "none"
     edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5, 7.5 or 10 mm
     popup_text_pct = 60,      -- 38 px on a Boox Go 7 with 64 px book text (the old popups used 43 px)
+    chinese_text_pct = 130,   -- "Chinese text size": MOE, 成語典 and Xinhua text, and the 出处 view
     components = true,        -- "Show character components" in single-character popups
     popup_context = true,     -- "Show the text around the character in the popup"
     page_underline = true,    -- "Underline the tapped character on the page"
@@ -162,6 +164,15 @@ function Settings:popupTextPercent()
         if pct == size then return pct end
     end
     return Settings.DEFAULTS.popup_text_pct
+end
+
+-- MOE's, the 成語典's and Xinhua's text in the popup, % of the popup text size.
+function Settings:chineseTextPercent()
+    local pct = tonumber(self:get("chinese_text_pct"))
+    for _, size in ipairs(Settings.CHINESE_SIZES) do
+        if pct == size then return pct end
+    end
+    return Settings.DEFAULTS.chinese_text_pct
 end
 
 -- Edge pass-through width in millimetres: one of Edge.CHOICES (0 = off).

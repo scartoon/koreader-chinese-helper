@@ -359,3 +359,13 @@ m = matches("", "东", "西", { row("东", "東", "dōng", "east"), row("东西"
     row("东西", "東西", "dōngxī", "east and west", "dōng xī") },
     { chosen = "dōng/dòng", unsure = true, wordReading = function() return "dōng xi" end })
 assert(Model.render(m, "东", false):find("东西  dōngxi · likely here", 1, true))
+
+-- The Chinese dictionaries' entries (MOE, 成語典, Xinhua) go last, after the
+-- components block, in their own order; the rest (Moegirlpedia included) keep theirs.
+local blocks = Model.chineseLast({ { source = "cedict", head = "a" }, { source = "moe", head = "b" },
+    { source = "mmah", components = true, head = "c" }, { source = "xinhua", head = "d" },
+    { source = "moegirl", head = "e" }, { source = "idioms", head = "f" }, { source = "wikt", head = "g" } })
+eq(join(blocks, "head", ""), "acegbdf", "Chinese dictionaries last")
+eq(join(Model.chineseLast({ { source = "cedict", head = "a" } }), "head", ""), "a", "none")
+assert(Model.LARGE_SOURCES.moe and Model.LARGE_SOURCES.idioms and Model.LARGE_SOURCES.xinhua)
+assert(not Model.LARGE_SOURCES.cedict and not Model.LARGE_SOURCES.wikt and not Model.LARGE_SOURCES.moegirl)

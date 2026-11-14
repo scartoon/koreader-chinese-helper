@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.0.1"
+ChineseHelper.VERSION = "2.1.0"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -524,6 +524,14 @@ function ChineseHelper:addToMainMenu(menu_items)
                 end,
                 sub_item_table = radio(Settings.POPUP_SIZES, "popup_text_pct", _("%1% of text size"), function() end,
                     function() return settings:popupTextPercent() end),
+            },
+            {
+                text_func = function()
+                    return T(_("Chinese text size: %1% of popup text"), settings:chineseTextPercent())
+                end,
+                help_text = _("Chinese text from MOE, the 成語典 and Xinhua (definitions, 出处, stories, examples) is drawn this much larger than the rest of the popup, so a character in it is easier to tap. English glosses, source labels and buttons keep the popup text size."),
+                sub_item_table = radio(Settings.CHINESE_SIZES, "chinese_text_pct", _("%1% of popup text size"), function() end,
+                    function() return settings:chineseTextPercent() end),
             },
             {
                 text = _("Show character components"),

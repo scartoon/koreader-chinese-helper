@@ -1,0 +1,239 @@
+-- Popups opened from popups (ch_tap.lua): a character tapped in a popup's
+-- text opens its popup on top, underlined below while it is shown; Back
+-- returns to the one below; Close, a tap outside or Translate closes them
+-- all; at most Tap.MAX_DEPTH at once. The nested popup's context line and
+-- Translate text are the popup text's sentence, not the book's. Built
+-- against stub KOReader modules and the real database, with a fake Popup.
+local H = require("sq3_shim")
+local eq = H.eq
+local Glyphs = require("ch_glyphs")
+
+local function stub(name, value) package.loaded[name] = value end
+local Extendable = {}
+function Extendable:extend(o)
+    o = o or {}
+    setmetatable(o, self)
+    self.__index = self
+    return o
+end
+Extendable.new = Extendable.extend
+
+local shown, closed, infos = {}, {}, {}
+stub("gettext", function(s) return s end)
+stub("logger", { err = function() end, warn = function() end, info = function() end, dbg = function() end })
+stub("ffi/util", { template = function(s, ...)
+    local args = { ... }
+    return (s:gsub("%%(%d)", function(n) return tostring(args[tonumber(n)]) end))
+end })
+stub("ui/uimanager", {
+    nextTick = function(_, f) f() end, setDirty = function() end,
+    show = function(_, w) shown[#shown + 1] = w end,
+    close = function(_, w, refresh, region)
+        closed[#closed + 1] = { w = w, refresh = refresh, region = region }
+        if w.on_close then local f = w.on_close; w.on_close = nil; f() end
+    end,
+})
+stub("ui/event", { new = function(_, ...) return { ... } end })
+stub("ui/time", { monotonic = function() return 0 end, to_ms = function() return 0 end })
+stub("ui/widget/container/widgetcontainer", Extendable)
+stub("ui/widget/infomessage", { new = function(_, args) infos[#infos + 1] = args; return args end })
+stub("ui/widget/widget", Extendable)
+stub("ffi/blitbuffer", { COLOR_BLACK = 0 })
+stub("ui/font", {})
+stub("ui/rendertext", {})
+stub("ui/size", { span = { horizontal_small = 2 } })
+stub("device", { screen = { scaleBySize = function(_, v) return v end, getWidth = function() return 1680 end,
+                            getHeight = function() return 1264 end, getDPI = function() return 300 end },
+                 isTouchDevice = function() return true end })
+stub("lua-ljsqlite3/init", H.SQ3)
+stub("datastorage", { getDataDir = function() return TEST_KOREADER_DIR end })
+stub("libs/libkoreader-lfs", { attributes = function() return nil end })
+stub("ui/network/manager", { isWifiOn = function() return true end, isConnected = function() return true end,
+                             runWhenConnected = function(_, f) f() end })
+local settings = {}
+G_reader_settings = {
+    readSetting = function(_, k) return settings[k] end,
+    saveSetting = function(_, k, v) settings[k] = v end,
+    flush = function() end,
+}
+
+-- The fake popup: the arguments Tap gives it, the underline set on it, and
+-- closing as Popup:onClose does (UIManager:close, then on_close).
+local Popup = { BOLD_START = "", BOLD_END = "" }
+function Popup:new(args)
+    args.marks = {}
+    args.setMark = function(p, hit) p.marked = hit; p.marks[#p.marks + 1] = hit or false end
+    args.onClose = function(p, region, tall)
+        require("ui/uimanager"):close(p, tall and "flashpartial" or "partial", region)
+    end
+    return args
+end
+stub("ch_popup", Popup)
+
+local Plugin = dofile(PLUGIN_DIR .. "/main.lua")
+local plugin = Plugin:new{ path = PLUGIN_DIR }
+plugin:init()
+local translated = {}
+plugin.ui = { highlight = { onTranslateText = function(_, text) translated[#translated + 1] = text end } }
+local tap = plugin.tap
+tap.textHeight = function() return 64 end
+
+local Text = require("ch_text")
+local Model = require("ch_popup_model")
+
+-- The popup for a tap on the page (as Tap:showPopup, without the page).
+local function root(left, char, right)
+    local cands, words = Text.candidates(Text.chars(left), char, Text.chars(right))
+    local rows = plugin:db():lookup(words)
+    for _, r in ipairs(tap:fallbackRows(words, rows)) do rows[#rows + 1] = r end
+    local m = Model.matches{ cands = cands, rows = rows, order = plugin.settings:fallbackOrder() }
+    return tap:present{ db = plugin:db(), char = char, cands = cands, rows = rows, matches = m, annotated = false,
+                        mark = 7 }
+end
+
+-- A tap on the n-th `char` of `text` in popup p's body (as Popup:charAt).
+local function hitIn(text, char, n)
+    local chars = Glyphs.chars(text)
+    n = n or 1
+    for k, c in ipairs(chars) do
+        if c == char then
+            n = n - 1
+            if n == 0 then
+                return { box = 1, index = k, char = c, chars = chars, rect = { x = 100, y = 200, w = 50, h = 65 } }
+            end
+        end
+    end
+    error("no " .. char)
+end
+
+local function buttons(p)
+    local out = {}
+    for _, r in ipairs(p.buttons) do for _, b in ipairs(r) do out[#out + 1] = b end end
+    return out
+end
+local function button(p, text)
+    for _, b in ipairs(buttons(p)) do if b.text == text then return b end end
+end
+local function texts(p)
+    local out = {}
+    for _, b in ipairs(buttons(p)) do out[#out + 1] = b.text end
+    return table.concat(out, ",")
+end
+
+local unmarked = {}
+tap.unmark = function(_, id) unmarked[#unmarked + 1] = id end
+
+-- The first popup: no Back, on the stack.
+local p1 = root("首", "鼠", "两端")
+eq(#tap:stack(), 1, "one popup")
+assert(not button(p1, "Back"), texts(p1))
+assert(button(p1, "Close"))
+
+-- A character of its text: its own popup on top, the character underlined
+-- in the first, looked up with the words around it in that text.
+local DEF = "首鼠：鼠性多疑，出洞时一进一退，不能自决；两端：拿不定主意。"
+local hit = hitIn(DEF, "疑")
+p1.on_char_tap(p1, hit)
+eq(#tap:stack(), 2, "two popups")
+local p2 = tap:stack()[2]
+eq(p2.title, "疑", "the tapped character's popup")
+eq(p1.marked, hit, "underlined in the popup below")
+assert(texts(p2):find("多疑", 1, true), "a word around it in the popup text: " .. texts(p2))
+assert(button(p2, "Back"), "a Back button: " .. texts(p2))
+eq(p2.anchor, hit.rect, "placed away from the tapped character")
+-- Its context line: the popup text's sentence (cut at ；), the character marked.
+eq(table.concat(p2.context.chars, ""), "首鼠：鼠性多疑，出洞时一进一退，不能自决；", "context: the popup sentence")
+eq(p2.context.chars[p2.context.index], "疑", "the tapped character marked")
+
+-- Back: the second goes, the first is shown with no underline.
+p2.on_back()
+eq(#tap:stack(), 1, "back to one")
+eq(p1.marked, nil, "underline gone")
+eq(closed[#closed].w, p2, "the second closed")
+eq(#unmarked, 0, "the page underline stays")
+-- The Back button does the same.
+p1.on_char_tap(p1, hitIn(DEF, "端"))
+button(tap:stack()[2], "Back").callback()
+eq(#tap:stack(), 1); eq(p1.marked, nil)
+
+-- The 秃 of the 史记 citation in an idiom's 出处 view: the nested popup's
+-- context and Translate text are the citation, not the book's sentence.
+local VIEW = "典源　《史记．卷一〇七．魏其武安侯列传》\n武安已罢朝，出止车门，召韩御史大夫载，怒曰：「与长孺共一老秃翁，何为首鼠两端？」"
+tap:showChuchu("首鼠两端", "xinhua", VIEW, p1)
+eq(#tap:stack(), 2, "the 出处 view on the stack")
+local view = tap:stack()[2]
+eq(view.full, true)
+view.on_char_tap(view, hitIn(VIEW, "秃"))
+eq(#tap:stack(), 3, "a popup on the view")
+local p3 = tap:stack()[3]
+eq(p3.title, "秃")
+local CITE = "「与长孺共一老秃翁，何为首鼠两端？」"
+eq(table.concat(p3.context.chars, ""), CITE, "context line: the citation")
+eq(p3.context.chars[p3.context.index], "秃")
+local tr = button(p3, "Translate")
+assert(tr, "a Translate button: " .. texts(p3))
+local before = #closed
+tr.callback()
+eq(translated[#translated], CITE, "Translate text: the citation")
+eq(#tap:stack(), 0, "Translate closes them all")
+eq(#closed - before, 3, "each closed once")
+eq(closed[#closed].w, p1, "the first closed last, with the refresh")
+eq(unmarked[#unmarked], 7, "the page underline goes")
+
+-- Plain definition prose: the definition's sentence.
+p1 = root("首", "鼠", "两端")
+p1.on_char_tap(p1, hitIn("形容犹豫不决的样子。语出《史记》。", "豫"))
+eq(table.concat(tap:stack()[2].context.chars, ""), "形容犹豫不决的样子。", "a definition sentence")
+
+-- The depth cap: five at most; a sixth tap says so and opens nothing.
+for k = 3, 5 do
+    local top = tap:stack()[#tap:stack()]
+    top.on_char_tap(top, hitIn(DEF, "疑"))
+    eq(#tap:stack(), k)
+end
+local top = tap:stack()[5]
+local n_infos = #infos
+top.on_char_tap(top, hitIn(DEF, "疑"))
+eq(#tap:stack(), 5, "capped at 5")
+eq(#infos, n_infos + 1, "a message instead")
+assert(infos[#infos].text:find("5", 1, true))
+eq(top.marked, nil, "nothing underlined")
+-- A 出处 view counts too.
+tap:showChuchu("首鼠两端", "xinhua", VIEW, top)
+eq(#tap:stack(), 5, "no view past the cap")
+
+-- A tap outside closes them all, top first, one refresh at the end.
+before = #closed
+local first = tap:stack()[1]
+first.on_outside()
+eq(#tap:stack(), 0, "all closed")
+eq(#closed - before, 5)
+for k = before + 1, #closed - 1 do eq(closed[k].refresh, nil, "no refresh before the last") end
+eq(closed[#closed].refresh ~= nil, true, "one refresh, with the first")
+eq(closed[#closed].w, first, "the first last")
+
+-- Close in a nested popup closes all; the first popup's Back key closes it.
+p1 = root("首", "鼠", "两端")
+p1.on_char_tap(p1, hitIn(DEF, "疑"))
+button(tap:stack()[2], "Close").callback()
+eq(#tap:stack(), 0, "Close closes all")
+p1 = root("首", "鼠", "两端")
+p1.on_back()
+eq(#tap:stack(), 0, "Back key on the first popup closes it")
+
+-- A word button in a nested popup: that popup goes (the one below stays,
+-- still underlined) and KOReader's dictionary opens with the popup text as
+-- context; its close takes the underline away.
+local looked
+tap.lookupInKOReader = function(_, text, box, opts) looked = { text = text, box = box, opts = opts } end
+p1 = root("首", "鼠", "两端")
+hit = hitIn(DEF, "疑")
+p1.on_char_tap(p1, hit)
+button(tap:stack()[2], "多疑").callback()
+eq(#tap:stack(), 1, "the nested popup went")
+eq(p1.marked, hit, "still underlined below")
+eq(looked.text, "多疑")
+eq(table.concat(looked.opts.context.chars, ""), "首鼠：鼠性多疑，出洞时一进一退，不能自决；")
+looked.opts.on_close()
+eq(p1.marked, nil, "the dictionary's close takes the underline")
+p1.on_outside()

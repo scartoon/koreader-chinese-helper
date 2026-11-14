@@ -53,6 +53,12 @@ for _, pct in ipairs({ 40, 60, 80, 100, 120 }) do
     eq(Settings.new(store{ chinesehelper_popup_text_pct = pct }):popupTextPercent(), pct)
 end
 eq(Settings.new(store{ chinesehelper_popup_text_pct = 70 }):popupTextPercent(), 60)
+-- Chinese text size: default 130%, the menu's choices, anything else the default.
+eq(Settings.new(store()):chineseTextPercent(), 130)
+for _, pct in ipairs({ 100, 115, 130, 150, 175 }) do
+    eq(Settings.new(store{ chinesehelper_chinese_text_pct = pct }):chineseTextPercent(), pct)
+end
+eq(Settings.new(store{ chinesehelper_chinese_text_pct = 120 }):chineseTextPercent(), 130)
 -- Edge width: every choice saved by 1.1.0 or later is kept as it is, 7.5 mm
 -- included; no setting is the default 5 mm; anything else falls back to it.
 eq(Settings.new(store()):edgeMm(), 5)

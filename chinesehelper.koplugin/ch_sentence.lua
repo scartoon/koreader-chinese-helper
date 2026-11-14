@@ -280,4 +280,138 @@ function Sentence.find(document, hit, max)
     return result
 end
 
+--[[--
+The sentence around chars[index] in a popup's own text (a nested popup's
+Translate button and context line), not the book's.
+
+  * A line break ends a sentence; so do 。！？； (not ．, which MOE writes
+    inside titles: 《史记．卷一〇七》), with the closing quotes and brackets
+    right after it (。」 ends the sentence and keeps its 」).
+  * A tap inside a quoted citation, 「…」 or 『…』 with a sentence or
+    clause mark in it, gives that whole citation, brackets included: the
+    outermost one around the tap not longer than QUOTE_MAX characters. A
+    quoted word (如：「秃子」) is not a citation: its sentence is.
+  * Inside a longer citation, the sentence is cut at its own marks; quotes
+    nested in the sentence are kept whole.
+
+Returns { text=, from=, to= } (indices into chars), or nil when chars[index]
+is a line break.
+]]
+Sentence.POPUP_ENDS = set{ "。", "！", "？", "；" }
+Sentence.QUOTE_MAX = 120
+Sentence.OPENERS = { ["「"] = "」", ["『"] = "』" }
+Sentence.CLOSING = { ["」"] = true, ["』"] = true }
+local CLAUSE_OR_END = set{ "。", "！", "？", "；", "，", "：", "、" }
+
+function Sentence.inText(chars, index)
+    if not chars[index] or chars[index] == "\n" then return nil end
+    -- The line the tap is on.
+    local P0, P1 = index, index
+    while P0 > 1 and chars[P0 - 1] ~= "\n" do P0 = P0 - 1 end
+    while P1 < #chars and chars[P1 + 1] ~= "\n" do P1 = P1 + 1 end
+    -- Quote pairs on that line, and their depth at each character.
+    local stack, pairs_ = {}, {}
+    local depth = {}
+    for k = P0, P1 do
+        local c = chars[k]
+        if Sentence.OPENERS[c] then
+            depth[k] = #stack
+            stack[#stack + 1] = { at = k, close = Sentence.OPENERS[c] }
+        elseif Sentence.CLOSING[c] and #stack > 0 and stack[#stack].close == c then
+            local open = table.remove(stack)
+            pairs_[#pairs_ + 1] = { from = open.at, to = k }
+            depth[k] = #stack
+        else
+            depth[k] = #stack
+        end
+    end
+    -- An unclosed quote: its characters count as outside.
+    for _, open in ipairs(stack) do
+        for k = open.at + 1, P1 do depth[k] = depth[k] - 1 end
+    end
+    local function span(a, b) return table.concat(chars, "", a, b) end
+    local function isCitation(p)
+        for k = p.from + 1, p.to - 1 do
+            if CLAUSE_OR_END[chars[k]] then return true end
+        end
+        return false
+    end
+    -- Pairs around the tap, outermost first.
+    local around = {}
+    for _, p in ipairs(pairs_) do
+        if p.from < index and index < p.to then around[#around + 1] = p end
+    end
+    table.sort(around, function(a, b) return a.from < b.from end)
+    local L, R = P0, P1   -- the region the sentence is looked for in
+    for _, p in ipairs(around) do
+        if isCitation(p) then
+            if p.to - p.from + 1 <= Sentence.QUOTE_MAX then
+                return { text = span(p.from, p.to), from = p.from, to = p.to }
+            end
+            L, R = p.from + 1, p.to - 1   -- too long: a sentence inside it
+        end
+    end
+    -- Sentence ends count at the region's own quote depth only.
+    local base = depth[L] or 0
+    local function endsAt(k)
+        return depth[k] == base and Sentence.POPUP_ENDS[chars[k]] == true
+    end
+    local function tailEnd(k)
+        -- k ends a sentence: extend over closers right after it.
+        while k < R and Sentence.CLOSERS[chars[k + 1]] do k = k + 1 end
+        return k
+    end
+    local from = L
+    for k = index - 1, L, -1 do
+        local c = chars[k]
+        if endsAt(k) or (Sentence.CLOSING[c] and depth[k] == base and k > L
+                         and Sentence.POPUP_ENDS[chars[k - 1]]) then
+            from = k + 1
+            break
+        end
+    end
+    local to = R
+    for k = index, R do
+        local c = chars[k]
+        if endsAt(k) then
+            to = tailEnd(k)
+            break
+        end
+        if Sentence.CLOSING[c] and depth[k] == base and k > index and Sentence.POPUP_ENDS[chars[k - 1]] then
+            to = tailEnd(k)
+            break
+        end
+    end
+    -- Leading spaces and a sense number ("1. ") are not part of it.
+    while from < to and (isSpace(chars[from])) do from = from + 1 end
+    local k = from
+    while k < to and chars[k]:match("^%d$") do k = k + 1 end
+    if k > from and chars[k] == "." and k < index then
+        from = k + 1
+        while from < to and isSpace(chars[from]) do from = from + 1 end
+    end
+    while to > from and isSpace(chars[to]) do to = to - 1 end
+    -- In an English line (a gloss, a components line): only the Chinese
+    -- around the character, 湖北省 of "abbr. for Hubei 湖北省 Húběi".
+    local latin = false
+    for k2 = from, to do
+        if chars[k2]:match("^%a$") then latin = true break end
+    end
+    if latin then
+        local function wide(c)
+            local cp = Text.codepoint(c)
+            return cp ~= nil and cp >= 0x2E80 and not isSpace(c)
+        end
+        from, to = index, index
+        while from > 1 and wide(chars[from - 1]) do from = from - 1 end
+        while to < #chars and wide(chars[to + 1]) do to = to + 1 end
+    end
+    if to - from + 1 > Sentence.MAX then
+        local half = math.floor(Sentence.MAX / 2)
+        from = math.max(from, index - half)
+        to = math.min(to, from + Sentence.MAX - 1)
+    end
+    return { text = span(from, to), from = from, to = to }
+end
+
 return Sentence
