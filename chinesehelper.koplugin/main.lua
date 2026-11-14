@@ -529,7 +529,7 @@ function ChineseHelper:addToMainMenu(menu_items)
                 text_func = function()
                     return T(_("Chinese text size: %1% of popup text"), settings:chineseTextPercent())
                 end,
-                help_text = _("Chinese text from MOE, the 成語典 and Xinhua (definitions, 出处, stories, examples) is drawn this much larger than the rest of the popup, so a character in it is easier to tap. English glosses, source labels and buttons keep the popup text size."),
+                help_text = _("Text from the Chinese dictionaries (MOE, the 成語典, Xinhua, Moegirlpedia: definitions, 出处, stories, examples) is drawn this much larger than the rest of the popup. Tap a character in it to look that character up. English glosses, headlines, components, source labels and buttons keep the popup text size."),
                 sub_item_table = radio(Settings.CHINESE_SIZES, "chinese_text_pct", _("%1% of popup text size"), function() end,
                     function() return settings:chineseTextPercent() end),
             },

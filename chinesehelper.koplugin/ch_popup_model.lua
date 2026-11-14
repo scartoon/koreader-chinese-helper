@@ -372,8 +372,24 @@ Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", wp = "WP", cbdb = "CBD
 
 -- Entries whose text is already Chinese: no short line added under them.
 Model.CHINESE_SOURCES = { moe = true, idioms = true, xinhua = true, moegirl = true }
--- Whose Chinese text the popup draws larger (the "Chinese text size" setting).
-Model.LARGE_SOURCES = { moe = true, idioms = true, xinhua = true }
+-- The Chinese-language fallback dictionaries: their entries go last, their
+-- text is drawn larger (the "Chinese text size" setting), and it is the only
+-- popup text whose characters can be tapped (Model.tappable).
+Model.LARGE_SOURCES = { moe = true, idioms = true, xinhua = true, moegirl = true }
+
+--[[--
+Can the characters of this part of a block be tapped (each opening its own
+popup)? Only the Chinese dictionaries' own text: a block's senses (`part`
+"lines") when the block is theirs or is a 出处 view (`large`), and an
+idiom's short line ("note"). Never a headline ("head"), the components
+block, or any other dictionary's gloss.
+]]
+function Model.tappable(block, part)
+    if block.components then return false end
+    if part == "lines" then return block.large == true or Model.LARGE_SOURCES[block.source] == true end
+    if part == "note" then return block.note ~= nil and Model.LARGE_SOURCES[block.note.source] == true end
+    return false
+end
 Model.CHUCHU = "出处"
 
 --[[--
@@ -489,8 +505,8 @@ function Model.blocks(matches, char, annotated, b0, b1)
     return blocks
 end
 
--- The Chinese-language dictionaries' entries (MOE, the 成語典, Xinhua:
--- Model.LARGE_SOURCES, drawn larger) go last, after everything else (the
+-- The Chinese-language dictionaries' entries (MOE, the 成語典, Xinhua,
+-- Moegirlpedia: Model.LARGE_SOURCES, drawn larger) go last, after everything else (the
 -- components block included), in the order they came: `blocks` is
 -- reordered in place.
 function Model.chineseLast(blocks)

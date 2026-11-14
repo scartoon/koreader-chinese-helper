@@ -74,7 +74,5 @@ eq(at(long, "人"), string.rep("地", 60) .. "人。", "inside a long citation")
 -- A line break is not a character.
 eq(Sentence.inText(Text.chars("甲\n乙"), 2), nil, "line break")
 
--- English lines (glosses, components): the Chinese around the character only.
-eq(at("Chǔ: surname Chu; abbr. for Hubei 湖北省 Húběi Shěng and Hunan", "北"), "湖北省", "a gloss")
-eq(at("回 huí  to go back; to return  → sound (same sound)", "回"), "回", "a components line")
-eq(at("艹 cǎo  grass; plant (草字头)  → meaning", "字"), "草字头", "in brackets")
+-- Latin letters inside MOE's text do not cut the sentence.
+eq(at("量词。计算物品的单位。为英文dozen的音译。十二个为一打。", "译"), "为英文dozen的音译。", "Latin inside")

@@ -391,21 +391,6 @@ function Sentence.inText(chars, index)
         while from < to and isSpace(chars[from]) do from = from + 1 end
     end
     while to > from and isSpace(chars[to]) do to = to - 1 end
-    -- In an English line (a gloss, a components line): only the Chinese
-    -- around the character, 湖北省 of "abbr. for Hubei 湖北省 Húběi".
-    local latin = false
-    for k2 = from, to do
-        if chars[k2]:match("^%a$") then latin = true break end
-    end
-    if latin then
-        local function wide(c)
-            local cp = Text.codepoint(c)
-            return cp ~= nil and cp >= 0x2E80 and not isSpace(c)
-        end
-        from, to = index, index
-        while from > 1 and wide(chars[from - 1]) do from = from - 1 end
-        while to < #chars and wide(chars[to + 1]) do to = to + 1 end
-    end
     if to - from + 1 > Sentence.MAX then
         local half = math.floor(Sentence.MAX / 2)
         from = math.max(from, index - half)

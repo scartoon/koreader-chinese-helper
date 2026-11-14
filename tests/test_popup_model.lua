@@ -360,12 +360,29 @@ m = matches("", "东", "西", { row("东", "東", "dōng", "east"), row("东西"
     { chosen = "dōng/dòng", unsure = true, wordReading = function() return "dōng xi" end })
 assert(Model.render(m, "东", false):find("东西  dōngxi · likely here", 1, true))
 
--- The Chinese dictionaries' entries (MOE, 成語典, Xinhua) go last, after the
--- components block, in their own order; the rest (Moegirlpedia included) keep theirs.
+-- The Chinese dictionaries' entries (MOE, 成語典, Xinhua, Moegirlpedia) go
+-- last, after the components block, in their own order; the rest keep theirs.
 local blocks = Model.chineseLast({ { source = "cedict", head = "a" }, { source = "moe", head = "b" },
     { source = "mmah", components = true, head = "c" }, { source = "xinhua", head = "d" },
     { source = "moegirl", head = "e" }, { source = "idioms", head = "f" }, { source = "wikt", head = "g" } })
-eq(join(blocks, "head", ""), "acegbdf", "Chinese dictionaries last")
+eq(join(blocks, "head", ""), "acgbdef", "Chinese dictionaries last")
 eq(join(Model.chineseLast({ { source = "cedict", head = "a" } }), "head", ""), "a", "none")
 assert(Model.LARGE_SOURCES.moe and Model.LARGE_SOURCES.idioms and Model.LARGE_SOURCES.xinhua)
-assert(not Model.LARGE_SOURCES.cedict and not Model.LARGE_SOURCES.wikt and not Model.LARGE_SOURCES.moegirl)
+assert(Model.LARGE_SOURCES.moegirl)
+assert(not Model.LARGE_SOURCES.cedict and not Model.LARGE_SOURCES.wikt and not Model.LARGE_SOURCES.wp
+       and not Model.LARGE_SOURCES.cbdb)
+
+-- Tappable: the Chinese dictionaries' own text only.
+local note = { source = "idioms", text = "形容人非常吝啬。" }
+for _, src in ipairs({ "moe", "idioms", "xinhua", "moegirl" }) do
+    assert(Model.tappable({ source = src, lines = { "x" } }, "lines"), src .. " text")
+    assert(not Model.tappable({ source = src, head = "x" }, "head"), src .. " headline")
+end
+for _, src in ipairs({ "cedict", "wikt", "wp", "cbdb" }) do
+    assert(not Model.tappable({ source = src, lines = { "x" } }, "lines"), src .. " gloss")
+end
+assert(Model.tappable({ source = "cedict", lines = { "x" }, note = note }, "note"), "an idiom's short line")
+assert(not Model.tappable({ source = "cedict", head = "x" }, "head"), "a CC-CEDICT headline")
+assert(not Model.tappable({ source = "mmah", components = true, lines = { "x" } }, "lines"), "components")
+assert(not Model.tappable({ source = "wikt", components = true, lines = { "x" } }, "lines"), "Wiktionary components")
+assert(Model.tappable({ source = "xinhua", lines = { "x" }, large = true }, "lines"), "a 出处 view")

@@ -3,30 +3,30 @@
 ## 2.1.0 (2026-11-14)
 
 Popup
-- **Tap a character in the popup to look it up.** Any Chinese character in the popup's text (a
-  definition, a quotation, a 出处 view, a component, a word's headline) opens its own popup on
-  top, looked up like a tap in the book: the character and every word around it in that text
-  that contains it. The character stays underlined in the popup below while the new one is
-  open. A tap on a character, or within half a character's width of one (beside it, above or
-  below it, on the punctuation next to it), takes the nearest, on the tapped line first; a tap
-  on Latin text, a button or empty space does what it did before. The mapping uses the positions
+- **Tap a character in the Chinese dictionaries' text to look it up.** In the text of MOE, the
+  成語典, Xinhua and Moegirlpedia (definitions, quotations, an idiom's short line, the 出处 view),
+  a character opens its own popup on top, looked up like a tap in the book: the character and
+  every word around it in that text that contains it. The character stays underlined in the
+  popup below while the new one is open. Nothing else in the popup is tappable (headlines,
+  components, English glosses). A tap on a character, or within half a character's width of one
+  (beside it, above or below it, on the punctuation next to it), takes the nearest, on the
+  tapped line first; any other tap does what it did before. The mapping uses the positions
   KOReader's text boxes laid the characters out at, so it holds after scrolling.
 - **The popup's own sentence.** A popup opened from popup text takes its context line and its
   Translate text from that text, not the book: the sentence around the character, cut at 。！？；,
   a line break or a closing quote after one of them; a whole 「…」 or 『…』 quotation when the
-  tap is inside one (秃 in 首鼠两端's 典源 gives 「与长孺共一老秃翁，何为首鼠两端？」); only the
-  Chinese around the character in an English line (湖北省 in a CC-CEDICT gloss). KOAssistant gets
+  tap is inside one (秃 in 首鼠两端's 典源 gives 「与长孺共一老秃翁，何为首鼠两端？」). KOAssistant gets
   the entry's text around the sentence as its context, trimmed by its own rule.
 - **Back and Close.** A popup opened from another has a **Back** button (the device's Back key
   does the same): it closes that popup and shows the one below. **Close**, a tap outside and
   **Translate** close them all, with one refresh. At most 5 popups are open at once (a 出处 view
   counts); past that a tap says so and opens nothing.
-- **Chinese text size** (new menu item, after **Popup text size**): MOE's, the 成語典's and
-  Xinhua's Chinese text is drawn larger than the rest of the popup, 130% of the popup text by
+- **Chinese text size** (new menu item, after **Popup text size**): the Chinese dictionaries'
+  text (MOE, 成語典, Xinhua, Moegirlpedia) is drawn larger than the rest of the popup, 130% of the popup text by
   default (100, 115, 130, 150 or 175%), so it is easier to read and to tap. English glosses,
   source labels and buttons keep the popup text size. On a Boox Go 7 with 64 px book text and
   60% popup text: 38 px (3.2 mm) English, 49 px (4.2 mm) Chinese.
-- **The Chinese-language dictionaries' entries come last**: MOE, the 成語典 and Xinhua entries
+- **The Chinese-language dictionaries' entries come last**: MOE, 成語典, Xinhua and Moegirlpedia entries
   (when one of them is the fallback for a word) now follow every other entry, the components
   block included. An idiom's short Chinese line stays under the entry it belongs to.
 - **The 出处 view is a full-height popup** instead of KOReader's text viewer: the larger Chinese
@@ -35,7 +35,7 @@ Popup
 Measured on the Boox Go 7 (adb taps): 20 taps on characters, 10 in MOE's 三楚 definition and 10
 in the scrolled 出处 view of 首鼠两端, each took the character under the tap point, including 7
 near misses (on a character's edge, on 、 or 。 beside it); a tap above the scrolled window took
-nothing. A nested lookup takes 12–17 ms.
+nothing; taps on headlines, components and CC-CEDICT glosses open nothing. A nested lookup takes 12–17 ms.
 
 Unchanged: the plugin database (byte-identical to 2.0.0), every reading, the optional dictionary
 files.

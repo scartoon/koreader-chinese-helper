@@ -120,7 +120,7 @@ Tools menu). Settings apply to all books.
 | Mark unusual readings of common characters (names, historical terms) | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [What a tap does](#what-a-tap-does) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
-| Chinese text size | 100 / 115 / 130 (default) / 150 / 175% of the popup text size, for MOE's, the 成語典's and Xinhua's Chinese text. See [Tapping a character in the popup](#tapping-a-character-in-the-popup) |
+| Chinese text size | 100 / 115 / 130 (default) / 150 / 175% of the popup text size, for the Chinese dictionaries' text (MOE, 成語典, Xinhua, Moegirlpedia). See [Tapping a character in the popup](#tapping-a-character-in-the-popup) |
 | Show character components | On (default) / off. See [Character components](#character-components) |
 | Show the text around the character in the popup | On (default) / off. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
@@ -171,8 +171,8 @@ where the words break.
   first ([Readings](#readings)).
 - **The character's components**, indented under its own entry ([below](#character-components)).
 - **Then every dictionary word containing it**, longest first; words of the same length in
-  reading order. Entries from the Chinese-language dictionaries (MOE, the 成語典 and Xinhua) come
-  last, after everything else, in larger type (**Chinese text size**). A word with several readings (东西 *dōngxī* "east and west" / *dōngxi*
+  reading order. Entries from the Chinese-language dictionaries (MOE, the 成語典, Xinhua and
+  Moegirlpedia) come last, after everything else, in larger type (**Chinese text size**). A word with several readings (东西 *dōngxī* "east and west" / *dōngxi*
   "thing") has the likely one marked and first.
 - **The word that decides the reading** is tagged **· decides X's reading**, also when CC-CEDICT
   does not have it: then it shows a fallback dictionary's definition, or the short note of an
@@ -195,10 +195,12 @@ the underline goes when the popup closes.
 
 ### Tapping a character in the popup
 
-Any Chinese character in the popup's text opens its own popup on top: in a definition, a
-quotation, a 出处 view, a component (艹, 回) or a word's headline. It is looked up like a tap in
-the book, the character and every word around it in that text that contains it, and the
-character stays underlined in the popup below while the new one is open.
+The Chinese dictionaries' own text (MOE, the 成語典, Xinhua and Moegirlpedia: their definitions
+and quotations, an idiom's short line, the 出处 view) can be read by tapping: a character in it
+opens its own popup on top, looked up like a tap in the book (the character and every word
+around it in that text that contains it), and stays underlined in the popup below while the new
+one is open. Nothing else in the popup is tappable: not the headlines (the character or word
+the entry is for), the components, or the English glosses.
 
 ![Popup for 秋 in the 临江仙, and on top of it the popup for 欢, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年欢笑复明年，秋月春风等闲度。」 with 欢 marked, then 欢 huān, its parts, 欢笑 huānxiào, and the buttons 欢, 欢笑, Back, Close and Translate & Analyze](docs/nested.png)
 
@@ -206,17 +208,15 @@ character stays underlined in the popup below while the new one is open.
   sends are the sentence around the character in the popup text: cut at 。！？；, a line break, or
   a closing quote after one of them (。」). Inside a quotation (「…」 or 『…』 with a comma or end
   mark in it), it is the whole quotation, so 秃 in 首鼠两端's 典源 gives
-  「与长孺共一老秃翁，何为首鼠两端？」. A quoted word (如：「秃子」) is not a quotation; in an
-  English line (a gloss, a component), it is only the Chinese around the character.
+  「与长孺共一老秃翁，何为首鼠两端？」. A quoted word (如：「秃子」) is not a quotation.
 - **Where a tap lands**: on a character, or within half a character's width of one (beside it,
   just above or below, on the punctuation next to it), takes the nearest, on the tapped line
-  first. A tap on Latin text, on a button or on empty space does what it did before. This holds
-  after the popup is scrolled.
+  first. A tap anywhere else does what it did before. This holds after the popup is scrolled.
 - **Back** (the button, or the device's Back key) closes the top popup and shows the one below;
   **Close**, a tap outside or **Translate** closes them all. At most **5** popups are open at once
   (a 出处 view counts); past that, a tap says so and opens nothing.
-- **Chinese text size**: MOE's, the 成語典's and Xinhua's Chinese text (definitions, short lines,
-  the 出处 view) is drawn larger than the rest of the popup, 130% by default, so its characters
+- **Chinese text size**: the Chinese dictionaries' text (definitions, short lines, the 出处
+  view) is drawn larger than the rest of the popup, 130% by default, so its characters
   are easier to tap. English glosses, source labels and buttons keep the popup text size. On a
   Boox Go 7 (300 dpi) with 64 px book text and the default 60% popup text, that is 38 px
   (3.2 mm) for English and 49 px (4.2 mm) for Chinese.

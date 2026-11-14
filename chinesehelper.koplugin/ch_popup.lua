@@ -308,8 +308,9 @@ end
 -- The senses and short lines of MOE, the 成語典 and Xinhua (Model.LARGE_SOURCES)
 -- are in the larger Chinese face. The blocks stack vertically; only when they
 -- are taller than the room left (or `full`) do they scroll
--- (ScrollableContainer, with a scroll bar). Every text box is kept in
--- self.tap_boxes, for Popup:charAt.
+-- (ScrollableContainer, with a scroll bar). The text boxes whose characters
+-- can be tapped (Model.tappable: the Chinese dictionaries' text only) are
+-- kept in self.tap_boxes, for Popup:charAt.
 function Popup:body(text_w, max_h, full)
     local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
     local label_face = Font:getFace("x_smallinfofont", unscaled(self:labelPx()))
@@ -320,9 +321,12 @@ function Popup:body(text_w, max_h, full)
     local function stack(full_width)
         self.tap_boxes = {}
         local group = VerticalGroup:new{ align = "left" }
-        local function box(text, face, width)
+        -- A text box; `tappable` ones (Model.tappable) are kept for charAt.
+        local function box(text, face, width, tappable)
             local tbw = TextBoxWidget:new{ text = text, face = face, width = width }
-            self.tap_boxes[#self.tap_boxes + 1] = { widget = tbw, chars = Glyphs.chars(text) }
+            if tappable then
+                self.tap_boxes[#self.tap_boxes + 1] = { widget = tbw, chars = Glyphs.chars(text) }
+            end
             return tbw
         end
         for k, b in ipairs(self.blocks or {}) do
@@ -341,11 +345,12 @@ function Popup:body(text_w, max_h, full)
                 })
             end
             if b.head then
-                add(box(TextBoxWidget.PTF_HEADER .. b.head, self.face, width))
+                add(box(TextBoxWidget.PTF_HEADER .. b.head, self.face, width, Model.tappable(b, "head")))
             end
             if #b.lines > 0 then
                 local face = (b.large or Model.LARGE_SOURCES[b.source]) and self.chinese_face or self.face
-                add(box(TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n"), face, width))
+                add(box(TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n"), face, width,
+                    Model.tappable(b, "lines")))
             end
             if b.note then
                 if self:labelled(b.note) then
@@ -355,7 +360,7 @@ function Popup:body(text_w, max_h, full)
                     })
                 end
                 local face = Model.LARGE_SOURCES[b.note.source] and self.chinese_face or self.face
-                add(box(b.note.text, face, width))
+                add(box(b.note.text, face, width, Model.tappable(b, "note")))
             end
         end
         return group
