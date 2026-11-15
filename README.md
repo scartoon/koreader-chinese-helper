@@ -33,7 +33,8 @@ reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 </table>
 
 All screenshots: a Boox Go 7 (landscape), the [sample book](#the-sample-book), default settings,
-with every optional dictionary installed. `tools/make_screenshots.py` takes them again.
+with every [optional dictionary](#optional-dictionaries) installed. `tools/make_screenshots.py`
+takes them again.
 
 - **One tap, no selecting**: tap anywhere in the text (on a character, between lines, on
   punctuation) and the nearest character opens; taps outside the text turn pages and open menus
@@ -73,8 +74,9 @@ other dictionaries have: MOE idioms covers 5,470 chengyu in all, Xinhua idioms 3
 ([Chengyu](#chengyu)).
 
 Optional dictionaries are files you build yourself, because their licences do not allow this
-project to distribute them. All explanatory text is in simplified characters
-([Simplified text](#simplified-text)).
+project to distribute them: a few commands on a computer, then a copy to the e-reader
+([Optional dictionaries](#optional-dictionaries)). All explanatory text is in simplified
+characters ([Simplified text](#simplified-text)).
 
 Status: **2.1.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
@@ -90,6 +92,10 @@ Status: **2.1.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.
      `adb push chinesehelper.koplugin /sdcard/koreader/plugins/`
    - Other devices: the `plugins` folder inside KOReader's own folder.
 3. Restart KOReader.
+4. Optional: [build the optional dictionaries](#optional-dictionaries). Their licences don't let
+   this project share them, so you make them yourself on a computer; they add most of the
+   Chinese-language explanations and chengyu sources (the MOE dictionary alone adds 90,500
+   entries).
 
 The folder must keep its name, `chinesehelper.koplugin`. The repository does not contain the
 database; to install from a clone, [build it](#building-the-database) first.
@@ -454,6 +460,125 @@ have, and another 11.5% in an everyday combination of such words (很多, 连连
 remaining 7.5% are the novel's names and coinages (髡贼, 归化民). Ming forms of address and
 technical compounds are covered in part (典史 and 红夷大炮 are in; 赵老爷 and 米尼步枪 are not).
 
+## Optional dictionaries
+
+Five of the dictionaries can't come with the plugin: their licences allow copying them for your
+own use, but not this project's distributing them. You build each one yourself on a computer, with
+a script from this repository, and copy the file to the e-reader. The plugin works without them,
+but they hold most of its Chinese-language explanations: the MOE dictionary alone adds 90,500
+entries, and with it and the two idiom files the share of chengyu in the 46 test books that get
+an entry rises from 93% to 100% ([Chengyu](#chengyu)). The screenshots on this page were taken
+with all five installed.
+
+**Which to build.** For most readers: the MOE dictionary, MOE idioms and Xinhua idioms. Add CBDB
+office titles for books set in the Ming. Moegirlpedia slang adds 350 internet-slang words for a
+1.4 GB download and an extra library ([below](#moegirlpedia-slang)); skip it unless you read
+web fiction.
+
+| Dictionary | Script | Download | File | Licence |
+|---|---|---|---|---|
+| MOE dictionary | `tools/build_moe.py` | 15 MB | 17.0 MB | [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/) |
+| MOE idioms | `tools/build_idioms.py` | 5 MB | 21.7 MB | [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/) |
+| Xinhua idioms | `tools/build_xinhua.py` | 10 MB | 14.9 MB | none for the text ([below](#the-sources)) |
+| CBDB office titles | `tools/build_cbdb.py` | 140 MB (590 MB unzipped) | 0.5 MB | [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms) |
+| Moegirlpedia slang | `tools/build_moegirl.py` | 1.4 GB | 0.1 MB | [CC BY-NC-SA 3.0 CN](https://creativecommons.org/licenses/by-nc-sa/3.0/cn/) |
+
+The downloads go into the clone's `build/sources/` and can be deleted afterwards.
+
+### 1. Get the scripts
+
+You need Python 3 and git. On a computer:
+
+```sh
+git clone https://github.com/scartoon/koreader-chinese-helper.git
+cd koreader-chinese-helper
+python3 -m venv .venv && .venv/bin/pip install opencc pypinyin
+```
+
+The commands are for macOS and Linux. On Windows (not tested), write `py` for `python3`,
+`.venv\Scripts\pip` for `.venv/bin/pip` and `.venv\Scripts\python` for `.venv/bin/python`.
+
+### 2. Add the plugin database to the clone
+
+The scripts read the plugin's database to leave out words CC-CEDICT already has, and the
+repository doesn't contain it. Copy the `data` folder from the `chinesehelper.koplugin` folder you
+unzipped when [installing](#install) into the clone's `chinesehelper.koplugin` folder, so that
+`chinesehelper.koplugin/data/chinesehelper.sqlite` exists. Or download it again:
+
+```sh
+curl -L --create-dirs -o build/chinesehelper.koplugin.zip https://github.com/scartoon/koreader-chinese-helper/releases/latest/download/chinesehelper.koplugin.zip
+unzip build/chinesehelper.koplugin.zip 'chinesehelper.koplugin/data/*'
+```
+
+Without it, the MOE idioms and Xinhua idioms scripts download it themselves, and the other three
+stop with "build the plugin database first (tools/build_db.py)". You don't need to build it:
+copying it as above is enough.
+
+### 3. Build
+
+Run one line for each dictionary you want:
+
+```sh
+.venv/bin/python tools/build_moe.py
+.venv/bin/python tools/build_idioms.py
+.venv/bin/python tools/build_xinhua.py
+.venv/bin/python tools/build_cbdb.py
+```
+
+Each writes `build/chinesehelper-NAME.sqlite` (`chinesehelper-moe.sqlite` and so on) and prints
+where it goes on the device.
+
+### 4. Copy the files to the e-reader
+
+They go in a `chinesehelper` folder inside KOReader's `data` folder: the `data` folder next to
+the `plugins` folder you installed into. Plugin updates leave it alone, so this is done once.
+
+- **Android** (Boox and others): `koreader/data/chinesehelper/` in the device's internal storage
+  over USB (`/sdcard/koreader/data/chinesehelper/`). With adb, add `--push` to a build command
+  and it copies the file there itself.
+- **Other devices**: connect over USB, open the KOReader folder that holds `plugins`, make
+  `data/chinesehelper/` in it if it isn't there, and copy the `.sqlite` files in.
+
+Then restart KOReader. To check: under **Fallback dictionaries** each file you added is marked
+"(your own file)" rather than "(not installed)", and **Status** lists its version and size.
+
+### Moegirlpedia slang
+
+Its source is read with the slob reader, which needs the ICU library. Install that first:
+
+- **macOS**: `brew install icu4c pkg-config`, then
+  `PKG_CONFIG_PATH=$(brew --prefix icu4c)/lib/pkgconfig .venv/bin/pip install git+https://github.com/itkach/slob.git`
+- **Linux** (Debian, Ubuntu): `sudo apt install libicu-dev pkg-config`, then
+  `.venv/bin/pip install git+https://github.com/itkach/slob.git`
+
+Then `.venv/bin/python tools/build_moegirl.py`, and copy the file as in step 4. Reading every
+page of the 1.4 GB snapshot takes 10–15 minutes.
+
+### The sources
+
+- **MOE dictionary**: 教育部《重編國語辭典修訂本》, from
+  [g0v/moedict-data](https://github.com/g0v/moedict-data). `--traditional` keeps MOE's own text
+  instead of simplified, and **Status** says which a file has.
+- **MOE idioms**: 教育部《成語典》, from the ministry's
+  [download page](https://language.moe.gov.tw/001/Upload/Files/site_content/M0001/respub/dict_idiomsdict_download.html)
+  (the script finds the current file there); `--traditional` keeps the original text.
+- **Xinhua idioms**: `data/idiom.json` of [chinese-xinhua](https://github.com/pwxcoo/chinese-xinhua).
+  The repository's MIT licence covers its code; the text was scraped from a published
+  dictionary. The build puts back punctuation lost in scraping where that is reliable
+  (首鼠鼠性多疑 → 首鼠：鼠性多疑) and shows symbols standing for lost text as …; typos stay.
+- **CBDB office titles**: from the [China Biographical Database](https://cbdb.hsites.harvard.edu/)'s
+  [SQLite release](https://huggingface.co/datasets/cbdb/cbdb-sqlite). Its terms are CC BY-NC-SA
+  4.0 for the standalone release's data and CBDB's own non-commercial, no-derivatives,
+  no-redistribution terms beyond it; this project follows the stricter: the file is for your own
+  non-commercial reading.
+- **Moegirlpedia slang**: from the offline snapshot
+  [zhmoegirl-20230507-alpha.slob](https://github.com/aisuneko/dicts_for_aard2/releases/tag/moegirl-alpha)
+  (listed on the [slob project's dictionary page](https://github.com/itkach/slob/wiki/Other-projects))
+  of [萌娘百科](https://zh.moegirl.org.cn).
+
+Whatever the licence, the files you build are for your own reading: don't share them.
+[`data/README.md`](data/README.md) describes what each build keeps and changes.
+
 ## Data
 
 ### Bundled data
@@ -507,55 +632,6 @@ the EPUBs from a USB-connected device into `build/`; `--local NAME BOOK.epub` fo
 computer), `tools/download_sources.sh`, then `tools/measure_fallback.py` (reports in
 `build/measure/`; `--book NAME` for one book) and `tools/measure_book.py --book NAME` (what a
 book still lacks, and what candidate sources would add).
-
-### Optional dictionaries
-
-Five fallback dictionaries are files you build yourself: their licences allow copying them for
-your own use but not this project's distributing them. The plugin opens each only if it is
-there. The scripts read the plugin database to leave out headwords CC-CEDICT has (the two idiom
-files keep those only for their Chinese lines and 出处 views): build it first or unzip the
-release into the clone; the two idiom scripts download it themselves. Set up once:
-
-```sh
-python3 -m venv .venv && .venv/bin/pip install opencc pypinyin
-```
-
-| Dictionary | Command | Download | File | Licence |
-|---|---|---|---|---|
-| CBDB office titles | `.venv/bin/python tools/build_cbdb.py` | 140 MB | 0.5 MB | [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms) |
-| MOE dictionary | `.venv/bin/python tools/build_moe.py` | 15 MB | 17.0 MB | [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/) |
-| MOE idioms | `.venv/bin/python tools/build_idioms.py` | 5 MB | 21.7 MB | [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/) |
-| Xinhua idioms | `.venv/bin/python tools/build_xinhua.py` | 10 MB | 14.9 MB | none for the text (see below) |
-| Moegirlpedia slang | `.venv/bin/python tools/build_moegirl.py` | 1.4 GB | 0.1 MB | [CC BY-NC-SA 3.0 CN](https://creativecommons.org/licenses/by-nc-sa/3.0/cn/) |
-
-Each command writes `build/chinesehelper-NAME.sqlite`; add `--push` to copy it to a
-USB-connected Android device with adb. The files go in KOReader's data folder, where plugin
-updates leave them alone: `koreader/data/chinesehelper/` (on Android:
-`/sdcard/koreader/data/chinesehelper/`).
-
-- **CBDB office titles**: from the [China Biographical Database](https://cbdb.hsites.harvard.edu/)'s
-  [SQLite release](https://huggingface.co/datasets/cbdb/cbdb-sqlite) (590 MB unzipped). Its terms
-  are CC BY-NC-SA 4.0 for the standalone release's data and CBDB's own non-commercial,
-  no-derivatives, no-redistribution terms beyond it; this project follows the stricter: the file
-  is for your own non-commercial reading. Don't share it.
-- **MOE dictionary**: from [g0v/moedict-data](https://github.com/g0v/moedict-data). `--traditional`
-  keeps MOE's own text instead of simplified, and **Status** says which a file has.
-- **MOE idioms**: from the ministry's
-  [download page](https://language.moe.gov.tw/001/Upload/Files/site_content/M0001/respub/dict_idiomsdict_download.html)
-  (the script finds the current file there); `--traditional` keeps the original text.
-- **Xinhua idioms**: `data/idiom.json` of [chinese-xinhua](https://github.com/pwxcoo/chinese-xinhua).
-  The repository's MIT licence covers its code; the text was scraped from a published
-  dictionary. The build puts back punctuation lost in scraping where that is reliable
-  (首鼠鼠性多疑 → 首鼠：鼠性多疑) and shows symbols standing for lost text as …; typos stay.
-- **Moegirlpedia slang**: from the offline snapshot
-  [zhmoegirl-20230507-alpha.slob](https://github.com/aisuneko/dicts_for_aard2/releases/tag/moegirl-alpha)
-  (listed on the [slob project's dictionary page](https://github.com/itkach/slob/wiki/Other-projects))
-  of [萌娘百科](https://zh.moegirl.org.cn). Reading it needs the slob reader, which needs ICU:
-  `brew install icu4c pkg-config`, then
-  `PKG_CONFIG_PATH=$(brew --prefix icu4c)/lib/pkgconfig .venv/bin/pip install git+https://github.com/itkach/slob.git`.
-  Reading every page takes 10–15 minutes.
-
-[`data/README.md`](data/README.md) describes what each build keeps and changes.
 
 ### Simplified text
 
