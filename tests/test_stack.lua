@@ -1,8 +1,8 @@
 -- Popups opened from popups (ch_tap.lua): a character tapped in a popup's
 -- text opens its popup on top, underlined below while it is shown; its
 -- Close (no Back button) or the Back key returns to the one below; a tap
--- outside or Translate closes them all; at most Tap.MAX_DEPTH at once. The nested popup's context line and
--- Translate text are the popup text's sentence, not the book's. Built
+-- outside or Translate closes them all; at most Tap.MAX_DEPTH at once. The nested popup's context line
+-- is the popup text's sentence, not the book's; only the first popup has a Translate button. Built
 -- against stub KOReader modules and the real database, with a fake Popup.
 local H = require("sq3_shim")
 local eq = H.eq
@@ -73,8 +73,7 @@ stub("ch_popup", Popup)
 local Plugin = dofile(PLUGIN_DIR .. "/main.lua")
 local plugin = Plugin:new{ path = PLUGIN_DIR }
 plugin:init()
-local translated = {}
-plugin.ui = { highlight = { onTranslateText = function(_, text) translated[#translated + 1] = text end } }
+plugin.ui = { highlight = { onTranslateText = function() end } }
 local tap = plugin.tap
 tap.textHeight = function() return 64 end
 
@@ -163,11 +162,12 @@ p1.on_char_tap(p1, hitIn(DEF, "端"))
 button(tap:stack()[2], "Close").callback()
 eq(#tap:stack(), 1); eq(p1.marked, nil); eq(#unmarked, 0)
 
--- The 秃 of the 史记 citation in an idiom's 出处 view: the nested popup's
--- context and Translate text are the citation, not the book's sentence.
+-- The 秃 of the 史记 citation in an idiom's Origin & Usage view: the nested
+-- popup's context is the citation, not the book's sentence; it has no
+-- Translate button, only Close.
 local VIEW = "典源　《史记．卷一〇七．魏其武安侯列传》\n武安已罢朝，出止车门，召韩御史大夫载，怒曰：「与长孺共一老秃翁，何为首鼠两端？」"
 tap:showChuchu("首鼠两端", "xinhua", VIEW, p1)
-eq(#tap:stack(), 2, "the 出处 view on the stack")
+eq(#tap:stack(), 2, "the Origin & Usage view on the stack")
 local view = tap:stack()[2]
 eq(view.full, true)
 view.on_char_tap(view, hitIn(VIEW, "秃"))
@@ -177,15 +177,13 @@ eq(p3.title, "秃")
 local CITE = "「与长孺共一老秃翁，何为首鼠两端？」"
 eq(table.concat(p3.context.chars, ""), CITE, "context line: the citation")
 eq(p3.context.chars[p3.context.index], "秃")
-local tr = button(p3, "Translate")
-assert(tr, "a Translate button: " .. texts(p3))
-eq(p3.buttons[#p3.buttons - 1][1], tr, "Translate on the row above")
-eq(lastRow(p3), "Close", "Close below Translate")
-eq(texts(view), "Close", "the 出处 view: only Close")
+eq(button(p3, "Translate"), nil, "no Translate in a nested popup: " .. texts(p3))
+eq(lastRow(p3), "Close", "Close at the bottom")
+eq(texts(view), "Close", "the Origin & Usage view: only Close")
+-- A tap outside closes them all.
 local before = #closed
-tr.callback()
-eq(translated[#translated], CITE, "Translate text: the citation")
-eq(#tap:stack(), 0, "Translate closes them all")
+p1.on_outside()
+eq(#tap:stack(), 0, "a tap outside closes them all")
 eq(#closed - before, 3, "each closed once")
 eq(closed[#closed].w, p1, "the first closed last, with the refresh")
 eq(unmarked[#unmarked], 7, "the page underline goes")
@@ -208,7 +206,7 @@ eq(#tap:stack(), 5, "capped at 5")
 eq(#infos, n_infos + 1, "a message instead")
 assert(infos[#infos].text:find("5", 1, true))
 eq(top.marked, nil, "nothing underlined")
--- A 出处 view counts too.
+-- A Origin & Usage view counts too.
 tap:showChuchu("首鼠两端", "xinhua", VIEW, top)
 eq(#tap:stack(), 5, "no view past the cap")
 
@@ -222,7 +220,7 @@ for k = before + 1, #closed - 1 do eq(closed[k].refresh, nil, "no refresh before
 eq(closed[#closed].refresh ~= nil, true, "one refresh, with the first")
 eq(closed[#closed].w, first, "the first last")
 
--- Close, one popup at a time: with three open (page -> nested -> 出处 view),
+-- Close, one popup at a time: with three open (page -> nested -> Origin & Usage view),
 -- the view's Close leaves two, the nested one's leaves the first (its
 -- underline cleared), and the first's closes it and the page underline.
 p1 = root("首", "鼠", "两端")
@@ -241,7 +239,7 @@ eq(p1.marked ~= nil, true, "the first keeps its underline")
 tap:showChuchu("首鼠两端", "xinhua", VIEW, p2)
 view = tap:stack()[3]
 button(view, "Close").callback()
-eq(#tap:stack(), 2, "the 出处 view's Close returns to the popup below")
+eq(#tap:stack(), 2, "the Origin & Usage view's Close returns to the popup below")
 button(p2, "Close").callback()
 eq(#tap:stack(), 1); eq(p1.marked, nil)
 local n_unmarked = #unmarked
@@ -280,4 +278,9 @@ eq(lastRow(p1), "Close", "Close alone at the bottom")
 for k = 1, #p1.buttons - 2 do
     for _, b in ipairs(p1.buttons[k]) do assert(b.text ~= "Close" and b.text ~= "Back", texts(p1)) end
 end
+-- A popup opened from its text has no Translate row, only Close below its words.
+p1.on_char_tap(p1, hitIn(DEF, "疑"))
+local nested = tap:stack()[2]
+eq(button(nested, "Translate"), nil, "no Translate in a nested popup: " .. texts(nested))
+eq(lastRow(nested), "Close")
 p1.on_outside()

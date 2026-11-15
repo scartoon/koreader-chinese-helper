@@ -146,19 +146,19 @@ eq(table.concat(data:word("裁缝"), " "), "cái féng")
 word_mark("她是裁缝。", "裁", "裁缝", "cáifeng", "裁缝 tailor")
 
 -- A neutral tone drawn as it is (CC-CEDICT gives the word only that way): the
--- character's own entry with the same letters is marked "shown above", and
--- the word is listed with the reading drawn.
+-- character's own entry with the same letters comes first, unmarked (the
+-- reading is on the page), and the word is listed with the reading drawn.
 p = popup("一只刺猬。", "猬", { threshold = 3500 })
 eq(p.drawn, "wei"); eq(p.chosen, "wei")
 eq(marked(p, "猬"), "wèi", "猬's entry wèi stands for the drawn wei")
-assert(p.text:find("猬  wèi · shown above", 1, true), p.text)
+assert(p.text:find("猬  wèi", 1, true), p.text)
 assert(p.text:find("刺猬  cìwei · likely here · decides 猬's reading", 1, true), p.text)
 eq(p.decided.word, "刺猬"); eq(p.decided.syllables, "cì wei")
 -- 鼓捣: in the words table only for the neutral tone; drawn at 2,500 (捣 ranks
 -- 2,655), and tapping 捣 shows the word.
 p = popup("总能鼓捣回家点儿。", "捣", { threshold = 2500 })
 eq(p.drawn, "dao"); eq(marked(p, "捣"), "dǎo")
-assert(p.text:find("捣  dǎo · shown above", 1, true), p.text)
+assert(p.text:find("捣  dǎo", 1, true), p.text)
 assert(p.text:find("鼓捣  gǔdao · likely here · decides 捣's reading", 1, true), p.text)
 eq(p.decided.word, "鼓捣")
 -- Not drawn at 3,500: the popup still marks the word's reading as likely.
@@ -228,7 +228,7 @@ eq(words(p), "靠,靠谱")
 -- An annotated character: the popup marks exactly the drawn pinyin.
 p = popup("两军对峙。", "峙", { threshold = 2500 })
 eq(p.drawn, "zhì"); eq(p.chosen, "zhì")
-assert(p.text:find("峙  zhì · shown above", 1, true) or not p.text:find("·", 1, true), p.text)
+assert(p.text:find("峙  zhì", 1, true) or not p.text:find("·", 1, true), p.text)
 -- 大宛 and 宛如 overlap; the more common word (宛如) wins, as drawn.
 p = popup("很大宛如雷鸣", "宛", { threshold = 2500 })
 eq(p.drawn, "wǎn"); eq(p.chosen, "wǎn"); eq(p.decided.word, "宛如")
@@ -238,8 +238,8 @@ eq(words(p), "宛,大宛,宛如", "both words listed, the decided one tagged")
 -- 大宛 alone: yuān.
 p = popup("西域有大宛国。", "宛", { threshold = 2500 })
 eq(p.drawn, "yuān"); eq(p.decided.word, "大宛")
--- CC-CEDICT's 宛 has no yuān (it is only in 大宛): shown first, marked, empty.
-assert(p.text:find("宛  yuān · shown above\nno separate CC-CEDICT entry for this reading\nwǎn: winding", 1, true), p.text)
+-- CC-CEDICT's 宛 has no yuān (it is only in 大宛): shown first, unmarked, empty.
+assert(p.text:find("宛  yuān\nno separate CC-CEDICT entry for this reading\nwǎn: winding", 1, true), p.text)
 
 ------------------------------------------------------------------------
 -- Fallback dictionaries' words decide; honest markers otherwise
@@ -257,7 +257,7 @@ assert(p.text:find("累世  lěishì · decides 累's reading", 1, true), p.text
 eq(words(p), "累,累世")
 -- Drawn (累 ranks 1,209): the annotation layer takes the same word.
 p = popup("发展成门第望族累世公卿", "累", { data = fdata, threshold = 1000 })
-eq(p.drawn, "lěi"); assert(p.text:find("累  lěi · shown above\n", 1, true), p.text)
+eq(p.drawn, "lěi"); assert(p.text:find("累  lěi\n", 1, true), p.text)
 local items = H.items("发展成门第望族累世公卿")
 for _, a in ipairs(Resolve.annotate(fdata, items, 1000, "both", special)) do
     if items[a.index].text == "累" then eq(a.match.word, "累世"); eq(a.match.fallback, "wikt") end
@@ -277,11 +277,14 @@ assert(not p.text:find("likely here", 1, true), p.text)
 p = popup("他累。", "累", { data = fdata })
 eq(p.chosen, "lěi/léi"); assert(p.unsure)
 assert(p.text:find("累  lěi\n", 1, true), p.text)
--- Drawn as a pair: "shown above", as before (that is what the page shows).
+-- Drawn as a pair: both readings first, in the drawn order, unmarked (the
+-- page shows them; no "shown above" label).
 p = popup("他累。", "累", { data = fdata, threshold = 1000 })
 eq(p.drawn, "lěi/léi"); assert(not p.unsure)
-assert(p.text:find("累  lěi · shown above\n", 1, true), p.text)
-assert(p.text:find("\nléi · shown above: ", 1, true), p.text)
+assert(p.text:find("累  lěi\n", 1, true), p.text)
+assert(p.text:find("\nléi: ", 1, true), p.text)
+assert(not p.text:find("shown above", 1, true), p.text)
+assert(not p.text:find(" · \n", 1, true) and not p.text:find(" \n", 1, true), p.text)
 
 -- A CC-CEDICT word beats a longer fallback word: in 串行端口, CC-CEDICT's
 -- 串行 (chuànháng) decides 行, not Wiktionary's 串行端口 (chuànxíng

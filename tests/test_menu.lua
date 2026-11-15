@@ -330,7 +330,7 @@ local function lookup()
     return table.concat(got, ",")
 end
 eq(lookup(), "丁匠:moe,典史:cbdb,尚书省:wikt,玉石俱碎:idioms,精兵强将:xinhua,红夷大炮:wp,试百户:cbdb,问题不大:moegirl")
--- Idioms: the short line and 出处 view, CC-CEDICT's idioms too, the 成語典
+-- Idioms: the short line and Origin & Usage view, CC-CEDICT's idioms too, the 成語典
 -- first; a field it lacks comes from Xinhua.
 local function idioms(words)
     local got = {}
@@ -390,8 +390,8 @@ eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
 
 -- The popup with idioms (ch_tap.lua present, with a stand-in for the popup
 -- widget): CC-CEDICT's 一毛不拔 gets the 成語典's short line, labelled, and a
--- 出处 button opening its view; 精兵强将 (Xinhua's fallback entry, Chinese
--- already) gets no line under it, and its own 出处 button.
+-- Origin & Usage button opening its view; 精兵强将 (Xinhua's fallback entry, Chinese
+-- already) gets no line under it, and its own Origin & Usage button.
 local popups = {}
 stub("ch_popup", { BOLD_START = "", BOLD_END = "",
                    new = function(_, args) popups[#popups + 1] = args; args.onClose = function() end; return args end })
@@ -417,12 +417,12 @@ local p = popupFor("一", "毛", "不拔")
 local b = blockOf(p, "一毛不拔")
 eq(b.source, "cedict"); eq(b.note.source, "idioms"); eq(b.note.text, "形容人非常吝啬。贬义。")
 eq(p.labels.idioms, "成语典")
-assert(buttonTexts(p):find("一毛不拔,出处,", 1, true), buttonTexts(p))
+assert(buttonTexts(p):find("一毛不拔,成语 Origin & Usage,", 1, true), buttonTexts(p))
 local before = #shown
-for _, r in ipairs(p.buttons) do for _, btn in ipairs(r) do if btn.text == "出处" then btn.callback() end end end
-eq(#shown, before + 1, "the 出处 view is shown")
+for _, r in ipairs(p.buttons) do for _, btn in ipairs(r) do if btn.text == "成语 Origin & Usage" then btn.callback() end end end
+eq(#shown, before + 1, "the Origin & Usage view is shown")
 local view = shown[#shown]
-eq(view.title, "一毛不拔 · 出处 · 教育部《成语典》")
+eq(view.title, "一毛不拔 · Origin & Usage · 教育部《成语典》")
 -- A full-height popup on the stack: the text in the larger Chinese size,
 -- no label, only Close; a character tapped in it opens its own popup.
 eq(view.full, true); eq(view.blocks[1].large, true); eq(view.blocks[1].nolabel, true)
@@ -433,16 +433,16 @@ assert(view.on_char_tap and view.on_back and view.on_outside)
 p = popupFor("精", "兵", "强将")
 b = blockOf(p, "精兵强将")
 eq(b.source, "xinhua"); eq(b.note, nil, "a Chinese entry gets no short line under it")
-assert(buttonTexts(p):find("出处", 1, true))
+assert(buttonTexts(p):find("成语 Origin & Usage", 1, true))
 -- 首鼠两端: CC-CEDICT's entry, Xinhua's line and view.
 p = popupFor("首", "鼠", "两端")
 eq(blockOf(p, "首鼠两端").note.source, "xinhua")
-assert(buttonTexts(p):find("首鼠两端,出处,", 1, true), buttonTexts(p))
+assert(buttonTexts(p):find("首鼠两端,成语 Origin & Usage,", 1, true), buttonTexts(p))
 -- Both idiom files off: no line, no button.
 item("idioms").callback(); item("xinhua").callback()
 p = popupFor("一", "毛", "不拔")
 eq(blockOf(p, "一毛不拔").note, nil)
-assert(not buttonTexts(p):find("出处", 1, true), buttonTexts(p))
+assert(not buttonTexts(p):find("Origin & Usage", 1, true), buttonTexts(p))
 item("idioms").callback(); item("xinhua").callback()
 package.loaded["ch_popup"], package.loaded["ui/widget/textviewer"] = nil, nil
 

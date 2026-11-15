@@ -125,7 +125,7 @@ local function popup_for(text, char)
     error(char .. " not annotated in " .. text)
 end
 local text = popup_for("匈奴单于", "单")
-assert(text:find("单  chán · shown above", 1, true), text)
+assert(text:find("单  chán", 1, true), text)
 assert(text:find("单于  chányú · decides 单's reading\nking of the Xiongnu", 1, true), text)
 -- The longest special word wins: 冒顿单于 (curated, with a note).
 text = popup_for("冒顿单于", "冒")

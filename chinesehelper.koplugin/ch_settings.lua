@@ -31,14 +31,14 @@ Settings.DEFAULTS = {
     fallback_moe = true,      -- has installed their files)
     fallback_moegirl = true,
     fallback_idioms = true,   -- 成語典 and Xinhua idioms: also the short line
-    fallback_xinhua = true,   -- and 出处 view of idioms CC-CEDICT has
+    fallback_xinhua = true,   -- and Origin & Usage view of idioms CC-CEDICT has
     -- Not in the menu: the fallback dictionaries' priority, comma-separated.
     -- Sources left out keep their default place after the ones named.
     fallback_order = "wikt,cbdb,moe,idioms,xinhua,wp,moegirl",
     labels = "fallback",      -- source labels: "all", "fallback" (entries not from CC-CEDICT), "none"
     edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5, 7.5 or 10 mm
     popup_text_pct = 60,      -- 38 px on a Boox Go 7 with 64 px book text (the old popups used 43 px)
-    chinese_text_pct = 130,   -- "Chinese text size": MOE, 成語典, Xinhua and Moegirlpedia text, and the 出处 view
+    chinese_text_pct = 130,   -- "Chinese text size": MOE, 成語典, Xinhua and Moegirlpedia text, and the Origin & Usage view
     components = true,        -- "Show character components" in single-character popups
     popup_context = true,     -- "Show the text around the character in the popup"
     page_underline = true,    -- "Underline the tapped character on the page"

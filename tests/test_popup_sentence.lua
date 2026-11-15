@@ -24,7 +24,7 @@ local function at(text, char, n)
     error("no " .. char .. " in " .. text)
 end
 
--- An idiom's 出处 view, laid out like the 成語典's (the quotation is from
+-- An idiom's Origin & Usage view, laid out like the 成語典's (the quotation is from
 -- the 史记; the rest is written for this test).
 local VIEW = table.concat({
     "释义",

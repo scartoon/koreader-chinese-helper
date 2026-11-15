@@ -2,7 +2,7 @@
 -- (ch_sentence.lua) to KOAssistant, or to KOReader's translator.
 --
 --   KOAssistant installed and loaded, and its internals as expected:
---     "Translate & Analyze [AI]", run through KOAssistant with the action below,
+--     "Translate & analyze the surrounding sentence [AI]", run through KOAssistant with the action below,
 --     the way its highlight-menu action buttons run an action;
 --   otherwise: "Translate", KOReader's built-in translator (the highlight
 --     menu's Translate: ReaderHighlight:onTranslateText).
@@ -53,7 +53,7 @@ Bold labels, no headers, no closing remarks.]],
 Translate.ACTION_ID = "chinesehelper_translate_analyze"
 
 -- The button's label; [AI]: the answer comes from a language model.
-Translate.LABELS = { koassistant = "Translate & Analyze [AI]", translator = "Translate" }
+Translate.LABELS = { koassistant = "Translate & analyze the surrounding sentence [AI]", translator = "Translate" }
 
 -- A fresh copy for each run (KOAssistant may annotate the table it is given).
 function Translate.action()
@@ -154,12 +154,7 @@ function Translate.runKOAssistant(ui, koa, sentence, network, logger)
     end
     local context, window, selection_data = "", nil, nil
     local ok, err = pcall(function()
-        if not selection then
-            -- A sentence of a popup's text (a nested popup): its context is
-            -- the popup text around it, not the page.
-            if sentence.prev or sentence.next then context = Translate.popupContext(ui, koa, sentence) end
-            return
-        end
+        if not selection then return end
         highlight.selected_text = selection
         local features = koa.plugin.settings and koa.plugin.settings:readSetting("features") or {}
         if highlight.getSelectedWordContext then
@@ -198,29 +193,6 @@ function Translate.runKOAssistant(ui, koa, sentence, network, logger)
         run()
     end
     return true
-end
-
-Translate.POPUP_CONTEXT = 300   -- characters of popup text each side, at most
-
---[[--
-The context KOAssistant gets with a sentence from a popup's own text
-({text=, prev=, next=}: the text before and after it in the same entry):
-trimmed by KOAssistant's own rule (koassistant_scope_resolver.trimContext,
-with the user's dictionary context setting) when it has one, else the
-text around it as it is. "" when the user's setting is "none".
-]]
-function Translate.popupContext(ui, koa, sentence)
-    local features = koa.plugin.settings and koa.plugin.settings:readSetting("features") or {}
-    local mode = koa.book_settings.resolveDictionaryContext(ui.doc_settings, features)
-    if mode == "none" then return "" end
-    local prev, next_text = sentence.prev or "", sentence.next or ""
-    local resolver = loaded("koassistant_scope_resolver", true)
-    if resolver and type(resolver.trimContext) == "function" then
-        local ok, text = pcall(resolver.trimContext, prev, next_text, sentence.text, mode,
-            { char_count = features.dictionary_context_chars or 100 })
-        if ok and type(text) == "string" then return text end
-    end
-    return prev .. sentence.text .. next_text
 end
 
 --[[--

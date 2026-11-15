@@ -40,7 +40,7 @@ local function Translate() return require("ch_translate") end
 
 Tap.ZONE_ID = "chinesehelper_tap"
 Tap.BUTTONS_PER_ROW = 4
--- Popups opened from popups (a character tapped in a popup's text, a 出处
+-- Popups opened from popups (a character tapped in a popup's text, an Origin & Usage
 -- view): at most this many shown at once, the first included.
 Tap.MAX_DEPTH = 5
 
@@ -412,8 +412,8 @@ end
 A Han character tapped in a popup's text (`layer`, a Popup; hit: Popup:charAt):
 its own popup on top, looked up like a tap in the book (the character and
 every word around it that contains it, in that text), with that text's
-sentence (Sentence.inText) as its context line and Translate text. The
-character is underlined in `layer` while the new popup is shown.
+sentence (Sentence.inText) as its context line, and no Translate button
+(only the popup from the page has one). The character is underlined in `layer` while the new popup is shown.
 ]]
 function Tap:openNested(layer, hit)
     if #self:stack() >= Tap.MAX_DEPTH then
@@ -434,18 +434,12 @@ function Tap:openNested(layer, hit)
         context = { chars = Snippet.chars(sentence.text, "\n"), index = i - sentence.from + 1 }
     end
     local found = self:lookup(db, hit.char, left, right, function() return self:resolveRun(left, hit.char, right) end)
-    local text = {
-        text = sentence.text,
-        prev = table.concat(chars, "", math.max(1, sentence.from - Translate().POPUP_CONTEXT), sentence.from - 1),
-        next = table.concat(chars, "", sentence.to + 1, math.min(#chars, sentence.to + Translate().POPUP_CONTEXT)),
-    }
     -- (Also kept while KOReader's dictionary popup is shown instead: its
     -- close takes it away, Tap:present.)
     layer:setMark(hit)
     self:present{
         db = db, char = hit.char, box = hit.rect, cands = found.cands, rows = found.rows, matches = found.matches,
         annotated = false, context = context, parent = layer,
-        sentence = function(close) return self:translateRow(function() return text end, close) end,
     }
     logger.dbg(string.format("chinesehelper: nested %s [%s|%s] depth %d, sentence %q, %d matches in %.1f ms",
         hit.char, table.concat(left, ""), table.concat(right, ""), #self:stack(), sentence.text,
@@ -494,7 +488,7 @@ Tap.CHUCHU_SOURCES = { idioms = "教育部《成语典》", xinhua = "新华成�
 
 --[[--
 The stack of popups shown (first: the one opened from the page). Each is a
-Popup; one opened from another's text or 出处 button sits on it. Closing
+Popup; one opened from another's text or Origin & Usage button sits on it. Closing
 the top one (its Close, or the Back key) shows the one below; a tap
 outside or a Translate closes them all.
 ]]
@@ -546,7 +540,7 @@ function Tap:closeAll()
     self.layers = {}
 end
 
--- An idiom's 出处 view: a full-height popup on the stack, its text in the
+-- An idiom's Origin & Usage view: a full-height popup on the stack, its text in the
 -- larger Chinese size; a character tapped in it opens its own popup.
 function Tap:showChuchu(word, source, text, parent)
     if #self:stack() >= Tap.MAX_DEPTH then
@@ -557,7 +551,7 @@ function Tap:showChuchu(word, source, text, parent)
     local Popup = require("ch_popup")
     local view
     view = Popup:new{
-        title = T("%1 · %2 · %3", word, Model.CHUCHU, Tap.CHUCHU_SOURCES[source] or source),
+        title = T("%1 · %2 · %3", word, Model.ORIGIN, Tap.CHUCHU_SOURCES[source] or source),
         blocks = { { source = source, lines = { text }, large = true, nolabel = true } },
         labels = Model.SOURCE_LABELS, label_mode = "none",
         full = true,
@@ -581,7 +575,8 @@ Show the popup. Returns it, or nil (straight to KOReader's dictionaries).
   args.annotated                    pinyin drawn above this occurrence
   args.context                      the text around the tap (Tap:context), or nil
   args.mark                         the page underline's id (Tap:mark), or nil
-  args.sentence                     function(close) -> the sentence button's row (or nil)
+  args.sentence                     function(close) -> the sentence button's row (or nil);
+                                    ignored for a nested popup (only the first has one)
   args.parent                       the popup whose text was tapped, or nil (the page)
 ]]
 function Tap:present(args)
@@ -630,7 +625,7 @@ function Tap:present(args)
     for _, c in ipairs(Model.chuchu(args.matches)) do
         words[#words + 1] = { text = c.text, callback = function() self:showChuchu(c.word, c.source, c.view, popup) end }
     end
-    -- Buttons: the character, the words around it and 出处 in rows, then the
+    -- Buttons: the character, the words around it and Origin & Usage in rows, then the
     -- sentence row (Translate), then Close on a row of its own, always the
     -- last. The components block has none of its own.
     local button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
@@ -641,7 +636,7 @@ function Tap:present(args)
         table.insert(blocks, (first and first.len == 1) and 2 or 1, block)
     end
     Model.chineseLast(blocks)
-    local sentence_row = args.sentence and args.sentence(close_all)
+    local sentence_row = not parent and args.sentence and args.sentence(close_all)
     if sentence_row then button_rows[#button_rows + 1] = sentence_row end
     -- Close: a popup opened from another closes alone (as the Back key);
     -- the first closes and takes the page underline with it.

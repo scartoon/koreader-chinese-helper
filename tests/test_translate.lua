@@ -94,7 +94,7 @@ local koa = installKOAssistant(ui)
 local net = network(true, true)
 row, mode = Translate.row{ ui = ui, network = net, sentence = function() return SENTENCE end }
 eq(mode, "koassistant", "present")
-eq(row[1].text, "Translate & Analyze [AI]", "present: label")
+eq(row[1].text, "Translate & analyze the surrounding sentence [AI]", "present: label")
 press(row)
 assert(koa.run, "executeQuickAction ran")
 eq(net.ran, 1, "through runWhenConnected")
@@ -121,38 +121,6 @@ koa.run = nil
 row = Translate.row{ ui = ui, network = network(true, true), sentence = function() return { text = "雨" } end }
 press(row)
 eq(koa.run.text, "雨"); eq(koa.run.context, ""); eq(koa.run.selection_data, nil)
-
--- A sentence from a popup's own text (a nested popup): the popup text around
--- it is the context, trimmed by KOAssistant's resolver in the user's mode;
--- no selection, nothing from the page.
-local CITE = "「与长孺共一老秃翁，何为首鼠两端？」"
-package.loaded["koassistant_scope_resolver"] = {
-    trimContext = function(prev, next_text, text, mode, opts)
-        return "trim:" .. mode .. ":" .. opts.char_count .. ":" .. prev .. "[" .. text .. "]" .. next_text
-    end,
-}
-koa.run = nil
-row = Translate.row{ ui = ui, network = network(true, true),
-    sentence = function() return { text = CITE, prev = "怒曰：", next = "" } end }
-press(row)
-eq(koa.run.text, CITE, "the popup sentence is sent")
-eq(koa.run.context, "trim:paragraph:100:怒曰：[" .. CITE .. "]", "popup context, trimmed")
-eq(koa.run.selection_data, nil, "no selection"); eq(koa.run.window, nil, "no page window")
-eq(ui.highlight.selected_text, nil, "no stand-in selection")
--- Without the resolver: the text around it as it is; with "none": nothing.
-package.loaded["koassistant_scope_resolver"] = nil
-local real_require = require
-require = function(name)
-    if name == "koassistant_scope_resolver" then error("not here") end
-    return real_require(name)
-end
-press(row)
-eq(koa.run.context, "怒曰：" .. CITE, "popup context, untrimmed")
-koa.settings = { readSetting = function(_, k) return k == "features" and { dictionary_context_mode = "none" } end }
-press(row)
-eq(koa.run.context, "", "context off")
-require = real_require
-koa.settings = { readSetting = function(_, k) return k == "features" and { dictionary_context_mode = "paragraph" } end }
 
 -- Present but KOAssistant fails at run time: the translator instead, no selection left.
 ui = fakeUI()

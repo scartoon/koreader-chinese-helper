@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.1.2"
+ChineseHelper.VERSION = "2.1.3"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -184,7 +184,7 @@ ChineseHelper.BUNDLED_SOURCES = { wikt = true, wp = true }
 ChineseHelper.LOCAL_FILES = { moe = "chinesehelper-moe.sqlite", cbdb = "chinesehelper-cbdb.sqlite",
                               idioms = "chinesehelper-idioms.sqlite", xinhua = "chinesehelper-xinhua.sqlite",
                               moegirl = "chinesehelper-moegirl.sqlite" }
--- Fallback dictionaries whose files also hold idioms' short lines and 出处
+-- Fallback dictionaries whose files also hold idioms' short lines and Origin & Usage
 -- views (an idioms table) for words CC-CEDICT has.
 ChineseHelper.IDIOM_SOURCES = { idioms = true, xinhua = true }
 
