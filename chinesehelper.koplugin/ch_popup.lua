@@ -55,6 +55,7 @@ local Popup = InputContainer:extend{
     anchor = nil,      -- screen box of the tapped character {x, y, w, h}
     text_px = nil,     -- body text size in screen pixels (nil: KOReader's default)
     chinese_pct = 100, -- MOE's, the 成語典's and Xinhua's text: % of text_px
+    book_font = nil,   -- {path=, index=} (ch_bookfont.lua): Chinese text in it, or nil
     full = false,      -- the whole screen's height (the Origin & Usage view), the body scrolling
     -- Taps and keys (ch_tap.lua keeps the stack of popups):
     on_char_tap = nil, -- function(popup, hit): a Han character of the body tapped
@@ -106,6 +107,17 @@ function Popup:init()
     -- unscaled, so the ratio carries over).
     self.chinese_face = Font:getFace("x_smallinfofont",
         math.floor(face.orig_size * (self.chinese_pct or 100) / 100 + 0.5))
+    -- The book's font for CJK glyphs (the UI font kept for the rest); the
+    -- source labels keep the UI font.
+    self.bold_face = nil
+    if self.book_font then
+        local BookFont = require("ch_bookfont")
+        self.bold_face = BookFont.bold(Font, self.face, self.book_font)
+        self.face = BookFont.wrap(Font, self.face, self.book_font)
+        self.title_face = BookFont.wrap(Font, self.title_face, self.book_font)
+        self.chinese_face = BookFont.wrap(Font, self.chinese_face, self.book_font)
+    end
+    self:bookFontButtons()
 
     self:build()
     local y = self.full and self.margin or Model.place(self.frame:getSize().h, screen_h, self.margin, self.anchor)
@@ -117,6 +129,25 @@ function Popup:init()
     self.tall = size.h > screen_h / 2
 end
 
+-- Buttons whose text has Chinese in it (the character, the words, "成语
+-- Origin & Usage"): Button's own font (bold Noto Sans) with the book font
+-- first. Buttons with only Latin text (Close, Translate) are left alone.
+Popup.BUTTON_FONT, Popup.BUTTON_FONT_SIZE = "cfont", 20   -- Button's defaults
+
+function Popup:bookFontButtons()
+    if not self.book_font or not self.buttons then return end
+    local name
+    for _, row in ipairs(self.buttons) do
+        for _, b in ipairs(row) do
+            if not b.font_face and type(b.text) == "string" and b.text:find("[\227-\233]") then
+                name = name or require("ch_bookfont").buttonFont(Font, function(s) return Screen:scaleBySize(s) end,
+                    self.book_font, Popup.BUTTON_FONT, b.font_size or Popup.BUTTON_FONT_SIZE)
+                b.font_face = name
+            end
+        end
+    end
+end
+
 function Popup:build()
     local screen_h = Screen:getHeight()
     local padding = Size.padding.large
@@ -124,7 +155,7 @@ function Popup:build()
 
     local parts = { align = "left" }
     local header_h = 0
-    local line = self.context and Popup.contextLine(self.context, nil, self.face, inner_w - 2 * padding)
+    local line = self.context and Popup.contextLine(self.context, nil, self.face, inner_w - 2 * padding, self.bold_face)
     if line then
         local header = FrameContainer:new{
             padding = padding, padding_top = Size.padding.default, padding_bottom = Size.padding.default,
@@ -202,11 +233,13 @@ before, the marked character or word (bold, underlined), the text after.
   context  { chars=, index= } (ch_tap.lua Tap:context)
   word     { text=, start= } to mark a word instead (Snippet.select), or nil
   face     the font face (the popup's text face: same size as the entries)
+  bold_face  the face for the marked part (drawn bold), or nil: `face`
 ]]
-function Popup.contextLine(context, word, face, width)
+function Popup.contextLine(context, word, face, width, bold_face)
+    bold_face = bold_face or face
     local function measure(s, bold)
         if s == "" then return 0 end
-        local w = TextWidget:new{ text = s, face = face, bold = bold }
+        local w = TextWidget:new{ text = s, face = bold and bold_face or face, bold = bold }
         local px = w:getSize().w
         w:free()
         return px
@@ -223,7 +256,7 @@ function Popup.contextLine(context, word, face, width)
     if sel.before ~= "" then add(TextWidget:new{ text = sel.before, face = face, max_width = width }) end
     local size = face.size
     add(Underlined:new{
-        text_widget = TextWidget:new{ text = sel.mark, face = face, bold = true, max_width = math.max(1, width - used) },
+        text_widget = TextWidget:new{ text = sel.mark, face = bold_face, bold = true, max_width = math.max(1, width - used) },
         thick = math.max(2, math.floor(size / 10 + 0.5)),
         offset = math.max(2, math.floor(size * 0.12 + 0.5)),
     })
@@ -314,6 +347,9 @@ end
 function Popup:body(text_w, max_h, full)
     local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
     local label_face = Font:getFace("x_smallinfofont", unscaled(self:labelPx()))
+    if self.book_font then
+        label_face = require("ch_bookfont").wrap(Font, label_face, self.book_font)  -- 成语典, 新华
+    end
     local block_gap = math.floor(self.face.size * 0.6)
     -- A components block (ch_components.lua) is indented by one em, below
     -- the character's own entry.

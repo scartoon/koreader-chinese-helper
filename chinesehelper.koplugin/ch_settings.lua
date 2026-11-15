@@ -42,6 +42,7 @@ Settings.DEFAULTS = {
     components = true,        -- "Show character components" in single-character popups
     popup_context = true,     -- "Show the text around the character in the popup"
     page_underline = true,    -- "Underline the tapped character on the page"
+    match_book_font = true,   -- "Try to match the book's font": Chinese text in the popup in the book's font
 }
 
 -- Old key -> new key. interlinearpinyin_tap_definitions has no successor:
@@ -106,6 +107,7 @@ function Settings:specialEnabled() return self:get("special") == true end
 function Settings:componentsEnabled() return self:get("components") == true end
 function Settings:contextEnabled() return self:get("popup_context") == true end
 function Settings:underlineEnabled() return self:get("page_underline") == true end
+function Settings:matchBookFont() return self:get("match_book_font") == true end
 
 -- "wikt", "wp", "cbdb", "moe", "idioms", "xinhua" or "moegirl": is that
 -- fallback dictionary switched on?

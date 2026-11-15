@@ -83,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 14 + 5 + 5 + 3 + 5 + 5 + 5 + 8 + 3, "menu size")   -- fallback: labels + 7 dictionaries
+eq(count, 15 + 5 + 5 + 3 + 5 + 5 + 5 + 8 + 3, "menu size")   -- fallback: labels + 7 dictionaries
 
 -- Character components: on by default, a toggle.
 local comp_item = entry.sub_item_table[10]
@@ -106,6 +106,16 @@ ul_item.callback()
 assert(not plugin.settings:underlineEnabled())
 ctx_item.callback(); ul_item.callback()
 assert(plugin.settings:contextEnabled() and plugin.settings:underlineEnabled())
+
+-- "Try to match the book's font": on by default, a toggle, with help text.
+local font_item = entry.sub_item_table[13]
+eq(font_item.text, "Try to match the book's font")
+assert(font_item.help_text:find("font menu", 1, true), font_item.help_text)
+assert(plugin.settings:matchBookFont() and font_item.checked_func())
+font_item.callback()
+assert(not plugin.settings:matchBookFont() and not font_item.checked_func())
+font_item.callback()
+assert(plugin.settings:matchBookFont())
 
 -- The two toggles are independent.
 local pinyin_item, popup_item = entry.sub_item_table[1], entry.sub_item_table[2]
@@ -276,7 +286,7 @@ local function names(list)
     return table.concat(out, ",")
 end
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
-local fb_item = entry.sub_item_table[13]
+local fb_item = entry.sub_item_table[14]
 eq(fb_item.text, "Fallback dictionaries")
 -- Source labels: default "other dictionaries only".
 local labels_item = fb_item.sub_item_table[1]
@@ -381,7 +391,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[13].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[14].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
@@ -455,7 +465,7 @@ plugin2:init()
 eq(names(plugin2:fallbackSources()), "wikt,wp")
 local items2 = {}
 plugin2:addToMainMenu(items2)
-local dict_items = items2.chinesehelper.sub_item_table[13].sub_item_table
+local dict_items = items2.chinesehelper.sub_item_table[14].sub_item_table
 table.remove(dict_items, 1)
 eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典 (not installed)"
     .. " | MOE 成語典 (not installed) | Xinhua idioms (not installed)"

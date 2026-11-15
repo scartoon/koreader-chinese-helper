@@ -57,6 +57,16 @@ end
 
 function Tap:ui() return self.plugin.ui end
 
+-- The book's font for the popup's Chinese text ({name=, path=, index=},
+-- ch_bookfont.lua), or nil: the setting off, or not a crengine book. Looked
+-- up for each popup, so a font changed in the menu applies to the next one.
+function Tap:bookFont()
+    if not self.plugin.settings:matchBookFont() then return nil end
+    return require("ch_bookfont").resolve(self:ui(), function()
+        return require("document/credocument"):engineInit()
+    end)
+end
+
 function Tap:zone()
     return {
         id = Tap.ZONE_ID,
@@ -558,6 +568,7 @@ function Tap:showChuchu(word, source, text, parent)
         buttons = { { { text = _("Close"), callback = function() self:back(view) end } } },
         text_px = parent and parent.text_px,
         chinese_pct = self.plugin.settings:chineseTextPercent(),
+        book_font = self:bookFont(),
         on_char_tap = function(p, hit) self:openNested(p, hit) end,
         on_outside = function() self:closeAll() end,
         on_back = function() self:back(view) end,
@@ -662,6 +673,7 @@ function Tap:present(args)
         anchor = args.box,
         text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),
         chinese_pct = self.plugin.settings:chineseTextPercent(),
+        book_font = self:bookFont(),
     }
     self:push(popup)
     UIManager:show(popup)

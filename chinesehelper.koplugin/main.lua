@@ -552,6 +552,12 @@ function ChineseHelper:addToMainMenu(menu_items)
                 callback = function() settings:set("page_underline", not settings:underlineEnabled()) end,
             },
             {
+                text = _("Try to match the book's font"),
+                help_text = _("Chinese text in the popup (the character, the line of text around it, entries, the Chinese dictionaries' text, components and the Origin & Usage view) is drawn in the font chosen in KOReader's font menu; English and pinyin keep the UI font. It follows the font menu, not fonts a book embeds or sets in its CSS. When the book's font cannot be used (a PDF, a font file that will not load), the popup uses the UI font."),
+                checked_func = function() return settings:matchBookFont() end,
+                callback = function() settings:set("match_book_font", not settings:matchBookFont()) end,
+            },
+            {
                 text = _("Fallback dictionaries"),
                 help_text = _("For words CC-CEDICT does not have, the popup can show entries from other dictionaries, in the order listed here. CC-CEDICT always comes first: a word it has never gets an entry from another dictionary, and each word gets the entry of the first dictionary that has it. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE and Moegirlpedia are files you build and install yourself (see the README)."),
                 sub_item_table = plugin:fallbackItems(apply, {
