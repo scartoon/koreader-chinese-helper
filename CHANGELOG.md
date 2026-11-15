@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.2.0 (2026-11-15)
+
+The book's font in the popup
+- **Chinese text in the popup is drawn in the book's font**, behind a new setting, **Try to match
+  the book's font** (on by default). It covers every Chinese character the popup shows: the line
+  at the top, the character and the entries, the Chinese dictionaries' text, the Origin & Usage
+  view, nested popups, source labels such as 成语典 and 新华, and the buttons. English glosses,
+  pinyin and tone marks stay in KOReader's UI font (Noto Sans).
+- It is the font chosen in KOReader's font menu, not a font the book embeds or sets in its CSS.
+  Characters that font lacks come from KOReader's usual fallback fonts. For a PDF, or when the
+  font can't be loaded, the popup uses the UI font.
+- How: the popup's faces are copies with the book font first in their own fallback list;
+  KOReader's global fallback fonts and its own faces are unchanged. Line height still comes from
+  the UI font, so popups are the same height. Taps on characters in the popup still land on the
+  right character.
+- Checked on the Boox Go 7 with 华文楷体 (STKaiti) and LXGW Neo ZhiSong. With the setting off,
+  all ten screenshot popups are pixel-identical to 2.1.3's.
+
+Building the optional dictionaries
+- **One command builds them**: `.venv/bin/python tools/build_optional.py` builds the MOE
+  dictionary, MOE idioms and Xinhua idioms; `--all` adds CBDB office titles, `--only` picks a
+  set (Moegirlpedia only when named), and files already built are skipped unless `--force`. It
+  prints the download size and disk space first, and each file and where it goes on the device
+  last. `--push` and `--traditional` are passed on.
+- **Every build script takes the plugin database from the latest release** when the clone doesn't
+  have it. Before, the MOE, CBDB and Moegirlpedia scripts stopped with "build the plugin database
+  first (tools/build_db.py)". The README's step for adding the database is gone.
+
+The database is unchanged.
+
 ## 2.1.3 (2026-11-15)
 
 Popup labels
