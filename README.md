@@ -506,25 +506,23 @@ python3 -m venv .venv && .venv/bin/pip install opencc pypinyin
 The commands are for macOS and Linux. On Windows (not tested), write `py` for `python3`,
 `.venv\Scripts\pip` for `.venv/bin/pip` and `.venv\Scripts\python` for `.venv/bin/python`.
 
-### 2. Add the plugin database to the clone
+### 2. Build
 
-The scripts read the plugin's database to leave out words CC-CEDICT already has, and the
-repository doesn't contain it. Copy the `data` folder from the `chinesehelper.koplugin` folder you
-unzipped when [installing](#install) into the clone's `chinesehelper.koplugin` folder, so that
-`chinesehelper.koplugin/data/chinesehelper.sqlite` exists. Or download it again:
+One command builds the recommended three (MOE dictionary, MOE idioms, Xinhua idioms):
 
 ```sh
-curl -L --create-dirs -o build/chinesehelper.koplugin.zip https://github.com/scartoon/koreader-chinese-helper/releases/latest/download/chinesehelper.koplugin.zip
-unzip build/chinesehelper.koplugin.zip 'chinesehelper.koplugin/data/*'
+.venv/bin/python tools/build_optional.py
 ```
 
-Without it, the MOE idioms and Xinhua idioms scripts download it themselves, and the other three
-stop with "build the plugin database first (tools/build_db.py)". You don't need to build it:
-copying it as above is enough.
+It prints the download size and disk space first, and at the end each file it wrote and where it
+goes on the device. `--all` adds CBDB office titles; `--only moe,cbdb` builds just the ones named
+(`moe`, `idioms`, `xinhua`, `cbdb`, `moegirl`). A file already built is skipped; `--force`
+builds it again. `--traditional` keeps MOE's and the MOE idioms' traditional characters.
 
-### 3. Build
+The scripts also read the plugin's database, to leave out words CC-CEDICT already has. The
+repository doesn't contain it, so they take it from the latest release the first time (17 MB).
 
-Run one line for each dictionary you want:
+Or run one script for each dictionary you want:
 
 ```sh
 .venv/bin/python tools/build_moe.py
@@ -533,17 +531,16 @@ Run one line for each dictionary you want:
 .venv/bin/python tools/build_cbdb.py
 ```
 
-Each writes `build/chinesehelper-NAME.sqlite` (`chinesehelper-moe.sqlite` and so on) and prints
-where it goes on the device.
+Each writes `build/chinesehelper-NAME.sqlite` (`chinesehelper-moe.sqlite` and so on).
 
-### 4. Copy the files to the e-reader
+### 3. Copy the files to the e-reader
 
 They go in a `chinesehelper` folder inside KOReader's `data` folder: the `data` folder next to
 the `plugins` folder you installed into. Plugin updates leave it alone, so this is done once.
 
 - **Android** (Boox and others): `koreader/data/chinesehelper/` in the device's internal storage
   over USB (`/sdcard/koreader/data/chinesehelper/`). With adb, add `--push` to a build command
-  and it copies the file there itself.
+  and it copies the files there itself.
 - **Other devices**: connect over USB, open the KOReader folder that holds `plugins`, make
   `data/chinesehelper/` in it if it isn't there, and copy the `.sqlite` files in.
 
@@ -559,7 +556,8 @@ Its source is read with the slob reader, which needs the ICU library. Install th
 - **Linux** (Debian, Ubuntu): `sudo apt install libicu-dev pkg-config`, then
   `.venv/bin/pip install git+https://github.com/itkach/slob.git`
 
-Then `.venv/bin/python tools/build_moegirl.py`, and copy the file as in step 4. Reading every
+Then `.venv/bin/python tools/build_optional.py --only moegirl` (or `tools/build_moegirl.py`),
+and copy the file as in step 3. Reading every
 page of the 1.4 GB snapshot takes 10–15 minutes.
 
 ### The sources

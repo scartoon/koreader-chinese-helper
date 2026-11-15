@@ -11,3 +11,5 @@ chinesehelper.koplugin/data/
 # (root only: samples/guwen.epub is committed)
 /*.epub
 /drive-download-*.zip
+# Google Drive sync temp files
+.tmp.driveupload/
