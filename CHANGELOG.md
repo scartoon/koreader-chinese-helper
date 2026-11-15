@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.2 (2026-11-15)
+
+Popup buttons
+- **Close is always the bottom button; Back and Close have their own row.** Before, Close sat in
+  the row of word buttons, and while Wi-Fi was on, Translate came after it, below Close.
+- **Nested popups have just Close, which closes only that popup; no Back button.** A popup opened
+  from another, and the 出处 view, show only **Close**; it closes that popup and shows the one
+  below (as the device's Back key does). A tap outside or Translate still closes them all; a
+  top-level popup's Close still closes it and the underline on the page.
+- **The Translate button reads "Translate & Analyze [AI]"** with KOAssistant installed, so it is
+  clear the answer comes from a language model. The prompt sent is unchanged.
+- README screenshots retaken with the new button order and label.
+
 ## 2.1.1 (2026-11-14)
 
 Tapping the page
