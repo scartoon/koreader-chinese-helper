@@ -301,7 +301,7 @@ than CC-CEDICT's English gloss:
   opposite idioms; a related form (玉石俱碎) adds its main idiom's source and story under that
   idiom's name. From Xinhua idioms: the explanation, the classical source and an example. MOE
   idioms comes first when both have it; with several chengyu in one popup, each button is named
-  (首鼠两端 Origin & Usage). There is no button when there is nothing beyond the one line.
+  (九牛一毛 - Origin & Usage). There is no button when there is nothing beyond the one line.
 - **Chengyu CC-CEDICT lacks** (精兵强将, 科班出身, 十二万分) get an entry from these files, in the
   [fallback order](#fallback-dictionaries).
 

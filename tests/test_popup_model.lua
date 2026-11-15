@@ -291,7 +291,7 @@ local cb = Model.chuchu(im)
 eq(#cb, 1); eq(cb[1].text, "成语 Origin & Usage"); eq(cb[1].word, "一毛不拔"); eq(cb[1].view, "成语典 view")
 im[1].idiom = { view = "x", source = "xinhua" }; im[1].len = 2; im[1].word = "毛毛"
 cb = Model.chuchu(im)
-eq(cb[1].text, "毛毛 Origin & Usage"); eq(cb[2].text, "一毛不拔 Origin & Usage", "several: named")
+eq(cb[1].text, "毛毛 - Origin & Usage"); eq(cb[2].text, "一毛不拔 - Origin & Usage", "several: named")
 local cm = matches("一", "毛", "不拔", { frow("一毛不拔", "一毛不拔", "yī máo bù bá", "形容吝啬。", "moe") })
 Model.attachIdioms(cm, { ["一毛不拔"] = picked["一毛不拔"] })
 eq(Model.blocks(cm, "毛", false)[1].note, nil, "MOE's entry is Chinese already")

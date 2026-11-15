@@ -391,7 +391,7 @@ function Model.tappable(block, part)
     return false
 end
 -- An idiom's view button and title: "成语 Origin & Usage" (one button), or
--- "一毛不拔 Origin & Usage" (several, each naming its idiom).
+-- "一毛不拔 - Origin & Usage" (several, each naming its idiom).
 Model.ORIGIN = "Origin & Usage"
 Model.ORIGIN_ONE = "成语"
 
@@ -442,7 +442,7 @@ function Model.attachIdioms(matches, idioms)
 end
 
 -- The Origin & Usage buttons: { {word=, source=, view=, text=}, ... }, one
--- per match with a view, labelled "成语 Origin & Usage" (or "一毛不拔 Origin &
+-- per match with a view, labelled "成语 Origin & Usage" (or "一毛不拔 - Origin &
 -- Usage" when there are several).
 function Model.chuchu(matches)
     local out = {}
@@ -451,7 +451,7 @@ function Model.chuchu(matches)
             out[#out + 1] = { word = m.word, source = m.idiom.source, view = m.idiom.view }
         end
     end
-    for _, b in ipairs(out) do b.text = (#out > 1 and b.word or Model.ORIGIN_ONE) .. " " .. Model.ORIGIN end
+    for _, b in ipairs(out) do b.text = #out > 1 and (b.word .. " - " .. Model.ORIGIN) or (Model.ORIGIN_ONE .. " " .. Model.ORIGIN) end
     return out
 end
 

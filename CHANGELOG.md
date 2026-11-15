@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.1.3 (2026-11-15)
+
+Popup labels
+- **No more "· shown above".** The reading drawn on the page still comes first, now with no
+  label (you can see it); a pair drawn on the page (掊 póu/pǒu) lists both readings unmarked.
+  "· likely here" still marks the resolver's reading when nothing is drawn.
+- **The 出处 button reads "成语 Origin & Usage"**, so it is clearly an action, not a word to
+  look up; with several chengyu in one popup each is named ("九牛一毛 - Origin & Usage"). The
+  full-screen view's title reads "九牛一毛 · Origin & Usage · 教育部《成语典》". The 出处 headings
+  inside the dictionaries' own text are unchanged.
+- **Translate is only in the popup opened from the page**, not in popups opened from a popup's
+  text or the Origin & Usage view. With KOAssistant installed it reads **"Translate & analyze
+  the surrounding sentence [AI]"**. The prompt sent is unchanged.
+- README screenshots retaken with the new labels. The database is unchanged.
+
 ## 2.1.2 (2026-11-15)
 
 Popup buttons
