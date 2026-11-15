@@ -90,3 +90,9 @@ eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = 5 }):fallback
    "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
 -- No settings store at all (tests, odd starts): defaults, no errors.
 s = Settings.new(nil); eq(s:threshold(), 3500); s:set("threshold", 1); eq(#s:migrate(), 0)
+
+-- "Try to match the book's font": on by default, toggled from the menu.
+s = Settings.new(store())
+eq(s:matchBookFont(), true, "match the book's font: on by default")
+s:set("match_book_font", false)
+eq(s:matchBookFont(), false)

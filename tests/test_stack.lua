@@ -284,3 +284,26 @@ local nested = tap:stack()[2]
 eq(button(nested, "Translate"), nil, "no Translate in a nested popup: " .. texts(nested))
 eq(lastRow(nested), "Close")
 p1.on_outside()
+
+-- The book's font goes to every popup (the setting on, a crengine book), and
+-- to none with the setting off or for another kind of document.
+package.loaded["document/credocument"] = { engineInit = function()
+    return { getFontFaceFilenameAndFaceIndex = function(name) return "/fonts/" .. name .. ".ttf", 0 end }
+end }
+plugin.ui.document = { provider = "crengine", getFontFace = function() return "Kai" end }
+p1 = root("首", "鼠", "两端")
+eq(p1.book_font.path, "/fonts/Kai.ttf", "the book's font")
+p1.on_char_tap(p1, hitIn(DEF, "疑"))
+eq(tap:stack()[2].book_font.path, "/fonts/Kai.ttf", "nested popups too")
+tap:showChuchu("首鼠两端", "xinhua", VIEW, tap:stack()[2])
+eq(tap:stack()[3].book_font.path, "/fonts/Kai.ttf", "and the Origin & Usage view")
+p1.on_outside()
+plugin.settings:set("match_book_font", false)
+p1 = root("首", "鼠", "两端")
+eq(p1.book_font, nil, "setting off: the UI font")
+p1.on_outside()
+plugin.settings:set("match_book_font", true)
+plugin.ui.document.provider = "mupdf"
+p1 = root("首", "鼠", "两端")
+eq(p1.book_font, nil, "a PDF: the UI font")
+p1.on_outside()
