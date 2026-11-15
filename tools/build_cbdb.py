@@ -29,7 +29,8 @@ and a `meta` table.
     titles CBDB has not translated get "office title (Ming)".
   * The reading is CBDB's own, without tone marks ("dian shi").
   * Left out: names that are not 1-8 Han characters, names CC-CEDICT has
-    (read from the plugin database, so build that first), numerals.
+    (read from the plugin database, taken from the latest release when
+    missing), numerals.
 """
 import argparse
 import json
@@ -86,12 +87,12 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--source", help="a CBDB SQLite file (default: the release in build/sources/cbdb/, "
                                      "downloaded when missing)")
-    ap.add_argument("--db", default=DEFAULT_DB, help="the plugin database (for CC-CEDICT's headwords)")
+    ap.add_argument("--db", default=DEFAULT_DB, help="the plugin database (for CC-CEDICT's headwords); "
+                                                  "taken from the latest release when missing")
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--push", action="store_true", help=f"adb push the file to {fallback_sources.DEVICE_DIR}/")
     args = ap.parse_args()
-    if not os.path.exists(args.db):
-        sys.exit(f"missing {args.db}: build the plugin database first (tools/build_db.py)")
+    fallback_sources.ensure_db(args.db)
     if args.source:
         src, info = args.source, {}
     else:

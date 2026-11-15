@@ -30,7 +30,7 @@ What the file holds: one `fallback` table, the same as the release database's
   * Readings are MOE's, Taiwan standard.
   * Left out: headwords with private-use characters, headwords that are not
     1-8 Han characters, headwords CC-CEDICT has (read from the plugin
-    database, so build that first), everyday combinations and numerals.
+    database, taken from the latest release when missing), everyday combinations and numerals.
     Wiktionary's headwords are kept: the plugin applies the source priority
     when looking words up, so MOE still covers them when Wiktionary is off.
 """
@@ -82,14 +82,14 @@ def download(path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--source", default=DEFAULT_SRC, help="dict-revised.json.xz; downloaded when missing")
-    ap.add_argument("--db", default=DEFAULT_DB, help="the plugin database (for CC-CEDICT's headwords)")
+    ap.add_argument("--db", default=DEFAULT_DB, help="the plugin database (for CC-CEDICT's headwords); "
+                                                  "taken from the latest release when missing")
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--push", action="store_true", help=f"adb push the file to {DEVICE_DIR}/")
     ap.add_argument("--traditional", action="store_true",
                     help="keep the definitions in MOE's traditional characters (default: simplified)")
     args = ap.parse_args()
-    if not os.path.exists(args.db):
-        sys.exit(f"missing {args.db}: build the plugin database first (tools/build_db.py)")
+    fallback_sources.ensure_db(args.db)
     src = args.source if os.path.exists(args.source) else download(args.source)
     info = {}
     if os.path.exists(src + ".info.json"):

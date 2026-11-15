@@ -35,8 +35,8 @@ database's (see tools/fallback_sources.py, moegirl_rows), with source
   * Moegirlpedia gives no readings: the pinyin is generated with pypinyin,
     and the popup marks it "generated pinyin". It is never used for the
     pinyin drawn above characters.
-  * Left out: titles CC-CEDICT has (read from the plugin database, so build
-    that first), everyday combinations.
+  * Left out: titles CC-CEDICT has (read from the plugin database, taken from
+    the latest release when missing), everyday combinations.
 """
 import argparse
 import os
@@ -60,16 +60,16 @@ LICENSE = ("萌娘百科 (Moegirlpedia) contributors, CC BY-NC-SA 3.0 CN, via th
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--source", default=DEFAULT_SRC, help="the Moegirlpedia .slob file; downloaded when missing")
-    ap.add_argument("--db", default=DEFAULT_DB, help="the plugin database (for CC-CEDICT's headwords)")
+    ap.add_argument("--db", default=DEFAULT_DB, help="the plugin database (for CC-CEDICT's headwords); "
+                                                  "taken from the latest release when missing")
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--push", action="store_true", help=f"adb push the file to {fallback_sources.DEVICE_DIR}/")
     args = ap.parse_args()
-    if not os.path.exists(args.db):
-        sys.exit(f"missing {args.db}: build the plugin database first (tools/build_db.py)")
     try:
         import slob  # noqa: F401
     except ImportError:
         sys.exit("needs the slob reader: pip install git+https://github.com/itkach/slob.git (see above for ICU)")
+    fallback_sources.ensure_db(args.db)
     src = args.source if os.path.exists(args.source) else fallback_sources.download_file(URL, args.source)
     import moegirl_slob
     tags, nkeys, _blobs = moegirl_slob.tags(src)
