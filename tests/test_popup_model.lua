@@ -93,7 +93,7 @@ eq(join(m[1].entries, "pinyin"), "yuè,lè,Lè", "chosen first")
 assert(m[1].entries[1].marked and not m[1].entries[2].marked)
 eq(Model.render(m, "乐", false, "<b>", "</b>"),
    "<b>乐</b>  yuè · likely here\nmusic\nlè: happy; cheerful\nLè: surname Le")
-eq(Model.render(m, "乐", true), "乐  yuè · shown above\nmusic\nlè: happy; cheerful\nLè: surname Le")
+eq(Model.render(m, "乐", true), "乐  yuè\nmusic\nlè: happy; cheerful\nLè: surname Le")
 -- An uncertain pair marks both.
 m = matches("", "乐", "", yue, { chosen = "yuè/lè" })
 assert(m[1].entries[1].marked and m[1].entries[2].marked and not m[1].entries[3].marked, "both of a pair marked")
@@ -110,7 +110,7 @@ m = matches("刺", "猬", "", { row("猬", "蝟", "wèi", "hedgehog"),
                              row("刺猬", "刺蝟", "cìwei", "hedgehog", "cì wei") },
             { chosen = "wei", annotated = true,
               decided = { word = "刺猬", start = -1, len = 2, syllables = "cì wei" } })
-eq(Model.render(m, "猬", true), "猬  wèi · shown above\nhedgehog\n\n"
+eq(Model.render(m, "猬", true), "猬  wèi\nhedgehog\n\n"
    .. "刺猬  cìwei · likely here · decides 猬's reading\nhedgehog")
 -- Several tones with those letters: only the default stands for it.
 local hu = { row("糊", "糊", "hù", "paste"), row("糊", "糊", "hú", "muddled"), row("糊", "糊", "hū", "to plaster") }
@@ -121,7 +121,7 @@ assert(m[1].entries[1].marked and m[1].entries[2].marked and m[1].entries[3].mar
 -- A chosen reading CC-CEDICT does not list for the character: shown, empty.
 m = matches("", "乐", "", yue, { chosen = "yào" })
 eq(m[1].entries[1].pinyin, "yào"); assert(m[1].entries[1].missing and m[1].entries[1].marked)
-assert(Model.render(m, "乐", true):find("yào · shown above\nno separate CC-CEDICT entry for this reading", 1, true))
+assert(Model.render(m, "乐", true):find("yào\nno separate CC-CEDICT entry for this reading", 1, true))
 
 -- Words: the resolver's reading of the word is marked when there is a choice.
 local dongxi = {
@@ -149,7 +149,7 @@ m = matches("大", "宛", "如", {
 eq(join(m, "word"), "宛,大宛,宛如")
 assert(m[2].decided and not m[3].decided)
 local text = Model.render(m, "宛", true)
-assert(text:find("宛  yuān · shown above\nsee 大宛\nwǎn: winding", 1, true), text)
+assert(text:find("宛  yuān\nsee 大宛\nwǎn: winding", 1, true), text)
 assert(text:find("大宛  Dàyuān · decides 宛's reading\nDayuan, ancient state", 1, true), text)
 -- Not in CC-CEDICT (a special word with a note): listed anyway, with the note.
 m = matches("", "冒", "顿", { row("冒", "冒", "mào", "to emit") },
@@ -157,7 +157,7 @@ m = matches("", "冒", "顿", { row("冒", "冒", "mào", "to emit") },
                                                    note = "Modu, Xiongnu ruler" } })
 eq(join(m, "word"), "冒,冒顿")
 text = Model.render(m, "冒", true)
-assert(text:find("冒  mò · shown above\nno separate CC-CEDICT entry for this reading\nmào: to emit", 1, true), text)
+assert(text:find("冒  mò\nno separate CC-CEDICT entry for this reading\nmào: to emit", 1, true), text)
 assert(text:find("冒顿  mò dú · decides 冒's reading\nModu, Xiongnu ruler", 1, true), text)
 -- A pypinyin-only word: no definition.
 m = matches("", "甲", "乙", {}, { chosen = "jiǎ", decided = { word = "甲乙", start = 0, len = 2, syllables = "jiǎ yǐ" } })
@@ -267,7 +267,7 @@ eq(Model.SOURCE_LABELS.idioms, "成语典"); eq(Model.SOURCE_LABELS.xinhua, "新
 
 -- Idioms: the first source in the order for each field, the other filling
 -- a field it lacks; attached to matches of two or more characters; a short
--- line under an entry that is not Chinese already; 出处 buttons.
+-- line under an entry that is not Chinese already; Origin & Usage buttons.
 local picked = Model.pickIdioms({
     { simp = "一毛不拔", trad = "一毛不拔", short = "新华的", view = "新华 view", source = "xinhua" },
     { simp = "一毛不拔", trad = "一毛不拔", short = "成语典的", view = "成语典 view", source = "idioms" },
@@ -288,10 +288,10 @@ local iblocks = Model.blocks(im, "毛", false)
 eq(iblocks[2].note.source, "idioms"); eq(iblocks[2].note.text, "成语典的"); eq(iblocks[1].note, nil)
 eq(Model.render(im, "毛", false), "毛  máo\nhair\n\n一毛不拔  yīmáobùbá\n(fig.) extremely stingy\n成语典的")
 local cb = Model.chuchu(im)
-eq(#cb, 1); eq(cb[1].text, "出处"); eq(cb[1].word, "一毛不拔"); eq(cb[1].view, "成语典 view")
+eq(#cb, 1); eq(cb[1].text, "成语 Origin & Usage"); eq(cb[1].word, "一毛不拔"); eq(cb[1].view, "成语典 view")
 im[1].idiom = { view = "x", source = "xinhua" }; im[1].len = 2; im[1].word = "毛毛"
 cb = Model.chuchu(im)
-eq(cb[1].text, "毛毛 出处"); eq(cb[2].text, "一毛不拔 出处", "several: named")
+eq(cb[1].text, "毛毛 Origin & Usage"); eq(cb[2].text, "一毛不拔 Origin & Usage", "several: named")
 local cm = matches("一", "毛", "不拔", { frow("一毛不拔", "一毛不拔", "yī máo bù bá", "形容吝啬。", "moe") })
 Model.attachIdioms(cm, { ["一毛不拔"] = picked["一毛不拔"] })
 eq(Model.blocks(cm, "毛", false)[1].note, nil, "MOE's entry is Chinese already")
@@ -346,9 +346,9 @@ eq(join(m[1].entries, "pinyin"), "léi,lěi,lèi")
 m = matches("", "累", "", lei, { chosen = "lěi/léi", unsure = true })
 eq(Model.render(m, "累", false), "累  lěi\nto accumulate\nléi: rope; to bind\n"
     .. "lèi: tired")
--- Drawn as a pair, it is what the page shows.
+-- Drawn as a pair, it is what the page shows: no label.
 m = matches("", "累", "", lei, { chosen = "lěi/léi", unsure = true, annotated = true })
-eq(Model.render(m, "累", true), "累  lěi · shown above\nto accumulate\nléi · shown above: rope; to bind\n"
+eq(Model.render(m, "累", true), "累  lěi\nto accumulate\nléi: rope; to bind\n"
     .. "lèi: tired")
 -- A single resolved reading stays "likely here".
 m = matches("", "累", "", lei, { chosen = "lěi" })
@@ -385,4 +385,4 @@ assert(Model.tappable({ source = "cedict", lines = { "x" }, note = note }, "note
 assert(not Model.tappable({ source = "cedict", head = "x" }, "head"), "a CC-CEDICT headline")
 assert(not Model.tappable({ source = "mmah", components = true, lines = { "x" } }, "lines"), "components")
 assert(not Model.tappable({ source = "wikt", components = true, lines = { "x" } }, "lines"), "Wiktionary components")
-assert(Model.tappable({ source = "xinhua", lines = { "x" }, large = true }, "lines"), "a 出处 view")
+assert(Model.tappable({ source = "xinhua", lines = { "x" }, large = true }, "lines"), "a Origin & Usage view")

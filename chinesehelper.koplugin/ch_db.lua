@@ -16,7 +16,7 @@
 --                         for words CC-CEDICT lacks (indexes on simp and trad);
 --                         the same table in the user's optional MOE file
 --   idioms(simp, trad, short, view)                in the user's 成語典 and Xinhua
---                         files only: an idiom's Chinese short line and 出处 view
+--                         files only: an idiom's Chinese short line and Origin & Usage view
 --   components(ch, body)                           a character's parts, for the popup
 --   component_notes(ch, text)                      (ch_components.lua); missing from
 --                         databases built before 1.7.0
@@ -143,7 +143,7 @@ function DB:fallback(words)
     return rows
 end
 
--- An idiom's short line and 出处 view for n candidate words, from the
+-- An idiom's short line and Origin & Usage view for n candidate words, from the
 -- user's 成語典 or Xinhua file (tools/chengyu.py). Kept identical to
 -- tools/chengyu.py's idioms_sql.
 function DB.idiomsSql(n)

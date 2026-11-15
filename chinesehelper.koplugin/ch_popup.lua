@@ -55,7 +55,7 @@ local Popup = InputContainer:extend{
     anchor = nil,      -- screen box of the tapped character {x, y, w, h}
     text_px = nil,     -- body text size in screen pixels (nil: KOReader's default)
     chinese_pct = 100, -- MOE's, the 成語典's and Xinhua's text: % of text_px
-    full = false,      -- the whole screen's height (the 出处 view), the body scrolling
+    full = false,      -- the whole screen's height (the Origin & Usage view), the body scrolling
     -- Taps and keys (ch_tap.lua keeps the stack of popups):
     on_char_tap = nil, -- function(popup, hit): a Han character of the body tapped
                        -- (hit: Popup:charAt)

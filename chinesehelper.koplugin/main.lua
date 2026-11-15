@@ -184,7 +184,7 @@ ChineseHelper.BUNDLED_SOURCES = { wikt = true, wp = true }
 ChineseHelper.LOCAL_FILES = { moe = "chinesehelper-moe.sqlite", cbdb = "chinesehelper-cbdb.sqlite",
                               idioms = "chinesehelper-idioms.sqlite", xinhua = "chinesehelper-xinhua.sqlite",
                               moegirl = "chinesehelper-moegirl.sqlite" }
--- Fallback dictionaries whose files also hold idioms' short lines and 出处
+-- Fallback dictionaries whose files also hold idioms' short lines and Origin & Usage
 -- views (an idioms table) for words CC-CEDICT has.
 ChineseHelper.IDIOM_SOURCES = { idioms = true, xinhua = true }
 

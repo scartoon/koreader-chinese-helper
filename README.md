@@ -24,11 +24,11 @@ reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 </tr>
 <tr>
 <td><img src="docs/chengyu.png" alt="Popup for 也 in 孔乙己's 满口之乎者也: at the top the line 他对人说话，总是满口之乎者也，教人半懂不懂的。 with 也 marked; then 也 yě, 满口之乎者也 and 之乎者也 from CC-CEDICT, 之乎者也 with a Chinese line labelled 新华: 这四个字都是文言虚词，讽刺人说话喜欢咬文嚼字。也形容半文不白的话或文章。; a 出处 button"><br><a href="#chengyu"><b>Chengyu explained</b></a>: 之乎者也 with Xinhua's line (optional file) …</td>
-<td><img src="docs/chengyu-2.png" alt="The 出处 view for 之乎者也 from 新华成语: 释义; 出处 宋·文莹《湘山野录》：“之乎者也，助得甚事？”; 例句 他对人说话，总是满口之乎者也，叫人半懂不懂的。"><br>… and its <a href="#chengyu"><b>出处</b></a>: the classical source and an example from this same passage of 孔乙己</td>
+<td><img src="docs/chengyu-2.png" alt="The 出处 view for 之乎者也 from 新华成语: 释义; 出处 宋·文莹《湘山野录》：“之乎者也，助得甚事？”; 例句 他对人说话，总是满口之乎者也，叫人半懂不懂的。"><br>… and its <a href="#chengyu"><b>Origin &amp; Usage</b></a> view: the classical source and an example from this same passage of 孔乙己</td>
 </tr>
 <tr>
 <td><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月 labelled Wikt; last, 秋月春风 labelled MOE with its Chinese definition in larger type; a 出处 button"><br><a href="#fallback-dictionaries"><b>Several dictionaries, each labelled</b></a>: CC-CEDICT, Wiktionary for 秋月, and last, in larger type, MOE (optional) for 秋月春风</td>
-<td><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked, a Translate &amp; Analyze [AI] button and Close below it; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"><br><a href="#translating-the-sentence"><b>Translate &amp; Analyze the sentence</b></a> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
+<td><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked, a Translate &amp; Analyze [AI] button and Close below it; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"><br><a href="#translating-the-sentence"><b>Translate &amp; analyze the sentence</b></a> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
 </tr>
 </table>
 
@@ -69,7 +69,7 @@ entries for words it lacks. The rows are in the order the popup checks them.
 | Wikipedia titles | WP | 39,000 | bundled | technology, engineering, military and history terms, and proper names (English article title) |
 | Moegirlpedia slang | Moegirl | 350 | [optional](#optional-dictionaries) | internet slang (in Chinese) |
 
-\* Chengyu CC-CEDICT lacks. Both files also add a Chinese line and a 出处 view to chengyu the
+\* Chengyu CC-CEDICT lacks. Both files also add a Chinese line and an Origin & Usage view to chengyu the
 other dictionaries have: MOE idioms covers 5,470 chengyu in all, Xinhua idioms 30,200
 ([Chengyu](#chengyu)).
 
@@ -186,10 +186,10 @@ where the words break.
   character, a cut side ends in "…", and it stops at a sentence end, a paragraph break or the
   edge of the page. Popups from KOReader's dictionary that the word buttons open get the line
   too, with the whole word marked.
-- **The tapped character first**, with all its readings. The reading it has here comes first,
-  marked **· shown above** when its pinyin is drawn, or **· likely here** when not. When nothing
-  decides between its two likely readings, both are simply listed, unmarked, the likelier
-  first ([Readings](#readings)).
+- **The tapped character first**, with all its readings. The reading drawn on the page comes
+  first, unmarked (you can see it). When nothing is drawn, the reading the resolver picked comes
+  first, marked **· likely here**. When nothing decides between its two likely readings, both
+  are simply listed, unmarked, the likelier first ([Readings](#readings)).
 - **The character's components**, indented under its own entry ([below](#character-components)).
 - **Then every dictionary word containing it**, longest first; words of the same length in
   reading order. Entries from the Chinese-language dictionaries (MOE, the 成語典, Xinhua and
@@ -199,8 +199,8 @@ where the words break.
   does not have it: then it shows a fallback dictionary's definition, or the short note of an
   unusual-reading word (冒顿 *mòdú*), or only its reading (a word from pypinyin's phrase list).
 - **Buttons**: one for each entry, labelled with the character or word, which looks it up in
-  KOReader's dictionary; **出处** for a chengyu with a source view; on a row of its own while
-  Wi-Fi is connected, **Translate** ([below](#translating-the-sentence)); and **Close**, alone
+  KOReader's dictionary; **成语 Origin & Usage** for a chengyu with a source view; on a row of
+  its own while Wi-Fi is connected, **Translate** ([below](#translating-the-sentence)); and **Close**, alone
   on the bottom row. Tapping outside the popup also closes it.
 - If no dictionary has the character or any word around it, the tap goes straight to KOReader's
   dictionary lookup.
@@ -216,7 +216,7 @@ the underline goes when the popup closes.
 ### Tapping a character in the popup
 
 The Chinese dictionaries' own text (MOE, the 成語典, Xinhua and Moegirlpedia: their definitions
-and quotations, an idiom's short line, the 出处 view) can be read by tapping: a character in it
+and quotations, an idiom's short line, the Origin & Usage view) can be read by tapping: a character in it
 opens its own popup on top, looked up like a tap in the book (the character and every word
 around it in that text that contains it), and stays underlined in the popup below while the new
 one is open. Nothing else in the popup is tappable: not the headlines (the character or word
@@ -224,19 +224,20 @@ the entry is for), the components, or the English glosses.
 
 ![Popup for 秋 in the 临江仙, and on top of it the popup for 欢, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年欢笑复明年，秋月春风等闲度。」 with 欢 marked, then 欢 huān, its parts, 欢笑 huānxiào, and the buttons 欢 and 欢笑, then Translate & Analyze [AI], then Close at the bottom](docs/nested.png)
 
-- **Its text is the popup's, not the book's.** The line at the top and the sentence **Translate**
-  sends are the sentence around the character in the popup text: cut at 。！？；, a line break, or
-  a closing quote after one of them (。」). Inside a quotation (「…」 or 『…』 with a comma or end
+- **Its text is the popup's, not the book's.** The line at the top is the sentence around the
+  character in the popup text: cut at 。！？；, a line break, or a closing quote after one of
+  them (。」). Inside a quotation (「…」 or 『…』 with a comma or end
   mark in it), it is the whole quotation, so 秃 in 首鼠两端's 典源 gives
   「与长孺共一老秃翁，何为首鼠两端？」. A quoted word (如：「秃子」) is not a quotation.
 - **Where a tap lands**: on a character, or within half a character's width of one (beside it,
   just above or below, on the punctuation next to it), takes the nearest, on the tapped line
   first. A tap anywhere else does what it did before. This holds after the popup is scrolled.
 - **Close** (or the device's Back key) in a popup opened from another closes only that popup
-  and shows the one below; a tap outside or **Translate** closes them all. At most **5** popups are open at once
-  (a 出处 view counts); past that, a tap says so and opens nothing.
-- **Chinese text size**: the Chinese dictionaries' text (definitions, short lines, the 出处
-  view) is drawn larger than the rest of the popup, 130% by default, so its characters
+  and shows the one below; a tap outside closes them all. Only the popup from the page has
+  **Translate**. At most **5** popups are open at once (an Origin & Usage view counts); past
+  that, a tap says so and opens nothing.
+- **Chinese text size**: the Chinese dictionaries' text (definitions, short lines, the Origin &
+  Usage view) is drawn larger than the rest of the popup, 130% by default, so its characters
   are easier to tap. English glosses, source labels and buttons keep the popup text size. On a
   Boox Go 7 (300 dpi) with 64 px book text and the default 60% popup text, that is 38 px
   (3.2 mm) for English and 49 px (4.2 mm) for Chinese.
@@ -293,14 +294,14 @@ than CC-CEDICT's English gloss:
 - **One line of Chinese explanation** under CC-CEDICT's (or Wiktionary's) entry, with its own
   small label: 一毛不拔 → *形容人非常吝啬。贬义。* (成语典). It comes from MOE idioms when it has
   the chengyu, otherwise from Xinhua idioms. Entries already in Chinese get no extra line.
-- **A 出处 button** opens a full-screen view, in the larger Chinese size, with only **Close**,
+- **A 成语 Origin & Usage button** opens a full-screen view, in the larger Chinese size, with only **Close**,
   which returns to the popup below; any character in it can be tapped
   ([above](#tapping-a-character-in-the-popup)). From MOE idioms: 释义, the 典源 passage with its
   notes, 典故说明 (the story retold in modern Chinese), 书证, usage, examples, 辨识 and near and
   opposite idioms; a related form (玉石俱碎) adds its main idiom's source and story under that
   idiom's name. From Xinhua idioms: the explanation, the classical source and an example. MOE
   idioms comes first when both have it; with several chengyu in one popup, each button is named
-  (首鼠两端 出处). There is no button when there is nothing beyond the one line.
+  (首鼠两端 Origin & Usage). There is no button when there is nothing beyond the one line.
 - **Chengyu CC-CEDICT lacks** (精兵强将, 科班出身, 十二万分) get an entry from these files, in the
   [fallback order](#fallback-dictionaries).
 
@@ -314,8 +315,8 @@ occurrences) and on 临高启明 (38,398):
 | an entry, with the MOE dictionary | 97.3% | 97.7% |
 | an entry, with the MOE dictionary, MOE idioms and Xinhua idioms | 100% | 100% |
 | a Chinese short line | 94.7% | 94.6% |
-| a 出处 view | 92.4% | 92.3% |
-| a 出处 view from MOE idioms | 30.3% | 28.9% |
+| an Origin & Usage view | 92.4% | 92.3% |
+| an Origin & Usage view from MOE idioms | 30.3% | 28.9% |
 
 A chengyu here is any headword CC-CEDICT tags *idiom* or either file lists, so "100%" only means
 the two files cover their own lists; the gain is the 1,282 chengyu (5,397 occurrences) that had
@@ -323,12 +324,13 @@ no entry even with the MOE dictionary, such as 精兵强将, 受制于人, 由�
 
 ### Translating the sentence
 
-While Wi-Fi is on and connected, the popup has one more button on a row of its own. It closes the
+While Wi-Fi is on and connected, the popup from the page has one more button on a row of its
+own (popups opened from a popup's text do not). It closes the
 popup and sends **the whole sentence containing the tapped character**:
 
 - **With [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) installed** (tested with
   0.23.0; the button uses its internals, so a later version may fall back to the built-in
-  translator), it reads **Translate & Analyze [AI]**: a built-in prompt asks for a natural English
+  translator), it reads **Translate & analyze the surrounding sentence [AI]**: a built-in prompt asks for a natural English
   translation, a chunk-by-chunk analysis (characters, pinyin, a literal gloss, the grammatical
   role) and any construction that governs the sentence. The sentence goes to KOAssistant as a
   selection, so it also gets the surrounding context, your provider and model, and the book's
@@ -341,9 +343,6 @@ popup and sends **the whole sentence containing the tapped character**:
   or turn that option off.
 
 The row is left out without a Wi-Fi connection; the check reads KOReader's network state only.
-In a popup opened from another popup's text, the sentence is the popup text's
-([above](#tapping-a-character-in-the-popup)), and KOAssistant's context is the text around it in
-that entry, not the page.
 
 **The sentence** is found in the book's text, across pages: forward to the next 。！？ (or . ! ?
 followed by a space) with any closing quotes after it (。” ？」), backward to just after the
@@ -440,8 +439,8 @@ For words CC-CEDICT does not have, the popup also looks in the fallback dictiona
   default only fallback entries are labelled; **Source labels** can label every entry or none.
   The menu calls this default "other dictionaries only".
 - **Readings.** A fallback entry shows its dictionary's own reading (the MOE dictionary's are
-  Taiwan standard; CBDB's have no tone marks) and is never marked *shown above* or *likely here*:
-  those markers come from the reading resolver, so the popup and the pinyin always agree.
+  Taiwan standard; CBDB's have no tone marks) and is never marked *likely here*:
+  that marker comes from the reading resolver, so the popup and the pinyin always agree.
   Wikipedia titles and Moegirlpedia slang give no readings: the popup shows one made with
   pypinyin, marked *generated pinyin*. Only Wiktionary's words can decide a reading, for
   uncertain characters ([Readings](#readings)).
@@ -666,7 +665,7 @@ Measured on a Boox Go 7:
 - **A tap**: from the tap to the popup built, 17–20 ms median (18–29 ms mean) with Wiktionary,
   CBDB, the MOE dictionary, Wikipedia titles and Moegirlpedia, with the Translate button showing.
   Each fallback dictionary adds at most one indexed query per tap; the two idiom files, each up
-  to one more for their lines and 出处 views, were not timed. The first tap after opening a book
+  to one more for their lines and Origin & Usage views, were not timed. The first tap after opening a book
   takes 20–30 ms; the optional files are opened when first needed (the MOE file in 1–3 ms).
 - **Memory**: the dictionaries are read from the database, not loaded into memory; using them
   adds about 2 MB (KOReader about 133 MB in all).

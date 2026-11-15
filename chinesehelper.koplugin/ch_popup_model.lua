@@ -16,9 +16,9 @@ local Pinyin = require("ch_pinyin")
 
 local Model = {}
 
-Model.MARK_SHOWN = "shown above"     -- the reading drawn above the character
 Model.MARK_LIKELY = "likely here"    -- the resolver's reading, nothing drawn
 Model.MARK_UNSURE = ""               -- the uncertainty pair: no word or rule decided, so no marker
+-- A reading drawn on the page gets no marker either: the reader can see it.
 
 -- A sense that only says the entry is a variant of the very word being shown
 -- ("variant of 着 zháo" on a 着 entry) tells the reader nothing.
@@ -367,7 +367,7 @@ Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", wp = "WP", cbdb = "CBD
 
 ------------------------------------------------------------------------
 -- Idioms (the user's 成語典 and Xinhua files, tools/chengyu.py): a short
--- line of Chinese explanation under an English entry, and the 出处 view.
+-- line of Chinese explanation under an English entry, and the Origin & Usage view.
 ------------------------------------------------------------------------
 
 -- Entries whose text is already Chinese: no short line added under them.
@@ -380,7 +380,7 @@ Model.LARGE_SOURCES = { moe = true, idioms = true, xinhua = true, moegirl = true
 --[[--
 Can the characters of this part of a block be tapped (each opening its own
 popup)? Only the Chinese dictionaries' own text: a block's senses (`part`
-"lines") when the block is theirs or is a 出处 view (`large`), and an
+"lines") when the block is theirs or is a Origin & Usage view (`large`), and an
 idiom's short line ("note"). Never a headline ("head"), the components
 block, or any other dictionary's gloss.
 ]]
@@ -390,7 +390,10 @@ function Model.tappable(block, part)
     if part == "note" then return block.note ~= nil and Model.LARGE_SOURCES[block.note.source] == true end
     return false
 end
-Model.CHUCHU = "出处"
+-- An idiom's view button and title: "成语 Origin & Usage" (one button), or
+-- "一毛不拔 Origin & Usage" (several, each naming its idiom).
+Model.ORIGIN = "Origin & Usage"
+Model.ORIGIN_ONE = "成语"
 
 --[[--
 { [form] = {source=, short=, view=} } from idiom rows ({simp, trad, short,
@@ -438,8 +441,9 @@ function Model.attachIdioms(matches, idioms)
     return matches
 end
 
--- The 出处 buttons: { {word=, source=, view=, text=}, ... }, one per match
--- with a view, labelled 出处 (or "一毛不拔 出处" when there are several).
+-- The Origin & Usage buttons: { {word=, source=, view=, text=}, ... }, one
+-- per match with a view, labelled "成语 Origin & Usage" (or "一毛不拔 Origin &
+-- Usage" when there are several).
 function Model.chuchu(matches)
     local out = {}
     for _, m in ipairs(matches) do
@@ -447,26 +451,27 @@ function Model.chuchu(matches)
             out[#out + 1] = { word = m.word, source = m.idiom.source, view = m.idiom.view }
         end
     end
-    for _, b in ipairs(out) do b.text = #out > 1 and (b.word .. " " .. Model.CHUCHU) or Model.CHUCHU end
+    for _, b in ipairs(out) do b.text = (#out > 1 and b.word or Model.ORIGIN_ONE) .. " " .. Model.ORIGIN end
     return out
 end
 
 --[[--
 The popup's content as blocks, one per match:
-  { head = "**宛**  yuān · shown above" (the word, its first reading, markers),
+  { head = "**宛**  yuān · likely here" (the word, its first reading, markers),
     source = "cedict" / "wikt" / "wp" / "cbdb" / "moe" / "moegirl" (whose entry it is),
     lines = { "winding; as if", "wǎn: ...", ... } (senses, further readings),
     note = { source = "idioms" / "xinhua", text = "比喻…" } or nil: an idiom's
       Chinese short line, under an entry whose text is not Chinese already }
 b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
-The tapped character's marked readings are "shown above" when `annotated`,
-unmarked when Model.matches set m.mark (the uncertainty pair: both readings
-are simply listed), and "likely here" otherwise. A reading a source does not give itself
+The tapped character's marked readings are unmarked when `annotated` (the
+reading is drawn on the page, so it comes first with no label) or when
+Model.matches set m.mark (the uncertainty pair: both readings are simply
+listed), and "likely here" otherwise. A reading a source does not give itself
 (Model.GENERATED_READING) is followed by "· generated pinyin".
 ]]
 function Model.blocks(matches, char, annotated, b0, b1)
     b0, b1 = b0 or "", b1 or ""
-    local default_mark = annotated and Model.MARK_SHOWN or Model.MARK_LIKELY
+    local default_mark = annotated and "" or Model.MARK_LIKELY
     local blocks = {}
     for _, m in ipairs(matches) do
         local block = { lines = {} }
@@ -523,7 +528,7 @@ end
 The popup text, without source labels. One block per match, separated by a
 blank line:
 
-  **宛**  yuān · shown above
+  **宛**  yuān
   winding; as if
   wǎn: ...
 
