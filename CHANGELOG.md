@@ -3,8 +3,8 @@
 ## 2.1.2 (2026-11-15)
 
 Popup buttons
-- **Close is always the bottom button; Back and Close have their own row.** Before, Close sat in
-  the row of word buttons, and while Wi-Fi was on, Translate came after it, below Close.
+- **Close is always the bottom button, on a row of its own.** Before, Close sat in the row of
+  word buttons, and while Wi-Fi was on, Translate came after it, below Close.
 - **Nested popups have just Close, which closes only that popup; no Back button.** A popup opened
   from another, and the 出处 view, show only **Close**; it closes that popup and shows the one
   below (as the device's Back key does). A tap outside or Translate still closes them all; a
