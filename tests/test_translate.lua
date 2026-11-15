@@ -94,7 +94,7 @@ local koa = installKOAssistant(ui)
 local net = network(true, true)
 row, mode = Translate.row{ ui = ui, network = net, sentence = function() return SENTENCE end }
 eq(mode, "koassistant", "present")
-eq(row[1].text, "Translate & Analyze", "present: label")
+eq(row[1].text, "Translate & Analyze [AI]", "present: label")
 press(row)
 assert(koa.run, "executeQuickAction ran")
 eq(net.ran, 1, "through runWhenConnected")
