@@ -6,6 +6,11 @@
     .venv/bin/python tools/make_screenshots.py       # all shots -> docs/*.png
     .venv/bin/python tools/make_screenshots.py main  # some of them
 
+For checks, not the README: SHOT_FONT="STKaiti" uses another book font (taps
+must still land: the device log is checked as usual), SHOT_MATCH_FONT=false
+turns "Try to match the book's font" off, and SHOT_OUT=dir saves there
+instead of docs/.
+
 Needs the optional dictionaries (CBDB, MOE, 成語典, Xinhua, Moegirlpedia) in
 build/ and the same files on the device, and Wi-Fi on (the Translate &
 Analyze button shows only while connected). Written for a Boox Go 7 in
@@ -50,7 +55,7 @@ SETTINGS = "/sdcard/koreader/settings.reader.lua"
 PACKAGE = "org.koreader.launcher"
 WORK = os.path.join(ROOT, "build", "screenshots")
 BACKUP = os.path.join(WORK, "settings.reader.lua.backup")
-DOCS = os.path.join(ROOT, "docs")
+DOCS = os.environ.get("SHOT_OUT") or os.path.join(ROOT, "docs")
 THRESHOLD = 3500
 
 READER = {   # the sidecar's reader settings
@@ -64,6 +69,8 @@ READER = {   # the sidecar's reader settings
     "floating_punctuation": 0, "font_face": '"Noto Serif SC"', "text_lang": '"zh-CN"',
     "cre_dom_version": 20240114,
 }
+if os.environ.get("SHOT_FONT"):
+    READER["font_face"] = '"%s"' % os.environ["SHOT_FONT"]
 
 # Pages: chapter (1 三国演义 第一回, 2 孔乙己, 3 阿Q正传), the first and last
 # characters on screen, and where to open the book.
@@ -173,7 +180,9 @@ def settings_variant(original, pinyin=True):
             "chinesehelper_popup_enabled": "true", "chinesehelper_popup_text_pct": 60,
             "chinesehelper_labels": '"fallback"', "chinesehelper_uncertain": '"both"',
             "chinesehelper_components": "true", "chinesehelper_popup_context": "true",
-            "chinesehelper_page_underline": "true", "night_mode": "false", "autowarmth_control_nightmode": "false",
+            "chinesehelper_page_underline": "true",
+            "chinesehelper_match_book_font": "false" if os.environ.get("SHOT_MATCH_FONT") == "false" else "true",
+            "night_mode": "false", "autowarmth_control_nightmode": "false",
             "debug": "true"}
     out = original
     for k in keys:

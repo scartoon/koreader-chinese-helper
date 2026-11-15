@@ -116,3 +116,19 @@ eq(BookFont.resolve(ui("mupdf", "LXGW WenKai"), get_cre), nil, "a PDF: nil")
 eq(BookFont.resolve(ui("crengine", ""), get_cre), nil)
 eq(BookFont.resolve(nil, get_cre), nil)
 eq(BookFont.resolve(ui("crengine", "LXGW WenKai"), function() error("no cre") end), nil, "an error: nil")
+
+-- Buttons: a font name whose every size, down to BUTTON_MIN, is the bold UI
+-- face with the book font first, found in Font's cache (no file lookup).
+Font = fakeFont()
+Font.use_bold_font_for_bold = true
+BookFont.faces = {}
+local scale = function(s) return s * 2 end
+local name = BookFont.buttonFont(Font, scale, KAI, "cfont", 20)
+assert(name ~= "cfont", name)
+for size = BookFont.BUTTON_MIN, 20 do
+    local f = Font.faces[name .. scale(size)]
+    assert(f, "size " .. size)
+    eq(f.is_real_bold, true); eq(f.getFallbackFont(1).realname, KAI.path)
+end
+eq(BookFont.buttonFont(Font, scale, KAI, "cfont", 20), name, "the same name next time")
+eq(BookFont.buttonFont(Font, scale, nil, "cfont", 20), "cfont", "no book font: Button's own")

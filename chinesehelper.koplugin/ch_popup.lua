@@ -117,6 +117,7 @@ function Popup:init()
         self.title_face = BookFont.wrap(Font, self.title_face, self.book_font)
         self.chinese_face = BookFont.wrap(Font, self.chinese_face, self.book_font)
     end
+    self:bookFontButtons()
 
     self:build()
     local y = self.full and self.margin or Model.place(self.frame:getSize().h, screen_h, self.margin, self.anchor)
@@ -126,6 +127,25 @@ function Popup:init()
     -- Tall popups cover most of the page: close them with a flashing refresh
     -- so no ghost of them is left on e-ink.
     self.tall = size.h > screen_h / 2
+end
+
+-- Buttons whose text has Chinese in it (the character, the words, "成语
+-- Origin & Usage"): Button's own font (bold Noto Sans) with the book font
+-- first. Buttons with only Latin text (Close, Translate) are left alone.
+Popup.BUTTON_FONT, Popup.BUTTON_FONT_SIZE = "cfont", 20   -- Button's defaults
+
+function Popup:bookFontButtons()
+    if not self.book_font or not self.buttons then return end
+    local name
+    for _, row in ipairs(self.buttons) do
+        for _, b in ipairs(row) do
+            if not b.font_face and type(b.text) == "string" and b.text:find("[\227-\233]") then
+                name = name or require("ch_bookfont").buttonFont(Font, function(s) return Screen:scaleBySize(s) end,
+                    self.book_font, Popup.BUTTON_FONT, b.font_size or Popup.BUTTON_FONT_SIZE)
+                b.font_face = name
+            end
+        end
+    end
 end
 
 function Popup:build()
@@ -327,6 +347,9 @@ end
 function Popup:body(text_w, max_h, full)
     local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
     local label_face = Font:getFace("x_smallinfofont", unscaled(self:labelPx()))
+    if self.book_font then
+        label_face = require("ch_bookfont").wrap(Font, label_face, self.book_font)  -- 成语典, 新华
+    end
     local block_gap = math.floor(self.face.size * 0.6)
     -- A components block (ch_components.lua) is indented by one em, below
     -- the character's own entry.

@@ -114,4 +114,32 @@ function BookFont.bold(Font, base, book)
     return ok and face or base
 end
 
+--[[--
+A font name for KOReader's Button (its font_face): Font:getFace(name, size)
+gives Button's own bold face (`ui_font` at that size, bold) with the book font
+first, for every size from `min` to `max` (a Button shrinks its font, down to
+8, before it truncates a label). The faces are put in Font's cache under the
+names getFace looks up first, so no font file is ever looked for under this
+name. Returns `ui_font` itself when there is no book font.
+  scale  Screen:scaleBySize (getFace's names use the scaled size)
+]]
+BookFont.BUTTON_MIN = 6
+
+function BookFont.buttonFont(Font, scale, book, ui_font, max)
+    if not book or not book.path or not Font.faces then return ui_font end
+    local ok, name = pcall(function()
+        local name = "chinesehelper-book:" .. ui_font .. ":" .. book.path .. "/" .. tostring(book.index)
+        for size = BookFont.BUTTON_MIN, max do
+            local hash = name .. scale(size)
+            if not Font.faces[hash] then
+                local face = BookFont.bold(Font, Font:getFace(ui_font, size), book)
+                if not face then error("no face for " .. ui_font) end
+                Font.faces[hash] = face
+            end
+        end
+        return name
+    end)
+    return ok and name or ui_font
+end
+
 return BookFont
