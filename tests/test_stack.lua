@@ -82,13 +82,13 @@ local Text = require("ch_text")
 local Model = require("ch_popup_model")
 
 -- The popup for a tap on the page (as Tap:showPopup, without the page).
-local function root(left, char, right)
+local function root(left, char, right, sentence)
     local cands, words = Text.candidates(Text.chars(left), char, Text.chars(right))
     local rows = plugin:db():lookup(words)
     for _, r in ipairs(tap:fallbackRows(words, rows)) do rows[#rows + 1] = r end
     local m = Model.matches{ cands = cands, rows = rows, order = plugin.settings:fallbackOrder() }
     return tap:present{ db = plugin:db(), char = char, cands = cands, rows = rows, matches = m, annotated = false,
-                        mark = 7 }
+                        mark = 7, sentence = sentence }
 end
 
 -- A tap on the n-th `char` of `text` in popup p's body (as Popup:charAt).
@@ -119,6 +119,12 @@ local function texts(p)
     for _, b in ipairs(buttons(p)) do out[#out + 1] = b.text end
     return table.concat(out, ",")
 end
+-- The bottom row's button texts, e.g. "Back,Close".
+local function lastRow(p)
+    local out = {}
+    for _, b in ipairs(p.buttons[#p.buttons]) do out[#out + 1] = b.text end
+    return table.concat(out, ",")
+end
 
 local unmarked = {}
 tap.unmark = function(_, id) unmarked[#unmarked + 1] = id end
@@ -127,7 +133,7 @@ tap.unmark = function(_, id) unmarked[#unmarked + 1] = id end
 local p1 = root("首", "鼠", "两端")
 eq(#tap:stack(), 1, "one popup")
 assert(not button(p1, "Back"), texts(p1))
-assert(button(p1, "Close"))
+eq(lastRow(p1), "Close", "Close alone on the bottom row")
 
 -- A character of its text: its own popup on top, the character underlined
 -- in the first, looked up with the words around it in that text.
@@ -140,6 +146,7 @@ eq(p2.title, "疑", "the tapped character's popup")
 eq(p1.marked, hit, "underlined in the popup below")
 assert(texts(p2):find("多疑", 1, true), "a word around it in the popup text: " .. texts(p2))
 assert(button(p2, "Back"), "a Back button: " .. texts(p2))
+eq(lastRow(p2), "Back,Close", "Back and Close on the bottom row")
 eq(p2.anchor, hit.rect, "placed away from the tapped character")
 -- Its context line: the popup text's sentence (cut at ；), the character marked.
 eq(table.concat(p2.context.chars, ""), "首鼠：鼠性多疑，出洞时一进一退，不能自决；", "context: the popup sentence")
@@ -172,6 +179,9 @@ eq(table.concat(p3.context.chars, ""), CITE, "context line: the citation")
 eq(p3.context.chars[p3.context.index], "秃")
 local tr = button(p3, "Translate")
 assert(tr, "a Translate button: " .. texts(p3))
+eq(p3.buttons[#p3.buttons - 1][1], tr, "Translate on the row above")
+eq(lastRow(p3), "Back,Close", "Back and Close below Translate")
+eq(lastRow(view), "Back,Close", "the 出处 view: Back and Close")
 local before = #closed
 tr.callback()
 eq(translated[#translated], CITE, "Translate text: the citation")
@@ -236,4 +246,15 @@ eq(looked.text, "多疑")
 eq(table.concat(looked.opts.context.chars, ""), "首鼠：鼠性多疑，出洞时一进一退，不能自决；")
 looked.opts.on_close()
 eq(p1.marked, nil, "the dictionary's close takes the underline")
+p1.on_outside()
+
+-- A popup from the page with a Translate row (Wi-Fi on) and enough words to
+-- wrap: entries in rows, Translate, then Close alone on the bottom row.
+p1 = root("首", "鼠", "两端", function(close) return { { text = "Translate", callback = close } } end)
+assert(#p1.buttons >= 3, "entries, Translate, Close: " .. texts(p1))
+eq(p1.buttons[#p1.buttons - 1][1].text, "Translate", "Translate above Close")
+eq(lastRow(p1), "Close", "Close alone at the bottom")
+for k = 1, #p1.buttons - 2 do
+    for _, b in ipairs(p1.buttons[k]) do assert(b.text ~= "Close" and b.text ~= "Back", texts(p1)) end
+end
 p1.on_outside()
