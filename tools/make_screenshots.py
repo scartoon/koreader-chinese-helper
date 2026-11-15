@@ -93,27 +93,27 @@ SHOTS = {
         frames=[(1, (95, 1185))]),
     "context": dict(page="kyj14", taps=[("间", 1, (773, 500), [
         "**间**  jiàn · likely here", "**间或**  jiànhuò · decides 间's reading"])],
-        frames=[(1, (255, 1008))]),
+        frames=[(1, (205, 1057))]),
     "components": dict(page="kyj13", taps=[("茴", 1, (988, 790), [
         "**茴**  huí", "**艹** cǎo  grass; plant (草字头)  → meaning",
         "**回** huí  to go back; to return  → sound (same sound)", "**茴香豆**  huíxiāngdòu"])],
-        frames=[(1, (247, 1019))]),
+        frames=[(1, (196, 1067))]),
     "traditional": dict(page="aq59", taps=[("观", 1, (170, 965), [
         "**观**  guān · likely here", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
         "simplified: 雚 → 又", "**观音**  Guānyīn · decides 观's reading"])],
-        frames=[(1, (220, 1042))]),
+        frames=[(1, (171, 1091))]),
     "chengyu": dict(page="kyj13", taps=[("也", 3, (170, 590), [
         "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 862), [])],
         frames=[(1, (134, 1130)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
         "**秋**  qiū", "[MMAH]", "[MOE]", "**秋月春风**  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
-        frames=[(1, (112, 1150))]),
+        frames=[(1, (100, 1162))]),
     # A character of the popup's own text: 欢, inside MOE's quotation of 〈琵琶行〉,
     # opens its popup on top; the context line is the quotation (the device's
     # log must give it as the sentence), the 欢 below underlined.
     "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["[MOE]", "**秋月春风**  qiū yuè chūn fēng"]),
-                                     ("欢", "nested", (1323, 753), ["「今年欢笑复明年，秋月春风等闲度。」"])],
-                   frames=[(2, (112, 1150))]),
+                                     ("欢", "nested", (1585, 750), ["「今年欢笑复明年，秋月春风等闲度。」"])],
+                   frames=[(2, (100, 1162))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
         frames=[(1, (15, 1160))]),
     # Page 1 with pinyin off, then on: the plugin adds line space where it

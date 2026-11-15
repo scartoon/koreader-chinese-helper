@@ -1,7 +1,7 @@
 -- Popups opened from popups (ch_tap.lua): a character tapped in a popup's
--- text opens its popup on top, underlined below while it is shown; Back
--- returns to the one below; Close, a tap outside or Translate closes them
--- all; at most Tap.MAX_DEPTH at once. The nested popup's context line and
+-- text opens its popup on top, underlined below while it is shown; its
+-- Close (no Back button) or the Back key returns to the one below; a tap
+-- outside or Translate closes them all; at most Tap.MAX_DEPTH at once. The nested popup's context line and
 -- Translate text are the popup text's sentence, not the book's. Built
 -- against stub KOReader modules and the real database, with a fake Popup.
 local H = require("sq3_shim")
@@ -119,7 +119,7 @@ local function texts(p)
     for _, b in ipairs(buttons(p)) do out[#out + 1] = b.text end
     return table.concat(out, ",")
 end
--- The bottom row's button texts, e.g. "Back,Close".
+-- The bottom row's button texts ("Close").
 local function lastRow(p)
     local out = {}
     for _, b in ipairs(p.buttons[#p.buttons]) do out[#out + 1] = b.text end
@@ -145,23 +145,23 @@ local p2 = tap:stack()[2]
 eq(p2.title, "疑", "the tapped character's popup")
 eq(p1.marked, hit, "underlined in the popup below")
 assert(texts(p2):find("多疑", 1, true), "a word around it in the popup text: " .. texts(p2))
-assert(button(p2, "Back"), "a Back button: " .. texts(p2))
-eq(lastRow(p2), "Back,Close", "Back and Close on the bottom row")
+assert(not button(p2, "Back"), "no Back button: " .. texts(p2))
+eq(lastRow(p2), "Close", "Close alone on the bottom row")
 eq(p2.anchor, hit.rect, "placed away from the tapped character")
 -- Its context line: the popup text's sentence (cut at ；), the character marked.
 eq(table.concat(p2.context.chars, ""), "首鼠：鼠性多疑，出洞时一进一退，不能自决；", "context: the popup sentence")
 eq(p2.context.chars[p2.context.index], "疑", "the tapped character marked")
 
--- Back: the second goes, the first is shown with no underline.
+-- The Back key: the second goes, the first is shown with no underline.
 p2.on_back()
 eq(#tap:stack(), 1, "back to one")
 eq(p1.marked, nil, "underline gone")
 eq(closed[#closed].w, p2, "the second closed")
 eq(#unmarked, 0, "the page underline stays")
--- The Back button does the same.
+-- Its Close does the same.
 p1.on_char_tap(p1, hitIn(DEF, "端"))
-button(tap:stack()[2], "Back").callback()
-eq(#tap:stack(), 1); eq(p1.marked, nil)
+button(tap:stack()[2], "Close").callback()
+eq(#tap:stack(), 1); eq(p1.marked, nil); eq(#unmarked, 0)
 
 -- The 秃 of the 史记 citation in an idiom's 出处 view: the nested popup's
 -- context and Translate text are the citation, not the book's sentence.
@@ -180,8 +180,8 @@ eq(p3.context.chars[p3.context.index], "秃")
 local tr = button(p3, "Translate")
 assert(tr, "a Translate button: " .. texts(p3))
 eq(p3.buttons[#p3.buttons - 1][1], tr, "Translate on the row above")
-eq(lastRow(p3), "Back,Close", "Back and Close below Translate")
-eq(lastRow(view), "Back,Close", "the 出处 view: Back and Close")
+eq(lastRow(p3), "Close", "Close below Translate")
+eq(texts(view), "Close", "the 出处 view: only Close")
 local before = #closed
 tr.callback()
 eq(translated[#translated], CITE, "Translate text: the citation")
@@ -222,11 +222,34 @@ for k = before + 1, #closed - 1 do eq(closed[k].refresh, nil, "no refresh before
 eq(closed[#closed].refresh ~= nil, true, "one refresh, with the first")
 eq(closed[#closed].w, first, "the first last")
 
--- Close in a nested popup closes all; the first popup's Back key closes it.
+-- Close, one popup at a time: with three open (page -> nested -> 出处 view),
+-- the view's Close leaves two, the nested one's leaves the first (its
+-- underline cleared), and the first's closes it and the page underline.
 p1 = root("首", "鼠", "两端")
 p1.on_char_tap(p1, hitIn(DEF, "疑"))
-button(tap:stack()[2], "Close").callback()
-eq(#tap:stack(), 0, "Close closes all")
+p2 = tap:stack()[2]
+p2.on_char_tap(p2, hitIn(DEF, "端"))
+eq(#tap:stack(), 3)
+p3 = tap:stack()[3]
+before = #closed
+button(p3, "Close").callback()
+eq(#tap:stack(), 2, "Close closes only the top")
+eq(closed[#closed].w, p3); eq(#closed - before, 1)
+eq(tap:stack()[2], p2, "the one below still shown")
+eq(p2.marked, nil, "its underline cleared")
+eq(p1.marked ~= nil, true, "the first keeps its underline")
+tap:showChuchu("首鼠两端", "xinhua", VIEW, p2)
+view = tap:stack()[3]
+button(view, "Close").callback()
+eq(#tap:stack(), 2, "the 出处 view's Close returns to the popup below")
+button(p2, "Close").callback()
+eq(#tap:stack(), 1); eq(p1.marked, nil)
+local n_unmarked = #unmarked
+button(p1, "Close").callback()
+eq(#tap:stack(), 0, "the last Close closes the first")
+eq(#unmarked, n_unmarked + 1, "and the page underline")
+eq(unmarked[#unmarked], 7)
+-- The first popup's Back key closes it.
 p1 = root("首", "鼠", "两端")
 p1.on_back()
 eq(#tap:stack(), 0, "Back key on the first popup closes it")

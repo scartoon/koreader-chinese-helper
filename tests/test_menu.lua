@@ -424,10 +424,10 @@ eq(#shown, before + 1, "the 出处 view is shown")
 local view = shown[#shown]
 eq(view.title, "一毛不拔 · 出处 · 教育部《成语典》")
 -- A full-height popup on the stack: the text in the larger Chinese size,
--- no label, Back and Close; a character tapped in it opens its own popup.
+-- no label, only Close; a character tapped in it opens its own popup.
 eq(view.full, true); eq(view.blocks[1].large, true); eq(view.blocks[1].nolabel, true)
 assert(view.blocks[1].lines[1]:find("典源　《孟子．尽心上》", 1, true), view.blocks[1].lines[1])
-eq(buttonTexts(view), "Back,Close")
+eq(buttonTexts(view), "Close")
 eq(view.chinese_pct, 150, "the Chinese text size set above")
 assert(view.on_char_tap and view.on_back and view.on_outside)
 p = popupFor("精", "兵", "强将")

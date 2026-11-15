@@ -2,7 +2,7 @@
 -- (ch_sentence.lua) to KOAssistant, or to KOReader's translator.
 --
 --   KOAssistant installed and loaded, and its internals as expected:
---     "Translate & Analyze", run through KOAssistant with the action below,
+--     "Translate & Analyze [AI]", run through KOAssistant with the action below,
 --     the way its highlight-menu action buttons run an action;
 --   otherwise: "Translate", KOReader's built-in translator (the highlight
 --     menu's Translate: ReaderHighlight:onTranslateText).
@@ -52,7 +52,8 @@ Bold labels, no headers, no closing remarks.]],
 -- custom_actions.lua (addCustomAction); the id is our own.
 Translate.ACTION_ID = "chinesehelper_translate_analyze"
 
-Translate.LABELS = { koassistant = "Translate & Analyze", translator = "Translate" }
+-- The button's label; [AI]: the answer comes from a language model.
+Translate.LABELS = { koassistant = "Translate & Analyze [AI]", translator = "Translate" }
 
 -- A fresh copy for each run (KOAssistant may annotate the table it is given).
 function Translate.action()

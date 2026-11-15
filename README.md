@@ -11,7 +11,7 @@ the reading the character takes in this context: 行 is *háng* in 银行 but *x
 cutoff you choose: the hard ones get help and the rest of the page stays clean. It works on any
 reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 
-![The opening of 三国演义 第一回 on a Boox Go 7: the chapter title, then the popup on 密. At its top, the line 时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不密，反为所害，中涓自此愈横。 with 密 in bold and underlined; then 密 mì, "dense; close; … (bound form) secret; confidential …", "Mì: surname Mi"; its parts, labelled Wikt: 宓 mì still; silent → sound (same sound), 山 shān mountain → meaning; then 不密 bùmì "(literary) not well thought out; (literary) not secret", labelled Wikt; buttons 密 and 不密, then Translate & Analyze on its own row, then Close at the bottom. Below the popup, the last lines of the 话说天下大势 paragraph, with juān above 涓 and 密 underlined on the page](docs/main.png)
+![The opening of 三国演义 第一回 on a Boox Go 7: the chapter title, then the popup on 密. At its top, the line 时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不密，反为所害，中涓自此愈横。 with 密 in bold and underlined; then 密 mì, "dense; close; … (bound form) secret; confidential …", "Mì: surname Mi"; its parts, labelled Wikt: 宓 mì still; silent → sound (same sound), 山 shān mountain → meaning; then 不密 bùmì "(literary) not well thought out; (literary) not secret", labelled Wikt; buttons 密 and 不密, then Translate & Analyze [AI] on its own row, then Close at the bottom. Below the popup, the last lines of the 话说天下大势 paragraph, with juān above 涓 and 密 underlined on the page](docs/main.png)
 
 <table>
 <tr>
@@ -28,7 +28,7 @@ reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 </tr>
 <tr>
 <td><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月 labelled Wikt; last, 秋月春风 labelled MOE with its Chinese definition in larger type; a 出处 button"><br><a href="#fallback-dictionaries"><b>Several dictionaries, each labelled</b></a>: CC-CEDICT, Wiktionary for 秋月, and last, in larger type, MOE (optional) for 秋月春风</td>
-<td><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked, a Translate &amp; Analyze button and Close below it; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"><br><a href="#translating-the-sentence"><b>Translate &amp; Analyze the sentence</b></a> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
+<td><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked, a Translate &amp; Analyze [AI] button and Close below it; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"><br><a href="#translating-the-sentence"><b>Translate &amp; Analyze the sentence</b></a> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
 </tr>
 </table>
 
@@ -200,10 +200,8 @@ where the words break.
   unusual-reading word (冒顿 *mòdú*), or only its reading (a word from pypinyin's phrase list).
 - **Buttons**: one for each entry, labelled with the character or word, which looks it up in
   KOReader's dictionary; **出处** for a chengyu with a source view; on a row of its own while
-  Wi-Fi is connected, **Translate** ([below](#translating-the-sentence)); and at the bottom, on
-  their own row, **Back** in a popup opened from another
-  ([below](#tapping-a-character-in-the-popup)) and **Close**. Tapping outside the popup also
-  closes it.
+  Wi-Fi is connected, **Translate** ([below](#translating-the-sentence)); and **Close**, alone
+  on the bottom row. Tapping outside the popup also closes it.
 - If no dictionary has the character or any word around it, the tap goes straight to KOReader's
   dictionary lookup.
 
@@ -224,7 +222,7 @@ around it in that text that contains it), and stays underlined in the popup belo
 one is open. Nothing else in the popup is tappable: not the headlines (the character or word
 the entry is for), the components, or the English glosses.
 
-![Popup for 秋 in the 临江仙, and on top of it the popup for 欢, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年欢笑复明年，秋月春风等闲度。」 with 欢 marked, then 欢 huān, its parts, 欢笑 huānxiào, and the buttons 欢 and 欢笑, then Translate & Analyze, then Back and Close at the bottom](docs/nested.png)
+![Popup for 秋 in the 临江仙, and on top of it the popup for 欢, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年欢笑复明年，秋月春风等闲度。」 with 欢 marked, then 欢 huān, its parts, 欢笑 huānxiào, and the buttons 欢 and 欢笑, then Translate & Analyze [AI], then Close at the bottom](docs/nested.png)
 
 - **Its text is the popup's, not the book's.** The line at the top and the sentence **Translate**
   sends are the sentence around the character in the popup text: cut at 。！？；, a line break, or
@@ -234,8 +232,8 @@ the entry is for), the components, or the English glosses.
 - **Where a tap lands**: on a character, or within half a character's width of one (beside it,
   just above or below, on the punctuation next to it), takes the nearest, on the tapped line
   first. A tap anywhere else does what it did before. This holds after the popup is scrolled.
-- **Back** (the button, or the device's Back key) closes the top popup and shows the one below;
-  **Close**, a tap outside or **Translate** closes them all. At most **5** popups are open at once
+- **Close** (or the device's Back key) in a popup opened from another closes only that popup
+  and shows the one below; a tap outside or **Translate** closes them all. At most **5** popups are open at once
   (a 出处 view counts); past that, a tap says so and opens nothing.
 - **Chinese text size**: the Chinese dictionaries' text (definitions, short lines, the 出处
   view) is drawn larger than the rest of the popup, 130% by default, so its characters
@@ -295,8 +293,9 @@ than CC-CEDICT's English gloss:
 - **One line of Chinese explanation** under CC-CEDICT's (or Wiktionary's) entry, with its own
   small label: 一毛不拔 → *形容人非常吝啬。贬义。* (成语典). It comes from MOE idioms when it has
   the chengyu, otherwise from Xinhua idioms. Entries already in Chinese get no extra line.
-- **A 出处 button** opens a full-screen view, in the larger Chinese size, with **Back** and
-  **Close**; any character in it can be tapped ([above](#tapping-a-character-in-the-popup)). From MOE idioms: 释义, the 典源 passage with its
+- **A 出处 button** opens a full-screen view, in the larger Chinese size, with only **Close**,
+  which returns to the popup below; any character in it can be tapped
+  ([above](#tapping-a-character-in-the-popup)). From MOE idioms: 释义, the 典源 passage with its
   notes, 典故说明 (the story retold in modern Chinese), 书证, usage, examples, 辨识 and near and
   opposite idioms; a related form (玉石俱碎) adds its main idiom's source and story under that
   idiom's name. From Xinhua idioms: the explanation, the classical source and an example. MOE
@@ -329,7 +328,7 @@ popup and sends **the whole sentence containing the tapped character**:
 
 - **With [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) installed** (tested with
   0.23.0; the button uses its internals, so a later version may fall back to the built-in
-  translator), it reads **Translate & Analyze**: a built-in prompt asks for a natural English
+  translator), it reads **Translate & Analyze [AI]**: a built-in prompt asks for a natural English
   translation, a chunk-by-chunk analysis (characters, pinyin, a literal gloss, the grammatical
   role) and any construction that governs the sentence. The sentence goes to KOAssistant as a
   selection, so it also gets the surrounding context, your provider and model, and the book's
