@@ -131,6 +131,7 @@ Tools menu). Settings apply to all books.
 | Show character components | On (default) / off. See [Character components](#character-components) |
 | Show the text around the character in the popup | On (default) / off. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
+| Try to match the book's font | On (default) / off: Chinese text in the popup in the book's font. See [The popup](#the-popup) |
 | Fallback dictionaries | Source labels (all entries / other dictionaries only (default) / none); then each dictionary on/off, in order: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang. See [Fallback dictionaries](#fallback-dictionaries) |
 | Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed), what the current page needed, and any old plugin still installed |
 
@@ -210,6 +211,14 @@ to the full screen height, scrolling beyond that. A short popup goes in the half
 away from the tapped character, so the text stays visible; a taller one is centred. While it is
 open, the tapped character is **underlined on the page**, so you can see which one the tap hit;
 the underline goes when the popup closes.
+
+**Chinese text in the popup is in the book's font** (**Try to match the book's font**, on by
+default): every Chinese character in it, from the line at the top, the character and the
+entries to the Chinese dictionaries' text, the Origin & Usage view, source labels such as 成语典
+and the buttons, while English glosses, pinyin and tone marks keep KOReader's UI font. It is the
+font chosen in KOReader's font menu, not a font the book embeds or sets in its CSS; a character
+that font lacks comes from KOReader's usual fallback fonts. For a PDF, or when the font cannot be
+loaded, the popup uses the UI font. Turned off, the popup is exactly as before.
 
 ![A tall popup for 观 in 阿Q正传: at the top the line 尼姑待他们走后，定了神来检点，龙牌固然已经碎在地上了，而且又不见了观音娘娘座前的一个宣德炉。 with 观 in bold and underlined, then 观 guān · likely here, its traditional form 觀's parts, and 观音 Guānyīn · decides 观's reading](docs/traditional.png)
 
@@ -708,6 +717,7 @@ text repairs.
 | `ch_pinyin.lua` | pinyin comparisons |
 | `ch_popup_model.lua`, `ch_popup.lua` | what the popup shows, and the popup |
 | `ch_snippet.lua` | the line of text around the tapped character, at the top of the popup |
+| `ch_bookfont.lua` | the popup's faces with the book's font first, for its Chinese text |
 | `ch_components.lua` | the character components lines |
 | `ch_sentence.lua` | the sentence around the tapped character |
 | `ch_translate.lua` | the Translate button: KOAssistant (with the prompt snapshot) or KOReader's translator |
