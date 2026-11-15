@@ -495,8 +495,8 @@ Tap.CHUCHU_SOURCES = { idioms = "教育部《成语典》", xinhua = "新华成�
 --[[--
 The stack of popups shown (first: the one opened from the page). Each is a
 Popup; one opened from another's text or 出处 button sits on it. Closing
-the top one (Back) shows the one below; Close, a tap outside or a
-Translate closes them all.
+the top one (its Close, or the Back key) shows the one below; a tap
+outside or a Translate closes them all.
 ]]
 function Tap:stack()
     self.layers = self.layers or {}
@@ -561,8 +561,7 @@ function Tap:showChuchu(word, source, text, parent)
         blocks = { { source = source, lines = { text }, large = true, nolabel = true } },
         labels = Model.SOURCE_LABELS, label_mode = "none",
         full = true,
-        buttons = { { { text = _("Back"), callback = function() self:back(view) end },
-                      { text = _("Close"), callback = function() self:closeAll() end } } },
+        buttons = { { { text = _("Close"), callback = function() self:back(view) end } } },
         text_px = parent and parent.text_px,
         chinese_pct = self.plugin.settings:chineseTextPercent(),
         on_char_tap = function(p, hit) self:openNested(p, hit) end,
@@ -632,9 +631,8 @@ function Tap:present(args)
         words[#words + 1] = { text = c.text, callback = function() self:showChuchu(c.word, c.source, c.view, popup) end }
     end
     -- Buttons: the character, the words around it and 出处 in rows, then the
-    -- sentence row (Translate), then Back (a popup opened from another) and
-    -- Close on a row of their own, always the last. The components block has
-    -- none of its own.
+    -- sentence row (Translate), then Close on a row of its own, always the
+    -- last. The components block has none of its own.
     local button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
     local block = comp and Components.block(comp.c, b0, b1, comp.via, comp.changes)
     if block then
@@ -645,17 +643,17 @@ function Tap:present(args)
     Model.chineseLast(blocks)
     local sentence_row = args.sentence and args.sentence(close_all)
     if sentence_row then button_rows[#button_rows + 1] = sentence_row end
-    local last = {}
-    if parent then last[#last + 1] = { text = _("Back"), callback = function() self:back(popup) end } end
-    last[#last + 1] = { text = _("Close"), callback = close_all }
-    button_rows[#button_rows + 1] = last
+    -- Close: a popup opened from another closes alone (as the Back key);
+    -- the first closes and takes the page underline with it.
+    local close = function() if parent then self:back(popup) else self:closeAll() end end
+    button_rows[#button_rows + 1] = { { text = _("Close"), callback = close } }
     local font_size = self:textHeight()
     popup = Popup:new{
         title = args.char,
         blocks = blocks,
         labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
         context = args.context,
-        -- However it closes (tap outside, Close, Back, Translate): out of the
+        -- However it closes (tap outside, Close, Back key, Translate): out of the
         -- stack, and the underline below it goes, unless a word button
         -- opened a dictionary popup.
         on_close = function()
@@ -664,7 +662,7 @@ function Tap:present(args)
         end,
         on_char_tap = function(p, hit) self:openNested(p, hit) end,
         on_outside = close_all,
-        on_back = function() if parent then self:back(popup) else self:closeAll() end end,
+        on_back = close,
         buttons = button_rows,
         anchor = args.box,
         text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),

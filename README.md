@@ -200,10 +200,8 @@ where the words break.
   unusual-reading word (冒顿 *mòdú*), or only its reading (a word from pypinyin's phrase list).
 - **Buttons**: one for each entry, labelled with the character or word, which looks it up in
   KOReader's dictionary; **出处** for a chengyu with a source view; on a row of its own while
-  Wi-Fi is connected, **Translate** ([below](#translating-the-sentence)); and at the bottom, on
-  their own row, **Back** in a popup opened from another
-  ([below](#tapping-a-character-in-the-popup)) and **Close**. Tapping outside the popup also
-  closes it.
+  Wi-Fi is connected, **Translate** ([below](#translating-the-sentence)); and **Close**, alone
+  on the bottom row. Tapping outside the popup also closes it.
 - If no dictionary has the character or any word around it, the tap goes straight to KOReader's
   dictionary lookup.
 
@@ -224,7 +222,7 @@ around it in that text that contains it), and stays underlined in the popup belo
 one is open. Nothing else in the popup is tappable: not the headlines (the character or word
 the entry is for), the components, or the English glosses.
 
-![Popup for 秋 in the 临江仙, and on top of it the popup for 欢, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年欢笑复明年，秋月春风等闲度。」 with 欢 marked, then 欢 huān, its parts, 欢笑 huānxiào, and the buttons 欢 and 欢笑, then Translate & Analyze, then Back and Close at the bottom](docs/nested.png)
+![Popup for 秋 in the 临江仙, and on top of it the popup for 欢, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年欢笑复明年，秋月春风等闲度。」 with 欢 marked, then 欢 huān, its parts, 欢笑 huānxiào, and the buttons 欢 and 欢笑, then Translate & Analyze, then Close at the bottom](docs/nested.png)
 
 - **Its text is the popup's, not the book's.** The line at the top and the sentence **Translate**
   sends are the sentence around the character in the popup text: cut at 。！？；, a line break, or
@@ -234,8 +232,8 @@ the entry is for), the components, or the English glosses.
 - **Where a tap lands**: on a character, or within half a character's width of one (beside it,
   just above or below, on the punctuation next to it), takes the nearest, on the tapped line
   first. A tap anywhere else does what it did before. This holds after the popup is scrolled.
-- **Back** (the button, or the device's Back key) closes the top popup and shows the one below;
-  **Close**, a tap outside or **Translate** closes them all. At most **5** popups are open at once
+- **Close** (or the device's Back key) in a popup opened from another closes only that popup
+  and shows the one below; a tap outside or **Translate** closes them all. At most **5** popups are open at once
   (a 出处 view counts); past that, a tap says so and opens nothing.
 - **Chinese text size**: the Chinese dictionaries' text (definitions, short lines, the 出处
   view) is drawn larger than the rest of the popup, 130% by default, so its characters
@@ -295,8 +293,9 @@ than CC-CEDICT's English gloss:
 - **One line of Chinese explanation** under CC-CEDICT's (or Wiktionary's) entry, with its own
   small label: 一毛不拔 → *形容人非常吝啬。贬义。* (成语典). It comes from MOE idioms when it has
   the chengyu, otherwise from Xinhua idioms. Entries already in Chinese get no extra line.
-- **A 出处 button** opens a full-screen view, in the larger Chinese size, with **Back** and
-  **Close**; any character in it can be tapped ([above](#tapping-a-character-in-the-popup)). From MOE idioms: 释义, the 典源 passage with its
+- **A 出处 button** opens a full-screen view, in the larger Chinese size, with only **Close**,
+  which returns to the popup below; any character in it can be tapped
+  ([above](#tapping-a-character-in-the-popup)). From MOE idioms: 释义, the 典源 passage with its
   notes, 典故说明 (the story retold in modern Chinese), 书证, usage, examples, 辨识 and near and
   opposite idioms; a related form (玉石俱碎) adds its main idiom's source and story under that
   idiom's name. From Xinhua idioms: the explanation, the classical source and an example. MOE
