@@ -631,10 +631,10 @@ function Tap:present(args)
     for _, c in ipairs(Model.chuchu(args.matches)) do
         words[#words + 1] = { text = c.text, callback = function() self:showChuchu(c.word, c.source, c.view, popup) end }
     end
-    -- Buttons: the character, the words around it, 出处, Back (a popup opened
-    -- from another), Close. The components block has none of its own.
-    if parent then words[#words + 1] = { text = _("Back"), callback = function() self:back(popup) end } end
-    words[#words + 1] = { text = _("Close"), callback = close_all }
+    -- Buttons: the character, the words around it and 出处 in rows, then the
+    -- sentence row (Translate), then Back (a popup opened from another) and
+    -- Close on a row of their own, always the last. The components block has
+    -- none of its own.
     local button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
     local block = comp and Components.block(comp.c, b0, b1, comp.via, comp.changes)
     if block then
@@ -645,6 +645,10 @@ function Tap:present(args)
     Model.chineseLast(blocks)
     local sentence_row = args.sentence and args.sentence(close_all)
     if sentence_row then button_rows[#button_rows + 1] = sentence_row end
+    local last = {}
+    if parent then last[#last + 1] = { text = _("Back"), callback = function() self:back(popup) end } end
+    last[#last + 1] = { text = _("Close"), callback = close_all }
+    button_rows[#button_rows + 1] = last
     local font_size = self:textHeight()
     popup = Popup:new{
         title = args.char,
