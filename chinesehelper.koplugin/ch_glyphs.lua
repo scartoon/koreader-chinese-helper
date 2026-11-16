@@ -146,8 +146,12 @@ function Glyphs.layout(tbw, chars, clip)
         if line.end_offset and line.end_offset >= line.offset then
             if tbw.use_xtext and tbw._xtext then
                 tbw:_shapeLine(line)
+                -- A collapsed box's last line ends in an ellipsis drawn in
+                -- place of a character (TextBoxWidget's
+                -- height_overflow_show_ellipsis): that character is hidden.
+                local hidden = line.idx_to_substitute_with_ellipsis
                 for _, g in ipairs(line.xglyphs or {}) do
-                    if g.is_cluster_start then
+                    if g.is_cluster_start and g.text_index ~= hidden then
                         local n = math.max(1, g.cluster_len or 1)
                         local w = (g.x1 - g.x0) / n
                         for m = 0, n - 1 do

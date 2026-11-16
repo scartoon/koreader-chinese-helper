@@ -176,6 +176,7 @@ end
 ChineseHelper.SOURCE_NAMES = { wikt = "Wiktionary", wp = "Wikipedia titles", cbdb = "CBDB office titles",
                                 moe = "MOE 重編國語辭典", idioms = "MOE 成語典", xinhua = "Xinhua idioms",
                                 moegirl = "Moegirlpedia slang" }
+ChineseHelper.MOE_MODE_NAMES = { off = _("off"), fallback = _("fallback"), always = _("always") }
 -- In the plugin database (the release): their rows are in its fallback table.
 ChineseHelper.BUNDLED_SOURCES = { wikt = true, wp = true }
 -- Files the user builds and installs (licences that forbid distributing
@@ -392,9 +393,22 @@ function ChineseHelper:fallbackStatus()
         cbdb = function(m) return T(_("CBDB office titles: %1 (CBDB %2, %3 entries)"), state("cbdb"),
             (m.cbdb_date or "?"):sub(1, 10), m.cbdb_rows or "?") end,
         -- Files built before 1.8.0 have no moe_text: their text is traditional.
-        moe = function(m) return T(_("MOE 重編國語辭典: %1 (moedict-data %2, %3 entries, %4)"), state("moe"),
-            (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?",
-            m.moe_text == "simplified" and _("simplified text") or _("traditional text")) end,
+        moe = function(m)
+            local line = T(_("MOE 重編國語辭典: %1 (moedict-data %2, %3 entries, %4)"), state("moe"),
+                (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?",
+                m.moe_text == "simplified" and _("simplified text") or _("traditional text"))
+            if not self.settings:fallbackEnabled("moe") then return line end
+            local chars, words = self.settings:moeMode("chars"), self.settings:moeMode("words")
+            line = line .. "\n  " .. T(_("characters: %1, words: %2"), ChineseHelper.MOE_MODE_NAMES[chars],
+                ChineseHelper.MOE_MODE_NAMES[words])
+            if self:moeHasCovered() then
+                line = line .. "; " .. T(_("rebuilt for Always: %1 character rows, %2 word rows CC-CEDICT also has"),
+                    m.moe_covered_char_rows or "?", m.moe_covered_word_rows or "?")
+            elseif chars == "always" or words == "always" then
+                line = line .. "\n  " .. _("Always works as Fallback with this file: rebuild it for Always (python3 tools/build_moe.py, see the README).")
+            end
+            return line
+        end,
         idioms = function(m) return T(_("MOE 成語典: %1 (%2, %3 idioms, %4 not in CC-CEDICT, %5)"), state("idioms"),
             m.idioms_version or "?", m.idioms_rows or "?", m.idioms_fallback_rows or "?",
             m.idioms_text == "traditional" and _("traditional text") or _("simplified text")) end,
@@ -640,8 +654,8 @@ function ChineseHelper:addToMainMenu(menu_items)
                 callback = function() settings:set("match_book_font", not settings:matchBookFont()) end,
             },
             {
-                text = _("Fallback dictionaries"),
-                help_text = _("For words CC-CEDICT does not have, the popup can show entries from other dictionaries, in the order listed here. CC-CEDICT always comes first: a word it has never gets an entry from another dictionary, and each word gets the entry of the first dictionary that has it. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE and Moegirlpedia are files you build and install yourself (see the README)."),
+                text = _("Dictionaries"),
+                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be shown Always: under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines, with a tap on its grey label line to show it all. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
                 sub_item_table = plugin:fallbackItems(apply, {
                     {
                         text_func = function()
@@ -675,30 +689,122 @@ function ChineseHelper:addToMainMenu(menu_items)
     }
 end
 
--- The Fallback dictionaries menu: `items` (the source labels setting), then
--- one on/off item per dictionary in priority order. The user's own files
--- show whether they are installed and cannot be switched on without one.
+-- The Dictionaries menu: `items` (the source labels setting), then Order,
+-- Collapse long entries, and one on/off item per dictionary in priority
+-- order, MOE's followed by its Characters and Words modes. The user's own
+-- files show whether they are installed and cannot be switched on without
+-- one. Order rebuilds the per-dictionary items in the new order.
 function ChineseHelper:fallbackItems(apply, items)
     local plugin, settings = self, self.settings
-    for _i, source in ipairs(settings:fallbackOrder()) do
-        local name = ChineseHelper.SOURCE_NAMES[source]
-        local bundled = ChineseHelper.BUNDLED_SOURCES[source]
-        items[#items + 1] = {
-            text_func = function()
-                if plugin:sourceDb(source) then
-                    return bundled and name or T(_("%1 (your own file)"), name)
+    local fixed
+    local function fill()
+        for k = #items, fixed + 1, -1 do items[k] = nil end
+        for _i, source in ipairs(settings:fallbackOrder()) do
+            local name = ChineseHelper.SOURCE_NAMES[source]
+            local bundled = ChineseHelper.BUNDLED_SOURCES[source]
+            items[#items + 1] = {
+                text_func = function()
+                    if plugin:sourceDb(source) then
+                        return bundled and name or T(_("%1 (your own file)"), name)
+                    end
+                    return bundled and T(_("%1 (not in this database)"), name) or T(_("%1 (not installed)"), name)
+                end,
+                enabled_func = function() return plugin:sourceDb(source) ~= nil end,
+                checked_func = function() return settings:fallbackEnabled(source) and plugin:sourceDb(source) ~= nil end,
+                callback = function(touchmenu)
+                    settings:set("fallback_" .. source, not settings:fallbackEnabled(source))
+                    apply(touchmenu)   -- Wiktionary's words can decide the pinyin drawn
+                end,
+            }
+            if source == "moe" then
+                for _j, kind in ipairs({ "chars", "words" }) do
+                    items[#items + 1] = plugin:moeModeItem(kind)
                 end
-                return bundled and T(_("%1 (not in this database)"), name) or T(_("%1 (not installed)"), name)
-            end,
-            enabled_func = function() return plugin:sourceDb(source) ~= nil end,
-            checked_func = function() return settings:fallbackEnabled(source) and plugin:sourceDb(source) ~= nil end,
-            callback = function(touchmenu)
-                settings:set("fallback_" .. source, not settings:fallbackEnabled(source))
-                apply(touchmenu)   -- Wiktionary's words can decide the pinyin drawn
-            end,
+            end
+        end
+    end
+    items[#items + 1] = {
+        text = _("Order"),
+        help_text = _("The order of the dictionaries after CC-CEDICT, which is always first: for a word CC-CEDICT lacks, the first one that has it gives its entry."),
+        keep_menu_open = true,
+        callback = function(touchmenu) plugin:showOrder(function()
+            fill()
+            if touchmenu and touchmenu.updateItems then touchmenu:updateItems() end
+        end) end,
+    }
+    local collapse = {}
+    for _i, n in ipairs(Settings.COLLAPSE_LINES) do
+        collapse[#collapse + 1] = {
+            text = ChineseHelper.collapseLabel(n), radio = true, keep_menu_open = true,
+            checked_func = function() return settings:collapseLines() == n end,
+            callback = function() settings:set("collapse_lines", n) end,
         }
     end
+    items[#items + 1] = {
+        text_func = function()
+            return T(_("Collapse long entries: %1"), ChineseHelper.collapseLabel(settings:collapseLines()))
+        end,
+        help_text = _("An entry shown Always (MOE under CC-CEDICT's) is cut to this many lines, ending in …; tap its grey label line (show all) to see the rest, and again (show less) to cut it again. CC-CEDICT's entries and an entry that is a word's only one are always shown in full."),
+        sub_item_table = collapse,
+        separator = true,
+    }
+    fixed = #items
+    fill()
     return items
+end
+
+-- "1 line", "2 lines", "3 lines", "never".
+function ChineseHelper.collapseLabel(n)
+    if n == 0 then return _("never") end
+    return n == 1 and _("1 line") or T(_("%1 lines"), n)
+end
+
+-- MOE's Characters ("chars") or Words mode item: Off / Fallback / Always.
+function ChineseHelper:moeModeItem(kind)
+    local plugin, settings = self, self.settings
+    local key = kind == "words" and "moe_words" or "moe_chars"
+    local labels = {
+        off = _("Off"),
+        fallback = _("Fallback: only when CC-CEDICT lacks it"),
+        always = _("Always: also under CC-CEDICT's entry"),
+    }
+    local sub = {}
+    for _i, mode in ipairs(Settings.MOE_MODES) do
+        sub[#sub + 1] = {
+            text = labels[mode], radio = true, keep_menu_open = true,
+            checked_func = function() return settings:moeMode(kind) == mode end,
+            callback = function() settings:set(key, mode) end,
+        }
+    end
+    return {
+        text_func = function()
+            local what = kind == "words" and _("MOE for words: %1") or _("MOE for single characters: %1")
+            return "    " .. T(what, ChineseHelper.MOE_MODE_NAMES[settings:moeMode(kind)])
+        end,
+        help_text = _("Always: MOE's entry is shown under CC-CEDICT's too, collapsed (for a single character: between CC-CEDICT's entry and the components), with its classical senses and the readings CC-CEDICT does not list (marked \"not in CC-CEDICT\"). Fallback: only when CC-CEDICT does not have it. Always needs a MOE file built with Chinese helper 2.5.0 or later; with an older one it works as Fallback (Status says so). MOE never decides the pinyin drawn."),
+        enabled_func = function() return settings:fallbackEnabled("moe") and plugin:sourceDb("moe") ~= nil end,
+        sub_item_table = sub,
+    }
+end
+
+-- KOReader's SortWidget over the dictionaries after CC-CEDICT; on_done()
+-- after the new order is saved.
+function ChineseHelper:showOrder(on_done)
+    local SortWidget = require("ui/widget/sortwidget")
+    local item_table = {}
+    for _i, source in ipairs(self.settings:fallbackOrder()) do
+        item_table[#item_table + 1] = { text = ChineseHelper.SOURCE_NAMES[source], source = source }
+    end
+    UIManager:show(SortWidget:new{
+        title = _("Dictionaries after CC-CEDICT"),
+        item_table = item_table,
+        callback = function()
+            local order = {}
+            for _i, item in ipairs(item_table) do order[#order + 1] = item.source end
+            self.settings:setFallbackOrder(order)
+            if on_done then on_done() end
+        end,
+    })
 end
 
 -- "0 mm (off)", "2.5 mm", "5 mm", "7.5 mm", "10 mm".

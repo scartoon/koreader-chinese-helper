@@ -310,7 +310,14 @@ function Model.matches(args)
         local list, list_source = rowsFor(c.text)
         local entries = list and Model.cleanRows(c.text, list) or {}
         local m = { word = c.text, start = c.start, len = c.len, entries = entries }
-        if #entries > 0 then m.always = alwaysFor(c.text, list_source, entries) end
+        if #entries > 0 then
+            m.always = alwaysFor(c.text, list_source, entries)
+        elseif always_by_form[c.text] then
+            -- Only MOE's covered rows have it (a form CC-CEDICT lacks, 台風
+            -- for its 颱風): MOE's entry is the word's own.
+            entries = Model.cleanRows(c.text, always_by_form[c.text])
+            m.entries = entries
+        end
         local is_decided = decided ~= nil and c.text == decided.word and c.start == decided.start
         if is_decided then
             m.decided, m.note = true, decided.note

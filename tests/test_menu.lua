@@ -83,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 16 + 5 + 5 + 3 + 5 + 5 + 5 + 8 + 3, "menu size")   -- fallback: labels + 7 dictionaries
+eq(count, 16 + 5 + 5 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
 
 -- Character components: on by default, a toggle.
 local comp_item = entry.sub_item_table[10]
@@ -296,7 +296,7 @@ local function names(list)
 end
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
 local fb_item = entry.sub_item_table[15]
-eq(fb_item.text, "Fallback dictionaries")
+eq(fb_item.text, "Dictionaries")
 -- Source labels: default "other dictionaries only".
 local labels_item = fb_item.sub_item_table[1]
 eq(labels_item.text_func(), "Source labels: other dictionaries only")
@@ -305,8 +305,30 @@ labels_item.sub_item_table[1].callback(); eq(plugin.settings:labelMode(), "all")
 labels_item.sub_item_table[3].callback(); eq(plugin.settings:labelMode(), "none")
 eq(labels_item.text_func(), "Source labels: none")
 labels_item.sub_item_table[2].callback()
--- Then the dictionaries, in priority order, each on.
-table.remove(fb_item.sub_item_table, 1)
+-- Then Order and Collapse long entries.
+eq(fb_item.sub_item_table[2].text, "Order")
+local collapse_item = fb_item.sub_item_table[3]
+eq(collapse_item.text_func(), "Collapse long entries: 2 lines")
+collapse_item.sub_item_table[4].callback(); eq(plugin.settings:collapseLines(), 0)
+eq(collapse_item.text_func(), "Collapse long entries: never")
+collapse_item.sub_item_table[1].callback(); eq(collapse_item.text_func(), "Collapse long entries: 1 line")
+collapse_item.sub_item_table[2].callback()
+-- Then the dictionaries, in priority order, each on; MOE's two modes after its switch.
+local all_items = fb_item.sub_item_table
+local moe_modes = {}
+fb_item = { sub_item_table = {} }
+for k = 4, #all_items do
+    local it = all_items[k]
+    if it.sub_item_table then moe_modes[#moe_modes + 1] = it else fb_item.sub_item_table[#fb_item.sub_item_table + 1] = it end
+end
+eq(#moe_modes, 2)
+eq(all_items[7], moe_modes[1], "right after MOE's switch")
+eq(moe_modes[1].text_func(), "    MOE for single characters: always")
+eq(moe_modes[2].text_func(), "    MOE for words: fallback")
+moe_modes[2].sub_item_table[3].callback(); eq(plugin.settings:moeMode("words"), "always")
+assert(moe_modes[2].sub_item_table[3].checked_func())
+moe_modes[2].sub_item_table[2].callback()
+assert(moe_modes[1].enabled_func())
 local function texts(items)
     local out = {}
     for _, it in ipairs(items) do out[#out + 1] = it.text_func() end
@@ -400,12 +422,29 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[15].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[15].sub_item_table[4].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
 plugin.settings:set("fallback_order", nil)
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
+-- The Order item: KOReader's SortWidget over the seven; its order saved, and
+-- the menu's dictionary items rebuilt in it.
+local sort_args
+package.loaded["ui/widget/sortwidget"] = { new = function(_, a) sort_args = a; return a end }
+local items4 = {}
+plugin:addToMainMenu(items4)
+local dict_menu = items4.chinesehelper.sub_item_table[15].sub_item_table
+local updated = 0
+dict_menu[2].callback({ updateItems = function() updated = updated + 1 end })
+eq(#sort_args.item_table, 7); eq(sort_args.item_table[1].text, "Wiktionary")
+local moved = table.remove(sort_args.item_table, 6)   -- Wikipedia titles to the top
+table.insert(sort_args.item_table, 1, moved)
+sort_args.callback()
+eq(plugin.settings:get("fallback_order"), "wp,wikt,cbdb,moe,idioms,xinhua,moegirl")
+eq(updated, 1)
+eq(dict_menu[4].text_func(), "Wikipedia titles"); eq(#dict_menu, 3 + 7 + 2, "rebuilt, not added to")
+plugin.settings:set("fallback_order", nil)
 
 -- The popup with idioms (ch_tap.lua present, with a stand-in for the popup
 -- widget): CC-CEDICT's 一毛不拔 gets the 成語典's short line, labelled, and a
@@ -474,8 +513,14 @@ plugin2:init()
 eq(names(plugin2:fallbackSources()), "wikt,wp")
 local items2 = {}
 plugin2:addToMainMenu(items2)
-local dict_items = items2.chinesehelper.sub_item_table[15].sub_item_table
-table.remove(dict_items, 1)
+local dict_items = {}
+local moe_modes2 = {}
+for k, it in ipairs(items2.chinesehelper.sub_item_table[15].sub_item_table) do
+    if k > 3 then
+        if it.sub_item_table then moe_modes2[#moe_modes2 + 1] = it else dict_items[#dict_items + 1] = it end
+    end
+end
+for _, it in ipairs(moe_modes2) do assert(not it.enabled_func(), "MOE's modes greyed out without its file") end
 eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典 (not installed)"
     .. " | MOE 成語典 (not installed) | Xinhua idioms (not installed)"
     .. " | Wikipedia titles | Moegirlpedia slang (not installed)")

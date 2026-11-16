@@ -57,6 +57,8 @@ local Popup = InputContainer:extend{
     chinese_pct = 100, -- MOE's, the 成語典's and Xinhua's text: % of text_px
     book_font = nil,   -- {path=, index=} (ch_bookfont.lua): Chinese text in it, or nil
     full = false,      -- the whole screen's height (the Origin & Usage view), the body scrolling
+    collapse_lines = 0, -- an Always block's senses (block.collapse) shown to this many
+                       -- lines, then "…"; 0: never collapsed
     -- Taps and keys (ch_tap.lua keeps the stack of popups):
     on_char_tap = nil, -- function(popup, hit): a Han character of the body tapped
                        -- (hit: Popup:charAt)
@@ -323,6 +325,28 @@ function Popup.addContextToDict(dql, context, word)
     group:resetLayout()
 end
 
+-- The marker on a collapsible block's label line: tapping the line expands
+-- the block in place, and tapping it again collapses it.
+Popup.SHOW_ALL = "show all"
+Popup.SHOW_LESS = "show less"
+
+-- A widget that remembers where it was last painted (for taps on it), as
+-- wide as `width` whatever its content's width.
+local Hot = Widget:extend{ widget = nil, width = nil }
+
+function Hot:getSize()
+    local size = self.widget:getSize()
+    return Geom:new{ w = self.width or size.w, h = size.h }
+end
+
+function Hot:paintTo(bb, x, y)
+    local size = self:getSize()
+    self.dimen = Geom:new{ x = x, y = y, w = size.w, h = size.h }
+    self.widget:paintTo(bb, x, y)
+end
+
+function Hot:free() self.widget:free() end
+
 -- Should this block carry its source label?
 function Popup:labelled(block)
     if block.nolabel or self.label_mode == "none" then return false end
@@ -356,6 +380,7 @@ function Popup:body(text_w, max_h, full)
     local indent = self.face.size
     local function stack(full_width)
         self.tap_boxes = {}
+        self.toggles = {}
         local group = VerticalGroup:new{ align = "left" }
         -- A text box; `tappable` ones (Model.tappable) are kept for charAt.
         local function box(text, face, width, tappable)
@@ -374,23 +399,55 @@ function Popup:body(text_w, max_h, full)
                 end
                 group[#group + 1] = widget
             end
+            -- The senses, built first: a collapsible block (an Always
+            -- entry) longer than collapse_lines, counted as drawn, is cut to
+            -- that many lines ending in "…" unless expanded.
+            local lines_box
+            b.toggle = nil
+            if #b.lines > 0 then
+                local face = (b.large or Model.LARGE_SOURCES[b.source]) and self.chinese_face or self.face
+                local text = TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n")
+                local tappable = Model.tappable(b, "lines")
+                local n = self.collapse_lines or 0
+                if b.collapse and n > 0 then
+                    local probe = TextBoxWidget:new{ text = text, face = face, width = width }
+                    local all, line_h = probe:getAllLineCount(), probe:getLineHeight()
+                    probe:free()
+                    if all > n then
+                        b.toggle = b.expanded and Popup.SHOW_LESS or Popup.SHOW_ALL
+                        if not b.expanded then
+                            lines_box = TextBoxWidget:new{ text = text, face = face, width = width,
+                                height = n * line_h, height_overflow_show_ellipsis = true }
+                            if tappable then
+                                self.tap_boxes[#self.tap_boxes + 1] = { widget = lines_box, chars = Glyphs.chars(text) }
+                            end
+                        end
+                    end
+                end
+                lines_box = lines_box or box(text, face, width, tappable)
+            end
             -- The source label and, on the tapped character's own entry,
-            -- its frequency rank: one small grey line.
+            -- its frequency rank: one small grey line; on a collapsible
+            -- block also the marker, the whole line its tap target.
             local label = Model.labelText(b, self:labelled(b), self.labels)
+            if b.toggle then label = label and (label .. " · " .. b.toggle) or b.toggle end
             if label then
-                add(TextWidget:new{
+                local tw = TextWidget:new{
                     text = label, face = label_face,
                     fgcolor = Blitbuffer.COLOR_GRAY_5, max_width = width,
-                })
+                }
+                if b.toggle then
+                    local hot = Hot:new{ widget = tw, width = width }
+                    self.toggles[#self.toggles + 1] = { widget = hot, block = b }
+                    add(hot)
+                else
+                    add(tw)
+                end
             end
             if b.head then
                 add(box(TextBoxWidget.PTF_HEADER .. b.head, self.face, width, Model.tappable(b, "head")))
             end
-            if #b.lines > 0 then
-                local face = (b.large or Model.LARGE_SOURCES[b.source]) and self.chinese_face or self.face
-                add(box(TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n"), face, width,
-                    Model.tappable(b, "lines")))
-            end
+            if lines_box then add(lines_box) end
             if b.note then
                 if self:labelled(b.note) then
                     add(TextWidget:new{
@@ -472,6 +529,36 @@ function Popup:paintTo(bb, x, y)
     end
 end
 
+-- The collapsible block whose label line is at `pos` ({widget=, block=}),
+-- or nil; a line scrolled out of view takes no tap.
+function Popup:toggleAt(pos)
+    local clip = self:clip()
+    for _, t in ipairs(self.toggles or {}) do
+        local d = t.widget.dimen
+        if d and d.x and pos.x >= d.x and pos.x < d.x + d.w and pos.y >= d.y and pos.y < d.y + d.h
+                and (not clip or (pos.y >= clip.y and pos.y < clip.y + clip.h)) then
+            return t
+        end
+    end
+    return nil
+end
+
+-- Build the popup again (a block expanded or collapsed) and place it again;
+-- what it covered before and covers now is repainted.
+function Popup:rebuild()
+    local old = self.frame.dimen and self.frame.dimen:copy()
+    self.frame:free()
+    self:build()
+    local screen_w, screen_h = Screen:getWidth(), Screen:getHeight()
+    local size = self.frame:getSize()
+    self.frame_x = math.floor((screen_w - size.w) / 2)
+    self.frame_y = self.full and self.margin or Model.place(size.h, screen_h, self.margin, self.anchor)
+    self.tall = size.h > screen_h / 2
+    local new = Geom:new{ x = self.frame_x, y = self.frame_y, w = size.w, h = size.h }
+    local region = old and old:combine(new) or new
+    UIManager:setDirty("all", function() return "ui", region end)
+end
+
 function Popup:onShow()
     UIManager:setDirty(self, function() return "ui", self.frame.dimen end)
     return true
@@ -505,6 +592,12 @@ end
 function Popup:onTapClose(_, ges)
     if self.frame.dimen and ges.pos:notIntersectWith(self.frame.dimen) then
         if self.on_outside then self.on_outside() else self:onClose() end
+        return true
+    end
+    local toggle = self:toggleAt(ges.pos)
+    if toggle then
+        toggle.block.expanded = not toggle.block.expanded
+        self:rebuild()
         return true
     end
     if self.on_char_tap then

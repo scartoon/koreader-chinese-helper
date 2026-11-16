@@ -691,6 +691,7 @@ function Tap:present(args)
         anchor = args.box,
         text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),
         chinese_pct = self.plugin.settings:chineseTextPercent(),
+        collapse_lines = self.plugin.settings:collapseLines(),
         book_font = self:bookFont(),
     }
     self:push(popup)
