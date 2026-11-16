@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.2 (2026-11-16)
+
+- **Words with no definition from any source are no longer listed in the popup.** A word known
+  only from pypinyin's segmentation (不畅 in 受阻不畅) used to show its pinyin and "no definition
+  in CC-CEDICT"; it is now left out, also when it is the word that decided the tapped
+  character's reading (that character's own entry already shows the reading). Words with a
+  fallback entry or a note still appear.
+
 ## 2.5.1 (2026-11-16)
 
 - **A collapsed MOE entry ends in "[Tap to show more]"**, small and grey, right after its last
