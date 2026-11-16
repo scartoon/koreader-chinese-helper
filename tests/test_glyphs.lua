@@ -122,3 +122,14 @@ eq(u.h, 4, "underline h")
 eq(Glyphs.underline(S, 1, 4, 5), nil, "a scrolled-out character has none")
 local cut = Glyphs.underline(S, 21, 4, 5)  -- 子 on line 3, baseline at 54 + 40
 eq(cut.y, 54 + 40 + 5, "visible underline")
+
+-- Glyphs.cut (#11): the collapsed block's last line, cut to leave room for
+-- the marker; each character 10 px wide here.
+do
+    local chars = Glyphs.chars("一二三四五\n六七八九十")
+    local measure = function(s) return #Glyphs.chars(s) * 10 end
+    eq(Glyphs.cut(chars, 7, 11, 100, measure), 11, "fits: nothing cut")
+    eq(Glyphs.cut(chars, 7, 11, 35, measure), 9, "three characters fit")
+    eq(Glyphs.cut(chars, 7, 11, 5, measure), 6, "none fit: an empty line")
+    eq(Glyphs.cut(chars, 1, 6, 100, measure), 5, "a trailing newline dropped")
+end

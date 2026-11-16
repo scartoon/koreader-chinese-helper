@@ -127,6 +127,27 @@ function Glyphs.underline(box, i, thick, offset)
 end
 
 --[[--
+Where to cut a collapsed block's text so that its last shown line leaves
+`room` pixels free for the "[Tap to show more]" marker (pure; ch_popup.lua).
+  chars     the text's characters (Glyphs.chars), one per index
+  first     index of the last shown line's first character
+  last      index of its last character (as the text box broke the lines)
+  room      the width that line may take, in pixels
+  measure   function(s) -> width of string s drawn in the text's face
+Returns the index of the last character to keep (>= first - 1: the line
+may end up empty). Trailing newlines and spaces are dropped too.
+]]
+function Glyphs.cut(chars, first, last, room, measure)
+    local e = last
+    while e >= first do
+        local c = chars[e]
+        if c ~= "\n" and c ~= " " and measure(table.concat(chars, "", first, e)) <= room then break end
+        e = e - 1
+    end
+    return math.max(e, first - 1)
+end
+
+--[[--
 A KOReader TextBoxWidget as last painted (its dimen gives the position) as
 a box, or nil. chars: Glyphs.chars of the text it was given. clip: as above.
 Reads the widget's line list: with xtext (KOReader's default) the shaped

@@ -325,27 +325,56 @@ function Popup.addContextToDict(dql, context, word)
     group:resetLayout()
 end
 
--- The marker on a collapsible block's label line: tapping the line expands
--- the block in place, and tapping it again collapses it.
-Popup.SHOW_ALL = "show all"
-Popup.SHOW_LESS = "show less"
+-- The marker after a collapsible block's text (an Always entry longer than
+-- collapse_lines): small and grey, at the end of the last line shown. A tap
+-- on it, or on the rest of that line after it, expands the block in place;
+-- expanded, the same marker at the end of the text collapses it again.
+Popup.SHOW_MORE = "[Tap to show more]"
+Popup.SHOW_LESS = "[Tap to show less]"
 
--- A widget that remembers where it was last painted (for taps on it), as
--- wide as `width` whatever its content's width.
-local Hot = Widget:extend{ widget = nil, width = nil }
+-- A text box with the marker drawn after its line `line` (on a line of its
+-- own below when it doesn't fit there). Remembers where the marker's tap
+-- area was last painted (self.hot): from the marker to the right edge, the
+-- height of that line.
+local Marked = Widget:extend{ box = nil, marker = nil, width = nil, line = nil }
 
-function Hot:getSize()
-    local size = self.widget:getSize()
-    return Geom:new{ w = self.width or size.w, h = size.h }
+function Marked:init()
+    local box, marker = self.box, self.marker
+    local lh = box:getLineHeight()
+    local list = box.vertical_string_list or {}
+    local n = math.max(1, math.min(self.line or #list, #list))
+    local used = list[n] and list[n].width or 0
+    if list[n] and list[n].end_offset and list[n].end_offset < list[n].offset then used = 0 end
+    self.gap = math.floor(marker:getSize().h / 2)
+    local mw = marker:getSize().w
+    local box_h = box:getSize().h
+    self.extra = 0
+    if used > 0 and used + self.gap + mw <= self.width then
+        self.mx, self.line_top = used + self.gap, (n - 1) * lh
+    else
+        self.mx, self.line_top = 0, n * lh
+        if self.line_top + lh > box_h then self.extra = self.line_top + lh - box_h end
+    end
+    local baseline = box.line_glyph_baseline or math.floor(lh * 0.8)
+    self.my = self.line_top + baseline - marker:getBaseline()
+    self.lh = lh
+    self.size = Geom:new{ w = self.width, h = box_h + self.extra }
 end
 
-function Hot:paintTo(bb, x, y)
-    local size = self:getSize()
-    self.dimen = Geom:new{ x = x, y = y, w = size.w, h = size.h }
-    self.widget:paintTo(bb, x, y)
+function Marked:getSize() return self.size end
+
+function Marked:paintTo(bb, x, y)
+    self.dimen = Geom:new{ x = x, y = y, w = self.size.w, h = self.size.h }
+    self.box:paintTo(bb, x, y)
+    self.marker:paintTo(bb, x + self.mx, y + self.my)
+    local from = math.max(0, self.mx - self.gap)
+    self.hot = Geom:new{ x = x + from, y = y + self.line_top, w = self.width - from, h = self.lh }
 end
 
-function Hot:free() self.widget:free() end
+function Marked:free()
+    self.box:free()
+    self.marker:free()
+end
 
 -- Should this block carry its source label?
 function Popup:labelled(block)
@@ -401,9 +430,9 @@ function Popup:body(text_w, max_h, full)
             end
             -- The senses, built first: a collapsible block (an Always
             -- entry) longer than collapse_lines, counted as drawn, is cut to
-            -- that many lines ending in "…" unless expanded.
+            -- that many lines, the last one ending in "[Tap to show more]"
+            -- unless expanded (then the text ends in "[Tap to show less]").
             local lines_box
-            b.toggle = nil
             if #b.lines > 0 then
                 local face = (b.large or Model.LARGE_SOURCES[b.source]) and self.chinese_face or self.face
                 local text = TextBoxWidget.PTF_HEADER .. table.concat(b.lines, "\n")
@@ -411,38 +440,54 @@ function Popup:body(text_w, max_h, full)
                 local n = self.collapse_lines or 0
                 if b.collapse and n > 0 then
                     local probe = TextBoxWidget:new{ text = text, face = face, width = width }
-                    local all, line_h = probe:getAllLineCount(), probe:getLineHeight()
-                    probe:free()
-                    if all > n then
-                        b.toggle = b.expanded and Popup.SHOW_LESS or Popup.SHOW_ALL
-                        if not b.expanded then
-                            lines_box = TextBoxWidget:new{ text = text, face = face, width = width,
-                                height = n * line_h, height_overflow_show_ellipsis = true }
+                    local list = probe.vertical_string_list or {}
+                    local line_h = probe:getLineHeight()
+                    if #list > n then
+                        local marker = TextWidget:new{
+                            text = b.expanded and Popup.SHOW_LESS or Popup.SHOW_MORE, face = label_face,
+                            fgcolor = Blitbuffer.COLOR_GRAY_5,
+                        }
+                        local tbw, line
+                        if b.expanded then
+                            probe:free()
+                            tbw, line = box(text, face, width, tappable), nil
+                        else
+                            -- Cut the n-th line short enough to leave room for the marker.
+                            local chars = Glyphs.chars(text)
+                            local last = list[n]
+                            local room = width - marker:getSize().w - math.floor(marker:getSize().h / 2)
+                            local e = Glyphs.cut(chars, last.offset, math.min(last.end_offset or #chars, #chars), room,
+                                function(str)
+                                    local tw = TextWidget:new{ text = str, face = face }
+                                    local w = tw:getSize().w
+                                    tw:free()
+                                    return w
+                                end)
+                            probe:free()
+                            local cut = TextBoxWidget.PTF_HEADER .. table.concat(chars, "", 1, e)
+                            tbw = TextBoxWidget:new{ text = cut, face = face, width = width,
+                                height = n * line_h }
                             if tappable then
-                                self.tap_boxes[#self.tap_boxes + 1] = { widget = lines_box, chars = Glyphs.chars(text) }
+                                self.tap_boxes[#self.tap_boxes + 1] = { widget = tbw, chars = Glyphs.chars(cut) }
                             end
+                            line = n
                         end
+                        lines_box = Marked:new{ box = tbw, marker = marker, width = width, line = line }
+                        self.toggles[#self.toggles + 1] = { widget = lines_box, block = b }
+                    else
+                        probe:free()
                     end
                 end
                 lines_box = lines_box or box(text, face, width, tappable)
             end
             -- The source label and, on the tapped character's own entry,
-            -- its frequency rank: one small grey line; on a collapsible
-            -- block also the marker, the whole line its tap target.
+            -- its frequency rank: one small grey line.
             local label = Model.labelText(b, self:labelled(b), self.labels)
-            if b.toggle then label = label and (label .. " · " .. b.toggle) or b.toggle end
             if label then
-                local tw = TextWidget:new{
+                add(TextWidget:new{
                     text = label, face = label_face,
                     fgcolor = Blitbuffer.COLOR_GRAY_5, max_width = width,
-                }
-                if b.toggle then
-                    local hot = Hot:new{ widget = tw, width = width }
-                    self.toggles[#self.toggles + 1] = { widget = hot, block = b }
-                    add(hot)
-                else
-                    add(tw)
-                end
+                })
             end
             if b.head then
                 add(box(TextBoxWidget.PTF_HEADER .. b.head, self.face, width, Model.tappable(b, "head")))
@@ -529,12 +574,12 @@ function Popup:paintTo(bb, x, y)
     end
 end
 
--- The collapsible block whose label line is at `pos` ({widget=, block=}),
--- or nil; a line scrolled out of view takes no tap.
+-- The collapsible block whose marker's tap area is at `pos` ({widget=,
+-- block=}), or nil; a marker scrolled out of view takes no tap.
 function Popup:toggleAt(pos)
     local clip = self:clip()
     for _, t in ipairs(self.toggles or {}) do
-        local d = t.widget.dimen
+        local d = t.widget.hot
         if d and d.x and pos.x >= d.x and pos.x < d.x + d.w and pos.y >= d.y and pos.y < d.y + d.h
                 and (not clip or (pos.y >= clip.y and pos.y < clip.y + clip.h)) then
             return t

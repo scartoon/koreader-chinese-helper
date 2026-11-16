@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.1 (2026-11-16)
+
+- **A collapsed MOE entry ends in "[Tap to show more]"**, small and grey, right after its last
+  shown line, instead of an "…" that did nothing when tapped. Tapping it, or the space after it,
+  expands the entry; expanded, it ends in **[Tap to show less]**. The label line is plain "MOE"
+  again, with no "show all" and no tap action. The characters before the marker still open
+  nested popups.
+
 ## 2.5.0 (2026-11-16)
 
 MOE always shown for single characters (#11, #18)
