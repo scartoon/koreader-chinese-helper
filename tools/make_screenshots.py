@@ -101,30 +101,30 @@ SHOTS = {
     "main": dict(page="sg1", taps=[("密", 1, (172, 1150), [
         "**密**  mì", "[MOE] Always\n  **密**  mì", "**宓** mì  still; silent  → sound (same sound)", "**山** shān  mountain  → meaning",
         "[Wikt]", "**不密**  bùmì", "(literary) not well thought out; (literary) not secret"])],
-        frames=[(1, (95, 1185))]),
+        frames=[(1, (117, 1185))]),
     "context": dict(page="kyj14", taps=[("间", 1, (773, 500), [
         "**间**  jiàn · likely here", "[MOE] Always\n  **间**  jiàn", "**间或**  jiànhuò · decides 间's reading"])],
-        frames=[(1, (188, 1076))]),
+        frames=[(1, (95, 1167))]),
     "components": dict(page="kyj13", taps=[("茴", 1, (988, 790), [
         "**茴**  huí", "[MOE] Always\n  **茴**  huí", "**艹** cǎo  grass; plant (草字头)  → meaning",
         "**回** huí  to go back; to return  → sound (same sound)", "**茴香豆**  huíxiāngdòu"])],
-        frames=[(1, (178, 1085))]),
+        frames=[(1, (108, 1155))]),
     "traditional": dict(page="aq59", taps=[("观", 1, (170, 965), [
         "**观**  guān · likely here", "[MOE] Always\n  **观**  guān", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
         "simplified: 雚 → 又", "**观音**  Guānyīn · decides 观's reading"])],
-        frames=[(1, (154, 1110))]),
+        frames=[(1, (61, 1201))]),
     "chengyu": dict(page="kyj13", taps=[("也", 3, (170, 590), [
-        "[MOE] Always\n  **也**  yě", "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 862), [])],
-        frames=[(1, (120, 1143)), (2, (20, 700))]),
+        "[MOE] Always\n  **也**  yě", "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 980), [])],
+        frames=[(1, (28, 1235)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
         "**秋**  qiū", "[MOE] Always\n  **秋**  qiū", "[MMAH]", "  [MOE]\n  **秋月春风**", "**秋月春风**  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
-        frames=[(1, (97, 1167))]),
+        frames=[(1, (18, 1245))]),
     # A character of the popup's own text: 欢, inside MOE's quotation of 〈琵琶行〉,
     # opens its popup on top; the context line is the quotation (the device's
     # log must give it as the sentence), the 欢 below underlined.
     "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["[MOE] Always\n  **秋**  qiū", "  [MOE]\n  **秋月春风**  qiū yuè chūn fēng"]),
-                                     ("欢", "nested", (1322, 772), ["「今年欢笑复明年，秋月春风等闲度。」"])],
-                   frames=[(2, (97, 1167))]),
+                                     ("欢", "nested", (1322, 872), ["「今年欢笑复明年，秋月春风等闲度。」"])],
+                   frames=[(2, (18, 1245))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè", "[MOE] Always\n  **窃**  qiè"])],
         frames=[(1, (15, 1160))]),
     # The same popup, then its Translate & Analyze button (at `koassistant`):
@@ -136,7 +136,7 @@ SHOTS = {
     # image whose README alt text describes one particular answer. Take it by
     # name, look at it, and rewrite the alt text to match.
     "translate-result": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
-        koassistant=(840, 847), koassistant_end=(1245, 1195)),
+        koassistant=(840, 920), koassistant_end=(1245, 1195)),
     # Page 1 with pinyin off, then on: the plugin adds line space where it
     # draws pinyin (69 pages instead of 74), so each crop ends after the same
     # line of text (下。后来光武中兴…), the one with pinyin taller.
