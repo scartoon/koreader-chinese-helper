@@ -68,13 +68,49 @@ function G.open(files)
             if db then sources[#sources + 1] = { source = source, db = db } end
         end
     end
-    local function lookup(words, only)
-        local remaining, out, fetched = words, {}, {}
+    -- main.lua's moeHasCovered and alwaysTexts: with a rebuilt MOE file,
+    -- the texts MOE shows Always (the defaults: single characters).
+    local moe_db
+    for _, src in ipairs(sources) do if src.source == "moe" then moe_db = src.db end end
+    local covered = moe_db ~= nil and moe_db:hasCovered()
+    local function always_texts(texts)
+        local chars, words = settings:moeMode("chars"), settings:moeMode("words")
+        if (chars ~= "always" and words ~= "always") or not covered then return {} end
+        local out = {}
+        for _, t in ipairs(texts) do
+            local single = select(2, t:gsub("[^\128-\191]", "")) == 1
+            if (single and chars == "always") or (not single and words == "always") then out[#out + 1] = t end
+        end
+        return out
+    end
+    -- main.lua's fallbackLookup: with `always`, MOE's file is asked once for
+    -- those and `words` together (covered rows included); second value:
+    -- every MOE row for the `always` texts.
+    local function lookup(words, only, always)
+        local remaining, out, fetched, always_rows = words, {}, {}, {}
         for _, src in ipairs(sources) do
-            if #remaining == 0 then break end
+            local want_always = always ~= nil and #always > 0 and src.source == "moe"
+            if #remaining == 0 and not want_always then break end
             if not only or only[src.source] then
                 local rows = fetched[src.db]
-                if not rows then
+                if not rows and want_always then
+                    local list, seen, wanted = {}, {}, {}
+                    for _, l in ipairs({ words, always }) do
+                        for _, w in ipairs(l) do
+                            if not seen[w] then list[#list + 1], seen[w] = w, true end
+                        end
+                    end
+                    for _, w in ipairs(always) do wanted[w] = true end
+                    rows = {}
+                    for _, row in ipairs(src.db:fallbackAll(list)) do
+                        if wanted[row.simp] or wanted[row.trad] then
+                            row.source = src.source
+                            always_rows[#always_rows + 1] = row
+                        end
+                        if not row.covered then rows[#rows + 1] = row end
+                    end
+                    fetched[src.db] = rows
+                elseif not rows then
                     rows = src.db:fallback(words)
                     fetched[src.db] = rows
                 end
@@ -90,7 +126,7 @@ function G.open(files)
                 for _, row in ipairs(kept) do out[#out + 1] = row end
             end
         end
-        return out
+        return out, always_rows
     end
     local only = reading_sources()
     local names = {}
@@ -113,6 +149,7 @@ function G.open(files)
     local names_all = {}
     for _, src in ipairs(sources) do names_all[#names_all + 1] = src.source end
     return { main = main, data = data, special = main:special(), lookup = lookup, idioms = idioms,
+             always_texts = always_texts, covered = covered,
              settings = settings, sources = table.concat(names_all, ",") }
 end
 
@@ -162,10 +199,13 @@ local function present(g, char, cands, rows, matches, annotated)
     for _, m in ipairs(matches) do buttons[#buttons + 1] = m.word end
     for _, c in ipairs(Model.chuchu(matches)) do buttons[#buttons + 1] = c.text .. "(" .. c.word .. ")" end
     local block = comp and Components.block(comp.c, "**", "**", comp.via, comp.changes)
-    if block then
+    if block then   -- below the character's own entry and its MOE Always entry
         local first = matches[1]
-        table.insert(blocks, (first and first.len == 1) and 2 or 1, block)
+        local at = (first and first.len == 1) and 2 or 1
+        if at == 2 and blocks[2] and blocks[2].always then at = 3 end
+        table.insert(blocks, at, block)
     end
+    Model.chineseLast(blocks)
     local label_mode = g.settings:labelMode()
     local function label(source)
         if label_mode == "none" or (label_mode == "fallback" and source == "cedict") then return false end
@@ -174,6 +214,7 @@ local function present(g, char, cands, rows, matches, annotated)
     local out = {}
     for _, b in ipairs(blocks) do
         out[#out + 1] = { label = label(b.source), head = b.head or false, lines = b.lines,
+                          always = b.always and true or false,
                           note = b.note and { label = label(b.note.source), text = b.note.text } or false }
     end
     return { blocks = out, buttons = buttons, chuchu = Model.chuchu(matches) }
@@ -207,11 +248,12 @@ function G.popup(g, text, threshold, mode, char, nth)
     local chosen, decided, unsure = Resolve.forPopup(g.data, items, i, mode, g.special, drawn)
     local cands, texts = Text.candidates(left, char, right)
     local rows = g.main:lookup(texts)
-    for _, r in ipairs(g.lookup(Model.uncovered(texts, rows))) do rows[#rows + 1] = r end
+    local fallback, always = g.lookup(Model.uncovered(texts, rows), nil, g.always_texts(texts))
+    for _, r in ipairs(fallback) do rows[#rows + 1] = r end
     g.data:prefetch(texts)
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = drawn ~= nil, decided = decided,
-        unsure = unsure, order = g.settings:fallbackOrder(),
+        unsure = unsure, order = g.settings:fallbackOrder(), always = always,
         default = select(2, g.data:char(char)),
         wordReading = function(w) return Resolve.wordReading(g.data, w) end,
     }
@@ -259,6 +301,8 @@ class Gate:
             sys.exit(f"gate: missing optional dictionaries in {files_dir}: {', '.join(missing)}")
         self.g = self.G.open(self.lua.table_from(files))
         self.sources = self.g.sources
+        if not self.g.covered:
+            sys.exit("gate: the MOE file in build/ has no covered rows: rebuild it (tools/build_moe.py) for Always")
 
     def annotate(self, text, threshold, mode="both"):
         """[(char, reading, special)] in page order."""
@@ -276,7 +320,7 @@ def format_popup(p):
         out.append(f"header: {p['header']}")
     for b in p["blocks"]:
         if b.get("label"):
-            out.append(f"  [{b['label']}]")
+            out.append(f"  [{b['label']}]" + (" Always" if b.get("always") else ""))
         if b.get("head"):
             out.append("  " + b["head"])
         out.extend("  " + line for line in b["lines"])
