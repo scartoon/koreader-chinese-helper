@@ -543,7 +543,8 @@ def stage_built(per_book, seed, moe_path):
     con.close()
     if os.path.exists(moe_path):
         m = sqlite3.connect(moe_path)
-        for simp, trad in m.execute("SELECT simp, trad FROM fallback"):
+        uncovered = "covered = 0" if any(r[1] == "covered" for r in m.execute("PRAGMA table_info(fallback)")) else "1"
+        for simp, trad in m.execute("SELECT simp, trad FROM fallback WHERE " + uncovered):
             forms["moe"].update((simp, trad))
         m.close()
     taps = []

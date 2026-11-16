@@ -20,7 +20,9 @@ What every source gets (the plugin can only ever match these):
   * headwords of 1-8 Han characters only: the popup's context stops at any
     other character, so 卡拉OK or 996 can never be looked up;
   * no row for a headword CC-CEDICT has, in either form: CC-CEDICT stays the
-    only entry for its words;
+    only entry for its words. The exception is MOE's own file
+    (build_moe.py), which keeps them as covered rows (`covered` = 1) for the
+    popup's "always shown" mode; the fallback lookup leaves them out;
   * no everyday combinations (see everyday()) and no numerals.
 
 Sources:
@@ -487,12 +489,16 @@ def wiktionary_rows(path, cedict, measure, stats, dropped=None, readings=None):
 PUA = re.compile("[-]|\\{\\[[0-9a-f]+\\]\\}")
 
 
-def moe_rows(path, cedict, measure, stats, dropped=None, simplify=True):
+def moe_rows(path, cedict, measure, stats, dropped=None, simplify=True, covered=None):
     """Rows (simp, trad, pinyin, syllables, defs, "moe"). The simplified form is
     OpenCC's tw2s (characters only: tw2sp would also swap vocabulary, 滑鼠 ->
     鼠标, and index a word under another word). simplify: the definitions in
     simplified characters (simplify.py, tw2s with its fixes); False keeps
-    MOE's text as written."""
+    MOE's text as written.
+    covered: a list that, when given, receives the rows for headwords
+    CC-CEDICT has (dropped otherwise), built the same way and through the same
+    everyday-combinations filter; write_local_file stores them with
+    covered = 1. The rows returned are the same with or without it."""
     import opencc
     tw2s = opencc.OpenCC("tw2s")
     simplifier = Simplifier("tw2s")
@@ -507,9 +513,11 @@ def moe_rows(path, cedict, measure, stats, dropped=None, simplify=True):
         if not han_word(trad) or not han_word(simp):
             stats["moe: not Han-only 1-8 (dropped)"] += 1
             continue
-        if simp in cedict or trad in cedict:
+        is_covered = simp in cedict or trad in cedict
+        if is_covered and covered is None:
             stats["moe: CC-CEDICT has the headword (dropped)"] += 1
             continue
+        tag = "moe covered" if is_covered else "moe"
         hets = []
         for het in e.get("heteronyms") or []:
             senses = []
@@ -517,7 +525,7 @@ def moe_rows(path, cedict, measure, stats, dropped=None, simplify=True):
                 text = d.get("def", "")
                 if PUA.search(text):
                     text = PUA.sub("□", text)
-                    stats["moe: senses with private-use characters (shown as □)"] += 1
+                    stats[tag + ": senses with private-use characters (shown as □)"] += 1
                 if text:
                     senses.append(clean_sense(text))
             if senses:
@@ -525,18 +533,21 @@ def moe_rows(path, cedict, measure, stats, dropped=None, simplify=True):
         protected = any(HISTORICAL_MOE.search(x) for _, senses in hets for x in senses)
         reason = everyday(simp, cedict, measure, protected) or everyday(trad, cedict, measure, protected)
         if reason:
-            stats["moe: everyday combinations (dropped): " + reason] += 1
-            if dropped is not None:
+            stats[tag + ": everyday combinations (dropped): " + reason] += 1
+            if dropped is not None and not is_covered:
                 dropped.append((simp, reason, hets[0][1][0] if hets else ""))
             continue
+        out = covered if is_covered else rows
         for pinyin, senses in hets:
             if simplify:
                 simple = [simplifier.convert(x) for x in senses]
                 if simple != senses:
-                    stats["moe: rows with definitions simplified"] += 1
+                    stats[tag + ": rows with definitions simplified"] += 1
                 senses = simple
-            rows.append((simp, trad, pinyin, "", "/".join(senses), "moe"))
+            out.append((simp, trad, pinyin, "", "/".join(senses), "moe"))
     stats["moe: rows"] = len(rows)
+    if covered is not None:
+        stats["moe covered: rows"] = len(covered)
     return rows
 
 
@@ -818,25 +829,59 @@ def moegirl_rows(slob_path, cedict, measure, stats, examples=None):
 # user's own MOE file, so the plugin queries both with the same SQL.
 # ---------------------------------------------------------------------------
 
+# The release database keeps this table exactly as it was (build_db.py): it
+# has no covered rows, and a new column would change the release file for
+# nothing. The user's own files (write_local_file) add a `covered` column:
+# 1 for a row whose headword CC-CEDICT has (only build_moe.py writes those),
+# which the plugin's fallback lookup leaves out.
 FALLBACK_SCHEMA = """
     CREATE TABLE fallback (simp TEXT NOT NULL, trad TEXT NOT NULL, pinyin TEXT NOT NULL,
                            syllables TEXT NOT NULL, defs TEXT NOT NULL, source TEXT NOT NULL);
 """
+FALLBACK_SCHEMA_COVERED = """
+    CREATE TABLE fallback (simp TEXT NOT NULL, trad TEXT NOT NULL, pinyin TEXT NOT NULL,
+                           syllables TEXT NOT NULL, defs TEXT NOT NULL, source TEXT NOT NULL,
+                           covered INTEGER NOT NULL DEFAULT 0);
+"""
 
 
-def write_fallback(con, rows):
+def write_fallback(con, rows, covered=None):
     """Create and fill the fallback table, rows in a stable order (the build
-    is reproducible), with indexes on both forms like `entries`."""
-    con.executescript(FALLBACK_SCHEMA)
-    con.executemany("INSERT INTO fallback VALUES (?, ?, ?, ?, ?, ?)", sorted(set(rows)))
+    is reproducible), with indexes on both forms like `entries`.
+    covered: None for the release database's table (no `covered` column);
+    otherwise the table has the column, `rows` get 0 and these rows 1, after
+    them."""
+    if covered is None:
+        con.executescript(FALLBACK_SCHEMA)
+        con.executemany("INSERT INTO fallback VALUES (?, ?, ?, ?, ?, ?)", sorted(set(rows)))
+    else:
+        con.executescript(FALLBACK_SCHEMA_COVERED)
+        con.executemany("INSERT INTO fallback VALUES (?, ?, ?, ?, ?, ?, 0)", sorted(set(rows)))
+        con.executemany("INSERT INTO fallback VALUES (?, ?, ?, ?, ?, ?, 1)", sorted(set(covered)))
     con.execute("CREATE INDEX fallback_simp ON fallback(simp)")
     con.execute("CREATE INDEX fallback_trad ON fallback(trad)")
 
 
 # Keep in step with DB.fallbackSql in chinesehelper.koplugin/ch_db.lua
-# (tests/test_db.lua checks that they match).
-def fallback_sql(n):
+# (tests/test_db.lua checks that they match). uncovered: leave out covered
+# rows (a table with the `covered` column).
+def has_covered(con):
+    """Whether this connection's fallback table has the `covered` column
+    (the user's own files from 2.5.0 on)."""
+    return any(r[1] == "covered" for r in con.execute("PRAGMA table_info(fallback)"))
+
+
+def uncovered_rows(con):
+    """A WHERE condition leaving out covered rows ("1" when the table has
+    none), for scripts that read a whole fallback file as a fallback source."""
+    return "covered = 0" if has_covered(con) else "1"
+
+
+def fallback_sql(n, uncovered=False):
     marks = ",".join("?" * n)
+    if uncovered:
+        return (f"SELECT simp, trad, pinyin, syllables, defs, source FROM fallback WHERE (simp IN ({marks}) "
+                f"OR trad IN ({marks})) AND covered = 0 ORDER BY rowid")
     return (f"SELECT simp, trad, pinyin, syllables, defs, source FROM fallback WHERE simp IN ({marks}) "
             f"OR trad IN ({marks}) ORDER BY rowid")
 
@@ -864,11 +909,12 @@ def forms_from_entries(entries):
 DEVICE_DIR = "/sdcard/koreader/data/chinesehelper"
 
 
-def write_local_file(out, rows, meta, name, extra=None):
+def write_local_file(out, rows, meta, name, extra=None, covered=()):
     """Write `rows` and `meta` to `out` (through a temporary file), checking
     that the plugin's lookup uses the indexes. `name` is for messages.
     extra: function(connection) adding further tables (the chengyu files'
-    idioms table, tools/chengyu.py)."""
+    idioms table, tools/chengyu.py). covered: rows for headwords CC-CEDICT
+    has (moe_rows' covered list), stored with covered = 1."""
     import sqlite3 as _sqlite3
     tmp = out + ".tmp"
     if os.path.exists(tmp):
@@ -876,16 +922,18 @@ def write_local_file(out, rows, meta, name, extra=None):
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     con = _sqlite3.connect(tmp)
     con.execute("PRAGMA page_size = 4096")
-    write_fallback(con, rows)
+    write_fallback(con, rows, list(covered))
     if extra:
         extra(con)
     con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
     con.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
     con.commit()
     for n in (1, 36):
-        plan = "\n".join(r[3] for r in con.execute("EXPLAIN QUERY PLAN " + fallback_sql(n), ["x"] * (2 * n)))
-        if "USING INDEX fallback_simp" not in plan or "USING INDEX fallback_trad" not in plan:
-            raise SystemExit(f"{name} lookup does not use its indexes:\n{plan}")
+        for uncovered in (False, True):
+            sql = fallback_sql(n, uncovered)
+            plan = "\n".join(r[3] for r in con.execute("EXPLAIN QUERY PLAN " + sql, ["x"] * (2 * n)))
+            if "USING INDEX fallback_simp" not in plan or "USING INDEX fallback_trad" not in plan:
+                raise SystemExit(f"{name} lookup does not use its indexes:\n{plan}")
     con.execute("VACUUM")
     con.close()
     os.replace(tmp, out)

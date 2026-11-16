@@ -174,8 +174,11 @@ class Plugin:
                     if not remaining:
                         break
                     marks = ",".join("?" * len(remaining))
+                    # Covered rows (MOE's file from 2.5.0 on) are never fallback entries.
+                    uncovered = (" AND covered = 0" if any(r[1] == "covered" for r in
+                                 conn.execute("PRAGMA table_info(fallback)")) else "")
                     got = conn.execute(f"SELECT simp, trad, pinyin FROM fallback WHERE (simp IN ({marks}) "
-                                       f"OR trad IN ({marks})) AND source = ? ORDER BY rowid",
+                                       f"OR trad IN ({marks})) AND source = ?{uncovered} ORDER BY rowid",
                                        remaining + remaining + [src]).fetchall()
                     taken = set()
                     for simp, trad, pinyin in got:

@@ -52,7 +52,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure_fallback as mf  # noqa: E402
-from fallback_sources import everyday, cedict_forms as cedict_forms_measure  # noqa: E402
+from fallback_sources import everyday, uncovered_rows, cedict_forms as cedict_forms_measure  # noqa: E402
 
 ROOT = mf.ROOT
 BUILD = mf.BUILD
@@ -111,7 +111,7 @@ def known_forms():
     if not os.path.exists(MOE_FILE):
         sys.exit(f"{MOE_FILE} missing: build it with tools/build_moe.py")
     m = sqlite3.connect(MOE_FILE)
-    for simp, trad in m.execute("SELECT simp, trad FROM fallback"):
+    for simp, trad in m.execute("SELECT simp, trad FROM fallback WHERE " + uncovered_rows(m)):
         out["moe"].update((simp, trad))
     m.close()
     return out, resolver
@@ -1015,7 +1015,8 @@ def built_sources():
             continue
         con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         forms = {}
-        for simp, trad, defs in con.execute("SELECT simp, trad, defs FROM fallback WHERE source = ?", (src,)):
+        for simp, trad, defs in con.execute("SELECT simp, trad, defs FROM fallback WHERE source = ? AND "
+                                            + uncovered_rows(con), (src,)):
             forms.setdefault(simp, defs)
             forms.setdefault(trad, defs)
         con.close()

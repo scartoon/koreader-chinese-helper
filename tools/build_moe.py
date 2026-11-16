@@ -29,8 +29,10 @@ What the file holds: one `fallback` table, the same as the release database's
     lack stays traditional). --traditional keeps MOE's own text.
   * Readings are MOE's, Taiwan standard.
   * Left out: headwords with private-use characters, headwords that are not
-    1-8 Han characters, headwords CC-CEDICT has (read from the plugin
-    database, taken from the latest release when missing), everyday combinations and numerals.
+    1-8 Han characters, everyday combinations and numerals.
+  * Headwords CC-CEDICT has (read from the plugin database, taken from the
+    latest release when missing) are kept as covered rows (covered = 1, meta
+    moe_covered = 1): the plugin never uses them as fallback entries.
     Wiktionary's headwords are kept: the plugin applies the source priority
     when looking words up, so MOE still covers them when Wiktionary is off.
 """
@@ -100,16 +102,21 @@ def main():
 
     cedict, measure = fallback_sources.cedict_forms(args.db)
     stats = Counter()
-    rows = fallback_sources.moe_rows(src, cedict, measure, stats, simplify=not args.traditional)
+    covered = []
+    rows = fallback_sources.moe_rows(src, cedict, measure, stats, simplify=not args.traditional, covered=covered)
     for k in sorted(stats):
         print(f"  {k}: {stats[k]:,}")
 
     meta = {"fallback_sources": "moe", "moe_rows": str(len(set(rows))), "moe_sha256": sha,
             "moe_url": info.get("url", URL), "moe_commit": info.get("commit", ""),
             "moe_commit_date": info.get("commit_date", ""), "moe_license": LICENSE,
-            "moe_text": "traditional" if args.traditional else "simplified"}
-    fallback_sources.write_local_file(args.out, rows, meta, "MOE")
-    print(f"MOE: {meta['moe_rows']} rows, source SHA-256 {sha}"
+            "moe_text": "traditional" if args.traditional else "simplified",
+            "moe_covered": "1",
+            "moe_covered_char_rows": str(sum(1 for r in set(covered) if len(r[0]) == 1)),
+            "moe_covered_word_rows": str(sum(1 for r in set(covered) if len(r[0]) > 1))}
+    fallback_sources.write_local_file(args.out, rows, meta, "MOE", covered=covered)
+    print(f"MOE: {meta['moe_rows']} rows ({meta['moe_covered_char_rows']} covered character rows, "
+          f"{meta['moe_covered_word_rows']} covered word rows), source SHA-256 {sha}"
           + (f", moedict-data {info['commit'][:7]} ({info.get('commit_date', '')[:10]})" if info.get("commit") else ""))
     print(f"Wrote {args.out} ({os.path.getsize(args.out) / 1e6:.1f} MB). {LICENSE}")
     fallback_sources.push_or_explain(args.out, args.push)

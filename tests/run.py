@@ -143,12 +143,32 @@ def make_test_files(data_dir):
                    ("一毛不拔", "一毛不拔", "一根汗毛也不肯拔。", "释义\n一根汗毛也不肯拔。"),
                    ("首鼠两端", "首鼠兩端", "首鼠：鼠性多疑；两端：拿不定主意。", "释义\n首鼠：鼠性多疑。\n\n出处\n《史记》")],
     }
+    # MOE's file keeps headwords CC-CEDICT has as covered rows (2.5.0), which
+    # the fallback lookup never returns: 和 and 涓 as CC-CEDICT has them, and
+    # 台風 / 颱風, a simplified form CC-CEDICT lacks whose traditional form it has.
+    covered = {"moe": [
+        ("和", "和", "hé", "", "连带。/平静。", "moe"),
+        ("和", "和", "hàn", "", "连词。", "moe"),
+        ("涓", "涓", "juān", "", "细小的流水。", "moe"),
+        ("台風", "颱風", "tái fēng", "", "热带气旋。", "moe"),
+    ]}
+    files["moe"][1].update({"moe_covered": "1", "moe_covered_char_rows": "3", "moe_covered_word_rows": "1"})
     for source, (rows, meta) in files.items():
         path = os.path.join(folder, f"chinesehelper-{source}.sqlite")
         if os.path.exists(path):
             os.remove(path)
         extra = (lambda con, r=idioms[source]: chengyu.write_idioms(con, r)) if source in idioms else None
-        fallback_sources.write_local_file(path, rows, meta, source, extra=extra)
+        fallback_sources.write_local_file(path, rows, meta, source, extra=extra, covered=covered.get(source, ()))
+    # The same MOE rows as a file built before 2.5.0: no `covered` column.
+    old = os.path.join(data_dir, "moe-old.sqlite")
+    if os.path.exists(old):
+        os.remove(old)
+    con = sqlite3.connect(old)
+    fallback_sources.write_fallback(con, files["moe"][0])
+    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+    con.execute("INSERT INTO meta VALUES ('fallback_sources', 'moe')")
+    con.commit()
+    con.close()
     return data_dir
 
 

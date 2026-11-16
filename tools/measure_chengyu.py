@@ -54,7 +54,8 @@ def load(args):
         if not os.path.exists(path):
             raise SystemExit(f"missing {path}")
         c = sqlite3.connect(path)
-        s[name] = forms(c, "SELECT simp, trad FROM fallback")
+        uncovered = "covered = 0" if any(r[1] == "covered" for r in c.execute("PRAGMA table_info(fallback)")) else "1"
+        s[name] = forms(c, "SELECT simp, trad FROM fallback WHERE " + uncovered)
         if name != "moe":
             s[name + "_all"] = forms(c, "SELECT simp, trad FROM idioms")
             s[name + "_view"] = forms(c, "SELECT simp, trad FROM idioms WHERE view != ''")
