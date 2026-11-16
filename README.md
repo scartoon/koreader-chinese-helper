@@ -28,13 +28,14 @@ reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 </tr>
 <tr>
 <td><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; 字频 1,442, then 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月 labelled Wikt; last, 秋月春风 labelled MOE with its Chinese definition in larger type; a 成语 Origin &amp; Usage button"><br><a href="#fallback-dictionaries"><b>Several dictionaries, each labelled</b></a>: CC-CEDICT, Wiktionary for 秋月, and last, in larger type, MOE (optional) for 秋月春风</td>
-<td><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked; 字频 2,026, 窃 qiè to steal; secretly; (humble) I, its parts 穴 xué and 切 qiè labelled MMAH, then a 窃 button, Translate &amp; analyze the surrounding sentence [AI] and Close; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"><br><a href="#translating-the-sentence"><b>Translate &amp; analyze the sentence</b></a> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
+<td><img src="docs/translate-result.png" alt="KOAssistant's Translate &amp; Analyze viewer, titled with the model gemini-3.5-flash-lite: Highlighted text: 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ then KOAssistant's reply. Translation: Kong Yiji flushed crimson, the veins on his forehead bulging out in cords, and argued, &quot;Book-stealing cannot be reckoned thievery... Book-stealing!&quot; Then the first chunks: 涨红了脸 (zhǎng hóng le liǎn) &quot;swelled [and] reddened the face&quot;, resultative verb compound + aspect marker + object, describing a physical reaction to anger or shame; 青筋 (qīng jīn) &quot;blue/green tendons&quot;, noun phrase referring to bulging veins; 条条 (tiáo tiáo) &quot;strip by strip / one by one&quot;, reduplicated measure word indicating plurality and prominence. Below, the viewer's buttons: Reply, Copy, Save to Note, Notebook, Pin, Close and others"><br><a href="#translating-the-sentence"><b>Translate &amp; Analyze the sentence</b></a> with KOAssistant: a translation and a chunk-by-chunk breakdown of 孔乙己's 窃书不能算偷, from your own AI provider while Wi-Fi is on</td>
 </tr>
 </table>
 
 All screenshots: a Boox Go 7 (landscape), the [sample book](#the-sample-book), default settings,
 with every [optional dictionary](#optional-dictionaries) installed. `tools/make_screenshots.py`
-takes them again.
+takes them again; KOAssistant's response is taken separately, by name, and is not retaken by
+default, because the AI's answer differs from run to run.
 
 - **One tap, no selecting**: tap anywhere in the text (on a character, between lines, on
   punctuation) and the nearest character opens; taps outside the text turn pages and open menus
@@ -345,6 +346,8 @@ no entry even with the MOE dictionary, such as 精兵强将, 受制于人, 由�
 While Wi-Fi is on and connected, the popup from the page has one more button on a row of its
 own (popups opened from a popup's text do not). It closes the
 popup and sends **the whole sentence containing the tapped character**:
+
+![Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked; 字频 2,026, 窃 qiè to steal; secretly; (humble) I, its parts 穴 xué and 切 qiè labelled MMAH, then a 窃 button, Translate & analyze the surrounding sentence [AI] and Close; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？](docs/translate.png)
 
 - **With [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) installed** (tested with
   0.23.0; the button uses its internals, so a later version may fall back to the built-in
@@ -759,7 +762,10 @@ Lua code (`tools/shot_gate.py`, with every dictionary): the pinyin drawn must be
 hand-checked list, each popup must show the expected lines, and KOReader's log must agree (the
 number of characters annotated, and each tap's context and reading; for a character tapped in
 a popup, its sentence). Your `settings.reader.lua`
-is backed up and restored.
+is backed up and restored. KOAssistant's response (`translate-result`) can't be checked that
+way, so it is taken only when named (`make_screenshots.py translate-result`): the script waits
+for the reply to be complete, saves its text to `build/screenshots/translate-result.txt`, and
+the README's alt text for it has to be rewritten by hand to match.
 
 ## Credits and licences
 

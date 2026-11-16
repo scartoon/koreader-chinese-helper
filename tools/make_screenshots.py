@@ -5,6 +5,10 @@
     tools/deploy.sh                                  # the plugin under test
     .venv/bin/python tools/make_screenshots.py       # all shots -> docs/*.png
     .venv/bin/python tools/make_screenshots.py main  # some of them
+    .venv/bin/python tools/make_screenshots.py translate-result   # opt-in only
+
+translate-result (KOAssistant's reply to Translate & Analyze) is never part of
+a default run: the AI's answer varies, so it can't be gated like the others.
 
 For checks, not the README: SHOT_FONT="STKaiti" uses another book font (taps
 must still land: the device log is checked as usual), SHOT_MATCH_FONT=false
@@ -123,11 +127,24 @@ SHOTS = {
                    frames=[(2, (97, 1167))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
         frames=[(1, (15, 1160))]),
+    # The same popup, then its Translate & Analyze button (at `koassistant`):
+    # KOAssistant's reply, the top of its viewer. Opt-in only (OPT_IN): the
+    # AI's answer differs from run to run, so nothing can check it the way the
+    # gate checks the other shots, and a default run would silently replace an
+    # image whose README alt text describes one particular answer. Take it by
+    # name, look at it, and rewrite the alt text to match.
+    "translate-result": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
+        koassistant=(840, 847), frames=[(2, (8, 1258))]),
     # Page 1 with pinyin off, then on: the plugin adds line space where it
     # draws pinyin (69 pages instead of 74), so each crop ends after the same
     # line of text (下。后来光武中兴…), the one with pinyin taller.
     "off-on": dict(page="sg1", taps=[], pinyin_off=True, frames=[(0, (370, 928))], on_crop=(370, 975)),
 }
+
+
+OPT_IN = {"translate-result"}   # never in a default run; see its SHOTS entry
+
+KOA_CHATS = "/sdcard/Download/xiaoshuo.sdr/koassistant_chats.lua"
 
 
 def adb(*args, check=True, binary=False):
@@ -285,12 +302,43 @@ def run_shot(gate, name, shot, original):
                          f"the gate {p['header']} reading {p['chosen']}")
             time.sleep(3)
         frames.append(screencap())
+    if shot.get("koassistant"):
+        frames.append(koassistant_reply(name, shot["koassistant"]))
     raw = os.path.join(WORK, "raw")
     os.makedirs(raw, exist_ok=True)
     variant = "-off" if shot.get("pinyin_off") else ""
     for k, f in enumerate(frames):
         f.save(os.path.join(raw, f"{name}{variant}-{k}.png"))
     return frames
+
+
+def koassistant_reply(name, pos):
+    """Tap the popup's Translate & Analyze button and wait for KOAssistant's
+    reply to be complete: the viewer shows it (its "exchange page break" log
+    line), then the chat is auto-saved. A timeout or an error line stops the
+    script, never a capture of a reply still arriving."""
+    before = len(log().splitlines())
+    adb("shell", "input", "tap", *map(str, pos))
+    wait_for(r"KOAssistant: Executing quick action - Translate & Analyze", before, timeout=10)
+    m = wait_for(r"KOAssistant: (exchange page break|Auto-saved chat|.*[Ee]rror.*)", before, timeout=120)
+    if "rror" in m.group(1):
+        sys.exit(f"{name}: KOAssistant logged {m.group(0)}")
+    wait_for(r"KOAssistant: Auto-saved chat", before, timeout=15)
+    time.sleep(5)   # e-ink settling
+    img = screencap()
+    # The reply's text, for the README alt text (the newest chat in the
+    # sample book's sidecar).
+    path = os.path.join(WORK, "koassistant_chats.lua")
+    adb("pull", KOA_CHATS, path)
+    with open(path, encoding="utf-8", errors="replace") as f:
+        replies = re.findall(r'\["content"\] = "((?:[^"\\]|\\.|\\\n)*)"', f.read())
+    os.remove(path)
+    if replies:
+        text = replies[-1].replace("\\\n", "\n").replace('\\"', '"')
+        with open(os.path.join(WORK, f"{name}.txt"), "w", encoding="utf-8") as f:
+            f.write(text + "\n")
+        print(f"reply     {name} (build/screenshots/{name}.txt):\n{text}")
+    return img
 
 
 def save(name, img):
@@ -304,7 +352,7 @@ def crop(img, y):
 
 
 def main():
-    wanted = sys.argv[1:] or list(SHOTS)
+    wanted = sys.argv[1:] or [s for s in SHOTS if s not in OPT_IN]
     unknown = [w for w in wanted if w not in SHOTS]
     if unknown:
         sys.exit(f"unknown shots {unknown}; known: {' '.join(SHOTS)}")
