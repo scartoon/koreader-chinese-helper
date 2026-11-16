@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.5.0"
+ChineseHelper.VERSION = "2.5.1"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -655,7 +655,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Dictionaries"),
-                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be shown Always: under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines, with a tap on its grey label line to show it all. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
+                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be shown Always: under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
                 sub_item_table = plugin:fallbackItems(apply, {
                     {
                         text_func = function()
@@ -744,7 +744,7 @@ function ChineseHelper:fallbackItems(apply, items)
         text_func = function()
             return T(_("Collapse long entries: %1"), ChineseHelper.collapseLabel(settings:collapseLines()))
         end,
-        help_text = _("An entry shown Always (MOE under CC-CEDICT's) is cut to this many lines, ending in …; tap its grey label line (show all) to see the rest, and again (show less) to cut it again. CC-CEDICT's entries and an entry that is a word's only one are always shown in full."),
+        help_text = _("An entry shown Always (MOE under CC-CEDICT's) is cut to this many lines, ending in a small grey [Tap to show more]: tap it to see the rest, and [Tap to show less] at the end to cut it again. CC-CEDICT's entries and an entry that is a word's only one are always shown in full."),
         sub_item_table = collapse,
         separator = true,
     }

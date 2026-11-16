@@ -204,8 +204,8 @@ where the words break.
   rank, and **unranked** for a character not in the list. It shares the line with the source
   label when that is shown (`CEDICT · 字频 4,270`). Words around the character never show one.
 - **MOE's entry for the character**, with the optional MOE dictionary: under CC-CEDICT's entry,
-  labelled MOE, cut to two lines ending in "…" when longer. Tap its grey label line
-  (**MOE · show all**) to see all of it ([MOE Always](#moe-always)).
+  labelled MOE, cut to two lines ending in a small grey **[Tap to show more]** when longer. Tap
+  it to see all of it ([MOE Always](#moe-always)).
 - **The character's components**, indented under its own entry ([below](#character-components)).
 - **Then every dictionary word containing it**, longest first; words of the same length in
   reading order. Entries from the Chinese-language dictionaries (MOE, the 成語典, Xinhua and
@@ -494,8 +494,9 @@ the optional MOE dictionary, a single-character popup shows both:
 
 1. CC-CEDICT's entry, in full, with the 字频 rank;
 2. MOE's entry for the character, labelled MOE: all its readings as one block, cut to the first
-   two lines as drawn, ending in "…". Tap the grey label line (**MOE · show all**) to show the
-   rest in place, and again (**show less**) to cut it again. Characters in the visible lines can
+   two lines as drawn, the second cut short to end in a small grey **[Tap to show more]**. Tap it
+   (or the space after it) to show the rest in place; **[Tap to show less]** at the end cuts it
+   again. Characters in the visible lines can
    be tapped as usual; those hidden by the cut can't;
 3. the components, then the words.
 
