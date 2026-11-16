@@ -222,8 +222,9 @@ end
 The resolver's view of the tapped character, computed on the page items the
 annotation layer uses (so the popup cannot disagree with the pinyin drawn):
 chosen reading (or nil), the deciding word (Model.matches' `decided`),
-whether this occurrence has pinyin drawn above it, and whether the reading
-is only the uncertainty pair (Resolve.forPopup's `unsure`).
+whether this occurrence has pinyin drawn above it, whether the reading
+is only the uncertainty pair (Resolve.forPopup's `unsure`), and what
+decided it (Resolve.forPopup's `source`).
 ]]
 function Tap:resolve(hit, left, right)
     local data = self.plugin:readings()
@@ -242,9 +243,9 @@ function Tap:resolve(hit, left, right)
         return self:resolveRun(left, hit.char, right)
     end
     local drawn = items[i].ws and self.plugin.annotator:drawnAt(i)
-    local reading, decided, unsure = Resolve.forPopup(data, items, i, settings:uncertainMode(), special,
+    local reading, decided, unsure, source = Resolve.forPopup(data, items, i, settings:uncertainMode(), special,
         drawn and drawn.text)
-    return reading, decided, drawn ~= nil, unsure
+    return reading, decided, drawn ~= nil, unsure, source
 end
 
 -- Tap:resolve on the Han run left .. char .. right alone (a character not on
@@ -257,9 +258,9 @@ function Tap:resolveRun(left, char, right)
     items[#items + 1] = { text = char, joined = #items > 0 }
     local i = #items
     for _, c in ipairs(right) do items[#items + 1] = { text = c, joined = true } end
-    local reading, decided, unsure = Resolve.forPopup(data, items, i, self.plugin.settings:uncertainMode(),
+    local reading, decided, unsure, source = Resolve.forPopup(data, items, i, self.plugin.settings:uncertainMode(),
         self.plugin:special(), nil)
-    return reading, decided, false, unsure
+    return reading, decided, false, unsure, source
 end
 
 -- Rows from the fallback dictionaries for the candidate words CC-CEDICT has
@@ -382,17 +383,17 @@ function Tap:translateRow(sentence, close)
 end
 
 -- The lookup for `char` with the Han run around it: { cands=, rows=,
--- matches=, chosen= }. resolve() -> chosen, decided, annotated, unsure.
+-- matches=, chosen= }. resolve() -> chosen, decided, annotated, unsure, source.
 function Tap:lookup(db, char, left, right, resolve)
     local cands, texts = Text.candidates(left, char, right)
     local rows = db:lookup(texts)
     for _, row in ipairs(self:fallbackRows(texts, rows)) do rows[#rows + 1] = row end
-    local chosen, decided, annotated, unsure = resolve()
+    local chosen, decided, annotated, unsure, source = resolve()
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = annotated, decided = decided,
-        unsure = unsure, order = self.plugin.settings:fallbackOrder(),
+        unsure = unsure, source = source, order = self.plugin.settings:fallbackOrder(),
         default = data and select(2, data:char(char)) or nil,
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }

@@ -17,7 +17,9 @@ local Pinyin = require("ch_pinyin")
 local Model = {}
 
 Model.MARK_LIKELY = "likely here"    -- the resolver's reading, nothing drawn
-Model.MARK_UNSURE = ""               -- the uncertainty pair: no word or rule decided, so no marker
+Model.MARK_UNSURE = ""               -- the uncertainty pair or the default: nothing decided, so no marker
+-- What may make a reading "likely here" (Resolve.forPopup's source).
+Model.EVIDENCE = { word = true, special = true, fallback = true, rule = true }
 -- A reading drawn on the page gets no marker either: the reader can see it.
 
 -- A sense that only says the entry is a variant of the very word being shown
@@ -217,6 +219,11 @@ The popup's matches.
   args.unsure       true when `chosen` is the uncertainty pair (no word or rule
                     decided; Resolve.forPopup): its readings are marked
                     Model.MARK_UNSURE, not "likely here"
+  args.source       what decided `chosen` (Resolve.forPopup's `source`): unless
+                    it is a word, special word, fallback word or context rule
+                    (Model.EVIDENCE), the reading is just the character's
+                    default and gets no label either (#16). nil: not known
+                    (treated as evidence)
   args.decided      the word that decided it, or nil:
                     { word=, start= (relative to the tapped character), len=,
                       syllables= (the resolver's reading of the word), note= }
@@ -335,8 +342,10 @@ function Model.matches(args)
             end
         end
         anchor.entries = markedFirst(entries)
-        -- Nothing decided between the pair: neither reading is "likely".
-        if args.unsure and not args.annotated then anchor.mark = Model.MARK_UNSURE end
+        -- Nothing decided between the pair, or nothing decided at all (the
+        -- default reading): no reading is called "likely".
+        local evidence = args.source == nil or Model.EVIDENCE[args.source]
+        if (args.unsure or not evidence) and not args.annotated then anchor.mark = Model.MARK_UNSURE end
     end
     -- Each word: mark the resolver's reading when there is a choice.
     for _, m in ipairs(words) do
@@ -465,8 +474,8 @@ The popup's content as blocks, one per match:
 b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
 The tapped character's marked readings are unmarked when `annotated` (the
 reading is drawn on the page, so it comes first with no label) or when
-Model.matches set m.mark (the uncertainty pair: both readings are simply
-listed), and "likely here" otherwise. A reading a source does not give itself
+Model.matches set m.mark (the uncertainty pair, or a default reading nothing
+decided: listed with no label), and "likely here" otherwise. A reading a source does not give itself
 (Model.GENERATED_READING) is followed by "· generated pinyin".
 ]]
 function Model.blocks(matches, char, annotated, b0, b1)

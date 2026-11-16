@@ -353,6 +353,16 @@ eq(Model.render(m, "累", true), "累  lěi\nto accumulate\nléi: rope; to bind\
 -- A single resolved reading stays "likely here".
 m = matches("", "累", "", lei, { chosen = "lěi" })
 eq(Model.render(m, "累", false), "累  lěi · likely here\nto accumulate\nléi: rope; to bind\nlèi: tired")
+-- ...when a word, special word, fallback word or rule decided it (#16).
+for _, source in ipairs({ "word", "special", "fallback", "rule" }) do
+    m = matches("", "累", "", lei, { chosen = "lěi", source = source })
+    eq(Model.render(m, "累", false), "累  lěi · likely here\nto accumulate\nléi: rope; to bind\nlèi: tired", source)
+end
+-- The default reading (nothing decided): first, no label.
+for _, source in ipairs({ "default", "pair" }) do
+    m = matches("", "累", "", lei, { chosen = "lěi", source = source })
+    eq(Model.render(m, "累", false), "累  lěi\nto accumulate\nléi: rope; to bind\nlèi: tired", source)
+end
 -- "One of these" is the tapped character's marker only: a word's marked
 -- reading is still "likely here".
 m = matches("", "东", "西", { row("东", "東", "dōng", "east"), row("东西", "東西", "dōngxi", "thing", "dōng xi"),

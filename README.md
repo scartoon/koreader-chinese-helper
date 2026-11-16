@@ -189,8 +189,11 @@ where the words break.
   too, with the whole word marked.
 - **The tapped character first**, with all its readings. The reading drawn on the page comes
   first, unmarked (you can see it). When nothing is drawn, the reading the resolver picked comes
-  first, marked **· likely here**. When nothing decides between its two likely readings, both
-  are simply listed, unmarked, the likelier first ([Readings](#readings)).
+  first. It is marked **· likely here** only when something in the text picked it: a dictionary
+  word or special word around the character, a fallback dictionary's word, or a context rule.
+  When nothing did, the character's usual reading simply comes first, unlabelled, and when
+  nothing decides between its two likely readings, both are listed, unmarked, the likelier first
+  ([Readings](#readings)).
 - **The character's components**, indented under its own entry ([below](#character-components)).
 - **Then every dictionary word containing it**, longest first; words of the same length in
   reading order. Entries from the Chinese-language dictionaries (MOE, the 成語典, Xinhua and
@@ -431,6 +434,18 @@ are right 97.5% of the time, 98.2% counting both of a pair. CPP labels some neut
 with the full tone (枇杷 *pá*, 收拾 *shí*), which counts against the plugin's spoken form. Unusual
 readings agree with CPP's label in 25 of the 36 test sentences that contain one; 8 of the 11
 others are the place name 黄陂 *Huángpí*, which CPP labels *bēi*.
+
+By what decided the reading (every test example the plugin has a reading for, common characters
+included, as in the popup; a pair counts when either half is right):
+
+| Decided by | Examples | Right | Popup label |
+|---|---|---|---|
+| A word (CC-CEDICT, pypinyin) | 6,584 | 98.0% | likely here |
+| A special word | 78 | 85.9% | likely here |
+| A fallback dictionary's word | 14 | 85.7% | likely here |
+| A context rule | 919 | 99.9% | likely here |
+| Nothing: the uncertainty pair | 630 | 99.4% | none (both listed) |
+| Nothing: the default reading | 2,029 | 97.2% | none |
 
 ## Fallback dictionaries
 
