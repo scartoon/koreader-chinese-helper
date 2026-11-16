@@ -463,7 +463,8 @@ def main():
         wpath = args.wiktionary if os.path.exists(args.wiktionary) else download_wiktionary(args.wiktionary)
         forms, measure = fallback_sources.forms_from_entries(entries)
         stats = Counter()
-        rows = fallback_sources.wiktionary_rows(wpath, forms, measure, stats)
+        rows = fallback_sources.wiktionary_rows(wpath, forms, measure, stats,
+                                                readings=fallback_sources.char_readings_from_entries(entries))
         for k in sorted(stats):
             print(f"  {k}: {stats[k]:,}")
         wikt = (wpath, rows, stats)
