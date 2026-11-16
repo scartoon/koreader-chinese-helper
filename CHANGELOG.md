@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.3.0 (2026-11-16)
+
+Wiktionary readings: Standard Chinese only (#15)
+- **Wiktionary entries never show regional Mandarin pronunciations** (搛菜 is *jiāncài*, not
+  *jiǎncāi*). Dialect words without a Standard reading take their characters' readings when those
+  are unambiguous, and otherwise show no pinyin. The regional qualifier in the gloss ("(dialectal
+  Mandarin, Northern Wu)", "(Xi'an Mandarin)" …) stays.
+- How: a Wiktionary pinyin sound counts only when its tags are on an allow-list and include a
+  Standard marker (Standard-Chinese, Standard, Mainland-China or Taiwan), so Nanjing, Xi'an,
+  Sichuanese, Beijing-dialect, Harbin, Wuhan and other regional romanizations, and any tag added
+  later, are left out. 1,374 entries have only regional readings: 385 rows now take their
+  characters' readings (every character with exactly one CC-CEDICT reading; 子 *zǐ / zi* counts
+  as two) and 887 rows show the word and definition without pinyin. Only one row that already had
+  a Standard reading changed (悠千 *yōuqianr*, Wiktionary's Standard erhua form). Rows without
+  pinyin never decide a reading on the page.
+- The build now counts rows whose pinyin gives a character a toned reading CC-CEDICT doesn't
+  have: 1,025 → 891, the rest mostly literary or variant readings (善贾 *shànjià*, 渔父 *yúfǔ*).
+  Page readings on the CPP test split are unchanged.
+
+"Likely here" only with evidence (#16)
+- **The tapped character's reading is marked "likely here" only when something in the text
+  picked it**: a dictionary word or special word around it, a fallback dictionary's word, or a
+  context rule. When nothing did (传 in a title cut by the line, …传稿》), the usual reading
+  still comes first, but unlabelled, as the uncertainty pair already was.
+- `tools/eval_readings.py` reports accuracy by what decided the reading, now in the README's
+  Accuracy section: context rules are right 99.9% of the time (919 test examples), words 98.0%,
+  the plain default 97.2%.
+
 ## 2.2.0 (2026-11-15)
 
 The book's font in the popup
