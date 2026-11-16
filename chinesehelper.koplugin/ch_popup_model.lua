@@ -406,6 +406,23 @@ function Model.matches(args)
     if not choice then
         for _, m in ipairs(words) do m.decided = nil end
     end
+    -- A word with nothing to say (#20): no sense from any source, no note,
+    -- no Always entries (a pypinyin phrase, or the deciding word when no
+    -- dictionary has it) is not listed. Dropped only here, after the
+    -- reading markers and the "decides" tag were worked out from the full
+    -- list: the tapped character's own entry already shows the reading.
+    local function empty(m)
+        if m.note or m.always then return false end
+        for _, e in ipairs(m.entries) do
+            if #e.senses > 0 then return false end
+        end
+        return true
+    end
+    local kept = {}
+    for _, m in ipairs(words) do
+        if not empty(m) then kept[#kept + 1] = m end
+    end
+    words = kept
     if anchor then table.insert(words, 1, anchor) end
     -- An Always block's readings in the order of the word's own entries (so
     -- the reading marked likely comes first), then those it does not list,
@@ -556,12 +573,12 @@ function Model.blocks(matches, char, annotated, b0, b1)
         for k, e in ipairs(m.entries) do
             local senses = table.concat(e.senses, "; ")
             if #e.senses == 0 then
+                -- Only the tapped character's own readings and noted words
+                -- get here: Model.matches drops words with no senses at all.
                 if m.note then
                     senses = m.note
-                elseif m.len == 1 then
-                    senses = "no separate CC-CEDICT entry for this reading"
                 else
-                    senses = "no definition in CC-CEDICT"
+                    senses = "no separate CC-CEDICT entry for this reading"
                 end
             end
             local marked = e.marked and (m.len == 1 and mark or (" · " .. Model.MARK_LIKELY)) or ""
