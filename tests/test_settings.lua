@@ -96,3 +96,25 @@ s = Settings.new(store())
 eq(s:matchBookFont(), true, "match the book's font: on by default")
 s:set("match_book_font", false)
 eq(s:matchBookFont(), false)
+
+-- MOE's modes (#11): Always for characters, Fallback for words; MOE off
+-- overrides both; odd values fall back to the defaults.
+s = Settings.new(store())
+eq(s:moeMode("chars"), "always"); eq(s:moeMode("words"), "fallback"); eq(s:collapseLines(), 2)
+-- Migration from 2.4.0: fallback_moe = false stays off, true gets the defaults,
+-- and an existing fallback_order is the order.
+st = store{ chinesehelper_fallback_moe = false, chinesehelper_fallback_order = "moe,wikt" }
+s = Settings.new(st)
+eq(s:moeMode("chars"), "off"); eq(s:moeMode("words"), "off")
+eq(table.concat(s:fallbackOrder(), ","), "moe,wikt,cbdb,idioms,xinhua,wp,moegirl")
+st = store{ chinesehelper_fallback_moe = true }
+s = Settings.new(st)
+eq(s:moeMode("chars"), "always"); eq(s:moeMode("words"), "fallback")
+st.values.chinesehelper_moe_chars = "fallback"; st.values.chinesehelper_moe_words = "bogus"
+eq(s:moeMode("chars"), "fallback"); eq(s:moeMode("words"), "fallback")
+st.values.chinesehelper_moe_words = "off"; eq(s:moeMode("words"), "off")
+for _, n in ipairs({ 1, 3, 0 }) do st.values.chinesehelper_collapse_lines = n; eq(s:collapseLines(), n) end
+st.values.chinesehelper_collapse_lines = 7; eq(s:collapseLines(), 2)
+s:setFallbackOrder({ "wp", "moe" })
+eq(st.values.chinesehelper_fallback_order, "wp,moe")
+eq(table.concat(s:fallbackOrder(), ","), "wp,moe,wikt,cbdb,idioms,xinhua,moegirl")

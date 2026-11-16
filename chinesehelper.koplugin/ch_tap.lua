@@ -264,9 +264,13 @@ function Tap:resolveRun(left, char, right)
 end
 
 -- Rows from the fallback dictionaries for the candidate words CC-CEDICT has
--- no row for: each source in priority order, one source per word.
+-- no row for: each source in priority order, one source per word. Second
+-- value: MOE's rows for the candidates it shows Always (main.lua
+-- alwaysTexts), from the same query to its file.
 function Tap:fallbackRows(texts, rows)
-    return self.plugin:fallbackLookup(Model.uncovered(texts, rows))
+    local always = self.plugin.alwaysTexts and self.plugin:alwaysTexts(texts) or nil
+    local out, always_rows = self.plugin:fallbackLookup(Model.uncovered(texts, rows), nil, always)
+    return out, always_rows or {}
 end
 
 --[[--
@@ -387,13 +391,14 @@ end
 function Tap:lookup(db, char, left, right, resolve)
     local cands, texts = Text.candidates(left, char, right)
     local rows = db:lookup(texts)
-    for _, row in ipairs(self:fallbackRows(texts, rows)) do rows[#rows + 1] = row end
+    local fallback, always = self:fallbackRows(texts, rows)
+    for _, row in ipairs(fallback) do rows[#rows + 1] = row end
     local chosen, decided, annotated, unsure, source = resolve()
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = annotated, decided = decided,
-        unsure = unsure, source = source, order = self.plugin.settings:fallbackOrder(),
+        unsure = unsure, source = source, order = self.plugin.settings:fallbackOrder(), always = always,
         default = data and select(2, data:char(char)) or nil,
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }
@@ -650,9 +655,12 @@ function Tap:present(args)
     local button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
     local block = comp and Components.block(comp.c, b0, b1, comp.via, comp.changes)
     if block then
-        -- Below the character's own entry (when it has one).
+        -- Below the character's own entry (when it has one) and its MOE
+        -- Always entry.
         local first = args.matches[1]
-        table.insert(blocks, (first and first.len == 1) and 2 or 1, block)
+        local at = (first and first.len == 1) and 2 or 1
+        if at == 2 and blocks[2] and blocks[2].always then at = 3 end
+        table.insert(blocks, at, block)
     end
     Model.chineseLast(blocks)
     -- No entry of its own: the rank goes above the first block.
@@ -683,6 +691,7 @@ function Tap:present(args)
         anchor = args.box,
         text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),
         chinese_pct = self.plugin.settings:chineseTextPercent(),
+        collapse_lines = self.plugin.settings:collapseLines(),
         book_font = self:bookFont(),
     }
     self:push(popup)

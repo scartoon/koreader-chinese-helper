@@ -886,6 +886,14 @@ def fallback_sql(n, uncovered=False):
             f"OR trad IN ({marks}) ORDER BY rowid")
 
 
+def fallback_all_sql(n):
+    """Every row for n words, covered or not, with the `covered` column: the
+    plugin's single MOE query when MOE is shown Always (DB.fallbackAllSql)."""
+    marks = ",".join("?" * n)
+    return (f"SELECT simp, trad, pinyin, syllables, defs, source, covered FROM fallback WHERE simp IN ({marks}) "
+            f"OR trad IN ({marks}) ORDER BY rowid")
+
+
 def forms_from_entries(entries):
     """cedict_forms() from build_db.py's entry tuples (simp, trad, pinyin,
     syllables, defs) instead of a built database."""

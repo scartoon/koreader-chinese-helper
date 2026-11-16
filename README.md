@@ -57,7 +57,9 @@ default, because the AI's answer differs from run to run.
 ### Dictionaries
 
 CC-CEDICT comes first; the others, the [fallback dictionaries](#fallback-dictionaries), give
-entries for words it lacks. The rows are in the order the popup checks them.
+entries for words it lacks. The rows are in the order the popup checks them (the default; the
+menu's **Order** changes it). The MOE dictionary also shows its entry for every single character
+it has, under CC-CEDICT's, collapsed to two lines ([MOE Always](#moe-always)).
 
 | Dictionary | Label | Entries added | | Mainly covers |
 |---|---|---|---|---|
@@ -134,8 +136,8 @@ Tools menu). Settings apply to all books.
 | Show the text around the character in the popup | On (default) / off. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
 | Try to match the book's font | On (default) / off: Chinese text in the popup in the book's font. See [The popup](#the-popup) |
-| Fallback dictionaries | Source labels (all entries / other dictionaries only (default) / none); then each dictionary on/off, in order: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang. See [Fallback dictionaries](#fallback-dictionaries) |
-| Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed), what the current page needed, and any old plugin still installed |
+| Dictionaries | Source labels (all entries / other dictionaries only (default) / none); **Order** of the dictionaries after CC-CEDICT; **Collapse long entries** (1 / 2 (default) / 3 lines / never); then each dictionary on/off, in that order (default: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang), with **MOE for single characters** (off / fallback / always (default)) and **MOE for words** (off / fallback (default) / always) under MOE's. See [Fallback dictionaries](#fallback-dictionaries) and [MOE Always](#moe-always) |
+| Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed; MOE's modes and whether its file is ready for Always), what the current page needed, and any old plugin still installed |
 
 ### What a tap does
 
@@ -201,10 +203,14 @@ where the words break.
   3,500 by default). Past 7,000 it shows **7,000+**, as the data is too thin there for an exact
   rank, and **unranked** for a character not in the list. It shares the line with the source
   label when that is shown (`CEDICT · 字频 4,270`). Words around the character never show one.
+- **MOE's entry for the character**, with the optional MOE dictionary: under CC-CEDICT's entry,
+  labelled MOE, cut to two lines ending in "…" when longer. Tap its grey label line
+  (**MOE · show all**) to see all of it ([MOE Always](#moe-always)).
 - **The character's components**, indented under its own entry ([below](#character-components)).
 - **Then every dictionary word containing it**, longest first; words of the same length in
   reading order. Entries from the Chinese-language dictionaries (MOE, the 成語典, Xinhua and
-  Moegirlpedia) come last, after everything else, in larger type (**Chinese text size**). A word with several readings (东西 *dōngxī* "east and west" / *dōngxi*
+  Moegirlpedia) for words CC-CEDICT lacks come last, after everything else, in larger type
+  (**Chinese text size**). A word with several readings (东西 *dōngxī* "east and west" / *dōngxi*
   "thing") has the likely one marked and first.
 - **The word that decides the reading** is tagged **· decides X's reading**, also when CC-CEDICT
   does not have it: then it shows a fallback dictionary's definition, or the short note of an
@@ -464,10 +470,9 @@ For words CC-CEDICT does not have, the popup also looks in the fallback dictiona
 - **Order.** A word CC-CEDICT has never gets a fallback entry. Any other word shows the entry of
   the first fallback dictionary that has it, in the table's order. (CBDB's narrow office titles
   beat MOE's general definitions; an English article title is a label rather than a definition,
-  so it comes after the real dictionaries; Moegirlpedia is only for words nothing else has.) The
-  order is the `chinesehelper_fallback_order` setting in KOReader's `settings.reader.lua`, which
-  you can edit while KOReader is closed (e.g. `"moe,wikt"`: dictionaries left out keep their
-  default place after those named).
+  so it comes after the real dictionaries; Moegirlpedia is only for words nothing else has.)
+  **Order** in the **Dictionaries** menu changes it: tap a dictionary, move it with the arrows,
+  then ✓. CC-CEDICT always stays first.
 - **Labels.** A small grey line above an entry names its dictionary (the table's labels). By
   default only fallback entries are labelled; **Source labels** can label every entry or none.
   The menu calls this default "other dictionaries only".
@@ -477,9 +482,41 @@ For words CC-CEDICT does not have, the popup also looks in the fallback dictiona
   Wikipedia titles and Moegirlpedia slang give no readings: the popup shows one made with
   pypinyin, marked *generated pinyin*. Only Wiktionary's words can decide a reading, for
   uncertain characters ([Readings](#readings)).
-- **Switches.** Each fallback dictionary can be switched off under **Fallback dictionaries**,
+- **Switches.** Each fallback dictionary can be switched off under **Dictionaries**,
   where optional files are marked "(your own file)", or greyed out with "(not installed)".
   **Status** lists each one's version and size.
+
+### MOE Always
+
+CC-CEDICT's entry for a single character is short and modern: 涓 is "brook; to select". The MOE
+dictionary has the classical senses too (细流。/ 姓。/ 细缓的、细微的。/ 清洁的。/ 选择。). With
+the optional MOE dictionary, a single-character popup shows both:
+
+1. CC-CEDICT's entry, in full, with the 字频 rank;
+2. MOE's entry for the character, labelled MOE: all its readings as one block, cut to the first
+   two lines as drawn, ending in "…". Tap the grey label line (**MOE · show all**) to show the
+   rest in place, and again (**show less**) to cut it again. Characters in the visible lines can
+   be tapped as usual; those hidden by the cut can't;
+3. the components, then the words.
+
+MOE's readings come in the order of CC-CEDICT's (the likely one first), then those CC-CEDICT
+doesn't list for the character, each marked **· not in CC-CEDICT**: about 1 in 7 characters have
+one, mostly classical readings (亡 *wú* 没有, 不 *fǒu*) and some Taiwan pronunciations (侠 *jiá*).
+They are shown, never used: MOE never decides the pinyin drawn on the page or the reading marked
+in the popup.
+
+Under MOE in the **Dictionaries** menu, **MOE for single characters** and **MOE for words** are
+each **off**, **fallback** (only when CC-CEDICT doesn't have it, as before 2.5.0) or **always**.
+The defaults are always for characters and fallback for words; words set to always show MOE's
+entry under CC-CEDICT's for every word around the character too. Switching MOE off turns off
+both. **Collapse long entries** sets the number of lines (1, 2 or 3) or never.
+
+Always needs a MOE file built with 2.5.0 or later, which also keeps the headwords CC-CEDICT has
+(28.2 MB instead of 17.0 MB). With an older file, Always works as fallback and **Status** says to
+rebuild it: `git pull`, then `.venv/bin/python tools/build_moe.py` (or `tools/build_optional.py
+--only moe --force`), and copy the new file over the old one ([below](#optional-dictionaries)).
+On a Boox Go 7 the popup takes about 4 ms longer to build with MOE Always (25 ms against 21.5
+ms, median of 24 taps on common characters).
 
 ### Coverage on one book
 
@@ -509,7 +546,7 @@ web fiction.
 
 | Dictionary | Script | Download | File | Licence |
 |---|---|---|---|---|
-| MOE dictionary | `tools/build_moe.py` | 15 MB | 17.0 MB | [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/) |
+| MOE dictionary | `tools/build_moe.py` | 15 MB | 28.2 MB | [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/) |
 | MOE idioms | `tools/build_idioms.py` | 5 MB | 21.7 MB | [CC BY-ND 3.0 TW](https://creativecommons.org/licenses/by-nd/3.0/tw/) |
 | Xinhua idioms | `tools/build_xinhua.py` | 10 MB | 14.9 MB | none for the text ([below](#the-sources)) |
 | CBDB office titles | `tools/build_cbdb.py` | 140 MB (590 MB unzipped) | 0.5 MB | [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms) |

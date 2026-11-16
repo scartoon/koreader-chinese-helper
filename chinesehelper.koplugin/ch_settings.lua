@@ -32,9 +32,15 @@ Settings.DEFAULTS = {
     fallback_moegirl = true,
     fallback_idioms = true,   -- 成語典 and Xinhua idioms: also the short line
     fallback_xinhua = true,   -- and Origin & Usage view of idioms CC-CEDICT has
-    -- Not in the menu: the fallback dictionaries' priority, comma-separated.
-    -- Sources left out keep their default place after the ones named.
+    -- The dictionaries' order after CC-CEDICT, comma-separated (the menu's
+    -- Order item). Sources left out keep their default place after the ones named.
     fallback_order = "wikt,cbdb,moe,idioms,xinhua,wp,moegirl",
+    -- MOE 重編國語辭典, for single characters and for words: "off", "fallback"
+    -- (only what CC-CEDICT lacks) or "always" (also what it has, collapsed;
+    -- needs a MOE file rebuilt with covered rows). fallback_moe off overrides both.
+    moe_chars = "always",
+    moe_words = "fallback",
+    collapse_lines = 2,       -- "Collapse long entries": 1, 2 or 3 lines, 0 = never
     labels = "fallback",      -- source labels: "all", "fallback" (entries not from CC-CEDICT), "none"
     edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5, 7.5 or 10 mm
     popup_text_pct = 60,      -- 38 px on a Boox Go 7 with 64 px book text (the old popups used 43 px)
@@ -134,6 +140,35 @@ function Settings:fallbackOrder()
         if not seen[s] then out[#out + 1] = s end
     end
     return out
+end
+
+Settings.MOE_MODES = { "off", "fallback", "always" }
+Settings.COLLAPSE_LINES = { 1, 2, 3, 0 }   -- 0: never collapse
+
+-- MOE's mode for single characters (`kind` "chars") or words ("words"):
+-- "off", "fallback" or "always"; "off" whenever MOE itself is switched off.
+function Settings:moeMode(kind)
+    if not self:fallbackEnabled("moe") then return "off" end
+    local key = kind == "words" and "moe_words" or "moe_chars"
+    local mode = self:get(key)
+    for _, m in ipairs(Settings.MOE_MODES) do
+        if mode == m then return mode end
+    end
+    return Settings.DEFAULTS[key]
+end
+
+-- How many lines an Always entry is collapsed to (0: never collapsed).
+function Settings:collapseLines()
+    local n = tonumber(self:get("collapse_lines"))
+    for _, choice in ipairs(Settings.COLLAPSE_LINES) do
+        if n == choice then return n end
+    end
+    return Settings.DEFAULTS.collapse_lines
+end
+
+-- Save an order (a list of source names) as fallback_order.
+function Settings:setFallbackOrder(list)
+    self:set("fallback_order", table.concat(list, ","))
 end
 
 Settings.LABEL_MODES = { "all", "fallback", "none" }

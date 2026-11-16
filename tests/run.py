@@ -33,7 +33,7 @@ TESTS = [
     "test_layout.lua", "test_hit.lua", "test_popup_model.lua", "test_edge.lua",
     "test_db.lua", "test_resolve.lua", "test_special.lua", "test_page.lua",
     "test_integration.lua", "test_menu.lua", "test_sentence.lua", "test_translate.lua", "test_components.lua",
-    "test_snippet.lua", "test_popup_sentence.lua", "test_glyphs.lua", "test_stack.lua", "test_area.lua", "test_bookfont.lua",
+    "test_snippet.lua", "test_popup_sentence.lua", "test_glyphs.lua", "test_stack.lua", "test_area.lua", "test_bookfont.lua", "test_always.lua",
 ]
 
 
@@ -193,6 +193,7 @@ def main():
         g.PY_ENTRIES_SQL = build_db.entries_sql
         g.PY_WORDS_SQL = build_db.words_sql
         g.PY_FALLBACK_SQL = build_db.fallback_sources.fallback_sql
+        g.PY_FALLBACK_ALL_SQL = build_db.fallback_sources.fallback_all_sql
         g.PY_IDIOMS_SQL = chengyu.idioms_sql
         g.PY_COMPONENTS_SQL = build_db.COMPONENTS_SQL
         g.PY_NOTES_SQL = build_db.NOTES_SQL
