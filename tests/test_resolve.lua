@@ -206,6 +206,10 @@ do
         { simp = "累官", trad = "累官", pinyin = "léiguān", source = "wikt" },
         { simp = "公累", trad = "公累", pinyin = "gōnglèi", source = "wikt" },
         { simp = "世甲", trad = "世甲", pinyin = "shìjià", source = "wikt" },
+        -- Dialect words without a Standard reading have no pinyin (#15).
+        { simp = "累卿", trad = "累卿", pinyin = "", source = "wikt" },
+        { simp = "卿累", trad = "卿累", pinyin = "", source = "wikt" },
+        { simp = "卿累", trad = "卿累", pinyin = "qīngléi", source = "wikt" },
     }
     local queries = 0
     fb:setFallback(function(list)
@@ -239,6 +243,8 @@ do
     check(at("累官", "累"), "lèi", "a context rule beats a fallback word")
     check(at("公累", "累"), "lěi/léi", "a reading outside the uncertain pair is not taken")
     check(at("世甲", "甲"), "jiǎ", "a character with a reliable default: fallback words not used")
+    check(at("累卿", "累"), "lěi/léi", "a word with no pinyin decides nothing")
+    check(at("卿累", "累"), "léi 卿累:wikt", "a row with no pinyin does not cancel the word's other row")
     fb:setFallback(nil)
     check(at("累世公卿", "累"), "lěi/léi", "fallback dictionaries off: the pair")
     -- Page annotation: the fallback words of a page come in one lookup, and

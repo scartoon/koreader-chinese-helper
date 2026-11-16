@@ -211,7 +211,13 @@ local function fallbackEntry(word, rows)
     local Pinyin = require("ch_pinyin")
     local n = utf8_count(word)
     local readings, syllables = {}, nil
+    -- A row with no pinyin (a dialect word whose Standard reading Wiktionary
+    -- does not give) says nothing about readings: skipped.
+    local with_pinyin = {}
     for _, row in ipairs(rows) do
+        if (row.pinyin or "") ~= "" then with_pinyin[#with_pinyin + 1] = row end
+    end
+    for _, row in ipairs(with_pinyin) do
         local syl = Pinyin.splitJoined(row.pinyin, n)
         if not syl then
             for k = 1, n do readings[k] = false end

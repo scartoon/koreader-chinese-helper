@@ -494,7 +494,9 @@ function Model.blocks(matches, char, annotated, b0, b1)
             end
             if k == 1 then
                 local tag = m.decided and (" · decides " .. char .. "'s reading") or ""
-                block.head = b0 .. m.word .. b1 .. "  " .. e.pinyin .. marked .. tag
+                -- A word with no pinyin (a dialect word without a Standard
+                -- reading) shows the word alone.
+                block.head = b0 .. m.word .. b1 .. (e.pinyin ~= "" and ("  " .. e.pinyin) or "") .. marked .. tag
                 block.source = e.source or "cedict"
                 block.lines[#block.lines + 1] = senses
                 local idiom = m.idiom
@@ -502,7 +504,7 @@ function Model.blocks(matches, char, annotated, b0, b1)
                     block.note = { source = idiom.short_source, text = idiom.short }
                 end
             else
-                block.lines[#block.lines + 1] = e.pinyin .. marked .. ": " .. senses
+                block.lines[#block.lines + 1] = e.pinyin ~= "" and (e.pinyin .. marked .. ": " .. senses) or senses
             end
         end
         blocks[#blocks + 1] = block

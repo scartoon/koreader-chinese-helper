@@ -25,7 +25,9 @@ What every source gets (the plugin can only ever match these):
 
 Sources:
   wikt  English Wiktionary's Chinese entries, from kaikki.org's wiktextract
-        extraction (CC BY-SA 4.0): Mandarin readings only, dialect-only senses
+        extraction (CC BY-SA 4.0): Standard Chinese readings only (never a
+        regional romanization: see STANDARD_SOUND_TAGS; dialect words without
+        one take their characters' unambiguous readings, or no pinyin), dialect-only senses
         dropped, soft redirects (simplified pages) and alternative forms
         resolved to their entries, entries that only name places dropped.
         Chinese in the glosses is simplified (simplify.py, t2s): "廩／廪"
@@ -165,16 +167,204 @@ def clean_sense(text):
     return text.replace("/", "／").replace("\t", " ").strip()
 
 
+# Wiktionary's Mandarin pinyin sounds (kaikki "sounds" items tagged Mandarin
+# and Pinyin) carry further tags. A sound is Standard Chinese only when every
+# further tag is in this allow-list: regional romanizations (Nanjing, Xi'an,
+# Sichuanese/Chengdu, Beijing dialect, Wuhan, Harbin, Tianjin, ...) carry a
+# place or "dialectal" tag and fail it, and so does any tag Wiktionary adds
+# later. Their tone marks are the dialect's tones (搛菜 Nanjing jiǎncāi,
+# Standard jiāncài), so they are never shown. The bare Mandarin+Pinyin sound is
+# the pronunciation box's summary line: it repeats whatever the detailed
+# sounds say (the dialect's reading when there is no Standard one).
+STANDARD_SOUND_TAGS = {
+    "Standard-Chinese", "Standard", "standard", "Mainland-China", "Taiwan",
+    "variant", "common", "phonetic", "Erhua", "toneless-final-syllable-variant", "alternative",
+    "literary", "colloquial", "vernacular", "dated", "rare", "uncommon", "obsolete", "historical",
+    "stressed", "unstressed", "emphatic", "contraction",
+}
+# ...and it needs one of these: a sound with no marker at all (only the
+# summary line, or a bare "phonetic" one) is Wiktionary leaving the region
+# untagged (Harbin 墨斗子 mìdǒuzi), so it does not count either.
+STANDARD_MARKERS = {"Standard-Chinese", "Standard", "Mainland-China", "Taiwan"}
+
+
+def _pinyin_sounds(entry):
+    return [s for s in entry.get("sounds", []) if s.get("zh_pron") and "Mandarin" in (s.get("tags") or [])
+            and "Pinyin" in (s.get("tags") or [])]
+
+
+def _extra_tags(sound):
+    return set(sound.get("tags") or []) - {"Mandarin", "Pinyin"}
+
+
+def _sound_text(sound):
+    # Some entries add the numbered form in brackets ("xiàn (xian⁴)") or the
+    # sandhi form ("sānjiǎochǐ [Phonetic: sānjiáochǐ"), or start a word with
+    # an apostrophe ("dà 'éluósī").
+    text = re.sub(r"\s*\[Phonetic:.*$", "", sound["zh_pron"])
+    text = re.sub(r"(^|\s)'", r"\1", re.sub(r"\s*\([^)]*\)", "", text)).strip()
+    return unicodedata.normalize("NFC", text)
+
+
+def _standard(sound):
+    tags = _extra_tags(sound)
+    return bool(tags & STANDARD_MARKERS) and tags <= STANDARD_SOUND_TAGS
+
+
 def mandarin_pinyin(entry):
-    """The entry's Mandarin pinyin (mainland before Taiwan), or None."""
-    found = [s for s in entry.get("sounds", []) if s.get("zh_pron") and "Mandarin" in (s.get("tags") or [])
-             and "Pinyin" in (s.get("tags") or [])]
+    """The entry's Standard Chinese pinyin (mainland before Taiwan, written
+    before sandhi-applied "phonetic" forms), or None (see
+    STANDARD_SOUND_TAGS)."""
+    found = _pinyin_sounds(entry)
+    standard = [s for s in found if _standard(s)]
+    if not standard:
+        return None
+    # The summary line counts when every detailed sound is Standard (it keeps
+    # Wiktionary's own order and spelling: OK ōukèi), or when it repeats a
+    # Standard sound.
+    clean = all(_standard(s) or _extra_tags(s) <= {"phonetic"} for s in found)
+    texts = {_sound_text(s) for s in standard}
+    found = [s for s in found if s in standard or
+             (not _extra_tags(s) and (clean or _sound_text(s) in texts))]
+    found = [s for s in found if _sound_text(s)]
     if not found:
         return None
-    plain = [s for s in found if "Taiwan" not in (s.get("tags") or [])]
-    # Some entries add the numbered form in brackets: "xiàn (xian⁴)".
-    pinyin = re.sub(r"\s*\([^)]*\)", "", (plain or found)[0]["zh_pron"]).strip()
-    return unicodedata.normalize("NFC", pinyin) or None
+    ranked = sorted(found, key=lambda s: ("Taiwan" in (s.get("tags") or []) and "Mainland-China" not in s["tags"],
+                                          "phonetic" in (s.get("tags") or [])))
+    return _sound_text(ranked[0])
+
+
+def regional_only(entry):
+    """True when the entry has Mandarin pinyin, but no Standard Chinese
+    reading among it (only regional or untagged romanizations)."""
+    return bool(_pinyin_sounds(entry)) and mandarin_pinyin(entry) is None
+
+
+# The pinyin key of an entry with only regional readings: its rows take their
+# characters' readings when every one is unambiguous, else no pinyin
+# (character_pinyin()).
+REGIONAL = ""
+
+
+def char_readings_from_entries(entries):
+    """{character: set of lowercase marked syllables} from CC-CEDICT's
+    single-character entries (build_db.py's tuples), both forms. A neutral
+    variant counts as a reading of its own (子 zǐ / zi, 儿 ér / r)."""
+    out = {}
+    for simp, trad, _py, syl, _defs in entries:
+        if len(simp) != 1 or not syl or " " in syl:
+            continue
+        for ch in {simp, trad}:
+            out.setdefault(ch, set()).add(syl.lower())
+    return out
+
+
+def join_syllables(syls):
+    """["xī", "ān"] -> "xī'ān", as CC-CEDICT's and Wiktionary's joined pinyin."""
+    out = ""
+    for i, syl in enumerate(syls):
+        if i and unicodedata.normalize("NFD", syl)[:1] in ("a", "o", "e"):
+            out += "'"
+        out += syl
+    return out
+
+
+def character_pinyin(simp, trad, readings):
+    """Tier 2: the word's reading from its characters when each has exactly
+    one CC-CEDICT reading (in either form), else "" (tier 3: no pinyin).
+    Never a guess: 搛菜 -> jiāncài, 挟菜 (挟 jiā/xié) -> ""."""
+    if not readings or len(simp) != len(trad):
+        return ""
+    syls = []
+    for a, b in zip(simp, trad):
+        r = readings.get(a, set()) | readings.get(b, set())
+        if len(r) != 1:
+            return ""
+        syls.append(next(iter(r)))
+    return join_syllables(syls)
+
+
+# Every Mandarin syllable without tones (as ch_pinyin.lua's SYLLABLES).
+SYLLABLES = set("""a ai an ang ao ba bai ban bang bao bei ben beng bi bian biang biao bie bin bing bo bong bu
+ca cai can cang cao ce cei cen ceng cha chai chan chang chao che chen cheng chi chong chou chu chua
+chuai chuan chuang chui chun chuo ci cong cou cu cuan cui cun cuo da dai dan dang dao de dei den deng
+di dia dian diao die din ding diu dong dou du duan dui dun duo e ei en eng er fa fan fang fei fen feng
+fiao fo fou fu ga gai gan gang gao ge gei gen geng gong gou gu gua guai guan guang gui gun guo ha hai
+han hang hao he hei hen heng hong hou hu hua huai huan huang hui hun huo ji jia jian jiang jiao jie jin
+jing jiong jiu ju juan jue jun ka kai kan kang kao ke kei ken keng kong kou ku kua kuai kuan kuang kui
+kun kuo la lai lan lang lao le lei len leng li lia lian liang liao lie lin ling liu lo long lou lu
+luan lun luo lü lüe ma mai man mang mao me mei men meng mi mian miao mie min ming miu mo mou mu na nai
+nan nang nao ne nei nen neng ni nia nian niang niao nie nin ning niu nong nou nu nuan nun nuo nü nüe
+o ou pa pai pan pang pao pei pen peng pi pian piao pie pin ping po pou pu qi qia qian qiang qiao qie
+qin qing qiong qiu qu quan que qun ran rang rao re ren reng ri rong rou ru rua ruan rui run ruo sa sai
+san sang sao se sen seng sha shai shan shang shao she shei shen sheng shi shou shu shua shuai shuan
+shuang shui shun shuo si song sou su suan sui sun suo ta tai tan tang tao te tei teng ti tian tiao tie
+ting tong tou tu tuan tui tun tuo wa wai wan wang wei wen weng wo wong wu xi xia xian xiang xiao xie
+xin xing xiong xiu xu xuan xue xun ya yan yang yao ye yi yin ying yo yong you yu yuan yue yun za zai
+zan zang zao ze zei zen zeng zha zhai zhan zhang zhao zhe zhei zhen zheng zhi zhong zhou zhu zhua
+zhuai zhuan zhuang zhui zhun zhuo zi zong zou zu zuan zui zun zuo""".split())
+
+
+def _strip_tones(s):
+    return unicodedata.normalize("NFC", "".join(c for c in unicodedata.normalize("NFD", s)
+                                                if unicodedata.category(c) != "Mn" or c == "\u0308"))
+
+
+def split_joined(pinyin, n):
+    """Python port of Pinyin.splitJoined (ch_pinyin.lua): the n lowercase
+    syllables of a joined reading when it splits exactly one way, else None."""
+    if not pinyin or n < 1:
+        return None
+    chars, starts, new = [], [], True
+    for ch in unicodedata.normalize("NFC", pinyin.lower()):
+        if ch in " '-’·":
+            new = True
+        else:
+            chars.append(ch)
+            starts.append(new)
+            new = False
+    found = []
+
+    def walk(p, path):
+        if len(found) > 1:
+            return
+        if p == len(chars):
+            if len(path) == n:
+                found.append(list(path))
+            return
+        if len(path) >= n or (not starts[p] and _strip_tones(chars[p]) in "aeo"):
+            return
+        marks = 0
+        for q in range(p, min(len(chars), p + 6)):
+            if q > p and starts[q]:
+                break
+            plain = _strip_tones(chars[q])
+            if plain != chars[q]:
+                marks += 1
+            if not (len(plain) == 1 and ("a" <= plain <= "z" or plain == "ü")) or marks > 1:
+                break
+            syl = "".join(chars[p:q + 1])
+            base = _strip_tones(syl)
+            if base in SYLLABLES or (base == "r" and path and len(path) == n - 1 and q == len(chars) - 1):
+                walk(q + 1, path + [syl])
+
+    if chars:
+        walk(0, [])
+    return found[0] if len(found) == 1 else None
+
+
+def reading_mismatch(simp, trad, pinyin, readings):
+    """True when a toned syllable of the row's pinyin is no CC-CEDICT reading of
+    its character (characters CC-CEDICT lacks are skipped); None when the
+    pinyin does not split into one syllable per character."""
+    syls = split_joined(pinyin, len(simp))
+    if syls is None:
+        return None
+    for i, syl in enumerate(syls):
+        known = readings.get(simp[i], set()) | readings.get(trad[i] if i < len(trad) else "", set())
+        if known and _strip_tones(syl) != syl and syl not in known:
+            return True
+    return False
 
 
 def read_wiktionary(path, stats):
@@ -194,8 +384,11 @@ def read_wiktionary(path, stats):
             stats["wikt: entries read"] += 1
             pinyin = mandarin_pinyin(e)
             if not pinyin:
-                stats["wikt: no Mandarin reading (dropped)"] += 1
-                continue
+                if not regional_only(e):
+                    stats["wikt: no Mandarin reading (dropped)"] += 1
+                    continue
+                stats["wikt: entries with only regional Mandarin readings"] += 1
+                pinyin = REGIONAL
             senses, alts, places = [], set(), 0
             for s in e.get("senses", []):
                 tags = set(s.get("tags") or [])
@@ -229,8 +422,11 @@ def read_wiktionary(path, stats):
     return entries, redirects
 
 
-def wiktionary_rows(path, cedict, measure, stats, dropped=None):
-    """Rows (simp, trad, pinyin, syllables, defs, "wikt") for the fallback table."""
+def wiktionary_rows(path, cedict, measure, stats, dropped=None, readings=None):
+    """Rows (simp, trad, pinyin, syllables, defs, "wikt") for the fallback table.
+    readings: char_readings_from_entries() of CC-CEDICT, for the entries with
+    only regional readings (character_pinyin()) and the mismatch count;
+    without it those rows have no pinyin."""
     entries, redirects = read_wiktionary(path, stats)
     simplifier = Simplifier("t2s")
     simp_of = {}
@@ -257,6 +453,12 @@ def wiktionary_rows(path, cedict, measure, stats, dropped=None):
         simple = [simplifier.wiktionary(x) for x in senses]
         if simple != senses:
             stats["wikt: rows with glosses simplified"] += 1
+        if pinyin == REGIONAL:
+            pinyin = character_pinyin(simp, trad, readings)
+            stats["wikt: regional-only, pinyin from characters" if pinyin
+                  else "wikt: regional-only, no pinyin"] += 1
+        elif readings and reading_mismatch(simp, trad, pinyin, readings):
+            stats["wikt: rows with a syllable no CC-CEDICT reading of its character has"] += 1
         rows.append((simp, trad, pinyin, "", "/".join(simple), "wikt"))
 
     for word, ent in entries.items():

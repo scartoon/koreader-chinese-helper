@@ -239,6 +239,18 @@ eq(join(m[2].entries, "pinyin"), "dázi,dázǐ", "the source's order, nothing mo
 -- A fallback-only anchor (CC-CEDICT lacks the character): listed, unmarked.
 m = matches("", "𪜀", "", { frow("𪜀", "𪜀", "x", "a rare character", "wikt") }, { chosen = "x" })
 eq(#m, 1); assert(not m[1].entries[1].marked and not m[1].entries[1].missing)
+-- A dialect word with no Standard reading has no pinyin (#15): the word and
+-- its qualified gloss, no stray gap or separator.
+m = matches("", "挟", "菜", { row("挟", "挾", "xié", "to clasp"), row("挟", "挾", "jiā", "to hold"),
+    frow("挟菜", "挾菜", "", "(dialectal) to get food using chopsticks", "wikt"),
+    frow("挟菜", "挾菜", "jiācài", "other sense", "wikt") }, { chosen = "xié" })
+text = Model.render(m, "挟", true)
+assert(text:find("\n\n挟菜\n%(dialectal%) to get food using chopsticks\njiācài: other sense$"), text)
+m = matches("", "挟", "菜", { row("挟", "挾", "xié", "to clasp"),
+    frow("挟菜", "挾菜", "jiācài", "a sense", "wikt"),
+    frow("挟菜", "挾菜", "", "(dialectal) to get food using chopsticks", "wikt") }, { chosen = "xié" })
+text = Model.render(m, "挟", true)
+assert(text:find("\n\n挟菜  jiācài\na sense\n%(dialectal%) to get food using chopsticks$"), text)
 
 -- The deciding word CC-CEDICT lacks: the fallback definition, tag kept.
 local decided = { word = "尚书省", start = 0, len = 3, syllables = "shàng shū shěng" }
