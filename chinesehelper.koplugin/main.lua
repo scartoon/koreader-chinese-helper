@@ -253,20 +253,71 @@ function ChineseHelper:fallbackSources()
     return out
 end
 
+-- The number of characters in a word.
+local function length(word)
+    return select(2, word:gsub("[^\128-\191]", ""))
+end
+
+-- Does the installed MOE file have covered rows (built with 2.5.0's
+-- tools/build_moe.py)? Without them, Always behaves as Fallback.
+function ChineseHelper:moeHasCovered()
+    local db = self:localDb("moe")
+    return db ~= nil and metaOf(db).moe_covered == "1" and db:hasCovered()
+end
+
+-- Of `texts` (a tap's candidate words), those MOE is to show Always: the
+-- single character when its Characters mode is Always, the longer words when
+-- its Words mode is. None without a rebuilt MOE file.
+function ChineseHelper:alwaysTexts(texts)
+    local chars, words = self.settings:moeMode("chars"), self.settings:moeMode("words")
+    if (chars ~= "always" and words ~= "always") or not self:moeHasCovered() then return {} end
+    local out = {}
+    for _i, t in ipairs(texts) do
+        if (length(t) == 1 and chars == "always") or (length(t) > 1 and words == "always") then
+            out[#out + 1] = t
+        end
+    end
+    return out
+end
+
 -- Rows { {simp=, trad=, pinyin=, syllables=, defs=, source=}, ... } from the
 -- fallback dictionaries for `words` (none of them CC-CEDICT's): each source in
 -- priority order, and a word one source has is not taken from the next. One
 -- query per database: Wiktionary and the Wikipedia titles share the plugin's,
 -- which is asked once for every word and its rows then shared out by source.
--- only: { [source] = true } to use only those.
-function ChineseHelper:fallbackLookup(words, only)
+-- only: { [source] = true } to use only those (the reading path: Wiktionary).
+-- MOE gives a fallback entry only for the lengths its modes allow (Off for
+-- characters: none for a single character).
+-- always: texts MOE is to show Always (ChineseHelper:alwaysTexts), or nil.
+-- Then MOE's file is asked once for those and `words` together, covered
+-- rows included, and the second value is every MOE row for those texts.
+function ChineseHelper:fallbackLookup(words, only, always)
     local Model = require("ch_popup_model")
-    local remaining, out, fetched = words, {}, {}
+    local remaining, out, fetched, always_rows = words, {}, {}, {}
+    local settings = self.settings
     for _i, src in ipairs(self:fallbackSources()) do
-        if #remaining == 0 then break end
-        if not only or only[src.source] then
+        local want_always = always ~= nil and #always > 0 and src.source == "moe"
+        if (#remaining > 0 or want_always) and (not only or only[src.source]) then
             local rows = fetched[src.db]
-            if not rows then
+            if not rows and want_always then
+                local list, seen = {}, {}
+                for _j, list_ in ipairs({ words, always }) do
+                    for _k, w in ipairs(list_) do
+                        if not seen[w] then list[#list + 1], seen[w] = w, true end
+                    end
+                end
+                local wanted = {}
+                for _j, w in ipairs(always) do wanted[w] = true end
+                rows = {}
+                for _j, row in ipairs(src.db:fallbackAll(list)) do
+                    if wanted[row.simp] or wanted[row.trad] then
+                        row.source = src.source
+                        always_rows[#always_rows + 1] = row
+                    end
+                    if not row.covered then rows[#rows + 1] = row end
+                end
+                fetched[src.db] = rows
+            elseif not rows then
                 rows = src.db:fallback(words)
                 fetched[src.db] = rows
             end
@@ -277,12 +328,37 @@ function ChineseHelper:fallbackLookup(words, only)
                     got[#got + 1] = row
                 end
             end
+            -- MOE: only the lengths its modes allow; the rest stay for the
+            -- next source.
+            local ask, skipped = remaining, nil
+            if src.source == "moe" then
+                local chars_ok = settings:moeMode("chars") ~= "off"
+                local words_ok = settings:moeMode("words") ~= "off"
+                if not (chars_ok and words_ok) then
+                    ask, skipped = {}, {}
+                    for _j, w in ipairs(remaining) do
+                        local single = length(w) == 1
+                        if (single and chars_ok) or (not single and words_ok) then
+                            ask[#ask + 1] = w
+                        else
+                            skipped[#skipped + 1] = w
+                        end
+                    end
+                end
+            end
             local kept
-            kept, remaining = Model.takeFallback(remaining, got)
+            kept, remaining = Model.takeFallback(ask, got)
             for _j, row in ipairs(kept) do out[#out + 1] = row end
+            if skipped then
+                local keep = {}
+                for _j, w in ipairs(remaining) do keep[w] = true end
+                for _j, w in ipairs(skipped) do keep[w] = true end
+                remaining = {}
+                for _j, w in ipairs(words) do if keep[w] then remaining[#remaining + 1] = w end end
+            end
         end
     end
-    return out
+    return out, always_rows
 end
 
 -- { [form] = {short=, short_source=, view=, source=} } for the idioms among

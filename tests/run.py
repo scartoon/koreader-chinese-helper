@@ -193,6 +193,7 @@ def main():
         g.PY_ENTRIES_SQL = build_db.entries_sql
         g.PY_WORDS_SQL = build_db.words_sql
         g.PY_FALLBACK_SQL = build_db.fallback_sources.fallback_sql
+        g.PY_FALLBACK_ALL_SQL = build_db.fallback_sources.fallback_all_sql
         g.PY_IDIOMS_SQL = chengyu.idioms_sql
         g.PY_COMPONENTS_SQL = build_db.COMPONENTS_SQL
         g.PY_NOTES_SQL = build_db.NOTES_SQL

@@ -99,6 +99,14 @@ function DB.fallbackSql(n, uncovered)
         .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
 end
 
+-- Every fallback row for n words, covered ones included, with the `covered`
+-- column (a table that has it): MOE's one query per tap when it is shown
+-- Always. Kept identical to tools/fallback_sources.py's fallback_all_sql.
+function DB.fallbackAllSql(n)
+    return "SELECT simp, trad, pinyin, syllables, defs, source, covered FROM fallback WHERE simp IN (" .. marks(n)
+        .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
+end
+
 -- The resolver's word readings for n words.
 function DB.wordsSql(n)
     return "SELECT word, syllables, freq FROM words WHERE word IN (" .. marks(n) .. ")"
@@ -160,6 +168,21 @@ function DB:fallback(words)
     local ok, err = pcall(self.each, self, DB.fallbackSql(n, self:hasCovered()), args, function(row)
         rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
                             source = row[6] }
+    end)
+    if not ok then return {}, err end
+    return rows
+end
+
+-- Rows as DB:fallback gives them, covered ones included, each with
+-- covered = true or false. Only for a table with the `covered` column
+-- (DB:hasCovered); {} otherwise.
+function DB:fallbackAll(words)
+    if #words == 0 or not self:hasCovered() then return {} end
+    local args, n = padded_args(words, 2)
+    local rows = {}
+    local ok, err = pcall(self.each, self, DB.fallbackAllSql(n), args, function(row)
+        rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
+                            source = row[6], covered = tonumber(row[7]) == 1 }
     end)
     if not ok then return {}, err end
     return rows

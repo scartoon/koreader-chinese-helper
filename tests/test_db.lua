@@ -124,9 +124,24 @@ mdb.each = function(self, sql, ...)
     return real_each(self, sql, ...)
 end
 mdb.has_covered = nil
-mdb:fallback({ "丁匠" }); mdb:fallback({ "典史" }); mdb:fallback({ "和" })
+mdb:fallback({ "丁匠" }); mdb:fallback({ "典史" }); mdb:fallback({ "和" }); mdb:fallbackAll({ "和" })
 eq(checks, 1, "the column is checked once per database")
 mdb.each = real_each
+-- MOE Always (#11): one query for every row, covered or not.
+for _, n in ipairs({ 1, 2, 36 }) do eq(DB.fallbackAllSql(n), PY_FALLBACK_ALL_SQL(n), "all-rows SQL for " .. n) end
+local all = mdb:fallbackAll(probe_words)
+local ncov, nunc = 0, 0
+for _, r in ipairs(all) do if r.covered then ncov = ncov + 1 else nunc = nunc + 1 end end
+eq(ncov, 4, "every covered row"); eq(nunc, #mdb:fallback(probe_words), "and every uncovered one")
+local unc = {}
+for _, r in ipairs(all) do if not r.covered then unc[#unc + 1] = r end end
+eq(rowsText(unc), rowsText(mdb:fallback(probe_words)), "uncovered rows as the fallback query gives them")
+eq(#odb:fallbackAll(probe_words), 0, "an old file: no all-rows query")
+eq(#db:fallbackAll({ "东西" }), 0, "nor the release database")
+local plan = {}
+mdb:each("EXPLAIN QUERY PLAN " .. DB.fallbackAllSql(1), { "和", "和" }, function(row) plan[#plan + 1] = row[4] end)
+plan = table.concat(plan, "\n")
+assert(plan:find("fallback_simp", 1, true) and plan:find("fallback_trad", 1, true), "all-rows query uses the indexes: " .. plan)
 mdb:close(); odb:close()
 
 local fb = db:fallback({ "尚书省" })

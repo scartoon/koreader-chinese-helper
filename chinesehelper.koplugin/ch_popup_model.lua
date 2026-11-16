@@ -162,6 +162,8 @@ Model.SOURCE_ORDER = { "wikt", "cbdb", "moe", "idioms", "xinhua", "wp", "moegirl
 -- the popup says so.
 Model.GENERATED_READING = { wp = true, moegirl = true }
 Model.GENERATED_NOTE = "generated pinyin"
+-- After an Always entry's reading that CC-CEDICT does not list for that word.
+Model.NOT_CEDICT = "not in CC-CEDICT"
 
 -- The candidate words (texts) no CC-CEDICT row covers, in their order.
 function Model.uncovered(texts, rows)
@@ -211,6 +213,12 @@ The popup's matches.
                     otherwise the first source in args.order (default
                     Model.SOURCE_ORDER) that has the word gives its rows.
   args.order        the fallback dictionaries' priority, or nil
+  args.always       MOE's rows for the words it shows Always (main.lua
+                    fallbackLookup's second value), or nil: a match whose
+                    entries are not MOE's own gets them as m.always (entries
+                    as cleanRows gives them; a reading CC-CEDICT does not
+                    list for that word has notcedict = true). Never read
+                    by the reading markers.
   args.chosen       the resolver's reading of the tapped character ("dào", or a
                     pair "chéng/shèng"), or nil
   args.default      the tapped character's default reading, or nil: which of
@@ -230,7 +238,7 @@ The popup's matches.
   args.wordReading  function(word) -> the resolver's reading of a word ("dōng xi")
                     or nil
 
-Returns { {word=, start=, len=, entries={...}, decided=bool, note=, mark=}, ... }
+Returns { {word=, start=, len=, entries={...}, always=, decided=bool, note=, mark=}, ... }
 (mark: Model.MARK_UNSURE on the tapped character's own match when its
 readings are the uncertainty pair; nil otherwise).
 Each entry: { pinyin=, syllables=, senses={...}, proper=bool, marked=bool,
@@ -263,18 +271,46 @@ function Model.matches(args)
     local function rowsFor(form)
         local sources = by_form[form]
         if not sources then return nil end
-        if sources.cedict then return sources.cedict end
+        if sources.cedict then return sources.cedict, "cedict" end
         for _, s in ipairs(args.order or Model.SOURCE_ORDER) do
-            if sources[s] then return sources[s] end
+            if sources[s] then return sources[s], s end
         end
         return nil
+    end
+    local always_by_form = {}
+    for _, row in ipairs(args.always or {}) do
+        for _, form in ipairs({ row.simp, row.trad }) do
+            if form then
+                local list = always_by_form[form] or {}
+                always_by_form[form] = list
+                if list[#list] ~= row then list[#list + 1] = row end
+            end
+        end
+    end
+    -- MOE's Always entries for a word whose own entries (from `source`) are
+    -- not MOE's; MOE readings CC-CEDICT lacks for it marked notcedict.
+    local function alwaysFor(text, source, entries)
+        local list = always_by_form[text]
+        if not list or source == list[1].source then return nil end
+        local out = Model.cleanRows(text, list)
+        if #out == 0 then return nil end
+        if source == "cedict" then
+            local known = {}
+            for _, e in ipairs(entries) do known[Pinyin.lower(e.syllables or e.pinyin or "")] = true end
+            for _, e in ipairs(out) do
+                local reading = (e.syllables ~= nil and e.syllables ~= "") and e.syllables or e.pinyin
+                if reading ~= "" and not known[Pinyin.lower(reading)] then e.notcedict = true end
+            end
+        end
+        return out
     end
     local decided = args.decided
     local anchor, words, have_decided = nil, {}, false
     for _, c in ipairs(args.cands or {}) do
-        local list = rowsFor(c.text)
+        local list, list_source = rowsFor(c.text)
         local entries = list and Model.cleanRows(c.text, list) or {}
         local m = { word = c.text, start = c.start, len = c.len, entries = entries }
+        if #entries > 0 then m.always = alwaysFor(c.text, list_source, entries) end
         local is_decided = decided ~= nil and c.text == decided.word and c.start == decided.start
         if is_decided then
             m.decided, m.note = true, decided.note
@@ -482,7 +518,7 @@ function Model.blocks(matches, char, annotated, b0, b1)
     b0, b1 = b0 or "", b1 or ""
     local default_mark = annotated and "" or Model.MARK_LIKELY
     local blocks = {}
-    for _, m in ipairs(matches) do
+    local function build(m)
         local block = { lines = {} }
         local label = m.mark or default_mark
         local mark = label ~= "" and (" · " .. label) or ""
@@ -501,6 +537,7 @@ function Model.blocks(matches, char, annotated, b0, b1)
             if Model.GENERATED_READING[e.source or ""] and e.pinyin ~= "" then
                 marked = marked .. " · " .. Model.GENERATED_NOTE
             end
+            if e.notcedict then marked = marked .. " · " .. Model.NOT_CEDICT end
             if k == 1 then
                 local tag = m.decided and (" · decides " .. char .. "'s reading") or ""
                 -- A word with no pinyin (a dialect word without a Standard
@@ -516,7 +553,17 @@ function Model.blocks(matches, char, annotated, b0, b1)
                 block.lines[#block.lines + 1] = e.pinyin ~= "" and (e.pinyin .. marked .. ": " .. senses) or senses
             end
         end
-        blocks[#blocks + 1] = block
+        return block
+    end
+    for _, m in ipairs(matches) do
+        blocks[#blocks + 1] = build(m)
+        if m.always then
+            -- MOE's Always entries: their own block, right after the match's,
+            -- collapsed in the popup (ch_popup.lua), never marked.
+            local block = build{ word = m.word, len = m.len, entries = m.always }
+            block.always, block.collapse = true, true
+            blocks[#blocks + 1] = block
+        end
     end
     return blocks
 end
@@ -572,7 +619,8 @@ end
 function Model.chineseLast(blocks)
     local rest, chinese = {}, {}
     for _, b in ipairs(blocks) do
-        if Model.LARGE_SOURCES[b.source] then chinese[#chinese + 1] = b else rest[#rest + 1] = b end
+        -- An Always block stays right after its word's own entry.
+        if Model.LARGE_SOURCES[b.source] and not b.always then chinese[#chinese + 1] = b else rest[#rest + 1] = b end
     end
     for k, b in ipairs(rest) do blocks[k] = b end
     for k, b in ipairs(chinese) do blocks[#rest + k] = b end
