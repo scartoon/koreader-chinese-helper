@@ -159,9 +159,23 @@ eq(join(m, "word"), "冒,冒顿")
 text = Model.render(m, "冒", true)
 assert(text:find("冒  mò\nno separate CC-CEDICT entry for this reading\nmào: to emit", 1, true), text)
 assert(text:find("冒顿  mò dú · decides 冒's reading\nModu, Xiongnu ruler", 1, true), text)
--- A pypinyin-only word: no definition.
+-- A pypinyin-only word (no definition from any source, no note): not listed (#20),
+-- the tapped character's own block still there.
+m = matches("", "甲", "乙", { row("甲", "甲", "jiǎ", "first") },
+    { chosen = "jiǎ", decided = { word = "甲乙", start = 0, len = 2, syllables = "jiǎ yǐ" } })
+eq(join(m, "word"), "甲")
+text = Model.render(m, "甲", false)
+assert(text:find("^甲  jiǎ") and not text:find("甲乙", 1, true), text)
+-- Same with no other word for the character: nothing listed at all, so the tap
+-- goes to KOReader's dictionaries (ch_tap.lua), never an empty popup.
 m = matches("", "甲", "乙", {}, { chosen = "jiǎ", decided = { word = "甲乙", start = 0, len = 2, syllables = "jiǎ yǐ" } })
-eq(join(m, "word"), "甲乙"); assert(Model.render(m, "甲", false):find("no definition in CC-CEDICT", 1, true))
+eq(#m, 0)
+-- A noted word with no senses still shows (冒顿 above); so does a pypinyin word
+-- that only MOE's Always rows have.
+m = matches("", "甲", "乙", { row("甲", "甲", "jiǎ", "first") },
+    { chosen = "jiǎ", decided = { word = "甲乙", start = 0, len = 2, syllables = "jiǎ yǐ" },
+      always = { { simp = "甲乙", trad = "甲乙", pinyin = "jiǎ yǐ", defs = "天干的第一位和第二位", source = "moe" } } })
+eq(join(m, "word"), "甲,甲乙")
 
 ------------------------------------------------------------------------
 -- Placement
@@ -260,10 +274,14 @@ m = matches("", "尚", "书省", { row("尚", "尚", "shàng", "still"), row("�
 local text = Model.render(m, "尚", false)
 assert(text:find("尚书省  Shàngshūshěng · decides 尚's reading\nthe Department of State Affairs", 1, true), text)
 assert(not text:find("no definition in CC-CEDICT", 1, true), text)
--- Without a fallback entry: as before.
+-- Without a fallback entry: the deciding word is not listed (#20); the
+-- tapped character keeps its marked reading.
 m = matches("", "尚", "书省", { row("尚", "尚", "shàng", "still"), row("尚", "尚", "cháng", "other") },
     { chosen = "shàng", decided = decided })
-assert(Model.render(m, "尚", false):find("decides 尚's reading\nno definition in CC-CEDICT", 1, true))
+eq(join(m, "word"), "尚")
+text = Model.render(m, "尚", false)
+assert(text:find("^尚  shàng · likely here\nstill"), text)
+assert(not text:find("尚书省", 1, true) and not text:find("no definition", 1, true), text)
 -- Blocks carry each entry's source (for the labels); the text is the same as render's.
 m = matches("", "尚", "书省", { row("尚", "尚", "shàng", "still"),
     frow("尚书省", "尚書省", "shàng shū shěng", "官署名", "moe") })
