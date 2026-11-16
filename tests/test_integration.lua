@@ -53,7 +53,7 @@ local function popup(text, char, opts)
             if a.index == i then drawn = a.reading end
         end
     end
-    local chosen, decided, unsure = Resolve.forPopup(data, items, i, mode, special, drawn)
+    local chosen, decided, unsure, source = Resolve.forPopup(data, items, i, mode, special, drawn)
     local cands, texts = Text.candidates(left, char, right)
     data:prefetch(texts)
     local rows = db:lookup(texts)
@@ -62,10 +62,10 @@ local function popup(text, char, opts)
     end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = drawn ~= nil, decided = decided,
-        unsure = unsure, default = select(2, data:char(char)),
+        unsure = unsure, source = source, default = select(2, data:char(char)),
         wordReading = function(w) return Resolve.wordReading(data, w) end,
     }
-    return { chosen = chosen, decided = decided, unsure = unsure, matches = matches, drawn = drawn,
+    return { chosen = chosen, decided = decided, unsure = unsure, source = source, matches = matches, drawn = drawn,
              text = Model.render(matches, char, drawn ~= nil) }
 end
 
@@ -285,6 +285,22 @@ assert(p.text:find("累  lěi\n", 1, true), p.text)
 assert(p.text:find("\nléi: ", 1, true), p.text)
 assert(not p.text:find("shown above", 1, true), p.text)
 assert(not p.text:find(" · \n", 1, true) and not p.text:find(" \n", 1, true), p.text)
+
+-- "likely here" only with evidence (#16). 传 in a book title cut by the line
+-- (…传稿》): no word, no rule, so the default chuán is listed first with no
+-- label, zhuàn after it.
+p = popup("传稿》记载：", "传")
+eq(p.source, "default"); eq(p.chosen, "chuán"); assert(not p.unsure)
+assert(p.text:find("^传  chuán\n"), p.text)
+assert(p.text:find("\nzhuàn: ", 1, true), p.text)
+assert(not p.text:find("likely here", 1, true), p.text)
+-- A context rule decides (还 after 他: hái): the label stays.
+p = popup("他还。", "还")
+eq(p.source, "rule"); eq(p.chosen, "hái")
+assert(p.text:find("还  hái · likely here", 1, true), p.text)
+-- Words keep theirs (刺猬, 鼓捣, 东西, 大爷 and 累世 above).
+eq(popup("一只刺猬。", "猬").source, "word")
+eq(popup("发展成门第望族累世公卿", "累", { data = fdata }).source, "fallback")
 
 -- A CC-CEDICT word beats a longer fallback word: in 串行端口, CC-CEDICT's
 -- 串行 (chuànháng) decides 行, not Wiktionary's 串行端口 (chuànxíng

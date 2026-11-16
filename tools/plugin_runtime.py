@@ -99,6 +99,15 @@ function H.details(data, text, threshold, mode, special)
     end
     return out
 end
+-- Reading, rank and what decided it (Resolve.reading's fifth value: "word",
+-- "special", "rule", "fallback", "pair", "default"), or nil.
+function H.decision(data, text, target, mode, special)
+    local items, i = items_of(text, target)
+    if not i then return nil end
+    local reading, rank, _, _, source = Resolve.reading(data, items, i, mode, special)
+    if not rank then return nil end
+    return reading, rank, source or false
+end
 -- The special word covering the character at `target`: word, reading, marked.
 function H.special(special, text, target)
     if not special or not Resolve.special_at then return nil end
@@ -182,6 +191,14 @@ class Plugin:
         if r is None or (isinstance(r, tuple) and r[0] is None):
             return None
         return r if isinstance(r, tuple) else (r, None)
+
+    def decision(self, text, pos, mode="both"):
+        """(reading, rank, source) the plugin gives the character at pos, with
+        what decided it (see H.decision), or None."""
+        r = self.h.decision(self.data, text, pos, mode, self.special)
+        if r is None or not isinstance(r, tuple) or r[0] is None:
+            return None
+        return r[0], r[1], r[2] or None
 
     def analyze(self, text, pos):
         a = self.h.analyze(self.data, text, pos)

@@ -237,7 +237,10 @@ end
 -- reading: { word=, start=, len=, others={ {word=, start=}, ... } } (with
 -- special= the special.tsv entry for a special word). A fourth value is true
 -- when the reading is an unusual one from a special word: the character is
--- then annotated however common it is.
+-- then annotated however common it is. A fifth value says what decided the
+-- reading: "special", "word", "rule", "fallback" (a fallback-dictionary word
+-- chose within the uncertainty pair), "pair" (the pair, or its first reading
+-- alone) or "default" (nothing around the character decided: its default).
 --
 -- sp: the special word covering items[i] when the caller has already looked
 -- it up (false for none); nil to look it up here.
@@ -264,17 +267,17 @@ function Resolve.reading(data, items, i, uncertain, special, sp)
         if marked or rank then
             return entry.syllables[sp.pos], rank,
                 { word = entry.word, start = sp.start, len = #entry.chars, others = {}, special = entry },
-                marked
+                marked, "special"
         end
         return nil
     end
     if not rank then return nil end
     local reading, word, start, others = Resolve.word_reading(data, items, i)
     if reading then
-        return reading, rank, { word = word, start = start, len = utf8_len(word), others = others }
+        return reading, rank, { word = word, start = start, len = utf8_len(word), others = others }, nil, "word"
     end
     reading = rule_reading(data, items, i)
-    if reading then return reading, rank end
+    if reading then return reading, rank, nil, nil, "rule" end
     local first, second
     if data.uncertainty then first, second = data:uncertainty(item.text) end
     if first and second and first ~= second then
@@ -282,14 +285,14 @@ function Resolve.reading(data, items, i, uncertain, special, sp)
         local fallback, fword, fstart, fentry = Resolve.fallback_reading(data, items, i)
         if fallback == first or fallback == second then
             return fallback, rank, { word = fword, start = fstart, len = utf8_len(fword), others = {},
-                                     fallback = fentry.source, syllables = fentry.syllables }
+                                     fallback = fentry.source, syllables = fentry.syllables }, nil, "fallback"
         end
         uncertain = uncertain or Resolve.UNCERTAIN_BOTH
         if uncertain == Resolve.UNCERTAIN_SKIP then return nil end
-        if uncertain == Resolve.UNCERTAIN_BEST then return first, rank end
-        return first .. "/" .. second, rank
+        if uncertain == Resolve.UNCERTAIN_BEST then return first, rank, nil, nil, "pair" end
+        return first .. "/" .. second, rank, nil, nil, "pair"
     end
-    return default, rank
+    return default, rank, nil, nil, "default"
 end
 
 --[[--
@@ -379,13 +382,14 @@ mode marks both likely readings: nothing is drawn, so there is nothing to
 contradict.
 
 Returns chosen ("dào", "chéng/shèng" or nil), decided ({ word=, start=
-relative to items[i], len=, syllables=, note= } or nil), and unsure: true
+relative to items[i], len=, syllables=, note= } or nil), unsure: true
 when chosen is the uncertainty pair (no word or rule decided, nothing drawn),
-so the popup does not call either reading likely.
+so the popup does not call either reading likely, and source: what decided
+the reading (Resolve.reading's fifth value; nil when there is no reading).
 ]]
 function Resolve.forPopup(data, items, i, uncertain, special, drawn)
     if uncertain == Resolve.UNCERTAIN_SKIP then uncertain = Resolve.UNCERTAIN_BOTH end
-    local reading, _rank, match = Resolve.reading(data, items, i, uncertain, special)
+    local reading, _rank, match, _marked, source = Resolve.reading(data, items, i, uncertain, special)
     if drawn then reading = drawn end
     local decided
     if match and match.len and match.len > 1 then
@@ -397,7 +401,7 @@ function Resolve.forPopup(data, items, i, uncertain, special, drawn)
         }
     end
     local unsure = not drawn and reading ~= nil and reading:find("/", 1, true) ~= nil
-    return reading, decided, unsure
+    return reading, decided, unsure, source
 end
 
 return Resolve

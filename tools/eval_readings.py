@@ -42,7 +42,14 @@ Runs the plugin's own Lua code (ch_readings.lua, ch_resolve.lua).
    labelled character is marked by a special word, common characters
    included, and how often the special reading agrees with the label.
 
-4. tests/eval_cases.tsv (must all pass) and tests/eval_known_unhandled.tsv
+4. Accuracy by what decided the reading (Resolve.reading's source): a
+   CC-CEDICT or pypinyin word, a special word, a fallback-dictionary word, a
+   context rule, the uncertainty pair (either half counts) or the default
+   reading, over every test-split example the plugin has a reading for (the
+   popup shows one for common characters too). The popup labels a reading
+   "likely here" only for the first four (#16).
+
+5. tests/eval_cases.tsv (must all pass) and tests/eval_known_unhandled.tsv
    (reported only), at --threshold.
 
 The plugin is run with special words on (its default) when the copy being
@@ -173,6 +180,40 @@ def special_report(plugin, shares):
         print(f"    {word}: {ch} shown {reading}, labelled {label} ({k}x)")
 
 
+SOURCES = (("word", "word (CC-CEDICT / pypinyin)"), ("special", "special word"),
+           ("fallback", "fallback-dictionary word"), ("rule", "context rule"),
+           ("pair", "uncertainty pair (either half)"), ("default", "default reading"))
+
+
+def source_report(plugin, shares, threshold):
+    """Point 4 of the module docstring."""
+    neutral = load_neutral()
+    stats = {k: [Counter(), Counter()] for k, _ in SOURCES}  # all, rare: [n, ok]
+    misses = defaultdict(Counter)
+    for text, pos, ch, label in cpp_dataset.load("test"):
+        r = plugin.decision(text, pos, "both")
+        if r is None:
+            continue
+        shown, rank, source = r
+        default, dict_shares = shares.get(ch, (None, {}))
+        if label not in (shown or "").split("/"):
+            label = normalize_label(label, set(dict_shares) | ({default} if default else set())
+                                    | set((shown or "").split("/")), neutral.get(ch, ()))
+        ok = shown_ok(label, shown)
+        for part, sel in ((0, True), (1, rank == 0 or rank > threshold)):
+            if sel and source in stats:
+                stats[source][part]["n"] += 1
+                stats[source][part]["ok"] += ok
+        if source == "rule" and not ok:
+            misses[ch][(text[max(0, pos - 4):pos + 5], shown, label)] += 1
+    print(f"  Accuracy by what decided the reading (both shown; all characters | rarer than {threshold:,}):")
+    for key, name in SOURCES:
+        a, b = stats[key]
+        cell = lambda c: (f"{100 * c['ok'] / c['n']:5.1f}% of {c['n']:>5,}" if c["n"] else "     -         ")  # noqa: E731
+        print(f"    {name:<32} {cell(a)}   | {cell(b)}")
+    return stats, misses
+
+
 def check_cases(plugin, path, threshold, label):
     total = passed = 0
     failures = []
@@ -283,6 +324,8 @@ def main():
                         break
         print()
         special_report(plugin, shares)
+        print()
+        source_report(plugin, shares, args.threshold)
         print()
 
     check_cases(plugin, os.path.join(ROOT, "tests", "eval_cases.tsv"), args.threshold, "Regression list")
