@@ -129,6 +129,7 @@ Tools menu). Settings apply to all books.
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
 | Chinese text size | 100 / 115 / 130 (default) / 150 / 175% of the popup text size, for the Chinese dictionaries' text (MOE, 成語典, Xinhua, Moegirlpedia). See [Tapping a character in the popup](#tapping-a-character-in-the-popup) |
 | Show character components | On (default) / off. See [Character components](#character-components) |
+| Show character frequency rank | On (default) / off. The small grey 字频 line on the tapped character's entry |
 | Show the text around the character in the popup | On (default) / off. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
 | Try to match the book's font | On (default) / off: Chinese text in the popup in the book's font. See [The popup](#the-popup) |
@@ -194,6 +195,11 @@ where the words break.
   When nothing did, the character's usual reading simply comes first, unlabelled, and when
   nothing decides between its two likely readings, both are listed, unmarked, the likelier first
   ([Readings](#readings)).
+- **Its frequency rank**, in small grey above its own entry: **字频 4,270** is its rank among
+  characters in modern written Chinese (wordfreq; 1 is the most common, and pinyin is drawn past
+  3,500 by default). Past 7,000 it shows **7,000+**, as the data is too thin there for an exact
+  rank, and **unranked** for a character not in the list. It shares the line with the source
+  label when that is shown (`CEDICT · 字频 4,270`). Words around the character never show one.
 - **The character's components**, indented under its own entry ([below](#character-components)).
 - **Then every dictionary word containing it**, longest first; words of the same length in
   reading order. Entries from the Chinese-language dictionaries (MOE, the 成語典, Xinhua and

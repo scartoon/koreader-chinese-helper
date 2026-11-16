@@ -45,6 +45,8 @@ LATER = (
     # characters' readings), never Nanjing's jiǎncāi (#15). 传 in a title cut
     # before 《: no word or rule decides it, so chuán has no "likely here" (#16).
     ["<p>爷爷不断地给孙子搛菜。…传稿》记载：“原任四品典仪。”</p>",
+     # The frequency rank (#17): 涓 4,270, 髡 5,763, 毛 in a chengyu, 㶉 past 7,000.
+     "<p>涓涓细流，髡钳为奴，九牛一毛，㶉鶒双飞。</p>",
      "<h1>饕餮与魑魅</h1>", "<p>二〇二六年十一月，他读完了这本书。</p>", "<h3>魍魉之章</h3>"]
     + [f"<p>第{n}段：两军对峙，饕餮之徒侥幸逃脱，魑魅魍魉皆遁形。这里还有一些普通的句子，"
        f"用来把页面填满，好让连续滚动时屏幕下半部分也有生僻字。</p>" for n in range(1, 41)]
