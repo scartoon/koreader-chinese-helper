@@ -1,5 +1,37 @@
 # Changelog
 
+## 2.5.0 (2026-11-16)
+
+MOE always shown for single characters (#11, #18)
+- **With the optional MOE dictionary, every single-character popup shows MOE's entry under
+  CC-CEDICT's**, even when CC-CEDICT has the character: 涓 gets 细流。/ 姓。/ 细缓的、细微的。/
+  清洁的。/ 选择。 under "brook; to select". Placement: CC-CEDICT's entry (with the 字频 rank),
+  then MOE's, then the components, then the words.
+- **MOE's entry is collapsed to two lines** as drawn, ending in "…", with all its readings as
+  one block (和's six). The grey label line reads **MOE · show all**; a tap there expands the
+  entry in place (**show less** cuts it again), and the popup keeps its scroll position. The
+  characters left visible can be tapped for a nested popup; the hidden ones can't. A new
+  **Collapse long entries** setting picks 1, 2 or 3 lines, or never.
+- MOE's readings follow CC-CEDICT's order (the likely reading first). A reading CC-CEDICT doesn't
+  list for the character is marked **· not in CC-CEDICT** (和 *hàn*, 亡 *wú*, 不 *fǒu*); 1,432 of
+  the 9,910 characters MOE shares with CC-CEDICT have one.
+- **MOE for single characters** and **MOE for words** are each off / fallback / always (defaults:
+  always, fallback). Fallback is 2.4.0's behaviour. The MOE switch overrides both, and existing
+  settings carry over (MOE off stays off).
+- **The menu's "Fallback dictionaries" is now "Dictionaries"**, with a new **Order** item
+  (KOReader's sort widget) instead of the hand-edited `fallback_order` setting, which still
+  holds the order. **Status** shows MOE's modes and whether its file is ready for Always.
+- **Rebuild the MOE file for Always** (`tools/build_moe.py`): it now keeps the headwords
+  CC-CEDICT has, as covered rows (11,871 character rows, 50,669 word rows). It grows from 17.0 MB
+  to 28.2 MB. Its 90,501 fallback rows are unchanged. With an older file, Always works as
+  Fallback, popups are identical to 2.4.0's, and Status says to rebuild. The plugin database
+  is unchanged.
+- **Readings are unchanged.** Covered rows never reach the fallback or reading path. MOE still
+  never decides a reading: `tools/eval_readings.py` gives byte-identical output to 2.4.0's, with
+  and without Wiktionary fallback (72/72 regression cases).
+- One query to MOE's file per tap, as before. On the Boox Go 7, building the popup takes a median
+  25 ms with MOE Always against 21.5 ms with Fallback (12 common characters, 2 rounds each).
+
 ## 2.4.0 (2026-11-16)
 
 The character's frequency rank (#17)
