@@ -14,7 +14,10 @@
 --   special_guard(ordinary, word, offset)
 --   fallback(simp, trad, pinyin, syllables, defs, source)   other dictionaries,
 --                         for words CC-CEDICT lacks (indexes on simp and trad);
---                         the same table in the user's optional MOE file
+--                         the same table in the user's optional files, which
+--                         from 2.5.0 on add a `covered` column: 1 for a row
+--                         whose headword CC-CEDICT has (MOE's file only),
+--                         never a fallback entry
 --   idioms(simp, trad, short, view)                in the user's 成語典 and Xinhua
 --                         files only: an idiom's Chinese short line and Origin & Usage view
 --   components(ch, body)                           a character's parts, for the popup
@@ -85,8 +88,13 @@ function DB.entriesSql(n)
 end
 
 -- Fallback rows for n candidate words (simplified or traditional form).
+-- uncovered: leave out covered rows (a table with the `covered` column).
 -- Kept identical to tools/fallback_sources.py's fallback_sql.
-function DB.fallbackSql(n)
+function DB.fallbackSql(n, uncovered)
+    if uncovered then
+        return "SELECT simp, trad, pinyin, syllables, defs, source FROM fallback WHERE (simp IN (" .. marks(n)
+            .. ") OR trad IN (" .. marks(n) .. ")) AND covered = 0 ORDER BY rowid"
+    end
     return "SELECT simp, trad, pinyin, syllables, defs, source FROM fallback WHERE simp IN (" .. marks(n)
         .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
 end
@@ -128,14 +136,28 @@ function DB:lookup(words)
     return rows
 end
 
+-- Whether the fallback table has the `covered` column, checked once per
+-- database (files built before 2.5.0, and the release database, have none).
+function DB:hasCovered()
+    if self.has_covered == nil then
+        local found = false
+        pcall(self.each, self, "PRAGMA table_info(fallback)", nil, function(row)
+            if row[2] == "covered" then found = true end
+        end)
+        self.has_covered = found
+    end
+    return self.has_covered
+end
+
 -- Rows { {simp=, trad=, pinyin=, syllables=, defs=, source=}, ... } from the
--- fallback table for `words`, in table order. A database without the table
--- (built before fallback sources existed) gives none.
+-- fallback table for `words`, in table order, never a covered row. A
+-- database without the table (built before fallback sources existed) gives
+-- none.
 function DB:fallback(words)
     if #words == 0 then return {} end
     local args, n = padded_args(words, 2)
     local rows = {}
-    local ok, err = pcall(self.each, self, DB.fallbackSql(n), args, function(row)
+    local ok, err = pcall(self.each, self, DB.fallbackSql(n, self:hasCovered()), args, function(row)
         rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
                             source = row[6] }
     end)

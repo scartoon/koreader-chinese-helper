@@ -35,7 +35,7 @@ for n = 1, 40 do
 end
 local cached = 0
 for _ in pairs(probe.stmts) do cached = cached + 1 end
-assert(cached <= 21, "statements cached: " .. cached .. " (3 queries x 7 sizes; 120 unpadded)")
+assert(cached <= 22, "statements cached: " .. cached .. " (3 queries x 7 sizes and the covered-column check; 120 unpadded)")
 eq(#probe:lookup({ "东西" }), 2, "padding finds the same rows")
 probe:close()
 
@@ -79,6 +79,7 @@ data.lookup = real
 -- for a headword CC-CEDICT has.
 for _, n in ipairs({ 1, 2, 36 }) do
     eq(DB.fallbackSql(n), PY_FALLBACK_SQL(n), "fallback SQL for " .. n)
+    eq(DB.fallbackSql(n, true), PY_FALLBACK_SQL(n, true), "fallback SQL without covered rows for " .. n)
 end
 for _, n in ipairs({ 1, 2, 16 }) do
     eq(DB.idiomsSql(n), PY_IDIOMS_SQL(n), "idioms SQL for " .. n)
@@ -89,6 +90,45 @@ local irows = idb:idioms({ "一毛不拔", "玉石俱碎", "东西" })
 eq(#irows, 2); eq(irows[1].short ~= nil, true)
 eq(#idb:idioms({}), 0)
 idb:close()
+
+-- MOE's file keeps headwords CC-CEDICT has as covered rows (2.5.0); the
+-- fallback lookup returns exactly what it returns from the same file without
+-- them, and a file built before (no `covered` column) still works.
+eq(db:hasCovered(), false, "the release database has no covered column")
+local function rowsText(rows)
+    local out = {}
+    for _, r in ipairs(rows) do
+        out[#out + 1] = table.concat({ r.simp, r.trad, r.pinyin, r.syllables, r.defs, r.source }, "|")
+    end
+    return table.concat(out, "\n")
+end
+local mdb = DB.open(TEST_KOREADER_DIR .. "/data/chinesehelper/chinesehelper-moe.sqlite", H.SQ3)
+local odb = DB.open(TEST_KOREADER_DIR .. "/moe-old.sqlite", H.SQ3)
+eq(mdb:hasCovered(), true); eq(odb:hasCovered(), false)
+local ncovered = 0
+mdb:each("SELECT count(*) FROM fallback WHERE covered = 1", nil, function(row) ncovered = tonumber(row[1]) end)
+eq(ncovered, 4, "covered rows in the test file")
+eq(mdb:meta().moe_covered, "1")
+local probe_words = { "尚书省", "丁匠", "典史", "和", "涓", "台風", "颱風", "台风", "東西" }
+eq(rowsText(mdb:fallback(probe_words)), rowsText(odb:fallback(probe_words)), "covered rows never returned")
+eq(#odb:fallback(probe_words), 3, "the old file's rows")
+for _, w in ipairs(probe_words) do
+    eq(rowsText(mdb:fallback({ w })), rowsText(odb:fallback({ w })), "one word: " .. w)
+end
+eq(#mdb:fallback({ "台風" }), 0, "a covered row found by a form CC-CEDICT lacks is still left out")
+eq(#mdb:fallback({ "和", "涓" }), 0)
+local checks = 0
+local real_each = mdb.each
+mdb.each = function(self, sql, ...)
+    if sql:find("PRAGMA", 1, true) then checks = checks + 1 end
+    return real_each(self, sql, ...)
+end
+mdb.has_covered = nil
+mdb:fallback({ "丁匠" }); mdb:fallback({ "典史" }); mdb:fallback({ "和" })
+eq(checks, 1, "the column is checked once per database")
+mdb.each = real_each
+mdb:close(); odb:close()
+
 local fb = db:fallback({ "尚书省" })
 eq(#fb, 1, "尚书省 from Wiktionary"); eq(fb[1].source, "wikt"); eq(fb[1].trad, "尚書省")
 assert(fb[1].defs:find("Department of State Affairs", 1, true), fb[1].defs)
@@ -139,7 +179,10 @@ local function checkLocal(name, source, word, want)
     eq(table.concat(srcs, ","), source, name .. ": one source")
     eq(ldb:meta().fallback_sources, source)
     local forms = {}
-    ldb:each("SELECT simp, trad FROM fallback", nil, function(row) forms[#forms + 1] = row[1]; forms[#forms + 1] = row[2] end)
+    local uncovered = ldb:hasCovered() and " WHERE covered = 0" or ""
+    ldb:each("SELECT simp, trad FROM fallback" .. uncovered, nil, function(row)
+        forms[#forms + 1] = row[1]; forms[#forms + 1] = row[2]
+    end)
     for k = 1, #forms, 36 do
         local chunk = {}
         for j = k, math.min(k + 35, #forms) do chunk[#chunk + 1] = forms[j] end
