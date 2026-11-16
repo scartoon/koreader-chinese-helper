@@ -547,8 +547,15 @@ end
 -- what it covered before and covers now is repainted.
 function Popup:rebuild()
     local old = self.frame.dimen and self.frame.dimen:copy()
+    -- A scrolling body keeps its scroll position (within the new length).
+    local offset = self.scrolls and self.scroll.getScrolledOffset and self.scroll:getScrolledOffset()
     self.frame:free()
     self:build()
+    if offset and self.scrolls and self.scroll.setScrolledOffset and self.scroll.initState then
+        self.scroll:initState()
+        offset.y = math.min(offset.y, self.scroll._max_scroll_offset_y or offset.y)
+        self.scroll:setScrolledOffset(offset)
+    end
     local screen_w, screen_h = Screen:getWidth(), Screen:getHeight()
     local size = self.frame:getSize()
     self.frame_x = math.floor((screen_w - size.w) / 2)

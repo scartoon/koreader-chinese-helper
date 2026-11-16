@@ -109,8 +109,8 @@ eq(p.collapse_lines, 2, "collapse setting passed to the popup")
 -- 和: two MOE readings as one block; hàn, which CC-CEDICT lacks, marked.
 p = popup("", "和", "平")
 local moe = block(p, function(b) return b.always end)
--- (The test file has hàn first.)
-eq(moe.head, "和  hàn · " .. Model.NOT_CEDICT); eq(moe.lines[2], "hé: 连带。; 平静。")
+-- The test file has hàn first: CC-CEDICT's readings come first all the same.
+eq(moe.head, "和  hé"); eq(moe.lines[2], "hàn · " .. Model.NOT_CEDICT .. ": 连词。")
 eq(p.blocks[2], moe, "right after the character's own entry")
 -- Words stay Fallback by default: 台風 (only covered rows in MOE: CC-CEDICT
 -- has 颱風) is not shown.

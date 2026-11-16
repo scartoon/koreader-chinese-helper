@@ -407,6 +407,30 @@ function Model.matches(args)
         for _, m in ipairs(words) do m.decided = nil end
     end
     if anchor then table.insert(words, 1, anchor) end
+    -- An Always block's readings in the order of the word's own entries (so
+    -- the reading marked likely comes first), then those it does not list,
+    -- in the file's order (the build sorts MOE's rows, so that order is not
+    -- MOE's own).
+    for _, m in ipairs(words) do
+        if m.always then
+            local at = {}
+            for k, e in ipairs(m.entries) do
+                local key = Pinyin.lower(e.syllables or e.pinyin or "")
+                if not at[key] then at[key] = k end
+            end
+            local keyed = {}
+            for k, e in ipairs(m.always) do
+                local reading = (e.syllables ~= nil and e.syllables ~= "") and e.syllables or e.pinyin or ""
+                keyed[k] = { e, at[Pinyin.lower(reading)] or (#m.entries + 1), e.proper and 1 or 0, k }
+            end
+            table.sort(keyed, function(a, b)
+                if a[3] ~= b[3] then return a[3] < b[3] end
+                if a[2] ~= b[2] then return a[2] < b[2] end
+                return a[4] < b[4]
+            end)
+            for k, item in ipairs(keyed) do m.always[k] = item[1] end
+        end
+    end
     return words
 end
 
