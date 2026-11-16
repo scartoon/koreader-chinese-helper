@@ -5,6 +5,10 @@
     tools/deploy.sh                                  # the plugin under test
     .venv/bin/python tools/make_screenshots.py       # all shots -> docs/*.png
     .venv/bin/python tools/make_screenshots.py main  # some of them
+    .venv/bin/python tools/make_screenshots.py translate-result   # opt-in only
+
+translate-result (KOAssistant's reply to Translate & Analyze) is never part of
+a default run: the AI's answer varies, so it can't be gated like the others.
 
 For checks, not the README: SHOT_FONT="STKaiti" uses another book font (taps
 must still land: the device log is checked as usual), SHOT_MATCH_FONT=false
@@ -100,34 +104,47 @@ SHOTS = {
         frames=[(1, (95, 1185))]),
     "context": dict(page="kyj14", taps=[("间", 1, (773, 500), [
         "**间**  jiàn · likely here", "**间或**  jiànhuò · decides 间's reading"])],
-        frames=[(1, (205, 1057))]),
+        frames=[(1, (188, 1076))]),
     "components": dict(page="kyj13", taps=[("茴", 1, (988, 790), [
         "**茴**  huí", "**艹** cǎo  grass; plant (草字头)  → meaning",
         "**回** huí  to go back; to return  → sound (same sound)", "**茴香豆**  huíxiāngdòu"])],
-        frames=[(1, (196, 1067))]),
+        frames=[(1, (178, 1085))]),
     "traditional": dict(page="aq59", taps=[("观", 1, (170, 965), [
         "**观**  guān · likely here", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
         "simplified: 雚 → 又", "**观音**  Guānyīn · decides 观's reading"])],
-        frames=[(1, (171, 1091))]),
+        frames=[(1, (154, 1110))]),
     "chengyu": dict(page="kyj13", taps=[("也", 3, (170, 590), [
         "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 862), [])],
-        frames=[(1, (134, 1130)), (2, (20, 700))]),
+        frames=[(1, (120, 1143)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
         "**秋**  qiū", "[MMAH]", "[MOE]", "**秋月春风**  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
-        frames=[(1, (100, 1162))]),
+        frames=[(1, (97, 1167))]),
     # A character of the popup's own text: 欢, inside MOE's quotation of 〈琵琶行〉,
     # opens its popup on top; the context line is the quotation (the device's
     # log must give it as the sentence), the 欢 below underlined.
     "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["[MOE]", "**秋月春风**  qiū yuè chūn fēng"]),
-                                     ("欢", "nested", (1585, 750), ["「今年欢笑复明年，秋月春风等闲度。」"])],
-                   frames=[(2, (100, 1162))]),
+                                     ("欢", "nested", (1322, 772), ["「今年欢笑复明年，秋月春风等闲度。」"])],
+                   frames=[(2, (97, 1167))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
         frames=[(1, (15, 1160))]),
+    # The same popup, then its Translate & Analyze button (at `koassistant`):
+    # KOAssistant's reply, the top of its viewer. Opt-in only (OPT_IN): the
+    # AI's answer differs from run to run, so nothing can check it the way the
+    # gate checks the other shots, and a default run would silently replace an
+    # image whose README alt text describes one particular answer. Take it by
+    # name, look at it, and rewrite the alt text to match.
+    "translate-result": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
+        koassistant=(840, 847), frames=[(2, (8, 1258))]),
     # Page 1 with pinyin off, then on: the plugin adds line space where it
     # draws pinyin (69 pages instead of 74), so each crop ends after the same
     # line of text (下。后来光武中兴…), the one with pinyin taller.
     "off-on": dict(page="sg1", taps=[], pinyin_off=True, frames=[(0, (370, 928))], on_crop=(370, 975)),
 }
+
+
+OPT_IN = {"translate-result"}   # never in a default run; see its SHOTS entry
+
+KOA_CHATS = "/sdcard/Download/xiaoshuo.sdr/koassistant_chats.lua"
 
 
 def adb(*args, check=True, binary=False):
@@ -178,6 +195,7 @@ def settings_variant(original, pinyin=True):
     """The user's settings.reader.lua with the shot settings."""
     keys = {"chinesehelper_threshold": THRESHOLD, "chinesehelper_pinyin_enabled": "true" if pinyin else "false",
             "chinesehelper_popup_enabled": "true", "chinesehelper_popup_text_pct": 60,
+            "chinesehelper_chinese_text_pct": 130, "chinesehelper_char_rank": "true",
             "chinesehelper_labels": '"fallback"', "chinesehelper_uncertain": '"both"',
             "chinesehelper_components": "true", "chinesehelper_popup_context": "true",
             "chinesehelper_page_underline": "true",
@@ -284,12 +302,43 @@ def run_shot(gate, name, shot, original):
                          f"the gate {p['header']} reading {p['chosen']}")
             time.sleep(3)
         frames.append(screencap())
+    if shot.get("koassistant"):
+        frames.append(koassistant_reply(name, shot["koassistant"]))
     raw = os.path.join(WORK, "raw")
     os.makedirs(raw, exist_ok=True)
     variant = "-off" if shot.get("pinyin_off") else ""
     for k, f in enumerate(frames):
         f.save(os.path.join(raw, f"{name}{variant}-{k}.png"))
     return frames
+
+
+def koassistant_reply(name, pos):
+    """Tap the popup's Translate & Analyze button and wait for KOAssistant's
+    reply to be complete: the viewer shows it (its "exchange page break" log
+    line), then the chat is auto-saved. A timeout or an error line stops the
+    script, never a capture of a reply still arriving."""
+    before = len(log().splitlines())
+    adb("shell", "input", "tap", *map(str, pos))
+    wait_for(r"KOAssistant: Executing quick action - Translate & Analyze", before, timeout=10)
+    m = wait_for(r"KOAssistant: (exchange page break|Auto-saved chat|.*[Ee]rror.*)", before, timeout=120)
+    if "rror" in m.group(1):
+        sys.exit(f"{name}: KOAssistant logged {m.group(0)}")
+    wait_for(r"KOAssistant: Auto-saved chat", before, timeout=15)
+    time.sleep(5)   # e-ink settling
+    img = screencap()
+    # The reply's text, for the README alt text (the newest chat in the
+    # sample book's sidecar).
+    path = os.path.join(WORK, "koassistant_chats.lua")
+    adb("pull", KOA_CHATS, path)
+    with open(path, encoding="utf-8", errors="replace") as f:
+        replies = re.findall(r'\["content"\] = "((?:[^"\\]|\\.|\\\n)*)"', f.read())
+    os.remove(path)
+    if replies:
+        text = replies[-1].replace("\\\n", "\n").replace('\\"', '"')
+        with open(os.path.join(WORK, f"{name}.txt"), "w", encoding="utf-8") as f:
+            f.write(text + "\n")
+        print(f"reply     {name} (build/screenshots/{name}.txt):\n{text}")
+    return img
 
 
 def save(name, img):
@@ -303,7 +352,7 @@ def crop(img, y):
 
 
 def main():
-    wanted = sys.argv[1:] or list(SHOTS)
+    wanted = sys.argv[1:] or [s for s in SHOTS if s not in OPT_IN]
     unknown = [w for w in wanted if w not in SHOTS]
     if unknown:
         sys.exit(f"unknown shots {unknown}; known: {' '.join(SHOTS)}")

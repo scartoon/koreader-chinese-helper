@@ -11,30 +11,31 @@ the reading the character takes in this context: 行 is *háng* in 银行 but *x
 cutoff you choose: the hard ones get help and the rest of the page stays clean. It works on any
 reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
 
-![The opening of 三国演义 第一回 on a Boox Go 7: the chapter title, then the popup on 密. At its top, the line 时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不密，反为所害，中涓自此愈横。 with 密 in bold and underlined; then 密 mì, "dense; close; … (bound form) secret; confidential …", "Mì: surname Mi"; its parts, labelled Wikt: 宓 mì still; silent → sound (same sound), 山 shān mountain → meaning; then 不密 bùmì "(literary) not well thought out; (literary) not secret", labelled Wikt; buttons 密 and 不密, then Translate & analyze the surrounding sentence [AI] on its own row, then Close at the bottom. Below the popup, the last lines of the 话说天下大势 paragraph, with juān above 涓 and 密 underlined on the page](docs/main.png)
+![The opening of 三国演义 第一回 on a Boox Go 7: the chapter title, then the popup on 密. At its top, the line 时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不密，反为所害，中涓自此愈横。 with 密 in bold and underlined; then 字频 646 in small grey, 密 mì, "dense; close; … (bound form) secret; confidential …", "Mì: surname Mi"; its parts, labelled Wikt: 宓 mì still; silent → sound (same sound), 山 shān mountain → meaning; then 不密 bùmì "(literary) not well thought out; (literary) not secret", labelled Wikt; buttons 密 and 不密, then Translate & analyze the surrounding sentence [AI] on its own row, then Close at the bottom. Below the popup, the last lines of the 话说天下大势 paragraph, with juān above 涓 and 密 underlined on the page](docs/main.png)
 
 <table>
 <tr>
 <td width="50%"><img src="docs/off-on.png" alt="The 临江仙 that opens 三国演义, pinyin off (top) and on (bottom): with it on, only 樵 qiáo and 渚 zhǔ get pinyin, the rest of the page stays clean"><br><a href="#usage"><b>Pinyin only above the hard characters</b></a>, at the level you choose (here the default: outside the 3,500 most common)</td>
-<td width="50%"><img src="docs/context.png" alt="Popup for 间 in 孔乙己's 虽然间或没有现钱: at the top the line 但他在我们店里，品行却比别人都好，就是从不拖欠；虽然间或没有现钱，… with 间 marked; 间 jiàn · likely here, jiān listed after it; 间或 jiànhuò · decides 间's reading, occasionally; now and then"><br><a href="#the-popup"><b>The reading it has here</b></a>, and the word that decides it: 间 is <i>jiàn</i> in 间或</td>
+<td width="50%"><img src="docs/context.png" alt="Popup for 间 in 孔乙己's 虽然间或没有现钱: at the top the line 但他在我们店里，品行却比别人都好，就是从不拖欠；虽然间或没有现钱，… with 间 marked; 字频 113, then 间 jiàn · likely here, jiān listed after it; 间或 jiànhuò · decides 间's reading, occasionally; now and then"><br><a href="#the-popup"><b>The reading it has here</b></a>, and the word that decides it: 间 is <i>jiàn</i> in 间或</td>
 </tr>
 <tr>
-<td><img src="docs/components.png" alt="Popup for 茴 in 孔乙己's 要一碟茴香豆: at the top the line 他不回答，对柜里说：“温两碗酒，要一碟茴香豆。” with 茴 marked; 茴 huí; its parts, labelled Wikt: 艹 cǎo grass; plant (草字头) → meaning, 回 huí to go back → sound (same sound); then 茴香豆 and 茴香"><br><a href="#character-components"><b>What each character is made of</b></a>: 茴 is 艹 for the meaning and 回 <i>huí</i> for the sound</td>
-<td><img src="docs/traditional.png" alt="Popup for 观 in 阿Q正传's 观音娘娘: at the top the line …而且又不见了观音娘娘座前的一个宣德炉。 with 观 marked; 观 guān · likely here; traditional 觀: 雚 guàn (archaic) stork; heron → sound (same sound), 見 jiàn see → meaning, simplified: 雚 → 又; 观音 Guānyīn · decides 观's reading"><br><a href="#character-components"><b>Parts the simplification hid</b></a>: 观 is read through 觀, 雚 <i>guàn</i> → sound</td>
+<td><img src="docs/components.png" alt="Popup for 茴 in 孔乙己's 要一碟茴香豆: at the top the line 他不回答，对柜里说：“温两碗酒，要一碟茴香豆。” with 茴 marked; 字频 4,633, then 茴 huí; its parts, labelled Wikt: 艹 cǎo grass; plant (草字头) → meaning, 回 huí to go back → sound (same sound); then 茴香豆 and 茴香"><br><a href="#character-components"><b>What each character is made of</b></a>: 茴 is 艹 for the meaning and 回 <i>huí</i> for the sound</td>
+<td><img src="docs/traditional.png" alt="Popup for 观 in 阿Q正传's 观音娘娘: at the top the line …而且又不见了观音娘娘座前的一个宣德炉。 with 观 marked; 字频 407, then 观 guān · likely here; traditional 觀: 雚 guàn (archaic) stork; heron → sound (same sound), 見 jiàn see → meaning, simplified: 雚 → 又; 观音 Guānyīn · decides 观's reading"><br><a href="#character-components"><b>Parts the simplification hid</b></a>: 观 is read through 觀, 雚 <i>guàn</i> → sound</td>
 </tr>
 <tr>
-<td><img src="docs/chengyu.png" alt="Popup for 也 in 孔乙己's 满口之乎者也: at the top the line 他对人说话，总是满口之乎者也，教人半懂不懂的。 with 也 marked; then 也 yě, 满口之乎者也 and 之乎者也 from CC-CEDICT, 之乎者也 with a Chinese line labelled 新华: 这四个字都是文言虚词，讽刺人说话喜欢咬文嚼字。也形容半文不白的话或文章。; a 成语 Origin &amp; Usage button"><br><a href="#chengyu"><b>Chengyu explained</b></a>: 之乎者也 with Xinhua's line (optional file) …</td>
+<td><img src="docs/chengyu.png" alt="Popup for 也 in 孔乙己's 满口之乎者也: at the top the line 他对人说话，总是满口之乎者也，教人半懂不懂的。 with 也 marked; then 字频 38, 也 yě, its Wikt line pictogram (象形), 满口之乎者也 and 之乎者也 from CC-CEDICT, 之乎者也 with a Chinese line labelled 新华: 这四个字都是文言虚词，讽刺人说话喜欢咬文嚼字。也形容半文不白的话或文章。; a 成语 Origin &amp; Usage button"><br><a href="#chengyu"><b>Chengyu explained</b></a>: 之乎者也 with Xinhua's line (optional file) …</td>
 <td><img src="docs/chengyu-2.png" alt="The Origin &amp; Usage view for 之乎者也 from 新华成语: 释义; 出处 宋·文莹《湘山野录》：“之乎者也，助得甚事？”; 例句 他对人说话，总是满口之乎者也，叫人半懂不懂的。"><br>… and its <a href="#chengyu"><b>Origin &amp; Usage</b></a> view: the classical source and an example from this same passage of 孔乙己</td>
 </tr>
 <tr>
-<td><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月 labelled Wikt; last, 秋月春风 labelled MOE with its Chinese definition in larger type; a 成语 Origin &amp; Usage button"><br><a href="#fallback-dictionaries"><b>Several dictionaries, each labelled</b></a>: CC-CEDICT, Wiktionary for 秋月, and last, in larger type, MOE (optional) for 秋月春风</td>
-<td><img src="docs/translate.png" alt="Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked, a Translate &amp; analyze the surrounding sentence [AI] button and Close below it; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？"><br><a href="#translating-the-sentence"><b>Translate &amp; analyze the sentence</b></a> with KOAssistant (while Wi-Fi is on): here 孔乙己's 窃书不能算偷</td>
+<td><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; 字频 1,442, then 秋 qiū from CC-CEDICT; its parts 禾 and 火 labelled MMAH; 秋月 labelled Wikt; last, 秋月春风 labelled MOE with its Chinese definition in larger type; a 成语 Origin &amp; Usage button"><br><a href="#fallback-dictionaries"><b>Several dictionaries, each labelled</b></a>: CC-CEDICT, Wiktionary for 秋月, and last, in larger type, MOE (optional) for 秋月春风</td>
+<td><img src="docs/translate-result.png" alt="KOAssistant's Translate &amp; Analyze viewer, titled with the model gemini-3.5-flash-lite: Highlighted text: 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ then KOAssistant's reply. Translation: Kong Yiji flushed crimson, the veins on his forehead bulging out in cords, and argued, &quot;Book-stealing cannot be reckoned thievery... Book-stealing!&quot; Then the first chunks: 涨红了脸 (zhǎng hóng le liǎn) &quot;swelled [and] reddened the face&quot;, resultative verb compound + aspect marker + object, describing a physical reaction to anger or shame; 青筋 (qīng jīn) &quot;blue/green tendons&quot;, noun phrase referring to bulging veins; 条条 (tiáo tiáo) &quot;strip by strip / one by one&quot;, reduplicated measure word indicating plurality and prominence. Below, the viewer's buttons: Reply, Copy, Save to Note, Notebook, Pin, Close and others"><br><a href="#translating-the-sentence"><b>Translate &amp; Analyze the sentence</b></a> with KOAssistant: a translation and a chunk-by-chunk breakdown of 孔乙己's 窃书不能算偷, from your own AI provider while Wi-Fi is on</td>
 </tr>
 </table>
 
 All screenshots: a Boox Go 7 (landscape), the [sample book](#the-sample-book), default settings,
 with every [optional dictionary](#optional-dictionaries) installed. `tools/make_screenshots.py`
-takes them again.
+takes them again; KOAssistant's response is taken separately, by name, and is not retaken by
+default, because the AI's answer differs from run to run.
 
 - **One tap, no selecting**: tap anywhere in the text (on a character, between lines, on
   punctuation) and the nearest character opens; taps outside the text turn pages and open menus
@@ -229,7 +230,7 @@ font chosen in KOReader's font menu, not a font the book embeds or sets in its C
 that font lacks comes from KOReader's usual fallback fonts. For a PDF, or when the font cannot be
 loaded, the popup uses the UI font. Turned off, the popup is exactly as before.
 
-![A tall popup for 观 in 阿Q正传: at the top the line 尼姑待他们走后，定了神来检点，龙牌固然已经碎在地上了，而且又不见了观音娘娘座前的一个宣德炉。 with 观 in bold and underlined, then 观 guān · likely here, its traditional form 觀's parts, and 观音 Guānyīn · decides 观's reading](docs/traditional.png)
+![A tall popup for 观 in 阿Q正传: at the top the line 尼姑待他们走后，定了神来检点，龙牌固然已经碎在地上了，而且又不见了观音娘娘座前的一个宣德炉。 with 观 in bold and underlined, then 字频 407 and 观 guān · likely here, its traditional form 觀's parts, and 观音 Guānyīn · decides 观's reading](docs/traditional.png)
 
 ### Tapping a character in the popup
 
@@ -240,7 +241,7 @@ around it in that text that contains it), and stays underlined in the popup belo
 one is open. Nothing else in the popup is tappable: not the headlines (the character or word
 the entry is for), the components, or the English glosses.
 
-![Popup for 秋 in the 临江仙, and on top of it the popup for 欢, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年欢笑复明年，秋月春风等闲度。」 with 欢 marked, then 欢 huān, its parts, 欢笑 huānxiào, and the buttons 欢 and 欢笑, then Close at the bottom (no Translate in a popup opened from a popup)](docs/nested.png)
+![Popup for 秋 in the 临江仙, and on top of it the popup for 欢, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年欢笑复明年，秋月春风等闲度。」 with 欢 marked, then 字频 443, 欢 huān, its traditional form 歡's parts, 欢笑 huānxiào, and the buttons 欢 and 欢笑, then Close at the bottom (no Translate in a popup opened from a popup)](docs/nested.png)
 
 - **Its text is the popup's, not the book's.** The line at the top is the sentence around the
   character in the popup text: cut at 。！？；, a line break, or a closing quote after one of
@@ -345,6 +346,8 @@ no entry even with the MOE dictionary, such as 精兵强将, 受制于人, 由�
 While Wi-Fi is on and connected, the popup from the page has one more button on a row of its
 own (popups opened from a popup's text do not). It closes the
 popup and sends **the whole sentence containing the tapped character**:
+
+![Popup for 窃 at the top of the page, its line 孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：“窃书不能算偷……窃书！ with 窃 marked; 字频 2,026, 窃 qiè to steal; secretly; (humble) I, its parts 穴 xué and 切 qiè labelled MMAH, then a 窃 button, Translate & analyze the surrounding sentence [AI] and Close; below it the page of 孔乙己, 窃 underlined in the line 窃书不能算偷……窃书！……读书人的事，能算偷么？](docs/translate.png)
 
 - **With [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) installed** (tested with
   0.23.0; the button uses its internals, so a later version may fall back to the built-in
@@ -759,7 +762,10 @@ Lua code (`tools/shot_gate.py`, with every dictionary): the pinyin drawn must be
 hand-checked list, each popup must show the expected lines, and KOReader's log must agree (the
 number of characters annotated, and each tap's context and reading; for a character tapped in
 a popup, its sentence). Your `settings.reader.lua`
-is backed up and restored.
+is backed up and restored. KOAssistant's response (`translate-result`) can't be checked that
+way, so it is taken only when named (`make_screenshots.py translate-result`): the script waits
+for the reply to be complete, saves its text to `build/screenshots/translate-result.txt`, and
+the README's alt text for it has to be rewritten by hand to match.
 
 ## Credits and licences
 
