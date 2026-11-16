@@ -540,6 +540,12 @@ function ChineseHelper:addToMainMenu(menu_items)
                 callback = function() settings:set("components", not settings:componentsEnabled()) end,
             },
             {
+                text = _("Show character frequency rank"),
+                help_text = _("A small grey 字频 line on the tapped character's own entry: its rank among characters in modern written Chinese, from wordfreq (1 is the most common; the default pinyin threshold is 3,500). Past 7,000 it shows 7,000+, since the data is too thin there for an exact rank; unranked means the character is not in the list."),
+                checked_func = function() return settings:charRankEnabled() end,
+                callback = function() settings:set("char_rank", not settings:charRankEnabled()) end,
+            },
+            {
                 text = _("Show the text around the character in the popup"),
                 help_text = _("A line at the top of the popup with the text around the tapped character, as much of its sentence as fits on one line, the character in bold and underlined. It shows the text as it is on the page and never goes past the end of the sentence, the paragraph or the page. Popups opened from the word buttons mark the whole word."),
                 checked_func = function() return settings:contextEnabled() end,

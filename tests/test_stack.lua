@@ -307,3 +307,34 @@ plugin.ui.document.provider = "mupdf"
 p1 = root("首", "鼠", "两端")
 eq(p1.book_font, nil, "a PDF: the UI font")
 p1.on_outside()
+
+-- The tapped character's frequency rank (#17): on its own entry only, in the
+-- first popup and in nested ones; the setting off removes it.
+local function ranks(p)
+    local out = {}
+    for k, b in ipairs(p.blocks) do if b.rank then out[#out + 1] = k .. "=" .. b.rank end end
+    return table.concat(out, ",")
+end
+assert(plugin.settings:charRankEnabled(), "on by default")
+p1 = root("", "涓", "")
+eq(ranks(p1), "1=字频 4,270", "涓")
+p1.on_outside()
+-- Inside a chengyu: only the character's own entry, not 九牛一毛 or other words.
+p1 = root("九牛一", "毛", "")
+eq(ranks(p1), "1=字频 809", "毛 in 九牛一毛")
+assert(#p1.blocks > 1, "the chengyu and its words are listed too")
+p1.on_outside()
+p1 = root("", "㶉", "")
+eq(ranks(p1), "1=字频 7,000+", "past 7,000")
+p1.on_outside()
+-- A nested popup gets its own character's rank.
+p1 = root("首", "鼠", "两端")
+p1.on_char_tap(p1, hitIn(DEF, "疑"))
+local nested_rank = ranks(tap:stack()[2])
+assert(nested_rank:match("^1=字频 [%d,]+$"), "nested: " .. nested_rank)
+p1.on_outside()
+plugin.settings:set("char_rank", false)
+p1 = root("", "涓", "")
+eq(ranks(p1), "", "setting off: no rank")
+p1.on_outside()
+plugin.settings:set("char_rank", true)

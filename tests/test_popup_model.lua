@@ -408,3 +408,23 @@ assert(not Model.tappable({ source = "cedict", head = "x" }, "head"), "a CC-CEDI
 assert(not Model.tappable({ source = "mmah", components = true, lines = { "x" } }, "lines"), "components")
 assert(not Model.tappable({ source = "wikt", components = true, lines = { "x" } }, "lines"), "Wiktionary components")
 assert(Model.tappable({ source = "xinhua", lines = { "x" }, large = true }, "lines"), "a Origin & Usage view")
+
+-- The frequency rank's text (#17) and the grey line it shares with the label.
+eq(Model.rankText(1), "字频 1")
+eq(Model.rankText(4270), "字频 4,270")
+eq(Model.rankText(7000), "字频 7,000")
+eq(Model.rankText(7001), "字频 7,000+")
+eq(Model.rankText(0), "字频 unranked")
+eq(Model.rankText(nil), "字频 unranked")
+eq(Model.labelText({ source = "cedict" }, false, Model.SOURCE_LABELS), nil, "no label, no rank: no line")
+eq(Model.labelText({ source = "cedict", rank = "字频 4,270" }, false, Model.SOURCE_LABELS), "字频 4,270")
+eq(Model.labelText({ source = "cedict", rank = "字频 4,270" }, true, Model.SOURCE_LABELS), "CEDICT · 字频 4,270",
+   "label mode all: one line")
+eq(Model.labelText({ source = "wikt" }, true, Model.SOURCE_LABELS), "Wikt")
+-- Only the character's own block gets it.
+local bl = { {}, {} }
+assert(Model.markRank(bl, { { len = 1 }, { len = 4 } }, "字频 9"))
+eq(bl[1].rank, "字频 9"); eq(bl[2].rank, nil)
+bl = { {} }
+assert(not Model.markRank(bl, { { len = 2 } }, "字频 9"), "no entry of its own")
+eq(bl[1].rank, nil)

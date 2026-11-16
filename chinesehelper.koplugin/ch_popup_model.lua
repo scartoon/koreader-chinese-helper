@@ -525,6 +525,50 @@ end
 -- Moegirlpedia: Model.LARGE_SOURCES, drawn larger) go last, after everything else (the
 -- components block included), in the order they came: `blocks` is
 -- reordered in place.
+-- The tapped character's frequency rank, as the popup shows it (#17): its
+-- rank among characters in modern written Chinese (wordfreq; tools/
+-- build_data.py). Exact up to Model.RANK_EXACT; past it the data is too thin
+-- for an exact rank (rank 7,000 is about 66 per billion). nil or 0: not in
+-- the frequency list.
+Model.RANK_EXACT = 7000
+Model.RANK_PREFIX = "字频 "
+
+local function thousands(n)
+    local s = tostring(math.floor(n))
+    local out = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+    return (out:gsub("^,", ""))
+end
+
+function Model.rankText(rank)
+    rank = tonumber(rank)
+    if not rank or rank <= 0 then return Model.RANK_PREFIX .. "unranked" end
+    if rank > Model.RANK_EXACT then return Model.RANK_PREFIX .. thousands(Model.RANK_EXACT) .. "+" end
+    return Model.RANK_PREFIX .. thousands(rank)
+end
+
+-- The small grey line above a block: its source label (when `labelled`) and
+-- the rank (block.rank, the tapped character's own entry only), on one line
+-- ("CEDICT · 字频 4,270"); nil when there is neither.
+function Model.labelText(block, labelled, labels)
+    local parts = {}
+    if labelled then parts[#parts + 1] = (labels or {})[block.source] or block.source end
+    if block.rank then parts[#parts + 1] = block.rank end
+    if #parts == 0 then return nil end
+    return table.concat(parts, " · ")
+end
+
+-- Put `rank_text` on the tapped character's own block: blocks[1] when the
+-- first match is the character itself (Model.matches lists it first), before
+-- any reordering. Returns true when it was placed.
+function Model.markRank(blocks, matches, rank_text)
+    local first = matches and matches[1]
+    if rank_text and first and first.len == 1 and blocks[1] then
+        blocks[1].rank = rank_text
+        return true
+    end
+    return false
+end
+
 function Model.chineseLast(blocks)
     local rest, chinese = {}, {}
     for _, b in ipairs(blocks) do
