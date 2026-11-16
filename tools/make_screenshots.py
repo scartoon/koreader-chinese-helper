@@ -128,13 +128,15 @@ SHOTS = {
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
         frames=[(1, (15, 1160))]),
     # The same popup, then its Translate & Analyze button (at `koassistant`):
-    # KOAssistant's reply, the top of its viewer. Opt-in only (OPT_IN): the
+    # KOAssistant's reply, its viewer unrolled: the first page, then the last
+    # page's text and buttons (`koassistant_end` is the viewer's ↘ button),
+    # joined by a dashed line (see reply_image). Opt-in only (OPT_IN): the
     # AI's answer differs from run to run, so nothing can check it the way the
     # gate checks the other shots, and a default run would silently replace an
     # image whose README alt text describes one particular answer. Take it by
     # name, look at it, and rewrite the alt text to match.
     "translate-result": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
-        koassistant=(840, 847), frames=[(2, (8, 1258))]),
+        koassistant=(840, 847), koassistant_end=(1245, 1195)),
     # Page 1 with pinyin off, then on: the plugin adds line space where it
     # draws pinyin (69 pages instead of 74), so each crop ends after the same
     # line of text (下。后来光武中兴…), the one with pinyin taller.
@@ -304,6 +306,9 @@ def run_shot(gate, name, shot, original):
         frames.append(screencap())
     if shot.get("koassistant"):
         frames.append(koassistant_reply(name, shot["koassistant"]))
+        adb("shell", "input", "tap", *map(str, shot["koassistant_end"]))
+        time.sleep(4)
+        frames.append(screencap())
     raw = os.path.join(WORK, "raw")
     os.makedirs(raw, exist_ok=True)
     variant = "-off" if shot.get("pinyin_off") else ""
@@ -339,6 +344,59 @@ def koassistant_reply(name, pos):
             f.write(text + "\n")
         print(f"reply     {name} (build/screenshots/{name}.txt):\n{text}")
     return img
+
+
+# KOAssistant's viewer (full screen): the text area and its scrollbar, the
+# button rows below it.
+KOA_TEXT = (130, 1035)     # rows of the text area, below the title bar
+KOA_BUTTONS = 1040         # from here down: the two button rows and the border
+KOA_THUMB_X = 1631         # a column inside the scrollbar's thumb
+KOA_FRAME = (8, 1258)      # the viewer's outer border
+
+
+def thumb(img):
+    """First and last row of the scrollbar's thumb."""
+    runs, start = [], None   # the longest dark run (the track's ends are dark too)
+    for y in range(*KOA_TEXT):
+        dark = img.getpixel((KOA_THUMB_X, y)) < 80
+        if dark and start is None:
+            start = y
+        elif not dark and start is not None:
+            runs.append((start, y - 1))
+            start = None
+    if start is not None:
+        runs.append((start, KOA_TEXT[1] - 1))
+    return max(runs, key=lambda r: r[1] - r[0])
+
+
+def reply_image(name, first, last):
+    """The whole reply in one image: the viewer's first page, then the last
+    page's text (trimmed after its last line) and the buttons. Only for a reply
+    of one or two pages: the last page's thumb must start where the first
+    page's ends, or a middle page would be missing and the script stops."""
+    t1, t2 = thumb(first), thumb(last)
+    if t1[1] >= KOA_TEXT[1] - 20:   # one page: the whole reply is on it
+        return crop(first, KOA_FRAME)
+    if t2[0] > t1[1] + 4:
+        sys.exit(f"{name}: the reply runs past two pages (scrollbar {t1}, then {t2}); take it again")
+    ink = [y for y in range(KOA_TEXT[0], KOA_BUTTONS)
+           if any(last.getpixel((x, y)) < 100 for x in range(40, 1600, 2))]
+    parts = [crop(first, (KOA_FRAME[0], KOA_TEXT[1])),
+             crop(last, (KOA_TEXT[0], min(ink[-1] + 45, KOA_BUTTONS))),
+             crop(last, (KOA_BUTTONS, KOA_FRAME[1]))]
+    gap = 30   # the join between the pages: white, with a dashed line
+    out = Image.new("L", (first.size[0], sum(p.size[1] for p in parts) + gap), 255)
+    out.paste(parts[0], (0, 0))
+    y = parts[0].size[1]
+    for x in range(0, out.size[0], 24):
+        for dx in range(12):
+            if x + dx < out.size[0]:
+                out.putpixel((x + dx, y + gap // 2), 120)
+    y += gap
+    for p in parts[1:]:
+        out.paste(p, (0, y))
+        y += p.size[1]
+    return out
 
 
 def save(name, img):
@@ -387,6 +445,9 @@ def main():
                 for x in range(both.size[0]):
                     both.putpixel((x, a.size[1] + 12), 160)
                 save(name, both)
+                continue
+            if shot.get("koassistant"):
+                save(name, reply_image(name, *captured[name][-2:]))
                 continue
             for k, (frame, y) in enumerate(shot["frames"]):
                 suffix = "" if k == 0 else f"-{k + 1}"
