@@ -374,9 +374,12 @@ function Popup:body(text_w, max_h, full)
                 end
                 group[#group + 1] = widget
             end
-            if self:labelled(b) then
+            -- The source label and, on the tapped character's own entry,
+            -- its frequency rank: one small grey line.
+            local label = Model.labelText(b, self:labelled(b), self.labels)
+            if label then
                 add(TextWidget:new{
-                    text = (self.labels or {})[b.source] or b.source, face = label_face,
+                    text = label, face = label_face,
                     fgcolor = Blitbuffer.COLOR_GRAY_5, max_width = width,
                 })
             end

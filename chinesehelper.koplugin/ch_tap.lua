@@ -620,6 +620,13 @@ function Tap:present(args)
     local close_all = function() self:closeAll() end
     self:attachIdioms(args.matches)
     local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1)
+    -- The tapped character's frequency rank, on its own entry (#17).
+    local rank_text
+    if self.plugin.settings:charRankEnabled() then
+        local data = self.plugin:readings()
+        if data then rank_text = Model.rankText((data:char(args.char))) end
+    end
+    local rank_placed = Model.markRank(blocks, args.matches, rank_text)
     local words = {}
     for _, m in ipairs(args.matches) do
         local word = m.word
@@ -648,6 +655,8 @@ function Tap:present(args)
         table.insert(blocks, (first and first.len == 1) and 2 or 1, block)
     end
     Model.chineseLast(blocks)
+    -- No entry of its own: the rank goes above the first block.
+    if rank_text and not rank_placed and blocks[1] then blocks[1].rank = rank_text end
     local sentence_row = not parent and args.sentence and args.sentence(close_all)
     if sentence_row then button_rows[#button_rows + 1] = sentence_row end
     -- Close: a popup opened from another closes alone (as the Back key);

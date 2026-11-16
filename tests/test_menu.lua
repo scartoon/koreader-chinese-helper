@@ -83,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 15 + 5 + 5 + 3 + 5 + 5 + 5 + 8 + 3, "menu size")   -- fallback: labels + 7 dictionaries
+eq(count, 16 + 5 + 5 + 3 + 5 + 5 + 5 + 8 + 3, "menu size")   -- fallback: labels + 7 dictionaries
 
 -- Character components: on by default, a toggle.
 local comp_item = entry.sub_item_table[10]
@@ -94,8 +94,17 @@ assert(not plugin.settings:componentsEnabled() and not comp_item.checked_func())
 comp_item.callback()
 assert(plugin.settings:componentsEnabled())
 
+-- The tapped character's frequency rank (#17): on by default, a toggle, right after components.
+local rank_item = entry.sub_item_table[11]
+eq(rank_item.text, "Show character frequency rank")
+assert(plugin.settings:charRankEnabled() and rank_item.checked_func())
+rank_item.callback()
+assert(not plugin.settings:charRankEnabled() and not rank_item.checked_func())
+rank_item.callback()
+assert(plugin.settings:charRankEnabled())
+
 -- The context line and the page underline: on by default, each its own toggle.
-local ctx_item, ul_item = entry.sub_item_table[11], entry.sub_item_table[12]
+local ctx_item, ul_item = entry.sub_item_table[12], entry.sub_item_table[13]
 eq(ctx_item.text, "Show the text around the character in the popup")
 eq(ul_item.text, "Underline the tapped character on the page")
 assert(plugin.settings:contextEnabled() and ctx_item.checked_func())
@@ -108,7 +117,7 @@ ctx_item.callback(); ul_item.callback()
 assert(plugin.settings:contextEnabled() and plugin.settings:underlineEnabled())
 
 -- "Try to match the book's font": on by default, a toggle, with help text.
-local font_item = entry.sub_item_table[13]
+local font_item = entry.sub_item_table[14]
 eq(font_item.text, "Try to match the book's font")
 assert(font_item.help_text:find("font menu", 1, true), font_item.help_text)
 assert(plugin.settings:matchBookFont() and font_item.checked_func())
@@ -286,7 +295,7 @@ local function names(list)
     return table.concat(out, ",")
 end
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
-local fb_item = entry.sub_item_table[14]
+local fb_item = entry.sub_item_table[15]
 eq(fb_item.text, "Fallback dictionaries")
 -- Source labels: default "other dictionaries only".
 local labels_item = fb_item.sub_item_table[1]
@@ -391,7 +400,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[14].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[15].sub_item_table[2].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
@@ -465,7 +474,7 @@ plugin2:init()
 eq(names(plugin2:fallbackSources()), "wikt,wp")
 local items2 = {}
 plugin2:addToMainMenu(items2)
-local dict_items = items2.chinesehelper.sub_item_table[14].sub_item_table
+local dict_items = items2.chinesehelper.sub_item_table[15].sub_item_table
 table.remove(dict_items, 1)
 eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典 (not installed)"
     .. " | MOE 成語典 (not installed) | Xinhua idioms (not installed)"

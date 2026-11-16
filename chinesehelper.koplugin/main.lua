@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.3.0"
+ChineseHelper.VERSION = "2.4.0"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -538,6 +538,12 @@ function ChineseHelper:addToMainMenu(menu_items)
                 help_text = _("Below the tapped character's entry, one line per part: its form, reading, a short gloss, and whether it gives the meaning or the sound (same sound, same ending, or loose). A simplified character whose simplification hid a part shows its traditional form's parts. Sources: English Wiktionary, then Make Me a Hanzi, then yi-bai/ids (structure only)."),
                 checked_func = function() return settings:componentsEnabled() end,
                 callback = function() settings:set("components", not settings:componentsEnabled()) end,
+            },
+            {
+                text = _("Show character frequency rank"),
+                help_text = _("A small grey 字频 line on the tapped character's own entry: its rank among characters in modern written Chinese, from wordfreq (1 is the most common; the default pinyin threshold is 3,500). Past 7,000 it shows 7,000+, since the data is too thin there for an exact rank; unranked means the character is not in the list."),
+                checked_func = function() return settings:charRankEnabled() end,
+                callback = function() settings:set("char_rank", not settings:charRankEnabled()) end,
             },
             {
                 text = _("Show the text around the character in the popup"),

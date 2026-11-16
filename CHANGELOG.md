@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.4.0 (2026-11-16)
+
+The character's frequency rank (#17)
+- **Every popup shows the tapped character's frequency rank** on its own entry, in small grey
+  text: `字频 4,270` is its rank among characters in modern written Chinese (wordfreq, the same
+  ranking the pinyin threshold uses). Past 7,000 it reads `字频 7,000+`, since the data is too
+  thin there for an exact rank, and `字频 unranked` for a character not in the list.
+- It is on the character's own entry only, also in nested popups and for a character inside a
+  word or chengyu. Word entries, components and fallback words never show one. When the entry's
+  source label is shown too, both share one line (`CEDICT · 字频 4,270`).
+- New setting **Show character frequency rank**, on by default, next to **Show character
+  components**. No database change.
+
 ## 2.3.0 (2026-11-16)
 
 Wiktionary readings: Standard Chinese only (#15)
