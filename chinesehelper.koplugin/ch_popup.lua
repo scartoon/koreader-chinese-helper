@@ -113,10 +113,13 @@ function Popup:init()
         math.floor(face.orig_size * (self.chinese_pct or 100) / 100 + 0.5))
     -- The book's font for CJK glyphs (the UI font kept for the rest); the
     -- source labels keep the UI font.
-    self.bold_face = nil
+    -- Bold counterparts for the context line's mark (nil: the face drawn
+    -- bold, see contextLine); built from the unwrapped faces.
+    self.bold_face, self.chinese_bold_face = nil, nil
     if self.book_font then
         local BookFont = require("ch_bookfont")
         self.bold_face = BookFont.bold(Font, self.face, self.book_font)
+        self.chinese_bold_face = BookFont.bold(Font, self.chinese_face, self.book_font)
         self.face = BookFont.wrap(Font, self.face, self.book_font)
         self.title_face = BookFont.wrap(Font, self.title_face, self.book_font)
         self.chinese_face = BookFont.wrap(Font, self.chinese_face, self.book_font)
@@ -159,7 +162,9 @@ function Popup:build()
 
     local parts = { align = "left" }
     local header_h = 0
-    local line = self.context and Popup.contextLine(self.context, nil, self.face, inner_w - 2 * padding, self.bold_face)
+    -- At the Chinese text size: the line is the page's text (#32).
+    local line = self.context and Popup.contextLine(self.context, nil, self.chinese_face, inner_w - 2 * padding,
+        self.chinese_bold_face)
     if line then
         local header = FrameContainer:new{
             padding = padding, padding_top = Size.padding.default, padding_bottom = Size.padding.default,
@@ -342,11 +347,18 @@ Put the context line under the title of KOReader's dictionary popup `dql`
 buttons), with `word` marked. The popup keeps its height, and so the place
 KOReader chose for it (clear of the looked-up word when it could): the
 definition, which scrolls, gives up whole lines for the line. Skipped when
-that would leave it fewer than MIN_DICT_LINES.
+that would leave it fewer than MIN_DICT_LINES. `chinese_pct` (the Chinese
+text size setting, % of the dictionary's text; nil: 100) scales the line.
 ]]
 Popup.MIN_DICT_LINES = 3
 
-function Popup.addContextToDict(dql, context, word)
+-- `face` at `pct`% of its size, the same font (nil or 100: `face` itself).
+function Popup.scaledFace(face, pct)
+    if not pct or pct == 100 or not face.orig_font or not face.orig_size then return face end
+    return Font:getFace(face.orig_font, math.floor(face.orig_size * pct / 100 + 0.5)) or face
+end
+
+function Popup.addContextToDict(dql, context, word, chinese_pct)
     local frame = dql.dict_frame
     local group = frame and frame[1]
     local line_h = dql.definition_line_height
@@ -354,7 +366,7 @@ function Popup.addContextToDict(dql, context, word)
             or not dql.definition_height or not dql.definition_widget or not dql._instantiateScrollWidget then
         return
     end
-    local line = Popup.contextLine(context, word, dql.content_face, dql.content_width)
+    local line = Popup.contextLine(context, word, Popup.scaledFace(dql.content_face, chinese_pct), dql.content_width)
     if not line then return end
     local pad_top = Size.padding.default
     local row_h = line:getSize().h + pad_top

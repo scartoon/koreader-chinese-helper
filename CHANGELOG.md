@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.9.0 (2026-11-18)
+
+Larger line of text at the top of the popup (#32)
+- **The line of text from the page at the top of the popup is now drawn at the Chinese text
+  size** (130% of the popup text by default) instead of the popup text size, so it reads like
+  the page and follows **Chinese text size**. The tapped character stays bold and underlined.
+  On a Boox Go 7 the 孔乙己 line (31 characters) still fits whole at 130%; at 175% the popup
+  shows 29 characters of it.
+- The same goes for the line under the title of **KOReader's dictionary popup** opened from a
+  word button: it is drawn at the Chinese text size of that popup's text.
+- The menu help for **Chinese text size** and **Show the text around the character in the popup**,
+  and the README, say so.
+
 ## 2.8.2 (2026-11-18)
 
 Menu and description wording (#29)

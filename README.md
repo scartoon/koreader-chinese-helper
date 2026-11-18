@@ -97,7 +97,7 @@ project to distribute them: a few commands on a computer, then a copy to the e-r
 ([Optional dictionaries](#optional-dictionaries)). All explanatory text is in simplified
 characters ([Simplified text](#simplified-text)).
 
-Status: **2.8.2**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **2.9.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -147,10 +147,10 @@ Tools menu). Settings apply to all books.
 | Known & remind-me readings | The counts; **Show marks** lists them (a tap clears one), **Clear all marks** (asks first). See [Known and remind-me readings](#known-and-remind-me-readings) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [What a tap does](#what-a-tap-does) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
-| Chinese text size | 100 / 115 / 130 (default) / 150 / 175% of the popup text size, for the Chinese dictionaries' text (MOE, 成語典, Xinhua, Moegirlpedia). See [Tapping a character in the popup](#tapping-a-character-in-the-popup) |
+| Chinese text size | 100 / 115 / 130 (default) / 150 / 175% of the popup text size, for the Chinese dictionaries' text (MOE, 成語典, Xinhua, Moegirlpedia) and the line of text at the top of the popup. See [Tapping a character in the popup](#tapping-a-character-in-the-popup) |
 | Show character components | On (default) / off. See [Character components](#character-components) |
 | Show character frequency rank | On (default) / off. The small grey 字频 line on the tapped character's entry |
-| Show the text around the character in the popup | On (default) / off. See [The popup](#the-popup) |
+| Show the text around the character in the popup | On (default) / off; drawn at the Chinese text size. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
 | Try to match the book's font | On (default) / off: Chinese text in the popup in the book's font. See [The popup](#the-popup) |
 | Dictionaries | Source labels (all entries / other dictionaries only (default) / none); **Order** of the dictionaries after CC-CEDICT; **Collapse long entries** (1 / 2 (default) / 3 lines / never); then each dictionary on/off, in that order (default: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang), with **MOE for single characters** (off / fallback (default) / always) and **MOE for words** (off / fallback (default) / always) under MOE's. See [Fallback dictionaries](#fallback-dictionaries) and [MOE Always](#moe-always) |
@@ -233,7 +233,7 @@ stretch containing the tapped character, in simplified and traditional forms. No
 where the words break.
 
 - **The text around the character**, on one line at the top: as much of its sentence as fits,
-  at the popup's text size, the character in bold and underlined. It grows outwards from the
+  at the Chinese text size (130% of the popup's by default), the character in bold and underlined. It grows outwards from the
   character, a cut side ends in "…", and it stops at a sentence end, a paragraph break or the
   edge of the page. Popups from KOReader's dictionary that the word buttons open get the line
   too, with the whole word marked.
@@ -313,7 +313,8 @@ the entry is for), the components, or the English glosses.
   that, a tap says so and opens nothing.
 - **Chinese text size**: the Chinese dictionaries' text (definitions, short lines, the Origin &
   Usage view) is drawn larger than the rest of the popup, 130% by default, so its characters
-  are easier to tap. English glosses, source labels and buttons keep the popup text size. On a
+  are easier to tap. The line of text from the page at the top of the popup uses the same size
+  (also in KOReader's dictionary popup opened from a word button). English glosses, source labels and buttons keep the popup text size. On a
   Boox Go 7 (300 dpi) with 64 px book text and the default 60% popup text, that is 38 px
   (3.2 mm) for English and 49 px (4.2 mm) for Chinese.
 
