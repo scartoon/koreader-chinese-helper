@@ -288,7 +288,8 @@ function Tap:lookupInKOReader(text, box, opts)
     -- The hook recognises the popup of this lookup by its boxes table, which
     -- ReaderDictionary hands on unchanged: lookups from inside a dictionary
     -- popup (or anywhere else) never get the line.
-    Tap.pending_dict = (opts.context and boxes) and { boxes = boxes, context = opts.context, word = opts.word } or nil
+    Tap.pending_dict = (opts.context and boxes) and { boxes = boxes, context = opts.context, word = opts.word,
+                                                         chinese_pct = self.plugin.settings:chineseTextPercent() } or nil
     dictionary:onLookupWord(text, false, boxes, nil, nil, opts.on_close)
 end
 
@@ -304,7 +305,8 @@ function Tap.installDictHook()
         local pending = Tap.pending_dict
         if pending and dql.word_boxes ~= nil and dql.word_boxes == pending.boxes then
             Tap.pending_dict = nil
-            local ok2, err = pcall(require("ch_popup").addContextToDict, dql, pending.context, pending.word)
+            local ok2, err = pcall(require("ch_popup").addContextToDict, dql, pending.context, pending.word,
+                pending.chinese_pct)
             if not ok2 then logger.warn("chinesehelper: context line in dictionary failed:", tostring(err)) end
         end
     end

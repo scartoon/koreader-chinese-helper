@@ -692,7 +692,7 @@ function ChineseHelper:addToMainMenu(menu_items)
                 text_func = function()
                     return T(_("Chinese text size: %1% of popup text"), settings:chineseTextPercent())
                 end,
-                help_text = _("Text from the Chinese dictionaries (MOE, the 成語典, Xinhua, Moegirlpedia: definitions, 出处, stories, examples) is drawn this much larger than the rest of the popup. Tap a character in it to look that character up. English glosses, headlines, components, source labels and buttons keep the popup text size."),
+                help_text = _("Text from the Chinese dictionaries (MOE, the 成語典, Xinhua, Moegirlpedia: definitions, 出处, stories, examples) is drawn this much larger than the rest of the popup, and so is the line of text from the page at the top of the popup (and of KOReader's dictionary popup opened from a word button). Tap a character in a dictionary's text to look that character up. English glosses, headlines, components, source labels and buttons keep the popup text size."),
                 sub_item_table = radio(Settings.CHINESE_SIZES, "chinese_text_pct", _("%1% of popup text size"), function() end,
                     function() return settings:chineseTextPercent() end),
             },
@@ -710,7 +710,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Show the text around the character in the popup"),
-                help_text = _("A line at the top of the popup with the text around the tapped character, as much of its sentence as fits on one line, the character in bold and underlined. It shows the text as it is on the page and never goes past the end of the sentence, the paragraph or the page. Popups opened from the word buttons mark the whole word."),
+                help_text = _("A line at the top of the popup with the text around the tapped character, as much of its sentence as fits on one line, the character in bold and underlined. It is drawn at the Chinese text size. It shows the text as it is on the page and never goes past the end of the sentence, the paragraph or the page. Popups opened from the word buttons mark the whole word."),
                 checked_func = function() return settings:contextEnabled() end,
                 callback = function() settings:set("popup_context", not settings:contextEnabled()) end,
             },

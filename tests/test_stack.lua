@@ -409,3 +409,21 @@ do
     plugin.settings:set("threshold", nil)
 end
 print("mark buttons: ok")
+
+-- A lookup from a word button hands the Chinese text size on to the context
+-- line in KOReader's dictionary popup (#32).
+do
+    local Tap = require("ch_tap")   -- the real lookup (tap's is stubbed above)
+    local real_ui = plugin.ui
+    local looked
+    plugin.ui = { dictionary = { onLookupWord = function(_, text) looked = text end } }
+    plugin.settings:set("chinese_text_pct", 150)
+    Tap.lookupInKOReader(tap, "饕餮", { x = 1, y = 1, w = 2, h = 2 }, { context = { text = "饕餮" }, word = "饕餮" })
+    local pending = Tap.pending_dict
+    eq(looked, "饕餮", "looked up")
+    eq(pending.chinese_pct, 150, "Chinese text size passed to the dictionary popup's line")
+    plugin.settings:set("chinese_text_pct", nil)
+    Tap.pending_dict = nil
+    plugin.ui = real_ui
+end
+print("dictionary context size: ok")
