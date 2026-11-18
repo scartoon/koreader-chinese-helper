@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.9.1 (2026-11-18)
+
+No punctuation lines in Translate & Analyze (#31)
+- **Translate & Analyze no longer gives punctuation marks a line of their own.** The learner
+  prompt (2.8.1) said to skip punctuation, but gemini-3.5-flash-lite listed every mark anyway
+  (often with an empty meaning: "，(,):"), 4–7 lines per reply in three takes out of three. The
+  rule is now said outright, in the system prompt too, and the example ends in a ！ that gets no
+  line. Three takes with the new prompt: no punctuation lines, 15–18 entries.
+- The README's Translate & Analyze screenshot is retaken with the learner reply, and its alt text
+  rewritten.
+
 ## 2.9.0 (2026-11-18)
 
 Larger line of text at the top of the popup (#32)
