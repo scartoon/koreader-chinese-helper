@@ -338,3 +338,74 @@ p1 = root("", "涓", "")
 eq(ranks(p1), "", "setting off: no rank")
 p1.on_outside()
 plugin.settings:set("char_rank", true)
+
+-- Reading-mark buttons (#26): a page tap's popup gets one per reading at
+-- the tapped position, a nested one none; a tap saves the mark, rebuilds the
+-- page's pinyin and gives the popup its new labels.
+do
+    local Marks = require("ch_marks")
+    local writes = 0
+    local fake = Marks.new{ store = { read = function() return {}, false end,
+                                      write = function() writes = writes + 1; return true end,
+                                      setAside = function() end } }
+    plugin.marks = function() return fake end
+    local refreshed = 0
+    local real_refresh = plugin.annotator.refreshPage
+    plugin.annotator.refreshPage = function() refreshed = refreshed + 1 end
+    local function page_popup(char, reading)
+        local cands, words = Text.candidates({}, char, {})
+        local rows = plugin:db():lookup(words)
+        local m = Model.matches{ cands = cands, rows = rows, order = plugin.settings:fallbackOrder() }
+        local p = tap:present{ db = plugin:db(), char = char, cands = cands, rows = rows, matches = m,
+                               annotated = false, mark = 7, reading = reading }
+        p.setMarkButtons = function(self, list) self.mark_buttons = list end
+        return p
+    end
+    local function labels(p)
+        local out = {}
+        for _, b in ipairs(p.mark_buttons or {}) do out[#out + 1] = b.text end
+        return table.concat(out, " | ")
+    end
+    local CHECK = "\226\156\147"
+    plugin.settings:set("threshold", 3500)
+    -- Rare (drawn by the rules): I know; tap -> Known ✓; tap -> cleared.
+    local p = page_popup("饕", { chosen = "tāo", rank = 6000 })
+    eq(labels(p), "I know tāo")
+    p.mark_buttons[1].callback()
+    eq(fake:get("饕", "tāo"), "known"); eq(refreshed, 1, "page rebuilt at once"); eq(writes, 1)
+    eq(labels(p), "Known tāo " .. CHECK)
+    p.mark_buttons[1].callback()
+    eq(fake:get("饕", "tāo"), nil); eq(labels(p), "I know tāo"); eq(refreshed, 2)
+    p.on_outside()
+    -- Common (not drawn): Remind me; tap -> Reminding ✓.
+    p = page_popup("是", { chosen = "shì", rank = 10 })
+    eq(labels(p), "Remind me: shì")
+    p.mark_buttons[1].callback()
+    eq(fake:get("是", "shì"), "remind"); eq(labels(p), "Reminding shì " .. CHECK)
+    p.mark_buttons[1].callback(); p.on_outside()
+    -- Common but unusual here (a special word): drawn, so I know.
+    p = page_popup("单", { chosen = "chán", rank = 300, unusual = true })
+    eq(labels(p), "I know chán"); p.on_outside()
+    -- Undecided position: one button per reading of the pair.
+    p = page_popup("覃", { chosen = "qín/tán", rank = 5000 })
+    eq(labels(p), "I know qín | I know tán")
+    p.mark_buttons[2].callback()
+    eq(fake:get("覃", "tán"), "known"); eq(fake:get("覃", "qín"), nil)
+    eq(labels(p), "I know qín | Known tán " .. CHECK)
+    p.on_outside()
+    -- No reading: no buttons. A nested popup: none.
+    p = page_popup("饕", { chosen = nil, rank = 6000 })
+    eq(p.mark_buttons, nil); p.on_outside()
+    local p0 = page_popup("饕", { chosen = "tāo", rank = 6000 })
+    local cands, words = Text.candidates({}, "餮", {})
+    local rows = plugin:db():lookup(words)
+    local nested = tap:present{ db = plugin:db(), char = "餮", cands = cands, rows = rows,
+        matches = Model.matches{ cands = cands, rows = rows, order = plugin.settings:fallbackOrder() },
+        annotated = false, parent = p0, reading = { chosen = "tiè", rank = 6000 } }
+    eq(nested.mark_buttons, nil, "nested: no mark buttons")
+    p0.on_outside()
+    plugin.annotator.refreshPage = real_refresh
+    plugin.marks = nil
+    plugin.settings:set("threshold", nil)
+end
+print("mark buttons: ok")

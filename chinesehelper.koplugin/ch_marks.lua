@@ -54,7 +54,8 @@ end
 function Marks:load()
     if self.loaded then return self end
     self.loaded = true
-    local ok, data, existed = pcall(function() return self.store and self.store.read() end)
+    local ok, data, existed = true, nil, false
+    if self.store then ok, data, existed = pcall(self.store.read) end
     if not ok then data, existed = nil, true end
     if valid(data) then
         for ch, readings in pairs(data.marks) do
