@@ -38,7 +38,9 @@ Settings.DEFAULTS = {
     -- MOE 重編國語辭典, for single characters and for words: "off", "fallback"
     -- (only what CC-CEDICT lacks) or "always" (also what it has, collapsed;
     -- needs a MOE file rebuilt with covered rows). fallback_moe off overrides both.
-    moe_chars = "always",
+    -- Both default to Fallback (characters were Always in 2.5.0-2.5.2, #24); a
+    -- mode chosen in the menu is stored and kept.
+    moe_chars = "fallback",
     moe_words = "fallback",
     collapse_lines = 2,       -- "Collapse long entries": 1, 2 or 3 lines, 0 = never
     labels = "fallback",      -- source labels: "all", "fallback" (entries not from CC-CEDICT), "none"

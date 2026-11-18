@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.3 (2026-11-17)
+
+- **MOE for single characters defaults to fallback again** (#24): out of the box, a
+  single-character popup shows MOE's entry only for a character CC-CEDICT lacks, in full. Set
+  **MOE for single characters** to **always** (Dictionaries menu) to keep 2.5.0's MOE entry
+  under CC-CEDICT's for every character, collapsed as before. A mode already chosen in the menu
+  is kept; only the default changes.
+
 ## 2.5.2 (2026-11-16)
 
 - **Words with no definition from any source are no longer listed in the popup.** A word known
