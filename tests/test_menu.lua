@@ -83,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 17 + 5 + 5 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
+eq(count, 17 + 8 + 5 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
@@ -145,8 +145,19 @@ eq(plugin.settings:pinyinEnabled(), false); eq(plugin.settings:popupEnabled(), f
 popup_item.callback(); pinyin_item.callback()
 assert(plugin.settings:popupEnabled() and plugin.settings:pinyinEnabled())
 
--- Threshold: saved, label follows.
-entry.sub_item_table[3].sub_item_table[1].callback()
+-- Threshold: saved, label follows. All first, then 500 ... 7000.
+local thresholds = entry.sub_item_table[3].sub_item_table
+eq(#thresholds, 8)
+eq(thresholds[1].text, "All characters (learner mode)")
+eq(thresholds[2].text, "Outside the 500 most common")
+eq(thresholds[3].text, "Outside the 1000 most common")
+eq(thresholds[8].text, "Outside the 7000 most common")
+assert(entry.sub_item_table[3].help_text:find("learner mode", 1, true))
+thresholds[1].callback()
+eq(plugin.settings:threshold(), 0)
+eq(entry.sub_item_table[3].text_func(), "Which characters: all")
+assert(thresholds[1].checked_func() and not thresholds[4].checked_func())
+thresholds[4].callback()
 assert(entry.sub_item_table[3].text_func():find("1500"), "threshold label not updated")
 -- Uncertain readings: default both, choices saved.
 assert(entry.sub_item_table[5].text_func():find("show both"))

@@ -172,10 +172,22 @@ local function items_of(text)
     return items
 end
 
-function G.annotate(g, text, threshold, mode)
+-- known: { {char, reading}, ... } marked known (ch_marks.lua), as the
+-- device's marks file holds them for a shot.
+local function marks_of(known)
+    if not known or #known == 0 then return nil end
+    local content = { version = 1, marks = {} }
+    for _, k in ipairs(known) do
+        content.marks[k[1]] = content.marks[k[1]] or {}
+        content.marks[k[1]][k[2]] = "known"
+    end
+    return require("ch_marks").new{ store = { read = function() return content, true end } }:load()
+end
+
+function G.annotate(g, text, threshold, mode, known)
     local items = items_of(text)
     local out = {}
-    for _, a in ipairs(Resolve.annotate(g.data, items, threshold, mode, g.special)) do
+    for _, a in ipairs(Resolve.annotate(g.data, items, threshold, mode, g.special, marks_of(known))) do
         out[#out + 1] = { index = a.index, char = items[a.index].text, reading = a.reading,
                           special = a.special and true or false }
     end
@@ -304,9 +316,11 @@ class Gate:
         if not self.g.covered:
             sys.exit("gate: the MOE file in build/ has no covered rows: rebuild it (tools/build_moe.py) for Always")
 
-    def annotate(self, text, threshold, mode="both"):
-        """[(char, reading, special)] in page order."""
-        anns, _ = self.G.annotate(self.g, text, threshold, mode)
+    def annotate(self, text, threshold, mode="both", known=()):
+        """[(char, reading, special)] in page order; known: (char, reading)
+        pairs marked known."""
+        lua_known = self.lua.table_from([self.lua.table_from(k) for k in known])
+        anns, _ = self.G.annotate(self.g, text, threshold, mode, lua_known)
         rows = sorted((to_py(a) for a in anns.values()), key=lambda a: a["index"])
         return [(a["char"], a["reading"], a["special"]) for a in rows]
 

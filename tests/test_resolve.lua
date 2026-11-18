@@ -82,6 +82,16 @@ expect("刨根问底，用刨子，刨根", 3500, "刨=páo 刨=bào 刨=páo")
 -- is not.
 expect("饕|饕餮|", 3500, "饕=tāo 餮=tiè")
 
+-- All (threshold 0, learner mode, #25): every character, the most common
+-- included, at every occurrence, unranked ones (丏) too; function words take
+-- their hand-checked default, not a pair.
+expect("我的书，你的书。", 0, "我=wǒ 的=de 书=shū 你=nǐ 的=de 书=shū")
+expect("他吃了饭，我了解他。", 0, "他=tā 吃=chī 了=le 饭=fàn 我=wǒ 了=liǎo 解=jiě 他=tā")
+expect("丏丏", 0, "丏=miǎn 丏=miǎn")
+-- 500 and 1,000: 呢 (rank 576) between them.
+expect("你呢", 500, "呢=ne")
+expect("你呢", 1000, "")
+
 -- Overlapping words of the same length: the more frequent one wins
 -- (宛如 over 大宛), not the leftmost.
 expect("声音很大宛如雷鸣", 2500, "宛=wǎn")

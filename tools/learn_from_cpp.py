@@ -26,9 +26,11 @@ licence). It is used for:
    Characters below --cutoff are listed with their two most likely readings,
    most likely first; the plugin can then show both ("chéng/shèng") or the
    first alone. (A default below 50% is not the most likely reading, so it
-   is never kept silently: either it was hand-checked in overrides.tsv and
-   the evidence agrees, or a pair is shown.) A character data/overrides.tsv
-   gives as a pair ("得 de/děi") is always listed, with that pair.
+   is never kept silently: either it was hand-checked in overrides.tsv, or a
+   pair is shown.) A character data/overrides.tsv gives as a pair ("得
+   de/děi") is always listed, with that pair; one it gives a single reading
+   ("的 de") is never listed: the hand check wins over CPP, which
+   over-samples the minority readings of function words (的 dì, 了 liǎo).
 
 3. Review lists, printed only (nothing is changed automatically): characters
    whose default disagrees with a strong train majority, and dictionary words
@@ -140,8 +142,9 @@ def main():
     plugin = Plugin(args.plugin)
     shares = load_shares()
     neutral = load_neutral()
-    from build_data import override_pairs  # noqa: E402  (needs wordfreq, pypinyin)
+    from build_data import override_pairs, override_singles  # noqa: E402  (needs wordfreq, pypinyin)
     pairs = override_pairs(os.path.join(ROOT, "data", "overrides.tsv"))
+    singles = override_singles(os.path.join(ROOT, "data", "overrides.tsv"))
     data_dir = os.path.join(ROOT, "data")
 
     examples = []           # (char, label, analysis)
@@ -197,6 +200,8 @@ def main():
             # plugin's default with the dictionary prior on it.
             default = next(a["default"] for c, _, a in examples if c == ch)
         c, first, second = confidence(default, rest.get(ch, Counter()), dict_shares, args.prior_weight)
+        if ch in singles:
+            continue    # hand-checked default (data/overrides.tsv "的 de")
         if ch in pairs:
             # Hand-checked pair (data/overrides.tsv "de/děi"): always listed.
             first, second = pairs[ch]

@@ -222,8 +222,11 @@ def check_cases(plugin, path, threshold, label):
             line = line.rstrip("\n")
             if not line.strip() or line.startswith("#"):
                 continue
-            sentence, expected = line.split("\t")[:2]
-            got = dict(a.split("=", 1) for a in plugin.annotate(sentence, threshold).split())
+            fields = line.split("\t")
+            sentence, expected = fields[:2]
+            # Optional third column: the threshold for this case (0 = All).
+            at = int(fields[2]) if len(fields) > 2 and fields[2].strip() else threshold
+            got = dict(a.split("=", 1) for a in plugin.annotate(sentence, at).split())
             for item in expected.split():
                 char, want = item.split("=", 1)
                 total += 1

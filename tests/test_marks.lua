@@ -124,6 +124,18 @@ local got = annotate(text, 1, marks_with{ { "行", "háng", "known" } })
 assert(not got:find("行=háng", 1, true), got)
 assert(got:find("行=xíng", 1, true), got)
 eq((got:gsub(" ?行=%S+", "")), (base:gsub(" ?行=%S+", "")), "nothing else changes")
+-- All (threshold 0, learner mode, #25): a known reading is bare at every
+-- occurrence, the character's other readings and every other character keep
+-- their pinyin.
+local all = annotate(text, 0, nil)
+got = annotate(text, 0, marks_with{ { "行", "háng", "known" }, { "我", "wǒ", "known" } })
+assert(not got:find("行=háng", 1, true) and not got:find("我=", 1, true), got)
+assert(got:find("行=xíng", 1, true), got)
+local function without(str) return (str:gsub(" ?行=%S+", ""):gsub(" ?我=%S+", ""):gsub("^ ", "")) end
+eq(without(got), without(all), "All: nothing else changes")
+local _, n_all = all:gsub("=", "")
+local _, n_got = got:gsub("=", "")
+eq(n_got, n_all - 3, "two 银行 háng and one 我 bare")
 -- A known reading in a special word is bare (单于 chán, normally drawn bold).
 assert(annotate("匈奴单于入塞", 2500, nil):find("单=chán*", 1, true))
 got = annotate("匈奴单于入塞", 2500, marks_with{ { "单", "chán", "known" } })
@@ -138,8 +150,10 @@ got = annotate("即位后，尊皇太后，皇太后曰，皇太后。", 3500, m
 eq(got, "后=hòu! 后=hòu! 后=hòu! 后=hòu!", "后 at all four")
 -- Remind on another reading of the character: nothing drawn for this one.
 eq(annotate("这是书", 3500, marks_with{ { "是", "shi", "remind" } }), "")
--- 的 alone resolves to the pair de/dì: a remind on de shows the pair.
-eq(annotate("我的书", 3500, marks_with{ { "的", "de", "remind" } }), "的=de/dì!")
+-- 得 alone resolves to the pair de/děi: a remind on de shows the pair.
+-- (的 did too until #25 made de its hand-checked default.)
+eq(annotate("写得好", 3500, marks_with{ { "得", "de", "remind" } }), "得=de/děi!")
+eq(annotate("我的书", 3500, marks_with{ { "的", "de", "remind" } }), "的=de!")
 -- The uncertainty pair (覃 qín/tán in 姓覃).
 local pair = annotate("姓覃", 3500, nil)
 eq(pair, "覃=qín/tán")

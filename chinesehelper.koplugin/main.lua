@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.7.0"
+ChineseHelper.VERSION = "2.8.0"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -567,7 +567,7 @@ function ChineseHelper:addToMainMenu(menu_items)
         local items = {}
         for _i, value in ipairs(values) do
             items[#items + 1] = {
-                text = T(label, value),
+                text = type(label) == "function" and label(value) or T(label, value),
                 checked_func = function() return (current and current() or settings:get(key)) == value end,
                 radio = true,
                 keep_menu_open = true,
@@ -642,9 +642,14 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text_func = function()
+                    if settings:threshold() == Settings.ALL then return _("Which characters: all") end
                     return T(_("Which characters: outside the %1 most common"), settings:threshold())
                 end,
-                sub_item_table = radio(Settings.THRESHOLDS, "threshold", _("Outside the %1 most common"), refresh),
+                help_text = _("Characters rarer than the cutoff get pinyin; the common ones stay bare. All characters (learner mode) puts pinyin above every Chinese character on the page; mark a reading known in the popup and it goes bare everywhere."),
+                sub_item_table = radio(Settings.THRESHOLDS, "threshold", function(value)
+                    if value == Settings.ALL then return _("All characters (learner mode)") end
+                    return T(_("Outside the %1 most common"), value)
+                end, refresh),
             },
             {
                 text_func = function()
