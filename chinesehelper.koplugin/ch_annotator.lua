@@ -1,4 +1,4 @@
--- Pinyin above rare characters: the paint layer, the line spacing that makes
+-- Pinyin above the characters: the paint layer, the line spacing that makes
 -- room for it, and the per-page resolution. From koreader-interlinear-pinyin's
 -- main.lua, which kept WordGloss's paint-layer approach, line-height injection
 -- and style-sheet hook (WordGloss: https://github.com/GangYe293/wordgloss.koplugin,

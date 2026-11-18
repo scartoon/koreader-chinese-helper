@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.8.1"
+ChineseHelper.VERSION = "2.8.2"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -623,7 +623,7 @@ function ChineseHelper:addToMainMenu(menu_items)
         sorting_hint = "tools",
         sub_item_table = {
             {
-                text = _("Show pinyin above rare characters"),
+                text = _("Show pinyin"),
                 checked_func = function() return settings:pinyinEnabled() end,
                 callback = function(touchmenu)
                     settings:set("pinyin_enabled", not settings:pinyinEnabled())
@@ -728,7 +728,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Dictionaries"),
-                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be set to Always (its Characters and Words items): under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
+                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be set to Always (its MOE for single characters and MOE for words items): under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
                 sub_item_table = plugin:fallbackItems(apply, {
                     {
                         text_func = function()
@@ -764,9 +764,10 @@ end
 
 -- The Dictionaries menu: `items` (the source labels setting), then Order,
 -- Collapse long entries, and one on/off item per dictionary in priority
--- order, MOE's followed by its Characters and Words modes. The user's own
--- files show whether they are installed and cannot be switched on without
--- one. Order rebuilds the per-dictionary items in the new order.
+-- order, MOE's followed by its modes (MOE for single characters, MOE for
+-- words). The user's own files show whether they are installed and cannot be
+-- switched on without one. Order rebuilds the per-dictionary items in the new
+-- order.
 function ChineseHelper:fallbackItems(apply, items)
     local plugin, settings = self, self.settings
     local fixed

@@ -97,7 +97,7 @@ project to distribute them: a few commands on a computer, then a copy to the e-r
 ([Optional dictionaries](#optional-dictionaries)). All explanatory text is in simplified
 characters ([Simplified text](#simplified-text)).
 
-Status: **2.8.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **2.8.2**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -138,7 +138,7 @@ Tools menu). Settings apply to all books.
 
 | Menu item | |
 |---|---|
-| Show pinyin above rare characters | On / off (off when first installed) |
+| Show pinyin | On / off (off when first installed); **Which characters** sets which ones get it |
 | Tap characters for popup | On / off (on when first installed) |
 | Which characters | **All characters (learner mode)**, or pinyin for characters outside the 500 / 1,000 / 1,500 / 2,500 / 3,500 / 5,000 / 7,000 most common (default 3,500). See [Learner mode](#learner-mode) |
 | Pinyin size | 35–55% of the book's text size (default 40%) |
@@ -162,7 +162,7 @@ For beginners: pinyin above every Chinese character on the page, so you can read
 from the start, and the plugin's job shifts from looking words up to taking the pinyin away as
 you learn.
 
-1. Turn it on: **Tools (🔧) → Chinese helper → Show pinyin above rare characters** on, then
+1. Turn it on: **Tools (🔧) → Chinese helper → Show pinyin** on, then
    **Which characters → All characters (learner mode)**.
 2. Read. Every character has its reading as the plugin resolves it in context (了 is *le* after a
    verb, *liǎo* in 了解; see [Readings](#readings)), repeats included.
