@@ -119,18 +119,6 @@ Status: **2.9.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.
 The folder must keep its name, `chinesehelper.koplugin`. The repository does not contain the
 database; to install from a clone, [build it](#building-the-database) first.
 
-### Moving from the two old plugins
-
-This plugin replaces
-[koreader-interlinear-pinyin](https://github.com/scartoon/koreader-interlinear-pinyin) (the pinyin)
-and [koreader-chinese-popup](https://github.com/scartoon/koreader-chinese-popup) (the popup), which
-are no longer developed. Delete `interlinearpinyin.koplugin` and `chinesepopup.koplugin` from
-KOReader's `plugins` folder, install this one and restart KOReader. On its first start it copies
-your settings from both; your old settings are left in place. While either old plugin is
-installed, a message asks you to remove it, since two plugins listening for taps can open the
-wrong popup. "Tap annotated character for definitions" has no successor: the popup covers every
-character.
-
 ## Usage
 
 Open a book, then **Tools (🔧) → Chinese helper** (the entry may be on the second page of the
@@ -154,7 +142,7 @@ Tools menu). Settings apply to all books.
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
 | Try to match the book's font | On (default) / off: Chinese text in the popup in the book's font. See [The popup](#the-popup) |
 | Dictionaries | Source labels (all entries / other dictionaries only (default) / none); **Order** of the dictionaries after CC-CEDICT; **Collapse long entries** (1 / 2 (default) / 3 lines / never); then each dictionary on/off, in that order (default: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang), with **MOE for single characters** (off / fallback (default) / always) and **MOE for words** (off / fallback (default) / always) under MOE's. See [Fallback dictionaries](#fallback-dictionaries) and [MOE Always](#moe-always) |
-| Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed; MOE's modes and whether its file is ready for Always), what the current page needed, and any old plugin still installed |
+| Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed; MOE's modes and whether its file is ready for Always), and what the current page needed |
 
 ### Learner mode
 
@@ -858,7 +846,7 @@ Standard-only readings.
 | File | |
 |---|---|
 | `main.lua` | lifecycle, menu, data loading, old-plugin check |
-| `ch_settings.lua` | settings and the migration from the old plugins |
+| `ch_settings.lua` | settings |
 | `ch_annotator.lua` | the pinyin layer: line spacing, page refresh |
 | `ch_page.lua` | walks the page through the rendering engine |
 | `ch_resolve.lua` | the reading resolver, for the pinyin and the popup |
@@ -907,13 +895,12 @@ the README's alt text for it has to be rewritten by hand to match.
 ## Credits and licences
 
 The annotation code comes from **[WordGloss](https://github.com/GangYe293/wordgloss.koplugin)** by
-GangYe293 (GPL-3.0), which koreader-interlinear-pinyin was forked from: the paint layer, layout
-and line-height injection (`ch_overlay.lua`, `ch_layout.lua`, parts of `ch_annotator.lua` and
-`ch_page.lua`). WordGloss credits its inline-gloss rendering approach to
+GangYe293 (GPL-3.0): the paint layer, layout and line-height injection (`ch_overlay.lua`,
+`ch_layout.lua`, parts of `ch_annotator.lua` and `ch_page.lua`). WordGloss credits its inline-gloss rendering approach to
 [inlinehints.koplugin](https://github.com/omer-faruq/inlinehints.koplugin) by omer-faruq.
 
 The code is licensed under the **GNU General Public License v3.0** (see [`LICENSE`](LICENSE)),
-like WordGloss and both plugins it replaces.
+like WordGloss.
 
 The data (the database, and the files in `data/`) is derived from, and distributed under,
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), except as noted for Make Me a
