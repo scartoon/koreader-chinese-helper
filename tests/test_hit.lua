@@ -87,6 +87,48 @@ assert(tap(placed, 120, 50).char == "饕" and tap(placed, 120, 50).index == 1)
 assert(tap(placed, 200, 50).index == 3, "the repeated 饕 is its own hit")
 assert(tap(placed, 160, 50) == nil, "之 between them falls through")
 
+-- Repeats on a realistic line (#28): 64 px characters, 24 to a line, pinyin
+-- at the default 40 % (about 13 px a letter). Every occurrence of a rare
+-- word is annotated and nothing is dropped, and no two pinyin overlap.
+local function eq(a, b, m) assert(a == b, m .. ": " .. tostring(a) .. " ~= " .. tostring(b)) end
+local function book_line(text, letter_w, per_line)
+    local items = {}
+    for n, ch in ipairs(chars_of(text)) do
+        items[#items + 1] = { text = ch, joined = ch ~= "，",
+                              box = { x = (n - 1) * 64, y = 0, w = 64, h = 105 } }
+    end
+    local measured = {}
+    for _, a in ipairs(Resolve.annotate(data, items, 3500)) do
+        local it = items[a.index]
+        measured[#measured + 1] = { text = a.reading, box = it.box, rank = a.rank,
+                                    w = #a.reading:gsub("[\128-\191]", "") * letter_w,
+                                    gloss = { char = it.text, index = a.index } }
+    end
+    return Layout.plan(measured, (per_line or 24) * 64, 6), #measured
+end
+local function no_overlap(placed)
+    for k = 2, #placed do
+        assert(placed[k].x >= placed[k - 1].x + placed[k - 1].item.w, "overlap at " .. k)
+    end
+end
+local rep, n = book_line("魑魅魍魉，饕餮之徒，魑魅魍魉，饕餮", 64 * 0.4 * 0.52)
+eq(n, 10, "every occurrence annotated"); eq(#rep, 10, "nothing dropped at the default size")
+no_overlap(rep)
+-- Squeezed (pinyin twice as wide, a 10-character line), the line drops the
+-- most common character's pinyin first, at all its occurrences before any
+-- rarer one, and what is left does not overlap.
+rep, n = book_line("饕餮饕餮饕", 64 * 0.4 * 0.52 * 3.5, 5)
+assert(#rep < n, "should be crowded")
+local kept = {}
+for _, e in ipairs(rep) do kept[e.item.gloss.char] = (kept[e.item.gloss.char] or 0) + 1 end
+local rank_t, rank_ti = data:char("饕"), data:char("餮")
+local common = rank_t < rank_ti and "饕" or "餮"
+local rare = common == "饕" and "餮" or "饕"
+local total_rare = rare == "饕" and 3 or 2
+eq(kept[rare], total_rare, "rarer character kept at every occurrence")
+eq(kept[common], nil, "the commoner one dropped at every occurrence")
+no_overlap(rep)
+
 -- A dropped annotation (crowded line) is not tappable. Pinyin 120 px wide
 -- over 40 px characters: three rare characters cannot all fit on a 200 px
 -- line, so the most common one is dropped.
