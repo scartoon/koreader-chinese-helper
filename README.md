@@ -1,7 +1,7 @@
 # koreader-chinese-helper
 
-**A [KOReader](https://github.com/koreader/koreader) plugin for reading Chinese: tap any character
-and see the words it forms in this sentence, with the reading it has here.**
+**A [KOReader](https://github.com/koreader/koreader) plugin for reading Chinese on e-ink readers:
+tap any character and see the words it forms in this sentence, with the reading it has here.**
 
 Chinese has no spaces between words, so an ordinary dictionary lookup means long-pressing,
 dragging a selection and guessing where the word ends. Here you tap one character. The plugin
@@ -10,6 +10,11 @@ the reading the character takes in this context: 行 is *háng* in 银行 but *x
 [Readings](#readings)). You can also turn on pinyin, drawn only above characters rarer than a
 cutoff you choose: the hard ones get help and the rest of the page stays clean. It works on any
 reflowable book (EPUB, FB2, MOBI, TXT and the like) as soon as you open it.
+
+It has only been tested on a Boox Go 7, but it should work on any e-reader that runs KOReader:
+Kobo, Kindle, PocketBook, and Android devices such as Boox.
+
+KOReader 中文阅读插件：点一个字，即可看到它在本句中组成的词及其释义，并标出它在此处的读音；还可在生僻字上方显示拼音。
 
 ![The opening of 三国演义 第一回 on a Boox Go 7: the chapter title, then the popup on 密. At its top, the line 时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不密，反为所害，中涓自此愈横。 with 密 in bold and underlined; then 字频 646 in small grey, 密 mì, "dense; close; … (bound form) secret; confidential …", "Mì: surname Mi"; MOE's entry for 密 mì in larger Chinese type, labelled MOE: 不稀疏的。; 不宣露的。; …; 暗中。; its parts, labelled Wikt: 宓 mì still; silent → sound (same sound), 山 shān mountain → meaning; then 不密 bùmì "(literary) not well thought out; (literary) not secret", labelled Wikt; buttons 密 and 不密, then Translate & analyze the surrounding sentence [AI] on its own row, then Close at the bottom. Below the popup, the end of the paragraph's last line, 密，反为所害，中涓自此愈横。, with 密 underlined on the page](docs/main.png)
 
@@ -81,7 +86,7 @@ project to distribute them: a few commands on a computer, then a copy to the e-r
 ([Optional dictionaries](#optional-dictionaries)). All explanatory text is in simplified
 characters ([Simplified text](#simplified-text)).
 
-Status: **2.1.1**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **2.5.2**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
