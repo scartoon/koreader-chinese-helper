@@ -14,32 +14,48 @@
 local Translate = {}
 
 --[[--
-SNAPSHOT of the "Translate & Analyze" custom action from the author's
-KOAssistant custom_actions.lua (copied 2026-11-11, KOAssistant 0.23.0):
-prompt, system prompt (behavior_override), book context and API parameters,
-verbatim. Later edits to that custom action do NOT change this button; the
-button never looks the custom action up, so it works for anyone with
-KOAssistant installed.
+The Translate & Analyze action: prompt, system prompt (behavior_override),
+book context and API parameters. It started as a snapshot of the author's
+KOAssistant "Translate & Analyze" custom action (2026-11-11, KOAssistant
+0.23.0) and was rewritten for learners on 2026-11-18 (#30): every word, in
+plain English. The button never looks up custom actions, so your own custom
+actions don't change it and it works for anyone with KOAssistant installed.
 ]]
 Translate.KOASSISTANT_ACTION = {
     text = "Translate & Analyze",
     context = "highlight",
     include_book_context = true,
-    behavior_override = "You are a precise philologist. Translate faithfully and explain only what a strong reader needs. No preamble, no summary, no padding.",
+    behavior_override = "You are a patient Chinese teacher. Translate naturally and explain every word in plain English. No preamble, no summary, no padding.",
     prompt = [[Text from '{title}':
 
 "{highlighted_text}"
 
-**Translation:** one natural English translation of the whole selection. Do not give pinyin or romanization for the full text.
+Explain this text for someone learning Chinese. Use plain, everyday English. Avoid grammar jargon: instead of naming a construction, say what it does (write "得 between a verb and a result means 'able to'", not "potential complement").
 
-**Analysis:** go through the text in order, chunk by chunk (a word or tight phrase). For each chunk worth explaining, one line in exactly this shape:
-- **汉字** (pīnyīn): literal gloss; grammatical role or pattern
+**Translation:** one natural English translation of the whole selection, the way a good translator would write it. No pinyin for the full text.
 
-Write each chunk in its original characters, bolded, then pinyin with tone marks in parentheses. Never replace the characters with pinyin. Example of the shape (not of content): **看得懂** (kàn de dǒng): "can read and understand"; potential complement V得C
+**Word by word:** go through the text in order and cover every word, including small ones like 的, 了, 吧, 把 and measure words. Skip only punctuation. Group characters into words the way a reader would (电脑 is one entry, not two). One line per word, in exactly this shape:
+- **汉字** (pīnyīn): meaning in this sentence — what it's doing, if that isn't obvious
 
-Skip chunks an advanced reader would know on sight. Flag particles, complements, word order, ellipsis, classical or literary usages, set phrases and idioms where they occur, and only then. If a chunk's role is genuinely ambiguous, say so and give the readings; do not force one.
+Rules:
+- Always write the original characters in bold, then pinyin with tone marks in parentheses. Never replace the characters with pinyin.
+- Give the meaning that fits this sentence, not a list of dictionary senses.
+- For words with no English equivalent (了, 的, 着, 吧, measure words), say in a few words what job they do here.
+- Keep a set phrase or idiom (成语) together as one entry: give its literal meaning and what it actually means.
+- If a word is literary, old-fashioned, or used in an unusual way here, say so in plain words.
+- If the parts of a multi-character word make its meaning easier to remember, you may add them in brackets, e.g. 电脑 (electric + brain).
+- If a word comes up again with the same meaning, give it a short line ("as above") rather than skipping it.
+- If something can be read two ways, say so briefly and give both.
 
-**Patterns:** if a grammatical construction recurs or governs the whole sentence, name it once with a one-line explanation. Omit this section if there is nothing to say.
+Example of the shape (not of content), for 我看得懂这本书了:
+- **我** (wǒ): I
+- **看得懂** (kàn de dǒng): can read and understand — 得 between a verb and a result means "able to"
+- **这** (zhè): this
+- **本** (běn): measure word for books
+- **书** (shū): book
+- **了** (le): no English word; shows a change: now I can
+
+**How it fits together:** one to three plain sentences on how the sentence is built, but only if the word order or structure would surprise an English speaker (for example, a long description placed before the noun, or the object moved to the front with 把). Leave this out if there's nothing to say.
 
 Bold labels, no headers, no closing remarks.]],
     api_params = {

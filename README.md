@@ -404,13 +404,14 @@ popup and sends **the whole sentence containing the tapped character**:
 
 - **With [KOAssistant](https://github.com/zeeyado/koassistant.koplugin) installed** (tested with
   0.23.0; the button uses its internals, so a later version may fall back to the built-in
-  translator), it reads **Translate & analyze the surrounding sentence [AI]**: a built-in prompt asks for a natural English
-  translation, a chunk-by-chunk analysis (characters, pinyin, a literal gloss, the grammatical
-  role) and any construction that governs the sentence. The sentence goes to KOAssistant as a
-  selection, so it also gets the surrounding context, your provider and model, and the book's
-  title. The prompt is a snapshot of the author's own custom action (temperature 0.3, up to 2000
-  tokens): your custom actions do not change it, and nothing is written to KOAssistant's
-  settings.
+  translator), it reads **Translate & analyze the surrounding sentence [AI]**: a built-in prompt, written for learners, asks for a natural
+  English translation, then every word of the sentence in order (its characters, pinyin and a
+  plain-English meaning, with small words like 的 and 了 and measure words included), and a
+  short note on how the sentence fits together when its structure would surprise an English
+  speaker. The sentence goes to KOAssistant as a selection, so it also gets the surrounding
+  context, your provider and model, and the book's title. The prompt is built into the plugin
+  (temperature 0.3, up to 2000 tokens): your own custom actions do not change it, and nothing is
+  written to KOAssistant's settings.
 - **Without KOAssistant**, it reads **Translate** and uses **KOReader's built-in translator**.
   With "Translate from book language" on, a Chinese book whose metadata says English (common
   with converted EPUBs) comes back untranslated: set its language to zh-CN in Book information,
@@ -860,7 +861,7 @@ text repairs.
 | `ch_bookfont.lua` | the popup's faces with the book's font first, for its Chinese text |
 | `ch_components.lua` | the character components lines |
 | `ch_sentence.lua` | the sentence around the tapped character |
-| `ch_translate.lua` | the Translate button: KOAssistant (with the prompt snapshot) or KOReader's translator |
+| `ch_translate.lua` | the Translate button: KOAssistant (with the built-in prompt) or KOReader's translator |
 
 ### The sample book
 
