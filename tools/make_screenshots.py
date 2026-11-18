@@ -139,42 +139,42 @@ SHOTS = {
     "main": dict(page="sg1", taps=[("密", 1, (172, 1150), [
         "**密**  mì", "**宓** mì  still; silent  → sound (same sound)", "**山** shān  mountain  → meaning",
         "[Wikt]", "**不密**  bùmì", "(literary) not well thought out; (literary) not secret"])],
-        frames=[(1, (100, 1185))]),
+        frames=[(1, (95, 1191))]),
     "context": dict(page="kyj14", taps=[("间", 1, (773, 500), [
         "**间**  jiàn · likely here", "**间或**  jiànhuò · decides 间's reading"])],
-        frames=[(1, (178, 1085))]),
+        frames=[(1, (172, 1090))]),
     "components": dict(page="kyj13", taps=[("茴", 1, (988, 790), [
         "**茴**  huí", "**艹** cǎo  grass; plant (草字头)  → meaning",
         "**回** huí  to go back; to return  → sound (same sound)", "**茴香豆**  huíxiāngdòu"])],
-        frames=[(1, (168, 1094))]),
+        frames=[(1, (163, 1100))]),
     "traditional": dict(page="aq59", taps=[("观", 1, (170, 965), [
         "**观**  guān · likely here", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
         "simplified: 雚 → 又", "**观音**  Guānyīn · decides 观's reading"])],
-        frames=[(1, (144, 1119))]),
+        frames=[(1, (138, 1124))]),
     "chengyu": dict(page="kyj13", taps=[("也", 3, (170, 590), [
         "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 890), [])],
-        frames=[(1, (110, 1152)), (2, (20, 700))]),
+        frames=[(1, (105, 1158)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
         "**秋**  qiū", "[MMAH]", "  [MOE]\n  **秋月春风**", "**秋月春风**  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
-        frames=[(1, (89, 1174))]),
+        frames=[(1, (83, 1179))]),
     # A character of the popup's own text: 欢, inside MOE's quotation of 〈琵琶行〉,
     # opens its popup on top; the context line is the quotation (the device's
     # log must give it as the sentence), the 欢 below underlined.
     "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["  [MOE]\n  **秋月春风**  qiū yuè chūn fēng"]),
                                      ("欢", "nested", (1322, 772), ["「今年欢笑复明年，秋月春风等闲度。」"])],
-                   frames=[(2, (89, 1174))]),
+                   frames=[(2, (83, 1179))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
-        frames=[(1, (15, 1160))]),
+        frames=[(1, (15, 1166))]),
     # The same popup, then its Translate & Analyze button (at `koassistant`):
-    # KOAssistant's reply, its viewer unrolled: the first page, then the last
-    # page's text and buttons (`koassistant_end` is the viewer's ↘ button),
-    # joined by a dashed line (see reply_image). Opt-in only (OPT_IN): the
+    # KOAssistant's reply, its viewer unrolled: the first page, the text of
+    # every later page (turned with a swipe), and the buttons, the pages
+    # joined by dashed lines (see reply_image). Opt-in only (OPT_IN): the
     # AI's answer differs from run to run, so nothing can check it the way the
     # gate checks the other shots, and a default run would silently replace an
     # image whose README alt text describes one particular answer. Take it by
     # name, look at it, and rewrite the alt text to match.
     "translate-result": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
-        koassistant=(840, 920), koassistant_end=(1245, 1195)),
+        koassistant=(840, 853)),
     # Page 1 with pinyin off, then on: the plugin adds line space where it
     # draws pinyin (69 pages instead of 74), so each crop ends after the same
     # line of text (下。后来光武中兴…), the one with pinyin taller.
@@ -185,7 +185,7 @@ SHOTS = {
     "learner-known": dict(page="aq59", threshold=0, known=LEARNER_KNOWN, taps=[], frames=[(0, (440, 995))]),
     # The popup's title-bar button, on 盘 in that paragraph.
     "mark-button": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[("盘", 1, (260, 565), ["**盘**  pán"])],
-                        frames=[(1, (193, 555))]),
+                        frames=[(1, (188, 561))]),
 }
 
 
@@ -373,10 +373,7 @@ def run_shot(gate, name, shot, original):
             time.sleep(3)
         frames.append(screencap())
     if shot.get("koassistant"):
-        frames.append(koassistant_reply(name, shot["koassistant"]))
-        adb("shell", "input", "tap", *map(str, shot["koassistant_end"]))
-        time.sleep(4)
-        frames.append(screencap())
+        frames += reply_pages(name, koassistant_reply(name, shot["koassistant"]))
     raw = os.path.join(WORK, "raw")
     os.makedirs(raw, exist_ok=True)
     variant = "-off" if shot.get("pinyin_off") else ""
@@ -416,10 +413,10 @@ def koassistant_reply(name, pos):
 
 # KOAssistant's viewer (full screen): the text area and its scrollbar, the
 # button rows below it.
-KOA_TEXT = (130, 1035)     # rows of the text area, below the title bar
-KOA_BUTTONS = 1040         # from here down: the two button rows and the border
+KOA_TEXT = (130, 1005)     # rows of the text area, below the title bar
+KOA_BUTTONS = 1010         # from here down: the two button rows and the border
 KOA_THUMB_X = 1631         # a column inside the scrollbar's thumb
-KOA_FRAME = (8, 1258)      # the viewer's outer border
+KOA_FRAME = (8, 1223)      # the viewer's outer border
 
 
 def thumb(img):
@@ -437,33 +434,63 @@ def thumb(img):
     return max(runs, key=lambda r: r[1] - r[0])
 
 
-def reply_image(name, first, last):
-    """The whole reply in one image: the viewer's first page, then the last
-    page's text (trimmed after its last line) and the buttons. Only for a reply
-    of one or two pages: the last page's thumb must start where the first
-    page's ends, or a middle page would be missing and the script stops."""
-    t1, t2 = thumb(first), thumb(last)
-    if t1[1] >= KOA_TEXT[1] - 20:   # one page: the whole reply is on it
-        return crop(first, KOA_FRAME)
-    if t2[0] > t1[1] + 4:
-        sys.exit(f"{name}: the reply runs past two pages (scrollbar {t1}, then {t2}); take it again")
+def track_end(img):
+    """Last row of the scrollbar's track (its bottom edge is dark)."""
+    return max(y for y in range(*KOA_TEXT) if img.getpixel((KOA_THUMB_X, y)) < 80)
+
+
+KOA_SWIPE = (1300, 600, 300, 600)   # westward across the text: the next page
+KOA_MAX_PAGES = 8
+
+
+def reply_pages(name, first):
+    """The viewer's pages, from `first`: swipe to the next one until the
+    scrollbar's thumb reaches the bottom. Each page's thumb must start where
+    the previous one's ends, or a page would be missing and the script stops."""
+    pages = [first]
+    while thumb(pages[-1])[1] < track_end(pages[-1]) - 4:
+        if len(pages) == KOA_MAX_PAGES:
+            sys.exit(f"{name}: the reply runs past {KOA_MAX_PAGES} pages; take it again")
+        adb("shell", "input", "swipe", *map(str, KOA_SWIPE), "200")
+        time.sleep(4)
+        page = screencap()
+        before, after = thumb(pages[-1]), thumb(page)
+        if after == before:
+            sys.exit(f"{name}: the swipe didn't turn the viewer's page (scrollbar {after})")
+        if not before[1] - 4 <= after[0] <= before[1] + 4:
+            sys.exit(f"{name}: page {len(pages) + 1} doesn't follow page {len(pages)} "
+                     f"(scrollbar {before}, then {after})")
+        pages.append(page)
+    return pages
+
+
+def reply_image(name, pages):
+    """The whole reply in one image: the viewer's first page, the text of the
+    pages after it (the last trimmed after its last line), then the buttons,
+    the pages joined by dashed lines."""
+    if len(pages) == 1:   # one page: the whole reply is on it
+        return crop(pages[0], KOA_FRAME)
+    last = pages[-1]
     ink = [y for y in range(KOA_TEXT[0], KOA_BUTTONS)
            if any(last.getpixel((x, y)) < 100 for x in range(40, 1600, 2))]
-    parts = [crop(first, (KOA_FRAME[0], KOA_TEXT[1])),
-             crop(last, (KOA_TEXT[0], min(ink[-1] + 45, KOA_BUTTONS))),
-             crop(last, (KOA_BUTTONS, KOA_FRAME[1]))]
-    gap = 30   # the join between the pages: white, with a dashed line
-    out = Image.new("L", (first.size[0], sum(p.size[1] for p in parts) + gap), 255)
-    out.paste(parts[0], (0, 0))
-    y = parts[0].size[1]
-    for x in range(0, out.size[0], 24):
-        for dx in range(12):
-            if x + dx < out.size[0]:
-                out.putpixel((x + dx, y + gap // 2), 120)
-    y += gap
-    for p in parts[1:]:
-        out.paste(p, (0, y))
-        y += p.size[1]
+    texts = ([crop(pages[0], (KOA_FRAME[0], KOA_TEXT[1]))]
+             + [crop(p, KOA_TEXT) for p in pages[1:-1]]
+             + [crop(last, (KOA_TEXT[0], min(ink[-1] + 45, KOA_BUTTONS)))])
+    buttons = crop(last, (KOA_BUTTONS, KOA_FRAME[1]))
+    gap = 30   # each join between pages: white, with a dashed line
+    height = sum(p.size[1] for p in texts) + gap * (len(texts) - 1) + buttons.size[1]
+    out = Image.new("L", (pages[0].size[0], height), 255)
+    y = 0
+    for k, part in enumerate(texts):
+        if k:
+            for x in range(0, out.size[0], 24):
+                for dx in range(12):
+                    if x + dx < out.size[0]:
+                        out.putpixel((x + dx, y + gap // 2), 120)
+            y += gap
+        out.paste(part, (0, y))
+        y += part.size[1]
+    out.paste(buttons, (0, y))
     return out
 
 
@@ -519,7 +546,7 @@ def main():
                 save(name, both)
                 continue
             if shot.get("koassistant"):
-                save(name, reply_image(name, *captured[name][-2:]))
+                save(name, reply_image(name, captured[name][len(shot["taps"]) + 1:]))
                 continue
             for k, (frame, y) in enumerate(shot["frames"]):
                 suffix = "" if k == 0 else f"-{k + 1}"
