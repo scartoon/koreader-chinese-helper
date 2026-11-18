@@ -25,7 +25,7 @@ Translate.KOASSISTANT_ACTION = {
     text = "Translate & Analyze",
     context = "highlight",
     include_book_context = true,
-    behavior_override = "You are a patient Chinese teacher. Translate naturally and explain every word in plain English. No preamble, no summary, no padding.",
+    behavior_override = "You are a patient Chinese teacher. Translate naturally and explain every word in plain English, never punctuation. No preamble, no summary, no padding.",
     prompt = [[Text from '{title}':
 
 "{highlighted_text}"
@@ -34,7 +34,7 @@ Explain this text for someone learning Chinese. Use plain, everyday English. Avo
 
 **Translation:** one natural English translation of the whole selection, the way a good translator would write it. No pinyin for the full text.
 
-**Word by word:** go through the text in order and cover every word, including small ones like 的, 了, 吧, 把 and measure words. Skip only punctuation. Group characters into words the way a reader would (电脑 is one entry, not two). One line per word, in exactly this shape:
+**Word by word:** go through the text in order and cover every word, including small ones like 的, 了, 吧, 把 and measure words. Punctuation marks (，。、：；！？“”《》…… and the like) are not words: never give one a line, not even an empty one. Group characters into words the way a reader would (电脑 is one entry, not two). One line per word, in exactly this shape:
 - **汉字** (pīnyīn): meaning in this sentence — what it's doing, if that isn't obvious
 
 Rules:
@@ -47,7 +47,7 @@ Rules:
 - If a word comes up again with the same meaning, give it a short line ("as above") rather than skipping it.
 - If something can be read two ways, say so briefly and give both.
 
-Example of the shape (not of content), for 我看得懂这本书了:
+Example of the shape (not of content), for 我看得懂这本书了！ (the ！ gets no line):
 - **我** (wǒ): I
 - **看得懂** (kàn de dǒng): can read and understand — 得 between a verb and a result means "able to"
 - **这** (zhè): this
