@@ -59,6 +59,8 @@ local Popup = InputContainer:extend{
     full = false,      -- the whole screen's height (the Origin & Usage view), the body scrolling
     collapse_lines = 0, -- an Always block's senses (block.collapse) shown to this many
                        -- lines, then "…"; 0: never collapsed
+    mark_buttons = nil, -- reading-mark buttons { {text=, callback=}, ... } (#26), at the
+                       -- right end of the title bar, or nil (nested popups have none)
     -- Taps and keys (ch_tap.lua keeps the stack of popups):
     on_char_tap = nil, -- function(popup, hit): a Han character of the body tapped
                        -- (hit: Popup:charAt)
@@ -178,7 +180,9 @@ function Popup:build()
         bottom_v_padding = Size.padding.default,
         show_parent = self,
     }
-    parts[#parts + 1] = titlebar
+    local head, mark_row = self:withMarkButtons(titlebar, inner_w)
+    parts[#parts + 1] = head
+    if mark_row then parts[#parts + 1] = mark_row end
     local button_table = ButtonTable:new{
         width = inner_w - 2 * Size.padding.default,
         buttons = self.buttons,
@@ -188,7 +192,8 @@ function Popup:build()
 
     -- Text area: as tall as the text, up to what the screen leaves.
     local text_w = inner_w - 2 * padding
-    local max_h = screen_h - 2 * self.margin - header_h - titlebar:getHeight() - button_table:getSize().h
+    local max_h = screen_h - 2 * self.margin - header_h - head:getSize().h
+        - (mark_row and mark_row:getSize().h or 0) - button_table:getSize().h
         - 2 * padding - 2 * Size.border.window
     max_h = math.max(max_h, self.face.size * 3)
     self.scroll = self:body(text_w, max_h, self.full)
@@ -208,6 +213,69 @@ function Popup:build()
     }
     self[1] = self.frame
     self.has_context = line ~= nil
+end
+
+-- The reading-mark buttons' text: a little smaller than the popup text.
+Popup.MARK_TEXT_RATIO = 0.8
+
+--[[--
+The title bar with the reading-mark buttons (#26) laid over its right end,
+right-aligned and vertically centred in it, or, when they don't fit beside
+the title, the title bar alone and the buttons on a row of their own just
+under it (returned second).
+]]
+function Popup:withMarkButtons(titlebar, inner_w)
+    if not self.mark_buttons or #self.mark_buttons == 0 then return titlebar end
+    local Button = require("ui/widget/button")
+    local OverlapGroup = require("ui/widget/overlapgroup")
+    local RightContainer = require("ui/widget/container/rightcontainer")
+    local size = self.text_px and unscaled(math.floor(self.text_px * Popup.MARK_TEXT_RATIO + 0.5)) or 18
+    local group = HorizontalGroup:new{ align = "center" }
+    for k, spec in ipairs(self.mark_buttons) do
+        if k > 1 then group[#group + 1] = HorizontalSpan:new{ width = Size.padding.large } end
+        group[#group + 1] = Button:new{
+            text = spec.text,
+            callback = spec.callback,
+            bordersize = Size.border.thin,
+            radius = Size.radius.button,
+            padding_h = Size.padding.large,
+            padding_v = Size.padding.small,
+            margin = 0,
+            text_font_size = size,
+            text_font_bold = false,
+            show_parent = self,
+        }
+    end
+    self.mark_group = group
+    local pad = Size.padding.large
+    local title_w = TextWidget:new{ text = self.title or "", face = self.title_face }
+    local tw = title_w:getSize().w
+    title_w:free()
+    local line_h = math.max(1, Size.line.thick or 1)
+    local bar_h = titlebar:getHeight()
+    local gw, gh = group:getSize().w, group:getSize().h
+    if tw + 3 * pad + gw <= inner_w and gh <= bar_h - line_h then
+        return OverlapGroup:new{
+            dimen = Geom:new{ w = inner_w, h = bar_h },
+            titlebar,
+            RightContainer:new{
+                dimen = Geom:new{ w = inner_w - pad, h = bar_h - line_h },
+                group,
+            },
+        }
+    end
+    -- A row of its own, under the title bar's line.
+    return titlebar, FrameContainer:new{
+        padding = 0, padding_top = Size.padding.default, padding_bottom = Size.padding.default,
+        bordersize = 0, margin = 0,
+        RightContainer:new{ dimen = Geom:new{ w = inner_w - pad, h = gh }, group },
+    }
+end
+
+-- New mark buttons (a mark changed): the popup is built again in place.
+function Popup:setMarkButtons(list)
+    self.mark_buttons = list
+    self:rebuild()
 end
 
 -- Text with a line under it (the marked character or word of the context

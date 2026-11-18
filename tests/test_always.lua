@@ -40,7 +40,7 @@ stub("device", { screen = { scaleBySize = function(_, v) return v end, getWidth 
                             getHeight = function() return 1264 end, getDPI = function() return 300 end },
                  isTouchDevice = function() return true end })
 stub("lua-ljsqlite3/init", H.SQ3)
-stub("datastorage", { getDataDir = function() return TEST_KOREADER_DIR end })
+stub("datastorage", { getDataDir = function() return TEST_KOREADER_DIR end, getSettingsDir = function() return TEST_KOREADER_DIR .. "/settings" end })
 stub("libs/libkoreader-lfs", { attributes = function() return nil end })
 stub("ui/network/manager", { isWifiOn = function() return true end, isConnected = function() return true end,
                              runWhenConnected = function(_, f) f() end })

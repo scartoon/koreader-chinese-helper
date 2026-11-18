@@ -309,20 +309,28 @@ Each character is annotated only the first time it appears on the page with a
 given reading: later repeats are left bare, but a repeat with a different
 reading (刨 páo in 刨根, then bào in 刨子) is annotated again.
 
+  marks: the reader's reading marks (ch_marks.lua), or nil. Applied to the
+    reading resolved at each position (Marks:effect): a known one is never
+    annotated (special words included); a remind one is annotated whatever
+    the character's rank (still once per page). For the uncertainty pair:
+    left bare only when both readings are known, annotated if either is
+    remind. Marks change the pinyin drawn only, never Resolve.reading.
+
 Returns { {index=i, reading="tāo", rank=4396, match=..., special=bool}, ... }
 in page order; match is the word that decided the reading (see
 Resolve.reading), or nil.
 ]]
-function Resolve.annotate(data, items, threshold, uncertain, special)
-    -- Rarity first: only a rare character, or one with an unusual reading in
-    -- a special word, is worth resolving. Their candidate words are then
-    -- fetched in one lookup for the whole page.
+function Resolve.annotate(data, items, threshold, uncertain, special, marks)
+    -- Rarity first: only a rare character, one with an unusual reading in a
+    -- special word, or one with a remind mark, is worth resolving. Their
+    -- candidate words are then fetched in one lookup for the whole page.
     local wanted, words = {}, {}
     for i, item in ipairs(items) do
         if item.on_page ~= false and single_char(item.text) then
             local sp = special and Resolve.special_at(special, items, i) or false
             local rank = data:char(item.text)
-            if (sp and sp.entry.marks[sp.pos]) or rank == 0 or (rank and rank > threshold) then
+            if (sp and sp.entry.marks[sp.pos]) or rank == 0 or (rank and rank > threshold)
+                    or (marks and marks:mayRemind(item.text)) then
                 wanted[#wanted + 1] = { i, sp }
                 if data.prefetch then candidate_words(data, items, i, words) end
             end
@@ -345,7 +353,10 @@ function Resolve.annotate(data, items, threshold, uncertain, special)
         local i = w[1]
         local item = items[i]
         local reading, rank, match, marked = Resolve.reading(data, items, i, uncertain, special, w[2])
-        if reading and (marked or rank == 0 or (rank and rank > threshold)) then
+        local mark = marks and reading and marks:effect(item.text, reading) or nil
+        if mark == "known" then reading = nil end
+        local remind = mark == "remind"
+        if reading and (marked or remind or rank == 0 or (rank and rank > threshold)) then
             local key = item.text .. "\t" .. reading
             if not seen[key] then
                 seen[key] = true
@@ -353,8 +364,8 @@ function Resolve.annotate(data, items, threshold, uncertain, special)
                 -- unranked characters count as rarest.
                 -- Unusual readings are kept like the rarest characters.
                 out[#out + 1] = { index = i, reading = reading,
-                                  rank = (marked or rank == 0) and math.huge or rank,
-                                  match = match, special = marked or nil }
+                                  rank = (marked or remind or rank == 0) and math.huge or rank,
+                                  match = match, special = marked or nil, remind = remind or nil }
             end
         end
     end
@@ -385,11 +396,14 @@ Returns chosen ("dào", "chéng/shèng" or nil), decided ({ word=, start=
 relative to items[i], len=, syllables=, note= } or nil), unsure: true
 when chosen is the uncertainty pair (no word or rule decided, nothing drawn),
 so the popup does not call either reading likely, and source: what decided
-the reading (Resolve.reading's fifth value; nil when there is no reading).
+the reading (Resolve.reading's fifth value; nil when there is no reading),
+then the character's rank and whether the reading is an unusual one from a
+special word (Resolve.reading's second and fourth values), for the mark
+buttons (#26).
 ]]
 function Resolve.forPopup(data, items, i, uncertain, special, drawn)
     if uncertain == Resolve.UNCERTAIN_SKIP then uncertain = Resolve.UNCERTAIN_BOTH end
-    local reading, _rank, match, _marked, source = Resolve.reading(data, items, i, uncertain, special)
+    local reading, rank, match, unusual, source = Resolve.reading(data, items, i, uncertain, special)
     if drawn then reading = drawn end
     local decided
     if match and match.len and match.len > 1 then
@@ -401,7 +415,7 @@ function Resolve.forPopup(data, items, i, uncertain, special, drawn)
         }
     end
     local unsure = not drawn and reading ~= nil and reading:find("/", 1, true) ~= nil
-    return reading, decided, unsure, source
+    return reading, decided, unsure, source, rank, unusual
 end
 
 return Resolve

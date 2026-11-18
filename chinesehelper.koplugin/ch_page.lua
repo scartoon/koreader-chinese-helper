@@ -118,12 +118,13 @@ Annotations for the current page, ready for the overlay:
 { items=, annotated=, special= } and the items themselves (for Page.find).
 special: loaded special words, or nil when that setting is off.
 scroll: continuous view (see Page.collect), with screen_h the screen height.
+marks: the reader's reading marks (ch_marks.lua), or nil.
 ]]
-function Page.build(document, page, data, threshold, uncertain, special, scroll, screen_h)
+function Page.build(document, page, data, threshold, uncertain, special, scroll, screen_h, marks)
     local items = Page.collect(document, page, scroll)
     local stats = { items = #items, annotated = 0, special = 0 }
     local glosses = {}
-    for _, a in ipairs(Resolve.annotate(data, items, threshold, uncertain, special)) do
+    for _, a in ipairs(Resolve.annotate(data, items, threshold, uncertain, special, marks)) do
         local item = items[a.index]
         local box = boxes_for(document, item, scroll and screen_h or nil)
         if box then
