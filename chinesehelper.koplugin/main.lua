@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.6.0"
+ChineseHelper.VERSION = "2.7.0"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -841,7 +841,7 @@ function ChineseHelper:marksItem()
             local known, remind = counts()
             return T(_("Known & remind-me readings: %1 known, %2 remind"), known, remind)
         end,
-        help_text = T(_("In a popup opened from the page, the button at the right of the title bar marks the tapped character in the reading it has there. I know: that reading never gets pinyin, at any threshold, in every book; its other readings are unchanged. Remind me: it always gets pinyin (once per page), even when common. Tap the button again to clear the mark. The page changes at once. The marks are kept in %1, outside the plugin's folder, so updates and reinstalls keep them: back that file up to keep them, or copy it to another device."), ChineseHelper.marksPath()),
+        help_text = T(_("In a popup opened from the page, the button at the right of the title bar marks the tapped character in the reading it has there. I know: that reading never gets pinyin, at any threshold, in every book; its other readings are unchanged. Remind me: it always gets pinyin, at every occurrence, even when common. Tap the button again to clear the mark. The page changes at once. The marks are kept in %1, outside the plugin's folder, so updates and reinstalls keep them: back that file up to keep them, or copy it to another device."), ChineseHelper.marksPath()),
         keep_menu_open = true,
         separator = true,
         sub_item_table_func = function()

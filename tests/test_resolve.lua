@@ -70,15 +70,16 @@ expect("莞尔一笑", 2500, "莞=wǎn")
 expect("他住在东莞", 2500, "莞=guǎn")
 expect("吐蕃王朝", 2500, "蕃=bō")
 expect("刨根问底", 3500, "刨=páo")
-expect("用刨子刨平", 3500, "刨=bào")                 -- second 刨, same reading: not repeated
+expect("用刨子刨平", 3500, "刨=bào 刨=bào")          -- both 刨, each in its own reading
 
--- Once per page: a repeated character is annotated only the first time,
--- unless it has a different reading the second time.
-expect("饕餮之徒，饕餮之徒", 3500, "饕=tāo 餮=tiè")
+-- Every occurrence on the page is annotated (#28), each in the reading
+-- resolved at its position.
+expect("饕餮之徒，饕餮之徒", 3500, "饕=tāo 餮=tiè 饕=tāo 餮=tiè")
+expect("饕餮，饕餮，饕餮", 3500, "饕=tāo 餮=tiè 饕=tāo 餮=tiè 饕=tāo 餮=tiè")
 expect("刨根问底，用刨子", 3500, "刨=páo 刨=bào")
-expect("刨根问底，用刨子，刨根", 3500, "刨=páo 刨=bào")
--- Only on-page occurrences count: one in the context before the page does not
--- stop the first on-page one from being annotated.
+expect("刨根问底，用刨子，刨根", 3500, "刨=páo 刨=bào 刨=páo")
+-- Only on-page occurrences are annotated: one in the context before the page
+-- is not.
 expect("饕|饕餮|", 3500, "饕=tāo 餮=tiè")
 
 -- Overlapping words of the same length: the more frequent one wins
@@ -260,7 +261,7 @@ do
     local items = items_of("累世公卿，甲累乙，积累世，世甲")
     local got = {}
     for _, a in ipairs(Resolve.annotate(fb, items, 1000)) do got[#got + 1] = items[a.index].text .. "=" .. a.reading end
-    check(table.concat(got, " "), "累=lěi 世=shì 公=gōng 卿=qīng 甲=jiǎ 累=léi 乙=yǐ 积=jī", "annotate")
+    check(table.concat(got, " "), "累=lěi 世=shì 公=gōng 卿=qīng 甲=jiǎ 累=léi 乙=yǐ 积=jī 累=lěi 世=shì 世=shì 甲=jiǎ", "annotate")
     check(fb.fb_cache["世甲"], nil, "only the uncertain characters' words are looked up")
     check(queries, 1, "one fallback lookup for the page")
     for _, a in ipairs(Resolve.annotate(fb, items, 1000)) do end

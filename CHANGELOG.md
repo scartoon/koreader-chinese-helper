@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.7.0 (2026-11-17)
+
+Every occurrence gets pinyin (#28)
+- **A character that gets pinyin now gets it at every occurrence on the page**, not just the
+  first, each in the reading it has there: rare characters, unusual readings in special words,
+  the uncertain pair (xíng/háng) and remind-me readings alike. A reading marked known is bare
+  everywhere, so each reading is now all or nothing per page; marking or clearing one from the
+  popup changes every occurrence at once.
+- Crowded lines drop pinyin about as rarely as before (on four sample books, roughly 1% of
+  annotations at most, the most common characters first), and nothing overlaps.
+
 ## 2.6.0 (2026-11-17)
 
 Known and remind-me readings (#26)

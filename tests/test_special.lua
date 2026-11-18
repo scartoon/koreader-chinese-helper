@@ -67,8 +67,8 @@ expect("冒顿单于", "冒=mò* 顿=dú* 单=chán*", 7000)
 -- Setting off (no special table): nothing changes from before.
 assert(annotate("冒顿单于", 2500, false) == "", "special words used with the setting off")
 
--- Once per page per (character, reading), as for other annotations.
-expect("单于来了，单于走了", "单=chán*")
+-- Every occurrence on the page, as for other annotations (#28).
+expect("单于来了，单于走了", "单=chán* 单=chán*")
 
 -- Logic on a hand-made table: a rare character inside a special word takes
 -- the special word's reading, not the resolver's; the longest word wins.

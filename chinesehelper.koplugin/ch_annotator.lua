@@ -282,8 +282,8 @@ function Annotator:hitTest(x, y)
     return self.overlay:hitTest(x, y)
 end
 
--- The drawn annotation for page item `index`, or nil (a repeat left bare by
--- the once-per-page rule, or pinyin dropped from a crowded line, is not drawn).
+-- The drawn annotation for page item `index`, or nil (pinyin dropped from a
+-- crowded line is not drawn).
 function Annotator:drawnAt(index)
     if not self.overlay or not self:settings():pinyinEnabled() then return nil end
     local placed = self.overlay.placed

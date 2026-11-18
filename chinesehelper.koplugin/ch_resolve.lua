@@ -305,14 +305,13 @@ Annotations for the on-page items.
     with special=true; a rare character inside a special word takes the
     special word's reading.
 
-Each character is annotated only the first time it appears on the page with a
-given reading: later repeats are left bare, but a repeat with a different
-reading (刨 páo in 刨根, then bào in 刨子) is annotated again.
+Every occurrence on the page is annotated, each in the reading resolved at
+its own position (刨 páo in 刨根, then bào in 刨子).
 
   marks: the reader's reading marks (ch_marks.lua), or nil. Applied to the
     reading resolved at each position (Marks:effect): a known one is never
     annotated (special words included); a remind one is annotated whatever
-    the character's rank (still once per page). For the uncertainty pair:
+    the character's rank, at every occurrence. For the uncertainty pair:
     left bare only when both readings are known, annotated if either is
     remind. Marks change the pinyin drawn only, never Resolve.reading.
 
@@ -348,7 +347,7 @@ function Resolve.annotate(data, items, threshold, uncertain, special, marks)
         end
         if #fwords > 0 then data:prefetchFallback(fwords) end
     end
-    local out, seen = {}, {}
+    local out = {}
     for _, w in ipairs(wanted) do
         local i = w[1]
         local item = items[i]
@@ -357,16 +356,12 @@ function Resolve.annotate(data, items, threshold, uncertain, special, marks)
         if mark == "known" then reading = nil end
         local remind = mark == "remind"
         if reading and (marked or remind or rank == 0 or (rank and rank > threshold)) then
-            local key = item.text .. "\t" .. reading
-            if not seen[key] then
-                seen[key] = true
-                -- Rarity used to decide what to drop when a line is crowded:
-                -- unranked characters count as rarest.
-                -- Unusual readings are kept like the rarest characters.
-                out[#out + 1] = { index = i, reading = reading,
-                                  rank = (marked or remind or rank == 0) and math.huge or rank,
-                                  match = match, special = marked or nil, remind = remind or nil }
-            end
+            -- Rarity used to decide what to drop when a line is crowded:
+            -- unranked characters count as rarest.
+            -- Unusual readings are kept like the rarest characters.
+            out[#out + 1] = { index = i, reading = reading,
+                              rank = (marked or remind or rank == 0) and math.huge or rank,
+                              match = match, special = marked or nil, remind = remind or nil }
         end
     end
     return out

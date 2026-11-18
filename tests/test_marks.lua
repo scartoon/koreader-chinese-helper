@@ -116,6 +116,8 @@ end
 local text = "我去银行，他在银行工作，然后行走回家。"
 local base = annotate(text, 1, nil)
 assert(base:find("行=háng", 1, true) and base:find("行=xíng", 1, true), base)
+local _, hang = base:gsub("行=háng", "")
+eq(hang, 2, "both 银行 annotated")
 eq(annotate(text, 1, marks_with{}), base, "empty marks change nothing")
 -- 行 háng known: bare at every occurrence; 行走 still xíng.
 local got = annotate(text, 1, marks_with{ { "行", "háng", "known" } })
@@ -126,9 +128,14 @@ eq((got:gsub(" ?行=%S+", "")), (base:gsub(" ?行=%S+", "")), "nothing else chan
 assert(annotate("匈奴单于入塞", 2500, nil):find("单=chán*", 1, true))
 got = annotate("匈奴单于入塞", 2500, marks_with{ { "单", "chán", "known" } })
 assert(not got:find("单=", 1, true), got)
--- Remind: a common reading drawn once per page below the threshold.
-got = annotate("这是书，那是笔。", 3500, marks_with{ { "是", "shì", "remind" } })
-eq(got, "是=shì!", "once per page")
+-- Remind: a common reading drawn at every occurrence below the threshold.
+got = annotate("这是书，他是人，也是笔。", 3500, marks_with{ { "是", "shì", "remind" } })
+eq(got, "是=shì! 是=shì! 是=shì!", "every occurrence")
+-- 那是 is nà shi: that 是 has a reading the mark is not on, so it stays bare.
+eq(annotate("这是书，那是笔。", 3500, marks_with{ { "是", "shì", "remind" } }), "是=shì!")
+-- The prompting case (#28): 后 hòu remind with 即位后 then 皇太后 three times.
+got = annotate("即位后，尊皇太后，皇太后曰，皇太后。", 3500, marks_with{ { "后", "hòu", "remind" } })
+eq(got, "后=hòu! 后=hòu! 后=hòu! 后=hòu!", "后 at all four")
 -- Remind on another reading of the character: nothing drawn for this one.
 eq(annotate("这是书", 3500, marks_with{ { "是", "shi", "remind" } }), "")
 -- 的 alone resolves to the pair de/dì: a remind on de shows the pair.
@@ -140,6 +147,13 @@ eq(annotate("姓覃", 3500, marks_with{ { "覃", "qín", "known" } }), pair, "on
 eq(annotate("姓覃", 3500, marks_with{ { "覃", "qín", "known" }, { "覃", "tán", "known" } }), "", "both known: bare")
 eq(annotate("姓覃", 9000, nil), "", "common at this threshold: bare")
 eq(annotate("姓覃", 9000, marks_with{ { "覃", "tán", "remind" } }), "覃=qín/tán!", "either remind: shown")
+-- Repeated, the pair is shown at every occurrence, and hidden at every one
+-- when both readings are known.
+eq(annotate("姓覃，姓覃", 3500, nil), pair .. " " .. pair, "pair at both")
+eq(annotate("姓覃，姓覃", 3500, marks_with{ { "覃", "qín", "known" }, { "覃", "tán", "known" } }), "", "both known: all bare")
+-- A rare character marked known is bare at every occurrence.
+eq(annotate("饕餮，饕餮，饕餮", 3500, nil), "饕=tāo 餮=tiè 饕=tāo 餮=tiè 饕=tāo 餮=tiè")
+eq(annotate("饕餮，饕餮，饕餮", 3500, marks_with{ { "饕", "tāo", "known" } }), "餮=tiè 餮=tiè 餮=tiè", "known: all bare")
 -- Mode best: the best guess's mark.
 eq(annotate("姓覃", 3500, marks_with{ { "覃", "qín", "known" } }, "best"), "")
 eq(annotate("姓覃", 3500, marks_with{ { "覃", "tán", "known" } }, "best"), "覃=qín")
