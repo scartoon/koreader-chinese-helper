@@ -16,6 +16,7 @@ local Font = require("ui/font")
 local RenderText = require("ui/rendertext")
 local Size = require("ui/size")
 local Widget = require("ui/widget/widget")
+local logger = require("logger")
 
 local Hit = require("ch_hit")
 local Layout = require("ch_layout")
@@ -110,6 +111,7 @@ function Overlay:plan(max_x)
         end
     end
     self.placed = Layout.plan(measured, max_x, Size.span.horizontal_small)
+    logger.dbg(string.format("chinesehelper: placed %d of %d annotations", #self.placed, #measured))
     return self.placed
 end
 

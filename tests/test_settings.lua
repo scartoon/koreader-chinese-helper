@@ -44,6 +44,14 @@ eq(s:threshold(), 5000)
 st = store()
 s = Settings.new(st); eq(#s:migrate(), 0); assert(st.values.chinesehelper_migrated)
 
+-- Thresholds: All (0), 500 and 1,000 as well as the old steps; anything else
+-- is the default.
+for _, t in ipairs({ 0, 500, 1000, 1500, 2500, 3500, 5000, 7000 }) do
+    eq(Settings.new(store{ chinesehelper_threshold = t }):threshold(), t)
+end
+eq(Settings.new(store{ chinesehelper_threshold = 1200 }):threshold(), 3500)
+eq(Settings.new(store{ chinesehelper_threshold = -1 }):threshold(), 3500)
+
 -- Out-of-range values come back valid.
 s = Settings.new(store{ chinesehelper_uncertain = "nonsense", chinesehelper_size_pct = 500,
                         chinesehelper_special_style = "x", chinesehelper_popup_text_pct = 1 })

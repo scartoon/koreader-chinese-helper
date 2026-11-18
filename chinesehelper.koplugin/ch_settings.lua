@@ -8,7 +8,9 @@ Settings.__index = Settings
 
 Settings.PREFIX = "chinesehelper_"
 
-Settings.THRESHOLDS = { 1500, 2500, 3500, 5000, 7000 }
+-- 0 is All (learner mode): every character, whatever its rank.
+Settings.THRESHOLDS = { 0, 500, 1000, 1500, 2500, 3500, 5000, 7000 }
+Settings.ALL = 0
 Settings.SIZES = { 35, 40, 45, 50, 55 }            -- pinyin size, % of the book's text size
 Settings.POPUP_SIZES = { 40, 60, 80, 100, 120 }     -- popup text size, % of the book's text size
 Settings.CHINESE_SIZES = { 100, 115, 130, 150, 175 } -- Chinese text in the popup, % of the popup text size
