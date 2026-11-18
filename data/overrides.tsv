@@ -216,6 +216,28 @@
 們	men
 得	de/děi	structural particle (说得好, 高兴得跳起来); děi "must" (你得去) next; dé (to obtain) is mostly in words (得到, 获得, 取得)
 
+# --- Function words (#25, learner mode): the reading every page is full of.
+#     CPP over-samples the minority readings and the words-based default
+#     picks a reading from a few frequent words, so without these the default
+#     was wrong (的 dì, 了 liǎo) or a pair was shown on every occurrence. The
+#     other readings live in words, which win over the default. Checked by
+#     hand on full pages of 孔乙己 and 三国演义.
+的	de	structural particle; dì in 目的, 有的放矢, dí in 的确, dī in 的士 (words)
+了	le	aspect and modal particle; liǎo "to finish, understand" in 了解, 不了, 免不了, 了不起, 了结 (words)
+这	zhè	"this"; zhèi is a colloquial variant before measure words, never required
+這	zhè
+着	zhe	aspect particle (看着, 接着); zháo in 睡着, 着急, 着火, zhuó in 着手, 穿着, 着重 (words)
+么	me	suffix (什么, 怎么, 那么); má and yāo are rare variants
+麼	me
+呢	ne	sentence-final particle; ní "woollen cloth" in 呢子, 呢绒 (words)
+个	gè	measure word; ge after 一, 这, 那, 半 is in words; gě only in 自个儿 (word)
+個	gè
+都	dōu	"all, already"; dū "capital" in 首都, 都市, 成都, 建都, 迁都 (words)
+还	hái	"still, also"; huán "to return" in 归还, 还清, 还乡, 偿还 (words)
+還	hái
+与	yǔ	"and, with, to give"; yù "to take part" in 参与, 与会 (words)
+與	yǔ
+
 # --- Words for learned rules taken out (data/rules_exclude.tsv) and other
 #     readings of rare characters
 累官	lěi guān	to rise in office step by step (累 lěi "repeatedly"); the learned rule had lèi

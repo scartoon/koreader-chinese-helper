@@ -92,15 +92,16 @@ eq(p.chosen, "dí"); eq(p.decided.word, "的确")
 eq(marked(p, "的"), "dí", "的确's 的 marked dí")
 eq(p.matches[1].entries[1].pinyin, "dí", "and listed first")
 assert(p.text:find("的确  díquè · decides 的's reading", 1, true), p.text)
--- 的 alone: the particle, de (uncertain: with "both", the runner-up dì too).
+-- 的 alone: the particle, de, a hand-checked default (data/overrides.tsv,
+-- #25), so never the pair de/dì.
 p = popup("我的书。", "的")
-eq(p.chosen, "de/dì")
-eq(marked(p, "的"), "de,dì")
+eq(p.chosen, "de")
+eq(marked(p, "的"), "de")
 p = popup("我的书。", "的", { mode = "best" })
 eq(p.chosen, "de"); eq(marked(p, "的"), "de")
 -- "Don't annotate" draws nothing for an uncertain character; the popup still
 -- marks both likely readings.
-eq(popup("我的书。", "的", { mode = "skip" }).chosen, "de/dì")
+eq(popup("写得好。", "得", { mode = "skip" }).chosen, "de/děi")
 
 -- 东西: the word's everyday reading dōngxi marked, dōngxī listed after it.
 p = popup("去买东西。", "东")
@@ -184,7 +185,7 @@ assert(p.text:find("捣  dǎo\n", 1, true) and not p.text:find("decides", 1, tru
 p = popup("你来啦。", "啦", { mode = "best" })
 eq(p.chosen, "la"); eq(marked(p, "啦"), "la", "啦 the particle, not lā")
 p = popup("你来啦。", "啦")
-eq(p.chosen, "la/lā", "both: the particle first")
+eq(p.chosen, "la", "both: the hand-checked particle alone (#25: no pair)")
 eq(popup("好嘛。", "嘛").chosen, "ma")
 eq(popup("快走呀。", "呀").chosen, "ya")
 eq(popup("走吧。", "吧").chosen, "ba")

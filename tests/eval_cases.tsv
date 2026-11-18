@@ -4,7 +4,8 @@
 #
 # Expected: space-separated char=reading for what should be drawn, or char=-
 # for a character that must NOT be annotated. Each case is checked at the
-# threshold given with --threshold (default 2500), with uncertain readings
+# threshold in its optional third column (0 = All, learner mode), or else
+# the one given with --threshold (default 2500), with uncertain readings
 # shown as pairs ("chéng/shèng"). Every case here is expected to pass; cases
 # the plugin knows it does not handle are in eval_known_unhandled.tsv.
 
@@ -73,7 +74,8 @@
 # (刺猬 wei, above), its own tone where CC-CEDICT lists both (大爷 yé).
 他走呗。	呗=bei
 我来喽。	喽=lou
-这样好咯。	咯=lo/gē
+这样好咯。	咯=lo
+他是哩。	哩=li
 啦啦队来了。	啦=-
 
 # 圩: xū in the market words, wéi (dike) otherwise
@@ -82,3 +84,24 @@
 圩市很热闹。	圩=xū
 圩集上人很多。	圩=xū
 圩田很多。	圩=wéi
+
+# Function words at All (learner mode, #25): the hand-checked default from
+# data/overrides.tsv, never a pair; their other readings come from words.
+孔乙己的名字。	的=de	0
+目的不明。	的=dì	0
+的确如此。	的=dí	0
+他吃了饭。	了=le	0
+我了解他。	了=liǎo	0
+他们便接着说道。	着=zhe	0
+他睡着了。	着=zháo	0
+这回可是全是之乎者也。	这=zhè	0
+你读过书么？	么=me	0
+你怎的连半个秀才也捞不到呢？	呢=ne	0
+有一个人。	个=gè	0
+自个儿去。	个=gě	0
+众人也都哄笑起来。	都=dōu	0
+首都很大。	都=dū	0
+定然还清。	还=huán	0
+他还是来了。	还=hái	0
+我与他。	与=yǔ	0
+他参与其事。	与=yù	0

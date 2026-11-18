@@ -44,7 +44,7 @@ assert(meta.cedict_entries and tonumber(meta.cedict_entries) > 100000, "meta")
 
 local data = H.readings()
 local rank, reading = data:char("的")
-assert(rank and rank < 10, "common characters are in the tables now"); eq(reading, "dì")
+assert(rank and rank < 10, "common characters are in the tables now"); eq(reading, "de")
 rank, reading = data:char("饕")
 assert(rank == 0 or rank > 1000); eq(reading, "tāo")
 -- Words come from the database on demand, cached.
@@ -55,8 +55,9 @@ assert(data:word("东东东") == nil and data.cache["东东东"] == false, "miss
 -- The popup's readings where they are not the drawn ones, in memory.
 eq(data:wordMark("大爷"), "dà ye"); eq(data:wordMark("东西"), nil)
 eq(data:rule("行", nil, nil), nil)
-local first, second = data:uncertainty("了")
-eq(first, "le"); eq(second, "liǎo")
+local first, second = data:uncertainty("得")
+eq(first, "de"); eq(second, "děi")
+eq(data:uncertainty("了"), nil, "了: hand-checked default le, never a pair (#25)")
 
 -- Every word with a rare character is in memory, so annotating a page never
 -- queries the database; common words still come from it.

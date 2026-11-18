@@ -202,6 +202,21 @@ def override_pairs(path):
     return out
 
 
+def override_singles(path):
+    """Characters data/overrides.tsv gives a single reading (的 de): their
+    hand-checked default, which tools/learn_from_cpp.py never lists in
+    uncertain.tsv whatever the CPP data says."""
+    out = set()
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            fields = line.rstrip("\n").split("\t")
+            if line.startswith("#") or len(fields) < 2 or len(fields[0]) != 1:
+                continue
+            if "/" not in fields[1]:
+                out.add(fields[0])
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cedict", required=True)
