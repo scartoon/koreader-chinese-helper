@@ -900,8 +900,8 @@ a popup, its sentence). Your `settings.reader.lua`
 and reading marks are backed up and restored (each shot runs with no marks, or the known readings
 it lists). KOAssistant's response (`translate-result`) can't be checked that
 way, so it is taken only when named (`make_screenshots.py translate-result`): the script waits
-for the reply to be complete, scrolls the viewer to its last page and joins the two pages
-(a reply longer than two pages stops the script: take it again), saves its text to `build/screenshots/translate-result.txt`, and
+for the reply to be complete, turns the viewer's pages one by one and joins them into one image,
+saves its text to `build/screenshots/translate-result.txt`, and
 the README's alt text for it has to be rewritten by hand to match.
 
 ## Credits and licences
