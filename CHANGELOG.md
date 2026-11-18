@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.1 (2026-11-18)
+
+Translate & Analyze for learners (#30)
+- **The popup's Translate & Analyze button now explains every word**, in order, for someone
+  learning Chinese: a natural English translation, then one line per word with its characters,
+  tone-marked pinyin and its meaning in this sentence, small words included (的, 了, 吧,
+  measure words), and a short note on how the sentence fits together when its structure would
+  surprise an English speaker. Grammar is described in plain words ("得 between a verb and a
+  result means 'able to'"), not named ("potential complement"). Before, the prompt was written
+  for advanced readers and skipped words they would know on sight.
+- On a Boox Go 7 a 69-character sentence from 阿Q正传 gets its whole reply (about five pages of
+  KOAssistant's viewer) within the 2000-token limit.
+
 ## 2.8.0 (2026-11-18)
 
 Learner mode (#25)

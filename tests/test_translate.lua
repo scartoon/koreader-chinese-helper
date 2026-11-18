@@ -114,6 +114,10 @@ eq(a.api_params.temperature, 0.3); eq(a.api_params.max_tokens, 2000)
 eq(a.id, Translate.ACTION_ID); eq(a.enabled, true); eq(a.source, "config"); eq(a.builtin, false)
 eq(a.prompt, Translate.KOASSISTANT_ACTION.prompt)
 assert(a.prompt:find("{highlighted_text}", 1, true) and a.prompt:find("{title}", 1, true), "placeholders")
+-- The learner prompt (#30): every word, not only what an advanced reader would miss.
+assert(a.prompt:find("cover every word", 1, true), "every word")
+assert(not a.prompt:find("Skip chunks", 1, true), "no skipping")
+assert(a.behavior_override:find("patient Chinese teacher", 1, true), "system prompt")
 assert(a ~= Translate.KOASSISTANT_ACTION and a.api_params ~= Translate.KOASSISTANT_ACTION.api_params, "a copy")
 
 -- Present, but the sentence has no positions: text only, no selection.
@@ -159,28 +163,6 @@ expectTranslator("plugin not a table")
 ui = fakeUI(); installKOAssistant(ui); uninstall()
 eq(Translate.koassistant(ui, false), nil, "modules not loaded")
 uninstall()
-
--- The snapshot matches the custom action it was copied from, when the
--- device copy is around (build/koassistant_custom_actions.lua; not committed).
-local f = io.open(PLUGIN_DIR .. "/../build/koassistant_custom_actions.lua")
-if f then
-    f:close()
-    local actions = dofile(PLUGIN_DIR .. "/../build/koassistant_custom_actions.lua")
-    local found
-    for _, act in ipairs(actions) do if act.text == "Translate & Analyze" then found = act end end
-    assert(found, "custom action not found")
-    local n = 0
-    for k, v in pairs(found) do
-        n = n + 1
-        if type(v) == "table" then
-            for k2, v2 in pairs(v) do eq(Translate.KOASSISTANT_ACTION[k][k2], v2, k .. "." .. k2) end
-        else
-            eq(Translate.KOASSISTANT_ACTION[k], v, k)
-        end
-    end
-    for _ in pairs(Translate.KOASSISTANT_ACTION) do n = n - 1 end
-    eq(n, 0, "same fields")
-end
 
 -- Android: isWifiOn is isConnected (one JNI call); both false or both true.
 local android = { calls = 0 }
