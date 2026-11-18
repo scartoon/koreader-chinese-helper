@@ -2,9 +2,8 @@
 -- From pinyin_hit.lua in koreader-interlinear-pinyin.
 --
 -- Only annotations the overlay actually drew count: a character whose pinyin
--- was dropped because its line was crowded, and a repeat left bare by the
--- once-per-page rule, are not in the overlay's placed list and so are never
--- hit.
+-- was dropped because its line was crowded is not in the overlay's placed
+-- list and so is never hit.
 --
 -- An annotation's hit area is
 --   * its pinyin, as drawn: from the pinyin's left to right edge, from the top

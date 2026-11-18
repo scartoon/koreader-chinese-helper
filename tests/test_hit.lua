@@ -79,11 +79,13 @@ assert(tap(placed, 160, 50) == nil, "tap on 之 between 饕 and 餮 must fall th
 assert(tap(placed, 139, 50).char == "饕" and tap(placed, 180, 50).char == "餮")
 assert(tap(placed, 140, 50) == nil and tap(placed, 179, 50) == nil, "edges of 之")
 
--- A repeat occurrence left bare by the once-per-page rule is not tappable.
+-- A repeat occurrence is annotated too (#28), and tapping it hits that
+-- occurrence, not the first one.
 placed = layout("饕之饕", 10)
-assert(#placed == 1, "repeat should not be annotated")
-assert(tap(placed, 120, 50).char == "饕")
-assert(tap(placed, 200, 50) == nil, "the repeated 饕 has no pinyin and must fall through")
+assert(#placed == 2, "repeat should be annotated")
+assert(tap(placed, 120, 50).char == "饕" and tap(placed, 120, 50).index == 1)
+assert(tap(placed, 200, 50).index == 3, "the repeated 饕 is its own hit")
+assert(tap(placed, 160, 50) == nil, "之 between them falls through")
 
 -- A dropped annotation (crowded line) is not tappable. Pinyin 120 px wide
 -- over 40 px characters: three rare characters cannot all fit on a 200 px
