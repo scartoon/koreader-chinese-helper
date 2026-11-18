@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.8.2 (2026-11-18)
+
+Menu and description wording (#29)
+- The pinyin toggle is now **Show pinyin** (was "Show pinyin above rare characters"): with
+  **Which characters → All characters (learner mode)** it puts pinyin on every character, and
+  **Which characters** already says which ones. The setting itself is unchanged.
+- The **Dictionaries** help names MOE's items as they appear in the menu, **MOE for single
+  characters** and **MOE for words**.
+- The plugin description (KOReader's plugin manager) covers learner mode and known / remind-me
+  readings.
+
 ## 2.8.1 (2026-11-18)
 
 Translate & Analyze for learners (#30)

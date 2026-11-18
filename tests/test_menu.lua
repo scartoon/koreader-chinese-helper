@@ -69,7 +69,7 @@ local menu_items = {}
 plugin:addToMainMenu(menu_items)
 local entry = assert(menu_items.chinesehelper, "menu entry not registered")
 eq(entry.sorting_hint, "tools")
-eq(entry.sub_item_table[1].text, "Show pinyin above rare characters")
+eq(entry.sub_item_table[1].text, "Show pinyin")
 eq(entry.sub_item_table[2].text, "Tap characters for popup")
 
 local count = 0

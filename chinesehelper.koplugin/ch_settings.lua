@@ -20,7 +20,7 @@ Settings.UNCERTAIN_BEST = "best"
 Settings.UNCERTAIN_SKIP = "skip"
 
 Settings.DEFAULTS = {
-    pinyin_enabled = false,   -- "Show pinyin above rare characters"
+    pinyin_enabled = false,   -- "Show pinyin"
     popup_enabled = true,     -- "Tap characters for popup"
     threshold = 3500,
     size_pct = 40,
