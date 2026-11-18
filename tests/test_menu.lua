@@ -323,7 +323,12 @@ for k = 4, #all_items do
 end
 eq(#moe_modes, 2)
 eq(all_items[7], moe_modes[1], "right after MOE's switch")
+eq(moe_modes[1].text_func(), "    MOE for single characters: fallback")
+assert(moe_modes[1].sub_item_table[2].checked_func(), "Fallback checked by default")
+eq(moe_modes[1].sub_item_table[2].text, "Fallback: only when CC-CEDICT lacks it (default)")
+moe_modes[1].sub_item_table[3].callback(); eq(plugin.settings:moeMode("chars"), "always")
 eq(moe_modes[1].text_func(), "    MOE for single characters: always")
+moe_modes[1].sub_item_table[2].callback(); eq(plugin.settings:moeMode("chars"), "fallback")
 eq(moe_modes[2].text_func(), "    MOE for words: fallback")
 moe_modes[2].sub_item_table[3].callback(); eq(plugin.settings:moeMode("words"), "always")
 assert(moe_modes[2].sub_item_table[3].checked_func())

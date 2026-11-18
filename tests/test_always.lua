@@ -96,10 +96,18 @@ local function block(p, pred)
 end
 local function set(k, v) settings["chinesehelper_" .. k] = v end
 
--- Defaults: MOE Always for characters. 涓: CC-CEDICT's entry (with the rank),
--- then MOE's, then the components, then the words.
+-- The default (#24): MOE Fallback for characters, so 涓 (CC-CEDICT has it)
+-- gets no MOE block.
 set("components", true)
 local p = popup("", "涓", "涓细流")
+eq(plugin.settings:moeMode("chars"), "fallback")
+eq(block(p, function(b) return b.source == "moe" end), nil, "default: no MOE block for 涓")
+assert(shape(p):find("^cedict:涓  juān | components:"), shape(p))
+
+-- Always for characters, chosen in the menu. 涓: CC-CEDICT's entry (with the
+-- rank), then MOE's, then the components, then the words.
+set("moe_chars", "always")
+p = popup("", "涓", "涓细流")
 local s = shape(p)
 assert(s:find("^cedict:涓  juān | moe%*:涓  juān | components:"), s)
 eq(p.blocks[1].rank ~= nil, true, "字频 on CC-CEDICT's entry")
@@ -143,7 +151,7 @@ for k, c in ipairs(cases) do
     eq(without(q), always_shapes[k], "Fallback: the rest unchanged for " .. c[2])
 end
 -- An old MOE file (no covered rows, no meta flag): Always behaves as Fallback.
-set("moe_chars", nil)
+set("moe_chars", "always")
 local real_localDb = plugin.localDb
 local old = DB.open(TEST_KOREADER_DIR .. "/moe-old.sqlite", H.SQ3)
 plugin.localDb = function(self, source)
@@ -169,8 +177,7 @@ p = popup("", "涓", "涓细流")
 eq(block(p, function(b) return b.source == "moe" end), nil)
 set("fallback_moe", nil)
 
--- Characters Off: no MOE fallback entry for a single character either, and
--- one query to MOE's file per tap with the defaults.
+-- One query to MOE's file per tap with characters Always.
 local mdb = plugin:localDb("moe")
 local queries = 0
 local real_all, real_fb = mdb.fallbackAll, mdb.fallback
@@ -203,6 +210,14 @@ for _, chars in ipairs({ "off", "fallback", "always" }) do
 end
 assert(not base:find("moe", 1, true), base)
 set("moe_chars", nil); set("moe_words", nil)
+
+-- Defaults again: one MOE query per tap at most, still.
+queries = 0
+mdb.fallbackAll, mdb.fallback = function(self, l) queries = queries + 1; return real_all(self, l) end,
+    function(self, l) queries = queries + 1; return real_fb(self, l) end
+popup("", "涓", "涓细流")
+assert(queries <= 1, "MOE queries with the defaults: " .. queries)
+mdb.fallbackAll, mdb.fallback = real_all, real_fb
 
 -- Idioms: the short line and Origin & Usage stay as they were.
 p = popup("", "一", "毛不拔")

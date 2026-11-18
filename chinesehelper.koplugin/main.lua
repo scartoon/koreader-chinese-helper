@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.5.2"
+ChineseHelper.VERSION = "2.5.3"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -655,7 +655,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Dictionaries"),
-                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be shown Always: under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
+                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be set to Always (its Characters and Words items): under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
                 sub_item_table = plugin:fallbackItems(apply, {
                     {
                         text_func = function()
@@ -765,7 +765,7 @@ function ChineseHelper:moeModeItem(kind)
     local key = kind == "words" and "moe_words" or "moe_chars"
     local labels = {
         off = _("Off"),
-        fallback = _("Fallback: only when CC-CEDICT lacks it"),
+        fallback = _("Fallback: only when CC-CEDICT lacks it (default)"),
         always = _("Always: also under CC-CEDICT's entry"),
     }
     local sub = {}
@@ -781,7 +781,7 @@ function ChineseHelper:moeModeItem(kind)
             local what = kind == "words" and _("MOE for words: %1") or _("MOE for single characters: %1")
             return "    " .. T(what, ChineseHelper.MOE_MODE_NAMES[settings:moeMode(kind)])
         end,
-        help_text = _("Always: MOE's entry is shown under CC-CEDICT's too, collapsed (for a single character: between CC-CEDICT's entry and the components), with its classical senses and the readings CC-CEDICT does not list (marked \"not in CC-CEDICT\"). Fallback: only when CC-CEDICT does not have it. Always needs a MOE file built with Chinese helper 2.5.0 or later; with an older one it works as Fallback (Status says so). MOE never decides the pinyin drawn."),
+        help_text = _("Always: MOE's entry is shown under CC-CEDICT's too, collapsed (for a single character: between CC-CEDICT's entry and the components), with its classical senses and the readings CC-CEDICT does not list (marked \"not in CC-CEDICT\"). Fallback (the default): only when CC-CEDICT does not have it. Always needs a MOE file built with Chinese helper 2.5.0 or later; with an older one it works as Fallback (Status says so). MOE never decides the pinyin drawn."),
         enabled_func = function() return settings:fallbackEnabled("moe") and plugin:sourceDb("moe") ~= nil end,
         sub_item_table = sub,
     }

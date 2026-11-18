@@ -97,10 +97,10 @@ eq(s:matchBookFont(), true, "match the book's font: on by default")
 s:set("match_book_font", false)
 eq(s:matchBookFont(), false)
 
--- MOE's modes (#11): Always for characters, Fallback for words; MOE off
--- overrides both; odd values fall back to the defaults.
+-- MOE's modes (#11): Fallback for characters (#24: Always in 2.5.0-2.5.2) and
+-- for words; MOE off overrides both; odd values fall back to the defaults.
 s = Settings.new(store())
-eq(s:moeMode("chars"), "always"); eq(s:moeMode("words"), "fallback"); eq(s:collapseLines(), 2)
+eq(s:moeMode("chars"), "fallback"); eq(s:moeMode("words"), "fallback"); eq(s:collapseLines(), 2)
 -- Migration from 2.4.0: fallback_moe = false stays off, true gets the defaults,
 -- and an existing fallback_order is the order.
 st = store{ chinesehelper_fallback_moe = false, chinesehelper_fallback_order = "moe,wikt" }
@@ -109,7 +109,10 @@ eq(s:moeMode("chars"), "off"); eq(s:moeMode("words"), "off")
 eq(table.concat(s:fallbackOrder(), ","), "moe,wikt,cbdb,idioms,xinhua,wp,moegirl")
 st = store{ chinesehelper_fallback_moe = true }
 s = Settings.new(st)
-eq(s:moeMode("chars"), "always"); eq(s:moeMode("words"), "fallback")
+eq(s:moeMode("chars"), "fallback"); eq(s:moeMode("words"), "fallback")
+-- A mode chosen in the menu (stored) is kept: "always" stays Always.
+st.values.chinesehelper_moe_chars = "always"; eq(s:moeMode("chars"), "always")
+st.values.chinesehelper_moe_chars = "bogus"; eq(s:moeMode("chars"), "fallback")
 st.values.chinesehelper_moe_chars = "fallback"; st.values.chinesehelper_moe_words = "bogus"
 eq(s:moeMode("chars"), "fallback"); eq(s:moeMode("words"), "fallback")
 st.values.chinesehelper_moe_words = "off"; eq(s:moeMode("words"), "off")

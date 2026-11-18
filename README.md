@@ -63,8 +63,8 @@ default, because the AI's answer differs from run to run.
 
 CC-CEDICT comes first; the others, the [fallback dictionaries](#fallback-dictionaries), give
 entries for words it lacks. The rows are in the order the popup checks them (the default; the
-menu's **Order** changes it). The MOE dictionary also shows its entry for every single character
-it has, under CC-CEDICT's, collapsed to two lines ([MOE Always](#moe-always)).
+menu's **Order** changes it). The MOE dictionary can also show its entry for every single
+character it has, under CC-CEDICT's, collapsed to two lines ([MOE Always](#moe-always)).
 
 | Dictionary | Label | Entries added | | Mainly covers |
 |---|---|---|---|---|
@@ -86,7 +86,7 @@ project to distribute them: a few commands on a computer, then a copy to the e-r
 ([Optional dictionaries](#optional-dictionaries)). All explanatory text is in simplified
 characters ([Simplified text](#simplified-text)).
 
-Status: **2.5.2**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **2.5.3**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -141,7 +141,7 @@ Tools menu). Settings apply to all books.
 | Show the text around the character in the popup | On (default) / off. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
 | Try to match the book's font | On (default) / off: Chinese text in the popup in the book's font. See [The popup](#the-popup) |
-| Dictionaries | Source labels (all entries / other dictionaries only (default) / none); **Order** of the dictionaries after CC-CEDICT; **Collapse long entries** (1 / 2 (default) / 3 lines / never); then each dictionary on/off, in that order (default: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang), with **MOE for single characters** (off / fallback / always (default)) and **MOE for words** (off / fallback (default) / always) under MOE's. See [Fallback dictionaries](#fallback-dictionaries) and [MOE Always](#moe-always) |
+| Dictionaries | Source labels (all entries / other dictionaries only (default) / none); **Order** of the dictionaries after CC-CEDICT; **Collapse long entries** (1 / 2 (default) / 3 lines / never); then each dictionary on/off, in that order (default: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang), with **MOE for single characters** (off / fallback (default) / always) and **MOE for words** (off / fallback (default) / always) under MOE's. See [Fallback dictionaries](#fallback-dictionaries) and [MOE Always](#moe-always) |
 | Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed; MOE's modes and whether its file is ready for Always), what the current page needed, and any old plugin still installed |
 
 ### What a tap does
@@ -208,9 +208,10 @@ where the words break.
   3,500 by default). Past 7,000 it shows **7,000+**, as the data is too thin there for an exact
   rank, and **unranked** for a character not in the list. It shares the line with the source
   label when that is shown (`CEDICT · 字频 4,270`). Words around the character never show one.
-- **MOE's entry for the character**, with the optional MOE dictionary: under CC-CEDICT's entry,
-  labelled MOE, cut to two lines ending in a small grey **[Tap to show more]** when longer. Tap
-  it to see all of it ([MOE Always](#moe-always)).
+- **MOE's entry for the character**, with the optional MOE dictionary: in place of CC-CEDICT's
+  when CC-CEDICT lacks the character. With MOE for single characters set to **always**, under
+  CC-CEDICT's entry too, cut to two lines ending in a small grey **[Tap to show more]** when
+  longer; tap it to see all of it ([MOE Always](#moe-always)).
 - **The character's components**, indented under its own entry ([below](#character-components)).
 - **Then every dictionary word containing it**, longest first; words of the same length in
   reading order. Entries from the Chinese-language dictionaries (MOE, the 成語典, Xinhua and
@@ -494,8 +495,10 @@ For words CC-CEDICT does not have, the popup also looks in the fallback dictiona
 ### MOE Always
 
 CC-CEDICT's entry for a single character is short and modern: 涓 is "brook; to select". The MOE
-dictionary has the classical senses too (细流。/ 姓。/ 细缓的、细微的。/ 清洁的。/ 选择。). With
-the optional MOE dictionary, a single-character popup shows both:
+dictionary has the classical senses too (细流。/ 姓。/ 细缓的、细微的。/ 清洁的。/ 选择。). By
+default MOE's entry is shown only for a character CC-CEDICT lacks. Switch **MOE for single
+characters** to **always** to see MOE's entry under CC-CEDICT's for every character; the
+popup then shows both:
 
 1. CC-CEDICT's entry, in full, with the 字频 rank;
 2. MOE's entry for the character, labelled MOE: all its readings as one block, cut to the first
@@ -512,8 +515,8 @@ They are shown, never used: MOE never decides the pinyin drawn on the page or th
 in the popup.
 
 Under MOE in the **Dictionaries** menu, **MOE for single characters** and **MOE for words** are
-each **off**, **fallback** (only when CC-CEDICT doesn't have it, as before 2.5.0) or **always**.
-The defaults are always for characters and fallback for words; words set to always show MOE's
+each **off**, **fallback** (only when CC-CEDICT doesn't have it) or **always**. Both default to
+fallback (characters were always in 2.5.0 to 2.5.2); words set to always show MOE's
 entry under CC-CEDICT's for every word around the character too. Switching MOE off turns off
 both. **Collapse long entries** sets the number of lines (1, 2 or 3) or never.
 
