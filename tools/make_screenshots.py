@@ -81,9 +81,9 @@ if os.environ.get("SHOT_FONT"):
 # characters on screen, and where to open the book.
 PAGES = {
     "sg1": dict(ch=1, first="第一回", last="中涓自此愈横。", xp="/body/DocFragment[1]/body/h1/text().0",
-                drawn="樵=qiáo 渚=zhǔ 锢=gù 宦=huàn 涓=juān"),
+                drawn="樵=qiáo 渚=zhǔ 锢=gù 宦=huàn 宦=huàn 涓=juān"),
     "sg2": dict(ch=1, first="建宁二年四月望日", last="能呼风唤雨，号为“太平道", xp="/body/DocFragment[1]/body/p[9]/text().0",
-                drawn="蟠=pán 臾=yú 雹=báo 邕=yōng 霓=ní 谞=xū 蹇=jiǎn 恽=yùn 藜=lí 讫=qì"),
+                drawn="蟠=pán 臾=yú 雹=báo 邕=yōng 霓=ní 邕=yōng 谞=xū 蹇=jiǎn 恽=yùn 藜=lí 讫=qì"),
     "kyj13": dict(ch=2, first="幸亏荐头的情面大", last="引得众人都哄笑起来；店内外充满",
                   xp="/body/DocFragment[2]/body/p[5]/text().91", drawn="茴=huí"),
     "kyj14": dict(ch=2, first="了快活的空气。", last="我略略点一点头。他",
@@ -137,33 +137,33 @@ SHOTS = {
     # 密, two thirds into the page's longest sentence: the popup's context
     # line shows text on both sides of it.
     "main": dict(page="sg1", taps=[("密", 1, (172, 1150), [
-        "**密**  mì", "[MOE] Always\n  **密**  mì", "**宓** mì  still; silent  → sound (same sound)", "**山** shān  mountain  → meaning",
+        "**密**  mì", "**宓** mì  still; silent  → sound (same sound)", "**山** shān  mountain  → meaning",
         "[Wikt]", "**不密**  bùmì", "(literary) not well thought out; (literary) not secret"])],
-        frames=[(1, (117, 1185))]),
+        frames=[(1, (100, 1185))]),
     "context": dict(page="kyj14", taps=[("间", 1, (773, 500), [
-        "**间**  jiàn · likely here", "[MOE] Always\n  **间**  jiàn", "**间或**  jiànhuò · decides 间's reading"])],
-        frames=[(1, (95, 1167))]),
+        "**间**  jiàn · likely here", "**间或**  jiànhuò · decides 间's reading"])],
+        frames=[(1, (178, 1085))]),
     "components": dict(page="kyj13", taps=[("茴", 1, (988, 790), [
-        "**茴**  huí", "[MOE] Always\n  **茴**  huí", "**艹** cǎo  grass; plant (草字头)  → meaning",
+        "**茴**  huí", "**艹** cǎo  grass; plant (草字头)  → meaning",
         "**回** huí  to go back; to return  → sound (same sound)", "**茴香豆**  huíxiāngdòu"])],
-        frames=[(1, (108, 1155))]),
+        frames=[(1, (168, 1094))]),
     "traditional": dict(page="aq59", taps=[("观", 1, (170, 965), [
-        "**观**  guān · likely here", "[MOE] Always\n  **观**  guān", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
+        "**观**  guān · likely here", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
         "simplified: 雚 → 又", "**观音**  Guānyīn · decides 观's reading"])],
-        frames=[(1, (61, 1201))]),
+        frames=[(1, (144, 1119))]),
     "chengyu": dict(page="kyj13", taps=[("也", 3, (170, 590), [
-        "[MOE] Always\n  **也**  yě", "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 980), [])],
-        frames=[(1, (28, 1235)), (2, (20, 700))]),
+        "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 890), [])],
+        frames=[(1, (110, 1152)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
-        "**秋**  qiū", "[MOE] Always\n  **秋**  qiū", "[MMAH]", "  [MOE]\n  **秋月春风**", "**秋月春风**  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
-        frames=[(1, (18, 1245))]),
+        "**秋**  qiū", "[MMAH]", "  [MOE]\n  **秋月春风**", "**秋月春风**  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
+        frames=[(1, (89, 1174))]),
     # A character of the popup's own text: 欢, inside MOE's quotation of 〈琵琶行〉,
     # opens its popup on top; the context line is the quotation (the device's
     # log must give it as the sentence), the 欢 below underlined.
-    "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["[MOE] Always\n  **秋**  qiū", "  [MOE]\n  **秋月春风**  qiū yuè chūn fēng"]),
-                                     ("欢", "nested", (1322, 872), ["「今年欢笑复明年，秋月春风等闲度。」"])],
-                   frames=[(2, (18, 1245))]),
-    "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè", "[MOE] Always\n  **窃**  qiè"])],
+    "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["  [MOE]\n  **秋月春风**  qiū yuè chūn fēng"]),
+                                     ("欢", "nested", (1322, 772), ["「今年欢笑复明年，秋月春风等闲度。」"])],
+                   frames=[(2, (89, 1174))]),
+    "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃**  qiè"])],
         frames=[(1, (15, 1160))]),
     # The same popup, then its Translate & Analyze button (at `koassistant`):
     # KOAssistant's reply, its viewer unrolled: the first page, then the last
@@ -264,7 +264,8 @@ def settings_variant(original, pinyin=True, threshold=None):
     keys = {"chinesehelper_threshold": THRESHOLD if threshold is None else threshold, "chinesehelper_pinyin_enabled": "true" if pinyin else "false",
             "chinesehelper_popup_enabled": "true", "chinesehelper_popup_text_pct": 60,
             "chinesehelper_chinese_text_pct": 130, "chinesehelper_char_rank": "true",
-            "chinesehelper_labels": '"fallback"', "chinesehelper_uncertain": '"both"',
+            "chinesehelper_labels": '"fallback"', "chinesehelper_moe_chars": '"fallback"', "chinesehelper_moe_words": '"fallback"',
+            "chinesehelper_uncertain": '"both"',
             "chinesehelper_components": "true", "chinesehelper_popup_context": "true",
             "chinesehelper_page_underline": "true",
             "chinesehelper_match_book_font": "false" if os.environ.get("SHOT_MATCH_FONT") == "false" else "true",
