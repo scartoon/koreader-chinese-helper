@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.6.0 (2026-11-17)
+
+Known and remind-me readings (#26)
+- **A button at the right of the popup's title bar marks the tapped character's reading**:
+  **I know tāo** stops that reading from ever getting pinyin (any threshold, every book), and
+  **Remind me: shū** makes a reading that wouldn't be drawn always get pinyin, once per page.
+  Only that reading is affected: 刨 *bào* known leaves 刨 *páo* annotated. Marked, the button
+  reads **Known tāo ✓** or **Reminding shū ✓**; a tap clears it. The page under the popup
+  changes at once. An uncertain pair (xíng/háng) gets a button per reading and is hidden only
+  when both are known. Nested popups have no buttons.
+- **Known & remind-me readings** in the menu shows the counts, lists the marks (a tap clears
+  one) and has **Clear all marks**, which asks first.
+- Marks are kept by simplified form in `koreader/settings/chinesehelper_marks.lua`, which
+  survives plugin updates. It is written only when a mark changes, atomically; an unreadable
+  file is renamed aside, never overwritten.
+
 ## 2.5.3 (2026-11-17)
 
 - **MOE for single characters defaults to fallback again** (#24): out of the box, a

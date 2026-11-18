@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.5.3"
+ChineseHelper.VERSION = "2.6.0"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -455,6 +455,74 @@ function ChineseHelper:special()
 end
 
 ------------------------------------------------------------------------
+-- Reading marks (#26): known / remind me, for every book
+------------------------------------------------------------------------
+
+-- In KOReader's settings folder, never in the plugin's own: an update or
+-- tools/deploy.sh replaces the plugin folder whole.
+ChineseHelper.MARKS_FILE = "chinesehelper_marks.lua"
+
+function ChineseHelper.marksPath()
+    return require("datastorage"):getSettingsDir() .. "/" .. ChineseHelper.MARKS_FILE
+end
+
+--[[--
+The marks file through KOReader's LuaSettings: read with LuaSettings:open
+(which falls back to <file>.old when the file does not parse), written
+atomically. LuaSettings:flush truncates and rewrites the file in place
+(keeping a .old only when the file is over 60 s old), so a write cut short
+could leave a broken file; here the new content goes to <file>.tmp, is
+synced, and is renamed over the file.
+]]
+function ChineseHelper.marksStore(path)
+    local LuaSettings = require("luasettings")
+    local lfs = require("libs/libkoreader-lfs")
+    local util = require("util")
+    local dump = require("dump")
+    return {
+        path = path,
+        read = function()
+            local existed = lfs.attributes(path, "mode") == "file"
+            return LuaSettings:open(path).data, existed
+        end,
+        write = function(data)
+            LuaSettings:backup(path)   -- <file>.old, as LuaSettings:flush does
+            local tmp = path .. ".tmp"
+            local ok, err = util.writeToFile("-- " .. path .. "\nreturn " .. dump(data, nil, true) .. "\n", tmp, true)
+            if not ok then return nil, err end
+            local renamed, rerr = os.rename(tmp, path)
+            if not renamed then return nil, rerr end
+            pcall(function() require("ffi/util").fsyncDirectory(path) end)
+            return true
+        end,
+        setAside = function()
+            local to = path .. ".unreadable-" .. os.date("%Y%m%d-%H%M%S")
+            os.rename(path, to)
+            logger.warn("chinesehelper: the marks file could not be read; set aside as", to)
+        end,
+    }
+end
+
+-- The reader's reading marks, shared by every book for the session.
+function ChineseHelper:marks()
+    if session.marks then return session.marks end
+    local Marks = require("ch_marks")
+    local plugin = self
+    session.marks = Marks.new{
+        store = ChineseHelper.marksStore(ChineseHelper.marksPath()),
+        simplify = function(ch, reading)
+            local db = plugin:db()
+            return db and db:simplifiedOf(ch, reading) or ch
+        end,
+        variants = function(s)
+            local db = plugin:db()
+            return db and db:formsOf(s) or { s }
+        end,
+    }
+    return session.marks
+end
+
+------------------------------------------------------------------------
 -- The old plugins
 ------------------------------------------------------------------------
 
@@ -599,8 +667,8 @@ function ChineseHelper:addToMainMenu(menu_items)
                     settings:set("special", not settings:specialEnabled())
                     refresh()
                 end,
-                separator = true,
             },
+            plugin:marksItem(),
             {
                 text_func = function()
                     return T(_("Edge pass-through width: %1"), plugin:edgeLabel(settings:edgeMm()))
@@ -757,6 +825,78 @@ end
 function ChineseHelper.collapseLabel(n)
     if n == 0 then return _("never") end
     return n == 1 and _("1 line") or T(_("%1 lines"), n)
+end
+
+-- "Known & remind-me readings" (#26): the counts, the list (a tap clears
+-- one mark), and Clear all (confirmed).
+function ChineseHelper:marksItem()
+    local plugin = self
+    local function counts()
+        local ok, marks = pcall(plugin.marks, plugin)
+        if not ok then return 0, 0 end
+        return marks:count()
+    end
+    return {
+        text_func = function()
+            local known, remind = counts()
+            return T(_("Known & remind-me readings: %1 known, %2 remind"), known, remind)
+        end,
+        help_text = T(_("In a popup opened from the page, the button at the right of the title bar marks the tapped character in the reading it has there. I know: that reading never gets pinyin, at any threshold, in every book; its other readings are unchanged. Remind me: it always gets pinyin (once per page), even when common. Tap the button again to clear the mark. The page changes at once. The marks are kept in %1, outside the plugin's folder, so updates and reinstalls keep them: back that file up to keep them, or copy it to another device."), ChineseHelper.marksPath()),
+        keep_menu_open = true,
+        separator = true,
+        sub_item_table_func = function()
+            return {
+                {
+                    text = _("Show marks (tap one to clear it)"),
+                    enabled_func = function() local k, r = counts(); return k + r > 0 end,
+                    callback = function(touchmenu) plugin:showMarks(touchmenu) end,
+                },
+                {
+                    text = _("Clear all marks"),
+                    enabled_func = function() local k, r = counts(); return k + r > 0 end,
+                    keep_menu_open = true,
+                    callback = function(touchmenu)
+                        local ConfirmBox = require("ui/widget/confirmbox")
+                        local known, remind = counts()
+                        UIManager:show(ConfirmBox:new{
+                            text = T(_("Clear all marks (%1 known, %2 remind)?"), known, remind),
+                            ok_text = _("Clear all"),
+                            ok_callback = function()
+                                plugin:marks():clearAll()
+                                plugin.annotator:refreshPage()
+                                if touchmenu and touchmenu.updateItems then touchmenu:updateItems() end
+                            end,
+                        })
+                    end,
+                },
+            }
+        end,
+    }
+end
+
+-- The list of marks, one line per character and reading; a tap clears that
+-- mark and shows the list again.
+function ChineseHelper:showMarks(touchmenu)
+    local KeyValuePage = require("ui/widget/keyvaluepage")
+    local marks = self:marks()
+    local plugin = self
+    local page
+    local kv = {}
+    for _i, m in ipairs(marks:list()) do
+        kv[#kv + 1] = {
+            m.char .. "  " .. m.reading,
+            m.state == "known" and _("known") or _("remind me"),
+            callback = function()
+                marks:clearEntry(m)
+                plugin.annotator:refreshPage()
+                if touchmenu and touchmenu.updateItems then touchmenu:updateItems() end
+                UIManager:close(page)
+                if #marks:list() > 0 then plugin:showMarks(touchmenu) end
+            end,
+        }
+    end
+    page = KeyValuePage:new{ title = _("Known & remind-me readings"), kv_pairs = kv }
+    UIManager:show(page)
 end
 
 -- MOE's Characters ("chars") or Words mode item: Off / Fallback / Always.

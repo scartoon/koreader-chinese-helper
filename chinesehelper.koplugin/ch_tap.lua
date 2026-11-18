@@ -243,9 +243,9 @@ function Tap:resolve(hit, left, right)
         return self:resolveRun(left, hit.char, right)
     end
     local drawn = items[i].ws and self.plugin.annotator:drawnAt(i)
-    local reading, decided, unsure, source = Resolve.forPopup(data, items, i, settings:uncertainMode(), special,
-        drawn and drawn.text)
-    return reading, decided, drawn ~= nil, unsure, source
+    local reading, decided, unsure, source, rank, unusual = Resolve.forPopup(data, items, i,
+        settings:uncertainMode(), special, drawn and drawn.text)
+    return reading, decided, drawn ~= nil, unsure, source, rank, unusual
 end
 
 -- Tap:resolve on the Han run left .. char .. right alone (a character not on
@@ -258,9 +258,9 @@ function Tap:resolveRun(left, char, right)
     items[#items + 1] = { text = char, joined = #items > 0 }
     local i = #items
     for _, c in ipairs(right) do items[#items + 1] = { text = c, joined = true } end
-    local reading, decided, unsure, source = Resolve.forPopup(data, items, i, self.plugin.settings:uncertainMode(),
-        self.plugin:special(), nil)
-    return reading, decided, false, unsure, source
+    local reading, decided, unsure, source, rank, unusual = Resolve.forPopup(data, items, i,
+        self.plugin.settings:uncertainMode(), self.plugin:special(), nil)
+    return reading, decided, false, unsure, source, rank, unusual
 end
 
 -- Rows from the fallback dictionaries for the candidate words CC-CEDICT has
@@ -393,7 +393,7 @@ function Tap:lookup(db, char, left, right, resolve)
     local rows = db:lookup(texts)
     local fallback, always = self:fallbackRows(texts, rows)
     for _, row in ipairs(fallback) do rows[#rows + 1] = row end
-    local chosen, decided, annotated, unsure, source = resolve()
+    local chosen, decided, annotated, unsure, source, rank, unusual = resolve()
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end
     local matches = Model.matches{
@@ -402,7 +402,8 @@ function Tap:lookup(db, char, left, right, resolve)
         default = data and select(2, data:char(char)) or nil,
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }
-    return { cands = cands, rows = rows, matches = matches, chosen = chosen, annotated = annotated }
+    return { cands = cands, rows = rows, matches = matches, chosen = chosen, annotated = annotated,
+             rank = rank, unusual = unusual }
 end
 
 function Tap:showPopup(hit)
@@ -418,6 +419,7 @@ function Tap:showPopup(hit)
         db = db, char = hit.char, box = hit.box, cands = found.cands, rows = found.rows, matches = found.matches,
         annotated = found.annotated, context = self:context(hit), mark = self:mark(hit),
         sentence = function(close) return self:sentenceRow(hit, close) end,
+        reading = { chosen = found.chosen, rank = found.rank, unusual = found.unusual },
     }
     logger.dbg(string.format("chinesehelper: %s [%s|%s] reading %s, %d matches in %.1f ms",
         hit.char, table.concat(left, ""), table.concat(right, ""), tostring(found.chosen), #found.matches,
@@ -595,6 +597,8 @@ Show the popup. Returns it, or nil (straight to KOReader's dictionaries).
   args.sentence                     function(close) -> the sentence button's row (or nil);
                                     ignored for a nested popup (only the first has one)
   args.parent                       the popup whose text was tapped, or nil (the page)
+  args.reading                      { chosen=, rank=, unusual= } at the tapped position, for
+                                    the reading-mark buttons (page taps only), or nil
 ]]
 function Tap:present(args)
     local comp = self:components(args.db, args.char, args.cands, args.rows)
@@ -693,10 +697,47 @@ function Tap:present(args)
         chinese_pct = self.plugin.settings:chineseTextPercent(),
         collapse_lines = self.plugin.settings:collapseLines(),
         book_font = self:bookFont(),
+        mark_buttons = not parent and args.reading and self:markButtons(args.char, args.reading, function()
+            return popup
+        end) or nil,
     }
     self:push(popup)
     UIManager:show(popup)
     return popup
+end
+
+--[[--
+The reading-mark buttons (#26) for `char` at the tapped position: one per
+reading of reading.chosen (two for the uncertainty pair), or nil. A tap
+saves the mark, rebuilds the page's pinyin at once and gives the popup its
+new labels; the page and the popup repaint together, the popup on top.
+get_popup: returns the popup (built after the buttons).
+]]
+function Tap:markButtons(char, reading, get_popup)
+    if not reading.chosen or reading.chosen == "" then return nil end
+    local ok, marks = pcall(self.plugin.marks, self.plugin)
+    if not ok or not marks then return nil end
+    local threshold = self.plugin.settings:threshold()
+    local rank = reading.rank
+    local by_rule = reading.unusual and true or (rank == 0 or (rank ~= nil and rank > threshold))
+    local out = {}
+    for r in reading.chosen:gmatch("[^/]+") do
+        local spec = marks:button(char, r, by_rule)
+        out[#out + 1] = {
+            text = spec.text,
+            callback = function()
+                local changed, err = marks:set(char, r, spec.next)
+                if changed == nil then
+                    UIManager:show(InfoMessage:new{ text = T(_("Could not save the mark: %1"), tostring(err)) })
+                    return
+                end
+                self.plugin.annotator:refreshPage()
+                local popup = get_popup()
+                if popup then popup:setMarkButtons(self:markButtons(char, reading, get_popup)) end
+            end,
+        }
+    end
+    return out
 end
 
 return Tap

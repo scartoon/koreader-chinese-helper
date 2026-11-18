@@ -144,6 +144,40 @@ function DB:lookup(words)
     return rows
 end
 
+-- The simplified form that keys character `ch` read `reading` (reading
+-- marks, ch_marks.lua), from CC-CEDICT's single-character rows: a
+-- traditional character takes the simplified form of its row in that
+-- reading, so 乾 qián stays 乾 but 乾 gān is 干, 著 zhù stays 著 but 著 zhe is
+-- 着. A character with no row as a traditional form (most simplified ones)
+-- is its own key.
+DB.SIMPLIFY_SQL = "SELECT simp, syllables FROM entries WHERE trad = ? AND length(simp) = 1"
+function DB:simplifiedOf(ch, reading)
+    local rows = {}
+    self:each(DB.SIMPLIFY_SQL, { ch }, function(row) rows[#rows + 1] = { row[1], row[2] } end)
+    if #rows == 0 then return ch end
+    local match
+    for _, r in ipairs(rows) do
+        if r[2] == reading or r[2]:lower() == reading then
+            if r[1] == ch then return ch end
+            match = match or r[1]
+        end
+    end
+    if match then return match end
+    for _, r in ipairs(rows) do if r[1] == ch then return ch end end
+    return rows[1][1]
+end
+
+-- `s` and every traditional form CC-CEDICT gives it as a single character
+-- (这: 这, 這): the page forms that can key to `s`.
+DB.TRADITIONAL_SQL = "SELECT DISTINCT trad FROM entries WHERE simp = ? AND length(trad) = 1"
+function DB:formsOf(s)
+    local out, seen = { s }, { [s] = true }
+    self:each(DB.TRADITIONAL_SQL, { s }, function(row)
+        if not seen[row[1]] then seen[row[1]] = true; out[#out + 1] = row[1] end
+    end)
+    return out
+end
+
 -- Whether the fallback table has the `covered` column, checked once per
 -- database (files built before 2.5.0, and the release database, have none).
 function DB:hasCovered()

@@ -208,7 +208,7 @@ function Annotator:refreshPage()
         local page, scroll, key = self:position(document)
         local glosses, stats, items = Page.build(document, page, data, settings:threshold(),
             settings:uncertainMode(), self.plugin:special(), scroll,
-            scroll and require("device").screen:getHeight() or nil)
+            scroll and require("device").screen:getHeight() or nil, self.plugin.marks and self.plugin:marks())
         self.items, self.items_page = items, key
         self.overlay.special_style = settings:specialStyle()
         self.overlay.font_size = math.max(8, math.floor(font_size * settings:sizePercent() / 100 + 0.5))
