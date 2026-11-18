@@ -44,7 +44,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.5.3"
+ChineseHelper.VERSION = "2.6.0"
 ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
@@ -859,7 +859,7 @@ function ChineseHelper:marksItem()
                         local ConfirmBox = require("ui/widget/confirmbox")
                         local known, remind = counts()
                         UIManager:show(ConfirmBox:new{
-                            text = T(_("Clear all %1 marks (%2 known, %3 remind)?"), known + remind, known, remind),
+                            text = T(_("Clear all marks (%1 known, %2 remind)?"), known, remind),
                             ok_text = _("Clear all"),
                             ok_callback = function()
                                 plugin:marks():clearAll()

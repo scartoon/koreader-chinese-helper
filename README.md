@@ -86,7 +86,7 @@ project to distribute them: a few commands on a computer, then a copy to the e-r
 ([Optional dictionaries](#optional-dictionaries)). All explanatory text is in simplified
 characters ([Simplified text](#simplified-text)).
 
-Status: **2.5.3**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
+Status: **2.6.0**, tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
 
 ## Install
 
@@ -133,6 +133,7 @@ Tools menu). Settings apply to all books.
 | Pinyin size | 35–55% of the book's text size (default 40%) |
 | When the reading is uncertain | Show both readings (default) / show the most likely reading / don't annotate |
 | Mark unusual readings of common characters (names, historical terms) | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
+| Known & remind-me readings | The counts; **Show marks** lists them (a tap clears one), **Clear all marks** (asks first). See [Known and remind-me readings](#known-and-remind-me-readings) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [What a tap does](#what-a-tap-does) |
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
 | Chinese text size | 100 / 115 / 130 (default) / 150 / 175% of the popup text size, for the Chinese dictionaries' text (MOE, 成語典, Xinhua, Moegirlpedia). See [Tapping a character in the popup](#tapping-a-character-in-the-popup) |
@@ -431,6 +432,31 @@ historical names, titles and places: 单于 *chányú*, 冒顿 *mòdú*, 龟兹 
 such words (65 hand-checked) and draws, in bold, only the characters whose reading there differs
 from their usual one. A guard keeps them from matching by accident: 订单于3日发货 is 订单 + 于,
 not 单于.
+
+### Known and remind-me readings
+
+A popup opened from the page has a button at the right of its title bar for the tapped
+character, in the reading it has at that spot. Which button depends on whether that reading
+would be drawn:
+
+- **I know háng**: that reading never gets pinyin again, at any threshold and in every book. The
+  character's other readings are unaffected: marking 刨 *bào* known leaves 刨 *páo* annotated.
+- **Remind me: háng** (when that reading wouldn't otherwise get pinyin, usually because the
+  character is common): it always gets pinyin, the first time it appears on each page.
+
+Once marked, the button reads **Known háng ✓** or **Reminding háng ✓**; tap it again to clear
+the mark. The page changes at once, under the popup. When the reading is uncertain and both are
+shown (xíng/háng), there is a button for each, and the pair is hidden only when both readings
+are known. Popups opened from text inside a popup have no buttons. Marks are kept by simplified
+form, so a traditional book shares them.
+
+**Known & remind-me readings** in the menu lists the marks (`行  háng  known`); a tap on one
+clears it, and **Clear all marks** clears them all after asking. The marks are kept in
+`koreader/settings/chinesehelper_marks.lua`, outside the plugin's folder, so updates and
+reinstalls keep them; back that file up, or copy it to another device. It is written only when
+a mark changes, and atomically, so a write cut off part-way leaves the previous file. A file the
+plugin can't read is never overwritten: it is renamed aside
+(`chinesehelper_marks.lua.unreadable-<time>`) before the next mark is saved.
 
 ## Accuracy
 
