@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.11.0 (2026-11-19)
+
+Your own frequency ranks (#42)
+- **New setting, Frequency ranks**: **Bundled (modern Chinese)** (the default, as before) or
+  **From my books**. On a computer, `tools/build_user_ranks.py` ranks characters by your own
+  books (from `tools/fetch_books.py`, or `--epubs DIR`): by how many works a character appears
+  in, then how often, so one novel's cast of names cannot make rare characters common. Volumes
+  of one work and duplicate copies count once; traditional forms count as simplified, 〇 as 零.
+  `--push` copies the file to `koreader/settings/chinesehelper_ranks.tsv` over USB.
+- With From my books on, the ranks decide which characters get pinyin, the popup's 字频 line
+  and which pinyin is dropped first on a crowded line. Characters not in your books keep their
+  bundled rank. 字频 says which it shows, **(my books)** or **(bundled)**, and shows **N+**
+  past the ranks the library can tell apart (the file's exact cut-off).
+- Nothing about the data changes: which words are held in memory and everything the database
+  build decided keep the bundled rank. The release ships no one's ranks; From my books is
+  disabled until you have a file.
+- `tools/compare_user_ranks.py` compares a rank file with the bundled ranks (crossings at a
+  threshold, and page-sized passages run through the plugin's own code).
+
 ## 2.10.0 (2026-11-19)
 
 Spoken tones for 一 and 不, on in learner mode (#37)

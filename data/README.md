@@ -17,7 +17,10 @@ Everything else is generated into `build/` (git-ignored) by `tools/build_data.py
 into the database with CC-CEDICT by `tools/build_db.py`:
 
 - `chars`: every character with its frequency rank and default reading (the most frequent
-  reading, weighted by how often the words using each reading occur).
+  reading, weighted by how often the words using each reading occur). A reader's own ranks
+  (`tools/build_user_ranks.py`, a file on their device) replace this rank for display only:
+  which characters get pinyin, 字频 and crowding. Everything built from the rank here
+  (annotatable characters, the `rare` words held in memory) stays as built.
 - `words`: 2–4 character words containing a character with more than one reading, or with
   several dictionary readings themselves (东西), or where CC-CEDICT gives a rare character a
   neutral tone that is not its default reading (鼓捣 *gǔ dao*), from CC-CEDICT and pypinyin's
