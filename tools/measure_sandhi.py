@@ -204,6 +204,52 @@ def report(args):
             print(rule, "\t".join(r))
 
 
+def recheck(args):
+    """Every judged row, re-run through the current rules: a verdict counts
+    where the drawn reading is unchanged; a changed one is right when it is
+    now what the judge said it should be, wrong otherwise. Precision per
+    rule the current code applies (rows it no longer changes drop out)."""
+    from plugin_runtime import Plugin
+    p = Plugin()
+    merge_verdicts()
+    batches = {}
+    for path in glob.glob(os.path.join(JUDGE, "sandhi-[0-9][0-9][0-9].tsv")):
+        for r in csv.reader(open(path, encoding="utf-8"), delimiter="\t", quoting=csv.QUOTE_NONE):
+            if r and r[0] != "id":
+                batches[r[0]] = r
+    stats = collections.defaultdict(collections.Counter)
+    wrong = []
+    for v in csv.reader(open(VERDICTS, encoding="utf-8"), delimiter="\t"):
+        if not v or v[0] == "id" or v[0] not in batches:
+            continue
+        ident, ch, _, drawn, left, target, right = batches[ident := v[0]][:7]
+        lm = re.search(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]*$", left).group()
+        rm = re.match(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]*", right).group()
+        now = [x for x in p.spoken(lm + target + rm) if x[0] == len(lm)]
+        if not now or not now[0][4]:
+            continue
+        rule, current = now[0][4], now[0][3]
+        verdict, should = v[1].strip(), (v[3].strip() if len(v) > 3 else "")
+        if verdict == "unclear":
+            stats[rule]["unclear"] += 1
+        elif current == drawn:
+            stats[rule][verdict] += 1
+            if verdict == "wrong":
+                wrong.append((rule, ident, current, should, lm + "【" + target + "】" + rm))
+        elif verdict == "wrong" and should == current:
+            stats[rule]["right"] += 1
+        else:
+            stats[rule]["wrong"] += 1
+            wrong.append((rule, ident, current, should or drawn, lm + "【" + target + "】" + rm))
+    for rule, c in sorted(stats.items()):
+        judged = c["right"] + c["wrong"]
+        print(f"{rule:9} right {c['right']:3}  wrong {c['wrong']:3}  unclear {c['unclear']:3}  "
+              f"precision {100 * c['right'] / judged:5.1f}%")
+    if args.wrong:
+        for w in wrong:
+            print(*w)
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -216,8 +262,10 @@ def main():
     s.add_argument("--rules", default="", help="only these rules, comma-separated")
     r = sub.add_parser("report")
     r.add_argument("--wrong", action="store_true")
+    rc = sub.add_parser("recheck")
+    rc.add_argument("--wrong", action="store_true")
     args = ap.parse_args()
-    {"scan": scan, "counts": counts_cmd, "sample": sample, "report": report}[args.cmd](args)
+    {"scan": scan, "counts": counts_cmd, "sample": sample, "report": report, "recheck": recheck}[args.cmd](args)
 
 
 if __name__ == "__main__":
