@@ -635,9 +635,10 @@ end
 
 -- With the reader's own ranks on (#42), `source` says where this rank comes
 -- from: "books" (their file; `exact` its last exact rank) or "bundled" (a
--- character not in their books keeps its wordfreq rank), shown after the
--- number so it is not misread: "字频 1,234 (my books)".
-Model.RANK_SOURCES = { books = "my books", bundled = "bundled" }
+-- character not in their books keeps its wordfreq rank). Only a bundled rank
+-- is marked, since it is on a different scale: "字频 6,500 (bundled)"; the
+-- reader's own rank is shown bare (#46).
+Model.RANK_SOURCES = { bundled = "bundled" }
 
 function Model.rankText(rank, source, exact)
     rank = tonumber(rank)

@@ -7,9 +7,9 @@ plugin's "Frequency ranks: From my books" setting.
     python3 tools/build_user_ranks.py --epubs DIR   # or a folder of EPUBs on this computer
     python3 tools/build_user_ranks.py --push        # copy the existing file to the device
 
-The bundled ranks (wordfreq: modern written Chinese across web, news and
-subtitles) decide which characters get pinyin, the popup's 字频 line and which
-pinyin is dropped first on a crowded line. This ranks characters by what you
+The bundled ranks (wordfreq's for Chinese: web, Google Books, news,
+subtitles, Wikipedia, Twitter, Jieba) decide which characters get pinyin, the
+popup's 字频 line and which pinyin is dropped first on a crowded line. This ranks characters by what you
 read instead:
 
   * spread first: the number of *works* a character occurs in, then its total

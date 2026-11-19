@@ -94,13 +94,13 @@ eq(drawn("饕餮的不"), "饕餮")
 
 -- The 字频 line.
 eq(Model.rankText(1200), "字频 1,200", "off: unchanged")
-eq(Model.rankText(120, "books", 5700), "字频 120 (my books)")
-eq(Model.rankText(5700, "books", 5700), "字频 5,700 (my books)")
-eq(Model.rankText(5701, "books", 5700), "字频 5,700+ (my books)", "past the file's exact ranks")
+eq(Model.rankText(120, "books", 5700), "字频 120")
+eq(Model.rankText(5700, "books", 5700), "字频 5,700")
+eq(Model.rankText(5701, "books", 5700), "字频 5,700+", "past the file's exact ranks")
 eq(Model.rankText(6500, "bundled", nil), "字频 6,500 (bundled)")
 eq(Model.rankText(7001, "bundled", 5700), "字频 7,000+ (bundled)", "bundled keeps 7,000")
 eq(Model.rankText(0, "bundled"), "字频 unranked (bundled)")
-eq(Model.rankText(9000, "books", nil), "字频 7,000+ (my books)", "no cut-off in the file: 7,000")
+eq(Model.rankText(9000, "books", nil), "字频 7,000+", "no cut-off in the file: 7,000")
 
 -- Crowding: equal ranks drop the more common bundled rank first.
 do
