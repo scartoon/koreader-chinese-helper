@@ -3,8 +3,7 @@
 -- reading (Page.find), so the popup resolves a character exactly as the
 -- annotation layer does.
 --
--- From pinyin_page.lua in koreader-interlinear-pinyin, itself based on
--- wordgloss_page.lua from WordGloss (GPL-3.0, GangYe293), changed to:
+-- Based on wordgloss_page.lua from WordGloss (GPL-3.0, GangYe293), changed to:
 --   * read a few characters of context before and after the page, so a word
 --     split across a page turn still resolves (and the first character of the
 --     page is not skipped: the engine's next-word-start never returns the

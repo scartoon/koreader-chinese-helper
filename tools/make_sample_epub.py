@@ -250,7 +250,7 @@ def write_epub(out, ident, book_title, creator, texts, css, extra_meta="", date=
 
 
 def main():
-    write_epub(os.path.join(ROOT, "samples", "guwen.epub"), "koreader-interlinear-pinyin-sample-guwen",
+    write_epub(os.path.join(ROOT, "samples", "guwen.epub"), "koreader-chinese-helper-sample-guwen",
                "古文三篇", "陶渊明 · 刘禹锡 · 周敦颐", GUWEN, CSS)
     sources = "".join(
         f'<dc:source>https://zh.wikisource.org/w/index.php?oldid={rev}</dc:source>\n'

@@ -1,5 +1,5 @@
 -- The reading tables the resolver works from (pure Lua, no KOReader
--- dependencies). From pinyin_data.lua in koreader-interlinear-pinyin.
+-- dependencies).
 --
 --   chars      char -> { rank, default reading }. rank: frequency rank in
 --              modern written Chinese, 0 = not in the frequency list (very
@@ -24,8 +24,7 @@
 -- the first page is drawn (they are needed for every character on a page),
 -- with every word that contains a rare character (one that can be
 -- annotated): those are all the words a page's annotations can need, so a
--- page turn never queries the database, as fast as the TSV tables of
--- interlinear-pinyin 0.5.0. Other words (common characters only, for the
+-- page turn never queries the database. Other words (common characters only, for the
 -- popup) are looked up in the database on demand, in batches, and cached
 -- (ch_db.lua). Tests and tools fill everything from the build's TSV files
 -- (Readings.fromTsv). Either way the resolver sees the same object.

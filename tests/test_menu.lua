@@ -1,8 +1,7 @@
--- Build the plugin (main.lua) against stub KOReader modules: init with the
--- migration, the menu (every label evaluated, so errors that only show up
--- when KOReader builds the menu, such as a loop variable shadowing gettext's
--- `_`, are caught offline), data loading through the real database, and the
--- old-plugin check.
+-- Build the plugin (main.lua) against stub KOReader modules: init, the menu
+-- (every label evaluated, so errors that only show up when KOReader builds
+-- the menu, such as a loop variable shadowing gettext's `_`, are caught
+-- offline), and data loading through the real database.
 local H = require("sq3_shim")
 local eq = H.eq
 
@@ -43,14 +42,11 @@ stub("device", { screen = { scaleBySize = function(_, v) return v end, getWidth 
                  isTouchDevice = function() return true end })
 stub("lua-ljsqlite3/init", H.SQ3)
 local data_dir = TEST_KOREADER_DIR
+stub("libs/libkoreader-lfs", { attributes = function() return nil end })
 stub("datastorage", { getDataDir = function() return data_dir end, getSettingsDir = function() return data_dir .. "/settings" end })
-local dirs = {}
-stub("libs/libkoreader-lfs", { attributes = function(path, what) return dirs[path] and "directory" or nil end })
 
--- This device's settings at the time of the merge.
-local settings = {
-    interlinearpinyin_enabled = true, interlinearpinyin_tap_definitions = true, interlinearpinyin_threshold = 2500,
-}
+-- Pinyin on at 2,500; the popup never set.
+local settings = { chinesehelper_pinyin_enabled = true, chinesehelper_threshold = 2500 }
 G_reader_settings = {
     readSetting = function(_, k) return settings[k] end,
     saveSetting = function(_, k, v) settings[k] = v end,
@@ -61,9 +57,9 @@ G_reader_settings = {
 local Plugin = dofile(PLUGIN_DIR .. "/main.lua")
 local plugin = Plugin:new{ path = PLUGIN_DIR }
 plugin:init()
-eq(settings.chinesehelper_pinyin_enabled, true, "migrated: pinyin on")
-eq(settings.chinesehelper_threshold, 2500, "migrated: threshold")
-eq(plugin.settings:popupEnabled(), true, "popup on by default (chinesepopup_enabled was never set)")
+eq(plugin.settings:pinyinEnabled(), true)
+eq(plugin.settings:threshold(), 2500)
+eq(plugin.settings:popupEnabled(), true, "popup on by default")
 
 local menu_items = {}
 plugin:addToMainMenu(menu_items)
@@ -275,24 +271,6 @@ local special_item = entry.sub_item_table[6]
 special_item.callback()
 assert(not plugin.settings:specialEnabled() and plugin:special() == nil, "nothing when off")
 special_item.callback()
-
--- Old plugins: none present, then one next to this one.
-eq(#plugin:oldPluginsPresent(), 0)
-plugin:warnOldPlugins()
-eq(#shown, 0, "no warning without old plugins")
-local parent = PLUGIN_DIR:match("^(.*)/[^/]+$")
-dirs[parent .. "/chinesepopup.koplugin"] = true
-eq(table.concat(plugin:oldPluginsPresent(), ","), "chinesepopup")
-plugin:warnOldPlugins()
-eq(#shown, 1, "warning shown")
-assert(shown[1].text:find("chinesepopup.koplugin", 1, true), shown[1].text)
-plugin:warnOldPlugins()
-eq(#shown, 1, "once per session")
--- Loaded (registered on the reader UI) counts too.
-dirs = {}
-plugin.ui = { interlinearpinyin = {} }
-eq(table.concat(plugin:oldPluginsPresent(), ","), "interlinearpinyin")
-plugin.ui = nil
 
 -- Status lists what it knows without errors.
 plugin:showStatus()

@@ -1,6 +1,5 @@
 -- Pinyin string helpers (pure Lua): case folding, tone stripping, and whether
--- a dictionary reading is the one the resolver chose. From pinyin_defs.lua in
--- koreader-interlinear-pinyin.
+-- a dictionary reading is the one the resolver chose.
 --
 -- Readings come in two spellings:
 --   syllables  "dōng xi"   space-separated, as the resolver and the words

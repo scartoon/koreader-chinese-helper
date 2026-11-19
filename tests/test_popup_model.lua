@@ -1,6 +1,5 @@
--- What the popup shows (ch_popup_model.lua): ordering and row cleaning (from
--- koreader-chinese-popup's tests), reading markers, the deciding word, the
--- header, and placement.
+-- What the popup shows (ch_popup_model.lua): ordering and row cleaning,
+-- reading markers, the deciding word, the header, and placement.
 local Text = require("ch_text")
 local Model = require("ch_popup_model")
 local H = require("sq3_shim")
@@ -23,7 +22,7 @@ local function matches(left, char, right, rows, extra)
 end
 
 ------------------------------------------------------------------------
--- Ordering (unchanged from chinese-popup)
+-- Ordering
 ------------------------------------------------------------------------
 -- Tapped 历 in 这个[历]史挺靠谱. Rows in CC-CEDICT order.
 local m = matches("这个", "历", "史挺靠谱", {

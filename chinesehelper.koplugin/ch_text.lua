@@ -1,6 +1,5 @@
 -- Text helpers: UTF-8, Han detection, the Han run around a tapped character,
--- and the candidate words containing it. From koreader-chinese-popup
--- (cp_text.lua). Pure Lua (no KOReader dependencies), tested offline.
+-- and the candidate words containing it. Pure Lua (no KOReader dependencies), tested offline.
 
 local Text = {}
 

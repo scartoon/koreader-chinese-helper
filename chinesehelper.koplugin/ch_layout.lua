@@ -1,7 +1,6 @@
 -- Horizontal placement of annotations on each line (pure Lua, testable offline).
 --
--- From pinyin_layout.lua in koreader-interlinear-pinyin, itself from
--- wordgloss_layout.lua in WordGloss (GPL-3.0, GangYe293); logic unchanged,
+-- From wordgloss_layout.lua in WordGloss (GPL-3.0, GangYe293); logic unchanged,
 -- comments translated.
 --
 -- Each annotation is centred over its character. Pinyin is usually wider than

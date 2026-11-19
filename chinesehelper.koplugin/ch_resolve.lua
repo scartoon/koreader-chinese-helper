@@ -6,10 +6,10 @@
 -- returns for the tapped character (and Resolve.wordReading for each word),
 -- on the same page items with the same settings, so the two cannot disagree.
 --
--- From pinyin_resolve.lua in koreader-interlinear-pinyin. Changes: the data
--- now covers every character (common ones too, for the popup), so annotate
--- checks rarity before resolving, which also keeps word lookups off the page
--- turn for common characters; word candidates are looked up in one batch.
+-- The data covers every character (common ones too, for the popup), so
+-- annotate checks rarity before resolving, which also keeps word lookups off
+-- the page turn for common characters; word candidates are looked up in one
+-- batch.
 --
 -- Input is the page as a sequence of items, one per visible "word" the
 -- rendering engine reports. The engine treats every CJK character as a

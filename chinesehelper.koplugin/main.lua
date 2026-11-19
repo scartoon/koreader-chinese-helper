@@ -3,11 +3,10 @@ Chinese helper: pinyin above rare Chinese characters, and a tap on any
 Chinese character for its definition and every dictionary word around it that
 contains it. The book file is never modified.
 
-Merges koreader-interlinear-pinyin (forked from WordGloss,
-https://github.com/GangYe293/wordgloss.koplugin, GPL-3.0, by GangYe293) and
-koreader-chinese-popup.
+The pinyin layer is forked from WordGloss
+(https://github.com/GangYe293/wordgloss.koplugin, GPL-3.0, by GangYe293).
 
-  ch_settings.lua      settings, defaults, migration from the old plugins
+  ch_settings.lua      settings, defaults
   ch_annotator.lua     pinyin layer: line spacing, page refresh (from WordGloss)
   ch_page.lua          walks the page through the engine
   ch_resolve.lua       the reading resolver (annotations and popup)
@@ -45,7 +44,6 @@ local ChineseHelper = WidgetContainer:extend{
 }
 
 ChineseHelper.VERSION = "2.9.2"
-ChineseHelper.OLD_PLUGINS = { "interlinearpinyin", "chinesepopup" }
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
@@ -57,8 +55,6 @@ local session = {}
 
 function ChineseHelper:init()
     self.settings = Settings.new(G_reader_settings)
-    local copied = self.settings:migrate()
-    if #copied > 0 then logger.info("chinesehelper: migrated settings:", table.concat(copied, ", ")) end
     self.annotator = Annotator.new(self)
     self.tap = Tap.new(self)
     -- Register the menu first: if anything later fails, the entry still shows.
@@ -77,7 +73,6 @@ function ChineseHelper:isCompatibleDocument()
 end
 
 function ChineseHelper:onReaderReady()
-    UIManager:nextTick(function() self:warnOldPlugins() end)
     if not self:isCompatibleDocument() then return end
     self.annotator:onReaderReady()
     self.tap:update()
@@ -523,38 +518,6 @@ function ChineseHelper:marks()
 end
 
 ------------------------------------------------------------------------
--- The old plugins
-------------------------------------------------------------------------
-
--- Old plugins still installed next to this one, or loaded: { "interlinearpinyin", ... }.
-function ChineseHelper:oldPluginsPresent()
-    local found = {}
-    local ok, lfs = pcall(require, "libs/libkoreader-lfs")
-    local parent = self.path and self.path:match("^(.*)/[^/]+/?$")
-    for _, name in ipairs(ChineseHelper.OLD_PLUGINS) do
-        local installed = ok and parent and lfs.attributes(parent .. "/" .. name .. ".koplugin", "mode") == "directory"
-        local loaded = self.ui and self.ui[name] ~= nil
-        if installed or loaded then found[#found + 1] = name end
-    end
-    return found
-end
-
--- Shown once per KOReader session: both live at once recreates the tap conflict.
-function ChineseHelper:warnOldPlugins()
-    if session.warned then return end
-    local found = self:oldPluginsPresent()
-    if #found == 0 then return end
-    session.warned = true
-    local folders = {}
-    for _, name in ipairs(found) do folders[#folders + 1] = name .. ".koplugin" end
-    logger.warn("chinesehelper: old plugins present:", table.concat(folders, ", "))
-    UIManager:show(InfoMessage:new{
-        text = T(_("Chinese helper replaces these plugins, which are still installed:\n\n%1\n\nPlease delete them from KOReader's plugins folder and restart KOReader. While they are installed, taps on Chinese characters can open the wrong popup."),
-            table.concat(folders, "\n")),
-    })
-end
-
-------------------------------------------------------------------------
 -- Menu
 ------------------------------------------------------------------------
 
@@ -996,10 +959,6 @@ function ChineseHelper:showStatus()
         self.tap:edgeBand(), tostring(dpi))
     if self.tap.last_tap then
         lines[#lines + 1] = T(_("Last tap: %1"), self.tap.last_tap)
-    end
-    local old = self:oldPluginsPresent()
-    if #old > 0 then
-        lines[#lines + 1] = T(_("Old plugins still installed: %1"), table.concat(old, ", "))
     end
     UIManager:show(InfoMessage:new{ text = table.concat(lines, "\n") })
 end

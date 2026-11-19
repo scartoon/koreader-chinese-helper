@@ -5,7 +5,7 @@
 -- getPrevVisibleChar/getNextVisibleChar to move by character (they cross line
 -- breaks and inline tags), getTextFromXPointers for the text in between.
 --
--- From koreader-chinese-popup (cp_context.lua). No KOReader requires here:
+-- No KOReader requires here:
 -- the document is passed in, so this is tested offline with a fake document
 -- (tests/test_context.lua).
 

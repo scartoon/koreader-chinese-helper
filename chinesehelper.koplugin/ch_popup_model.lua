@@ -1,7 +1,6 @@
 -- What the tap popup shows (pure Lua, no KOReader dependencies, tested
--- offline). Ordering and row cleaning come from koreader-chinese-popup
--- (cp_text.lua); the reading markers and the deciding word from
--- koreader-interlinear-pinyin's popup (pinyin_defs.lua).
+-- offline): the order of the entries, row cleaning, the reading markers and
+-- the deciding word.
 --
 --   * the tapped character's own entry first (the anchor), with every
 --     reading; the resolver's reading for this occurrence marked and first;
