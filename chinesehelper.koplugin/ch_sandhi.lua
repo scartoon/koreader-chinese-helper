@@ -186,6 +186,8 @@ local function bu(data, items, i, match, next_reading)
         if prev2 and nxt2 and han(data, prev2) and prev2.text == nxt.text and prev.text == nxt2.text then
             return "bu", "bu-aba"
         end
+        -- 得不到 dé bu dào (得 is on Sandhi.NOT_VERBS as the particle de).
+        if prev.text == "得" and nxt.text == "到" then return "bu", "bu-comp" end
         if nxt2 and Sandhi.DIRECTIONAL[nxt.text .. nxt2.text] and not Sandhi.NOT_VERBS[prev.text] then
             return "bu", "bu-comp"
         end

@@ -1,6 +1,20 @@
 # Changelog
 
-## Unreleased
+## 2.10.0 (2026-11-19)
+
+Spoken tones for 一 and 不, on in learner mode (#37)
+- **New setting, Spoken tones for 一 and 不** (In learner mode, the default; Always; Never). The
+  pinyin shows the tones of speech, as beginners' textbooks do: 一个 *yí gè*, 一天 *yì tiān*,
+  不是 *bú shì*, 是不是 *shì bu shì*, 看不见 *kàn bu jiàn*, 吃不了 *chī bu liǎo*, 看一看
+  *kàn yi kàn*. 一 stays *yī* as a number or ordinal (第一, 十一, 一九九八, 一月, 统一, 之一,
+  一等奖) and before punctuation; between two units it is a quantity again (一万一千 *yíwàn
+  yìqiān*). A verb and complement no dictionary word confirms keeps *bù*.
+- Known and remind-me marks stay on the dictionary reading (**I know bù** hides 不 in every
+  tone). The popup's entries keep *yī* and *bù*; the character's own entry gets a grey
+  **spoken here: bú**.
+- Measured on 49 books: about 800 sampled changes judged in context by AI reviewers over six rounds; each rule 97–100%
+  right on the final code. tools/measure_sandhi.py does the scan and the judging batches.
+- The README's learner-mode shots are retaken.
 
 Leftovers of the two retired plugins removed (#34)
 - No visible change. The one-time copy of koreader-interlinear-pinyin's and

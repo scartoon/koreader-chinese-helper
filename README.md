@@ -453,8 +453,11 @@ them that way, as beginners' textbooks do: 一个 *yí gè*, 一天 *yì tiān*,
 mode**); **Always** also draws the spoken tone above a remind-me 一 or 不 at a numeric level, and
 **Never** keeps the dictionary's *yī* and *bù*. The popup's entries keep the dictionary readings,
 with a grey note on the character's own entry (**spoken here: bú**), and known and remind-me marks
-stay on the dictionary reading: **I know bù** hides 不 whatever its tone. Measured on 49 books
-(1.5 million 一 and 不), each rule was judged right in SANDHI_PRECISION of sampled changes.
+stay on the dictionary reading: **I know bù** hides 不 whatever its tone. On 49 books (1.5 million
+一 and 不), about 800 sampled changes were judged by an AI reviewer in context: each rule was
+right 97–100% of the time. Without word classes a verb and its complement (拿不到 *ná bu dào*) can't
+always be told from a plain negation, so where no word confirms it, 不 keeps the dictionary's
+*bù*.
 
 Where CC-CEDICT gives a word's syllable only as a neutral tone, that is
 drawn above a rare character (刺猬 *cìwei*, 鼓捣 *gǔdao*, 疙瘩 *gēda*), and its popup entry (猬
