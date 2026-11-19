@@ -150,3 +150,10 @@ end
 -- negations (bú before 见); 数一数二 keeps yī.
 check("不不", "bù bù"); check("我不见它", "bú"); check("不打不成交", "bù bù")
 check("数一数二", "yī")
+
+-- Second round: X一X only for verbs; AB不AB; directional and common
+-- complements.
+check("明年一年做到", "yì"); check("四个人一人对付", "yì"); check("在旁边一边整理", "yì")
+check("愿意不愿意", "bu"); check("拿不过来", "bu"); check("想不起来", "bu")
+check("扩不动", "bu"); check("做不到", "bu"); check("轮不到", "bu")
+check("他不动", "bú"); check("也不到", "bú")

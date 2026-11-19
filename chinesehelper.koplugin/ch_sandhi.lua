@@ -63,6 +63,21 @@ for w in ("统一 統一 唯一 惟一 万一 萬一 之一 其一 专一 專一
         .. "星期一 礼拜一 禮拜一 周一 週一 如一 混一 齐一 齊一 独一 獨一 归一 歸一"):gmatch("%S+") do
     Sandhi.FINAL_WORDS[w] = true
 end
+-- One-syllable verbs that reduplicate with 一 (看一看): X一X with another X is
+-- usually a number (明年一年, 四个人一人, 人家一家, 旁边一边).
+Sandhi.REDUP_VERBS = set("看想听聽说說试試等走问問尝嘗闻聞找查算数數摸拍洗擦读讀写寫坐站笑跳动動碰比量劝勸"
+    .. "帮幫歇停猜瞧望聊谈談讲講逛转轉推拉抱敲吹揉晃挑选選学學练練改理闹鬧哭叫喊瞅瞄翻搜搓捏敷亲親摇搖")
+-- Two-syllable directional complements after V不 (拿不过来, 想不起来).
+Sandhi.DIRECTIONAL = {}
+for w in ("过来 過來 过去 過去 起来 起來 出来 出來 出去 下来 下來 下去 上来 上來 上去 回来 回來 回去 "
+        .. "进来 進來 进去 進去 开来 開來"):gmatch("%S+") do
+    Sandhi.DIRECTIONAL[w] = true
+end
+-- Complements common enough after V不 that V得C need not be a word
+-- (做不到, 扩不动), after anything but these (他不动, 也不到, 一年不到).
+Sandhi.STRONG_COMPLEMENTS = set("到动動住完懂见見")
+Sandhi.NOT_VERBS = set("我你他她它您们們谁誰这這那此其之也都就还還又才并並却卻再很更最已曾总總便倒竟绝絕决決"
+    .. "毫永从從根本全俱皆亦尚仍而且但可若如是着著了的得地么麼呢吧啊人年天时時日月岁歲个個些点點")
 -- Resultative and directional complements after V不 (看不见, 来不及).
 Sandhi.COMPLEMENTS = set("见見到了起动動住完及过過下上出来來去开開懂清着著透惯慣成掉走够夠赢贏得")
 
@@ -136,7 +151,7 @@ local function yi(data, items, i, match, next_reading)
     if Sandhi.ORDINAL_WORDS[Sandhi.YI .. n] then return nil end
     if after and after.joined and Sandhi.ORDINAL_WORDS[Sandhi.YI .. n .. after.text] then return nil end
     -- 看一看, but not the 一X一X of 一步一步 (yí bù yí bù) nor 数一数二.
-    if p and p == n then
+    if p and p == n and (Sandhi.REDUP_VERBS[p] or data:word(p .. Sandhi.YI .. n)) then
         local before = items[i - 1].joined and items[i - 2]
         local beyond = joined_next(data, items, i + 2)
         if beyond and Sandhi.DIGITS[beyond.text] then return nil end   -- 数一数二: a numeral
@@ -159,6 +174,18 @@ local function bu(data, items, i, match, next_reading)
         and not (match.start == i - 1 and match.len == 3)
     if prev and not lexical then
         if prev.text == nxt.text then return "bu", "bu-aba" end
+        -- AB不AB: 愿意不愿意.
+        local prev2 = items[i - 1].joined and items[i - 2]
+        local nxt2 = joined_next(data, items, i + 2)
+        if prev2 and nxt2 and han(data, prev2) and prev2.text == nxt.text and prev.text == nxt2.text then
+            return "bu", "bu-aba"
+        end
+        if nxt2 and Sandhi.DIRECTIONAL[nxt.text .. nxt2.text] and not Sandhi.NOT_VERBS[prev.text] then
+            return "bu", "bu-comp"
+        end
+        if Sandhi.STRONG_COMPLEMENTS[nxt.text] and not Sandhi.NOT_VERBS[prev.text] then
+            return "bu", "bu-comp"
+        end
         -- 吃不了, 受不了, but not 不了解.
         if nxt.text == "了" then
             local after = joined_next(data, items, i + 2)
