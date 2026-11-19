@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.9.2 (2026-11-19)
+
+Popup buttons outlined in night mode (#43)
+- **In KOReader's night mode, the lines between the popup's bottom buttons are visible again.**
+  KOReader draws them light grey (0xAA); night mode inverted that to a dark grey (0x55) on
+  black, which the Boox's e-ink hardly shows, so the word buttons, Translate & analyze and
+  Close read as loose text. In night mode they are now drawn so they come out light grey
+  (0xAA) on black, as day mode's are on white. Day mode is unchanged (same pixels). The
+  popup's other lines and grey text were already visible in night mode.
+
 ## 2.9.1 (2026-11-18)
 
 No punctuation lines in Translate & Analyze (#31)
