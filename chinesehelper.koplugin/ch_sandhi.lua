@@ -66,14 +66,8 @@ end
 -- X一X is a reduplicated verb (看一看, 清一清) unless X is one of these nouns
 -- and measure words, where 一 is a number (明年一年, 四个人一人, 秦国一国,
 -- 人家一家, 旁边一边) or an enumeration (一是…二是).
-Sandhi.NOT_REDUP = set("年天日月时時人国國家边邊是个個次回步口句层層片条條张張位种種样樣件代辈輩世生身面方处處头頭点點"
+Sandhi.NOT_REDUP = set("路年天日月时時人国國家边邊是个個次回步口句层層片条條张張位种種样樣件代辈輩世生身面方处處头頭点點"
     .. "下声聲手眼刀脚腳枪槍拳顿頓场場阵陣遍份")
--- Complements after V不 common enough that V得C need not be a word
--- (看不到, 做不到, 刹不住), after anything but Sandhi.NOT_VERBS and not
--- before a number (不到一周 bú dào: "less than"). Not 见, 动, 懂 or 完: too
--- often a plain negation (僵住不动, 岂能不懂, 不完全).
-Sandhi.STRONG_COMPLEMENTS = set("到住")
-Sandhi.QUANTITY = set("〇零一二三四五六七八九十百千万亿两兩几幾半多数數")
 -- Two-syllable directional complements after V不 (拿不过来, 想不起来).
 Sandhi.DIRECTIONAL = {}
 for w in ("过来 過來 过去 過去 起来 起來 出来 出來 出去 下来 下來 下去 上来 上來 上去 回来 回來 回去 "
@@ -195,10 +189,6 @@ local function bu(data, items, i, match, next_reading)
         if nxt2 and Sandhi.DIRECTIONAL[nxt.text .. nxt2.text] and not Sandhi.NOT_VERBS[prev.text] then
             return "bu", "bu-comp"
         end
-        if Sandhi.STRONG_COMPLEMENTS[nxt.text] and not Sandhi.NOT_VERBS[prev.text]
-                and not (nxt2 and Sandhi.QUANTITY[nxt2.text]) then
-            return "bu", "bu-comp"
-        end
         -- 吃不了, 受不了, but not 不了解.
         if nxt.text == "了" then
             local after = joined_next(data, items, i + 2)
@@ -209,6 +199,10 @@ local function bu(data, items, i, match, next_reading)
         if Sandhi.COMPLEMENTS[nxt.text] and data:word(prev.text .. "得" .. nxt.text) then
             return "bu", "bu-comp"
         end
+        -- Anything else that may be a verb and its complement (拿不到, 进不去,
+        -- but also 远不到, 不住颤抖): without word classes it can't be told
+        -- from a plain negation, so the dictionary's bù is drawn.
+        if Sandhi.COMPLEMENTS[nxt.text] and not Sandhi.NOT_VERBS[prev.text] then return nil end
     end
     if next_tone(data, nxt, next_reading(i + 1)) == 4 then return "bú", "bu-4" end
     return nil

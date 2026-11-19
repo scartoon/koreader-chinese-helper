@@ -187,7 +187,8 @@ end
 function G.annotate(g, text, threshold, mode, known)
     local items = items_of(text)
     local out = {}
-    for _, a in ipairs(Resolve.annotate(g.data, items, threshold, mode, g.special, marks_of(known))) do
+    -- Spoken tones of 一 and 不 (#37): the setting's default, on in learner mode.
+    for _, a in ipairs(Resolve.annotate(g.data, items, threshold, mode, g.special, marks_of(known), threshold == 0)) do
         out[#out + 1] = { index = a.index, char = items[a.index].text, reading = a.reading,
                           special = a.special and true or false }
     end
@@ -254,8 +255,8 @@ function G.popup(g, text, threshold, mode, char, nth)
         right[#right + 1] = items[k].text
     end
     local drawn
-    for _, a in ipairs(Resolve.annotate(g.data, items, threshold, mode, g.special)) do
-        if a.index == i then drawn = a.reading end
+    for _, a in ipairs(Resolve.annotate(g.data, items, threshold, mode, g.special, nil, threshold == 0)) do
+        if a.index == i then drawn = a.dict or a.reading end
     end
     local chosen, decided, unsure = Resolve.forPopup(g.data, items, i, mode, g.special, drawn)
     local cands, texts = Text.candidates(left, char, right)

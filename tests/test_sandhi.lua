@@ -159,10 +159,13 @@ check("他不动", "bú"); check("也不到", "bú"); check("不到一周", "bú
 
 -- Third round: fixed phrases after A; plain negations before 见, 动, 懂.
 check("得不得了", "bù"); check("着不着边际", "bù")
-check("僵住不动", "bú"); check("岂能不懂", "bù"); check("不完全", "bù")
+check("僵住不动", "bù"); check("岂能不懂", "bù"); check("不完全", "bù")
 check("不错不错", "bú bú")
 
 -- Fourth round: X一X except nouns and measure words; V不到 and V不住.
 check("清一清", "yi"); check("避一避", "yi"); check("明年一年做到", "yì")
-check("看不到", "bu"); check("做不到", "bu"); check("刹不住脚", "bu"); check("还不到", "bú")
+check("还不到", "bú")
+-- A possible verb + complement no word confirms: the dictionary's bù.
+check("拿不到", "bù"); check("进不去", "bù"); check("远不到", "bù"); check("手不住颤抖", "bù")
+check("公路一路西行", "yí")
 check("用了不到一周", "bú yì")
