@@ -5,9 +5,8 @@ Fallback dictionaries' words (Plugin(fallback=("wikt", "moe"))) come from
 the plugin database's fallback table and build/chinesehelper-moe.sqlite, one
 source per word, as main.lua's fallbackLookup gives them to the resolver.
 
-Also runs a koreader-interlinear-pinyin 0.5.0 copy (pinyin_data.lua,
-pinyin_resolve.lua, with its own data/ folder), for before/after comparisons:
-    Plugin("path/to/interlinearpinyin.koplugin")
+Plugin("path/to/another/chinesehelper.koplugin") runs another copy of the
+plugin (an older release, say) for before/after comparisons.
 """
 import os
 import sqlite3
@@ -131,28 +130,20 @@ class Plugin:
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(f'package.path = "{plugin_dir}/?.lua;" .. package.path')
         self.special = None
-        if os.path.exists(os.path.join(plugin_dir, "ch_readings.lua")):
-            Readings = self.lua.require("ch_readings")
-            build = data_dir or BUILD_DATA
-            tables = self.lua.table_from({
-                "chars": os.path.join(build, "chars.tsv"), "words": os.path.join(build, "words.tsv"),
-                "word_marks": os.path.join(build, "word_marks.tsv"),
-                "rules": os.path.join(DATA_DIR, "rules.tsv"), "uncertain": os.path.join(DATA_DIR, "uncertain.tsv")})
-            self.data = Readings.fromTsv(tables)
-            if isinstance(self.data, tuple) or self.data is None:
-                raise SystemExit(f"cannot load {build}/chars.tsv: run tools/build_data.py first")
-            if special:
-                self.special = Readings.specialFromTsv(self.lua.table_from({
-                    "special": os.path.join(build, "special.tsv"),
-                    "guard": os.path.join(build, "special_guard.tsv")}))
-            resolve = "ch_resolve"
-        else:  # koreader-interlinear-pinyin 0.5.0
-            data_mod = self.lua.require("pinyin_data")
-            data_dir = data_dir or os.path.join(plugin_dir, "data")
-            self.data = data_mod.load(data_dir)
-            if special and data_mod.loadSpecial:
-                self.special = data_mod.loadSpecial(data_dir)
-            resolve = "pinyin_resolve"
+        Readings = self.lua.require("ch_readings")
+        build = data_dir or BUILD_DATA
+        tables = self.lua.table_from({
+            "chars": os.path.join(build, "chars.tsv"), "words": os.path.join(build, "words.tsv"),
+            "word_marks": os.path.join(build, "word_marks.tsv"),
+            "rules": os.path.join(DATA_DIR, "rules.tsv"), "uncertain": os.path.join(DATA_DIR, "uncertain.tsv")})
+        self.data = Readings.fromTsv(tables)
+        if isinstance(self.data, tuple) or self.data is None:
+            raise SystemExit(f"cannot load {build}/chars.tsv: run tools/build_data.py first")
+        if special:
+            self.special = Readings.specialFromTsv(self.lua.table_from({
+                "special": os.path.join(build, "special.tsv"),
+                "guard": os.path.join(build, "special_guard.tsv")}))
+        resolve = "ch_resolve"
         if isinstance(self.special, tuple):  # nil, err
             self.special = None
         self.h = self.lua.execute(HELPERS, self.lua.require(resolve))

@@ -78,7 +78,7 @@ LINE_RE = re.compile(r"^(\S+) (\S+) \[([^\]]*)\] /(.*)/\s*$")
 RARE_RANK = 1000   # as Readings.RARE_RANK in ch_readings.lua and MIN_ANNOTATABLE_RANK in build_data.py
 
 # ---------------------------------------------------------------------------
-# CC-CEDICT pinyin and cross-references (from koreader-chinese-popup)
+# CC-CEDICT pinyin and cross-references
 # ---------------------------------------------------------------------------
 
 

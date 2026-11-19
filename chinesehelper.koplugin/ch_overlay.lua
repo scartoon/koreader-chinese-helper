@@ -1,7 +1,6 @@
 -- Paint layer: draws pinyin above characters, after the page itself is drawn.
 --
--- From pinyin_overlay.lua in koreader-interlinear-pinyin, based on
--- wordgloss_overlay.lua from WordGloss (GPL-3.0, GangYe293), which in
+-- Based on wordgloss_overlay.lua from WordGloss (GPL-3.0, GangYe293), which in
 -- turn follows omer-faruq/inlinehints.koplugin. Underlines and the "below"
 -- mode are removed; placement above the glyph is unchanged.
 --

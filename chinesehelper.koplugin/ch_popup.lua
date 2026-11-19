@@ -1,8 +1,6 @@
 -- The popup shown when a Chinese character (or the pinyin above it) is tapped.
 --
--- From the popup both source plugins shared (koreader-interlinear-pinyin's
--- pinyin_popup.lua, copied as koreader-chinese-popup's cp_popup.lua). Built
--- from KOReader's own widgets (TitleBar, TextBoxWidget, ButtonTable) so it
+-- Built from KOReader's own widgets (TitleBar, TextBoxWidget, ButtonTable) so it
 -- looks native and uses KOReader's UI fonts, whose CJK fallback covers the
 -- characters and whose Noto Sans has the tone marks. Bold uses
 -- TextBoxWidget's PTF markers.

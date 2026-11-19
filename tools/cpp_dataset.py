@@ -8,7 +8,7 @@ g2pW project downloads the same files from there).
 Licence: the g2pM repository is Apache-2.0, but the dataset's sentences were
 collected from Chinese Wikipedia (CC BY-SA) and the repository states no
 separate licence for the data. Because that is not clearly permissive, the
-files are downloaded at run time into ~/.cache/interlinear-pinyin/cpp and are
+files are downloaded at run time into ~/.cache/chinesehelper/cpp and are
 not committed.
 
 Each sentence has one polyphonic character between ▁ marks and a numbered-pinyin
@@ -25,7 +25,7 @@ import urllib.request
 from pinyin_util import numbered_to_marked
 
 URL = "https://github.com/kakaobrain/g2pM/raw/master/data/{name}"
-CACHE = os.path.join(os.path.expanduser("~"), ".cache", "interlinear-pinyin", "cpp")
+CACHE = os.path.join(os.path.expanduser("~"), ".cache", "chinesehelper", "cpp")
 MARK = "▁"
 
 

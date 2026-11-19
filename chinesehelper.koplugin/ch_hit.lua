@@ -1,5 +1,4 @@
 -- Which annotation, if any, a tap falls on (pure Lua, testable offline).
--- From pinyin_hit.lua in koreader-interlinear-pinyin.
 --
 -- Only annotations the overlay actually drew count: a character whose pinyin
 -- was dropped because its line was crowded is not in the overlay's placed

@@ -51,8 +51,7 @@ reading of the word gives that syllable a tone with the same letters), the
 neutral tone is drawn (刺猬 cì wei, 大猩猩 dà xīng xing), also where pypinyin
 writes the full tone; words that exist only for this (鼓捣 gǔ dao) are added.
 Where CC-CEDICT lists the word both ways (大爷 dà yé / dà ye), the toned reading
-is drawn and word_marks.tsv keeps the neutral one for the popup. Otherwise
-annotatable characters are built as in koreader-interlinear-pinyin 0.5.0.
+is drawn and word_marks.tsv keeps the neutral one for the popup.
 What the wider coverage adds, for common characters only:
   * a word with several CC-CEDICT readings takes the one pypinyin's phrase
     list gives, when it gives one of them (便宜 pián yi, 明朝 míng cháo, a
@@ -349,7 +348,7 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
     char_overrides = {form: syls[0] for form, syls in overrides.items() if len(form) == 1 and syls}
     rows = [(ch, rank, char_overrides.get(ch, reading)) for ch, rank, reading in rows]
 
-    # Annotatable characters only, as in 0.5.0: neutral-tone fixing and the
+    # Annotatable characters only: neutral-tone fixing and the
     # special words are defined on these.
     defaults = {ch: reading for ch, rank, reading in rows if annotatable(ch)}
     all_defaults = {ch: reading for ch, _, reading in rows}
@@ -395,7 +394,7 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
         if len(readings) != len(phrase) or not all(readings):
             continue
         py_phrases[phrase] = [unicodedata.normalize("NFC", r[0]) for r in readings]
-    # The special words are built from pypinyin's own spelling, as in 0.5.0
+    # The special words are built from pypinyin's own spelling
     # (they never mark 一 or 不); everything else uses the dictionary tones.
     py_phrases_raw = dict(py_phrases)
     py_phrases = {phrase: base_tones(phrase, syls) for phrase, syls in py_phrases.items()}

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+Leftovers of the two retired plugins removed (#34)
+- No visible change. The one-time copy of koreader-interlinear-pinyin's and
+  koreader-chinese-popup's settings (from 1.0.0), the warning when either was still installed,
+  and the Status line naming them are gone, along with their tests. Settings already copied
+  stay as they are. Code comments no longer cite the two old repos (the WordGloss credits
+  stay), and tools/plugin_runtime.py no longer runs an interlinear-pinyin 0.5.0 copy.
+
 ## 2.9.2 (2026-11-19)
 
 Popup buttons outlined in night mode (#43)

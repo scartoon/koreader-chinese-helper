@@ -1,7 +1,7 @@
 -- Pinyin above the characters: the paint layer, the line spacing that makes
--- room for it, and the per-page resolution. From koreader-interlinear-pinyin's
--- main.lua, which kept WordGloss's paint-layer approach, line-height injection
--- and style-sheet hook (WordGloss: https://github.com/GangYe293/wordgloss.koplugin,
+-- room for it, and the per-page resolution. Keeps WordGloss's paint-layer
+-- approach, line-height injection and style-sheet hook
+-- (WordGloss: https://github.com/GangYe293/wordgloss.koplugin,
 -- GPL-3.0, by GangYe293).
 --
 -- It also keeps the current page's items (the engine's characters plus a few

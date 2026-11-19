@@ -1,7 +1,6 @@
--- Settings, defaults and the one-time migration from the two plugins this one
--- replaces (pure Lua: the settings store is passed in, so it is tested
--- offline). Everything is global (G_reader_settings), as in both old
--- plugins; neither stored anything per book.
+-- Settings and their defaults (pure Lua: the settings store is passed in, so
+-- it is tested offline). Everything is global (G_reader_settings); nothing is
+-- stored per book.
 
 local Settings = {}
 Settings.__index = Settings
@@ -56,18 +55,6 @@ Settings.DEFAULTS = {
     match_book_font = true,   -- "Try to match the book's font": Chinese text in the popup in the book's font
 }
 
--- Old key -> new key. interlinearpinyin_tap_definitions has no successor:
--- "Tap characters for popup" governs every popup now.
-Settings.MIGRATIONS = {
-    { "interlinearpinyin_enabled", "pinyin_enabled" },
-    { "interlinearpinyin_threshold", "threshold" },
-    { "interlinearpinyin_size_pct", "size_pct" },
-    { "interlinearpinyin_uncertain", "uncertain" },
-    { "interlinearpinyin_special", "special" },
-    { "interlinearpinyin_special_style", "special_style" },
-    { "chinesepopup_enabled", "popup_enabled" },
-}
-
 -- store: G_reader_settings (readSetting, saveSetting, flush), or nil.
 function Settings.new(store)
     return setmetatable({ store = store }, Settings)
@@ -85,30 +72,6 @@ function Settings:set(key, value)
     if not self.store then return end
     self.store:saveSetting(Settings.PREFIX .. key, value)
     if self.store.flush then pcall(function() self.store:flush() end) end
-end
-
---[[--
-Copy the old plugins' settings to this plugin's keys, once. A key already
-set here is never overwritten, and the old keys are left as they are (so
-reinstalling an old plugin still finds its settings). Returns the list of
-"old -> new" keys copied (empty when there was nothing to do).
-]]
-function Settings:migrate()
-    local store = self.store
-    if not store then return {} end
-    if store:readSetting(Settings.PREFIX .. "migrated") then return {} end
-    local copied = {}
-    for _, m in ipairs(Settings.MIGRATIONS) do
-        local old, new = m[1], m[2]
-        local value = store:readSetting(old)
-        if value ~= nil and store:readSetting(Settings.PREFIX .. new) == nil then
-            store:saveSetting(Settings.PREFIX .. new, value)
-            copied[#copied + 1] = old .. " -> " .. Settings.PREFIX .. new
-        end
-    end
-    store:saveSetting(Settings.PREFIX .. "migrated", 1)
-    if store.flush then pcall(function() store:flush() end) end
-    return copied
 end
 
 -- Typed getters, with out-of-range values brought back to something valid.
