@@ -79,7 +79,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 17 + 8 + 5 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
+eq(count, 18 + 8 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- spoken tones: 3 choices; dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.

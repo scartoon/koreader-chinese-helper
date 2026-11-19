@@ -647,6 +647,7 @@ function Model.labelText(block, labelled, labels)
     local parts = {}
     if labelled then parts[#parts + 1] = (labels or {})[block.source] or block.source end
     if block.rank then parts[#parts + 1] = block.rank end
+    if block.spoken then parts[#parts + 1] = block.spoken end
     if #parts == 0 then return nil end
     return table.concat(parts, " · ")
 end
@@ -658,6 +659,20 @@ function Model.markRank(blocks, matches, rank_text)
     local first = matches and matches[1]
     if rank_text and first and first.len == 1 and blocks[1] then
         blocks[1].rank = rank_text
+        return true
+    end
+    return false
+end
+
+-- The spoken tone drawn above 一 or 不 (#37), on the character's own block
+-- like the rank: its entries keep the dictionary's yī and bù, so the page
+-- and the popup don't seem to disagree. Returns true when it was placed.
+Model.SPOKEN_NOTE = "spoken here: %s"
+
+function Model.markSpoken(blocks, matches, spoken)
+    local first = matches and matches[1]
+    if spoken and first and first.len == 1 and blocks[1] then
+        blocks[1].spoken = string.format(Model.SPOKEN_NOTE, spoken)
         return true
     end
     return false

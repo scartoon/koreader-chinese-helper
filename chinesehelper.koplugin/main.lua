@@ -570,6 +570,28 @@ function ChineseHelper:addToMainMenu(menu_items)
         }
     end
 
+    local spoken_labels = {
+        { Settings.SPOKEN_LEARNER, _("In learner mode") },
+        { Settings.SPOKEN_ALWAYS, _("Always") },
+        { Settings.SPOKEN_NEVER, _("Never") },
+    }
+    local spoken_short = {}
+    local spoken_items = {}
+    for _i, entry in ipairs(spoken_labels) do
+        local mode, label = entry[1], entry[2]
+        spoken_short[mode] = label:lower()
+        spoken_items[#spoken_items + 1] = {
+            text = label,
+            checked_func = function() return settings:spokenTonesMode() == mode end,
+            radio = true,
+            keep_menu_open = true,
+            callback = function()
+                settings:set("spoken_tones", mode)
+                refresh()
+            end,
+        }
+    end
+
     local edge_items = {}
     for _i, mm in ipairs(require("ch_edge").CHOICES) do
         edge_items[#edge_items + 1] = {
@@ -626,6 +648,13 @@ function ChineseHelper:addToMainMenu(menu_items)
                 end,
                 help_text = _("Some characters have more than one common reading and nothing nearby tells which one is meant. The plugin can show the two most likely readings (most likely first), only the most likely one, or nothing. The popup marks the same reading(s)."),
                 sub_item_table = uncertain_items,
+            },
+            {
+                text_func = function()
+                    return T(_("Spoken tones for 一 and 不: %1"), spoken_short[settings:spokenTonesMode()])
+                end,
+                help_text = _("Dictionaries give 一 as yī and 不 as bù, but in speech their tone changes with the next syllable, as in beginners' textbooks: 一个 yí gè, 一天 yì tiān, 不是 bú shì, 看不见 kàn bu jiàn. 一 stays yī as a number or ordinal (第一, 十一, 一九九八, 一月, 统一). With this on, the pinyin shows the spoken tones; the popup's entries keep the dictionary's, with a note. In learner mode means when Which characters is All characters."),
+                sub_item_table = spoken_items,
             },
             {
                 text = _("Mark unusual readings of common characters (names, historical terms)"),

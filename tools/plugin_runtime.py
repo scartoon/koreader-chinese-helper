@@ -87,6 +87,20 @@ function H.annotate(data, text, threshold, mode, special, mark_special)
     end
     return table.concat(out, " ")
 end
+-- Every 一 and 不 in learner mode (threshold 0) as { pos, char, dictionary
+-- reading, drawn reading }: the drawn one is the spoken tone (#37) when
+-- `spoken` is true.
+function H.spoken(data, text, special, spoken)
+    local items = items_of(text, -1)
+    local out = {}
+    for _, a in ipairs(Resolve.annotate(data, items, 0, "best", special, nil, spoken)) do
+        local ch = items[a.index].text
+        if ch == "\228\184\128" or ch == "\228\184\141" then
+            out[#out + 1] = { items[a.index].pos, ch, a.dict or a.reading, a.reading, a.sandhi or false }
+        end
+    end
+    return out
+end
 -- Every annotation as { pos (0-based character index in text), char, reading,
 -- special (bool), word (the word that decided it, or false) }.
 function H.details(data, text, threshold, mode, special)
@@ -207,6 +221,14 @@ class Plugin:
         for row in self.h.details(self.data, text, threshold, mode, self.special).values():
             pos, ch, reading, special, word = (row[k] for k in range(1, 6))
             out.append((int(pos), ch, reading, bool(special), word or None))
+        return out
+
+    def spoken(self, text, spoken=True):
+        """[(pos, char, dictionary reading, drawn reading, rule or None)] for every 一 and 不
+        in learner mode, the drawn one with spoken tones (#37) when spoken."""
+        out = []
+        for row in self.h.spoken(self.data, text, self.special, spoken).values():
+            out.append((int(row[1]), row[2], row[3], row[4], row[5] or None))
         return out
 
     def special_at(self, text, pos):
