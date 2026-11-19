@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.11.0"
+ChineseHelper.VERSION = "2.11.1"
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
@@ -559,11 +559,11 @@ function ChineseHelper:ranksItem(refresh)
                     own.info.exact or "?")
                 or T(_("No file yet: build it on a computer with tools/build_user_ranks.py from your books and copy it to %1 (build_user_ranks.py --push does that over USB)."),
                     ChineseHelper.ranksPath())
-            return _("Which characters count as common. Bundled: ranks among characters in modern written Chinese (wordfreq: web, news, subtitles). From my books: ranks counted from your own books, by how many of them a character appears in, then how often. Characters not in your books keep their bundled rank. This decides which characters get pinyin, the popup's 字频 line and which pinyin goes first on a crowded line.") .. "\n\n" .. about
+            return _("Which characters count as common. Bundled: wordfreq's ranks for Chinese, mixed from web pages, Google Books, news, film and TV subtitles, Wikipedia, Twitter and Jieba's wordlist. From my books: ranks counted from your own books, by how many of them a character appears in, then how often. Characters not in your books keep their bundled rank. This decides which characters get pinyin, the popup's 字频 line and which pinyin goes first on a crowded line.") .. "\n\n" .. about
         end,
         sub_item_table = {
             {
-                text = _("Bundled (modern Chinese)"),
+                text = _("Bundled: web, books, news, subtitles"),
                 checked_func = function() return plugin:activeUserRanks() == nil end,
                 radio = true,
                 keep_menu_open = true,
@@ -780,7 +780,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Show character frequency rank"),
-                help_text = _("A small grey 字频 line on the tapped character's own entry: its rank among characters in modern written Chinese, from wordfreq (1 is the most common; the default pinyin threshold is 3,500). Past 7,000 it shows 7,000+, since the data is too thin there for an exact rank; unranked means the character is not in the list. With Frequency ranks from your books, the line says which ranks it shows: (my books), with N+ past your file's exact ranks, or (bundled) for a character not in your books."),
+                help_text = _("A small grey 字频 line on the tapped character's own entry: its rank among characters in modern written Chinese, from wordfreq (1 is the most common; the default pinyin threshold is 3,500). Past 7,000 it shows 7,000+, since the data is too thin there for an exact rank; unranked means the character is not in the list. With Frequency ranks from your books, it shows your rank, with N+ past your file's exact ranks, or the bundled rank marked (bundled) for a character not in your books."),
                 checked_func = function() return settings:charRankEnabled() end,
                 callback = function() settings:set("char_rank", not settings:charRankEnabled()) end,
             },

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.11.1 (2026-11-19)
+
+Frequency ranks labels (#45, #46)
+- The bundled option is now **Bundled: web, books, news, subtitles**, and its help names all of
+  wordfreq's sources for Chinese: web pages, Google Books, news, film and TV subtitles,
+  Wikipedia, Twitter and Jieba's wordlist (#45).
+- With From my books on, the 字频 line shows just your rank (**字频 3,504**, or **5,700+** past
+  your file's exact ranks), without "(my books)". A character not in your books still says
+  **(bundled)**, since that rank is on a different scale (#46).
+
 ## 2.11.0 (2026-11-19)
 
 Your own frequency ranks (#42)
