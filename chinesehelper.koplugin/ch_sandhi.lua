@@ -55,18 +55,18 @@ Sandhi.ORDINAL_WORDS = {
 }
 -- Words that end in 一, read yī (统一了, 唯一的, 之一是). From CC-CEDICT's
 -- words ending in 一, less the ones after which 一 still changes (刚一进门
--- gāng yí jìn mén, 另一个, 头一次, 大一点, 不一定, 同一个) and the ones other
+-- gāng yí jìn mén, 另一个, 头一次, 大一点, 不一定) and the ones other
 -- rules cover (十一, 初一, 第一). The words table cannot tell: it leaves out
 -- words read as their characters' defaults (统一).
 Sandhi.FINAL_WORDS = {}
 for w in ("统一 統一 唯一 惟一 万一 萬一 之一 其一 专一 專一 单一 單一 划一 劃一 合一 均一 逐一 "
-        .. "星期一 礼拜一 禮拜一 周一 週一 如一 混一 齐一 齊一 独一 獨一 归一 歸一"):gmatch("%S+") do
+        .. "星期一 礼拜一 禮拜一 周一 週一 如一 混一 齐一 齊一 独一 獨一 归一 歸一 同一"):gmatch("%S+") do
     Sandhi.FINAL_WORDS[w] = true
 end
 -- X一X is a reduplicated verb (看一看, 清一清) unless X is one of these nouns
 -- and measure words, where 一 is a number (明年一年, 四个人一人, 秦国一国,
 -- 人家一家, 旁边一边) or an enumeration (一是…二是).
-Sandhi.NOT_REDUP = set("路年天日月时時人国國家边邊是个個次回步口句层層片条條张張位种種样樣件代辈輩世生身面方处處头頭点點"
+Sandhi.NOT_REDUP = set("定路年天日月时時人国國家边邊是个個次回步口句层層片条條张張位种種样樣件代辈輩世生身面方处處头頭点點"
     .. "下声聲手眼刀脚腳枪槍拳顿頓场場阵陣遍份")
 -- Two-syllable directional complements after V不 (拿不过来, 想不起来).
 Sandhi.DIRECTIONAL = {}

@@ -93,31 +93,31 @@ PAGES = {
 }
 
 # Learner mode (#25): page aq59 with pinyin on every character (threshold 0).
-# Every reading hand-checked; the one pair, 革过 guò/guo, has the right
+# Every reading hand-checked (一 and 不 in their spoken tones, #37); the one pair, 革过 guò/guo, has the right
 # reading (guo, the aspect particle) second.
 AQ59_ALL = (
     "你=nǐ 不=bù 知=zhī 道=dào 他=tā 们=men 已=yǐ 经=jīng 来=lái 革=gé 过=guò/guo 了=le 谁=shéi 阿=ā 更=gèng "
     "其=qí 诧=chà 异=yì 了=le 那=nà 秀=xiù 才=cái 和=hé 洋=yáng 鬼=guǐ 子=zi 阿=ā 很=hěn 出=chū 意=yì 外=wài "
-    "不=bù 由=yóu 的=de 一=yī 错=cuò 愕=è 老=lǎo 尼=ní 姑=gū 见=jiàn 他=tā 失=shī 了=le 锐=ruì 气=qì 便=biàn "
+    "不=bù 由=yóu 的=de 一=yí 错=cuò 愕=è 老=lǎo 尼=ní 姑=gū 见=jiàn 他=tā 失=shī 了=le 锐=ruì 气=qì 便=biàn "
     "飞=fēi 速=sù 的=de 关=guān 了=le 门=mén 阿=ā 再=zài 推=tuī 时=shí 牢=láo 不=bù 可=kě 开=kāi 再=zài 打=dǎ "
     "时=shí 没=méi 有=yǒu 回=huí 答=dá 了=le 那=nà 还=hái 是=shi 上=shàng 午=wǔ 的=de 事=shì 赵=zhào 秀=xiù "
-    "才=cái 消=xiāo 息=xī 灵=líng 一=yī 知=zhī 道=dào 革=gé 命=mìng 党=dǎng 已=yǐ 在=zài 夜=yè 间=jiān "
-    "进=jìn 城=chéng 便=biàn 将=jiāng 辫=biàn 子=zi 盘=pán 在=zài 顶=dǐng 上=shàng 一=yī 早=zǎo 去=qù "
+    "才=cái 消=xiāo 息=xī 灵=líng 一=yì 知=zhī 道=dào 革=gé 命=mìng 党=dǎng 已=yǐ 在=zài 夜=yè 间=jiān "
+    "进=jìn 城=chéng 便=biàn 将=jiāng 辫=biàn 子=zi 盘=pán 在=zài 顶=dǐng 上=shàng 一=yì 早=zǎo 去=qù "
     "拜=bài 访=fǎng 那=nà 历=lì 来=lái 也=yě 不=bù 相=xiāng 能=néng 的=de 钱=qián 洋=yáng 鬼=guǐ 子=zi "
     "这=zhè 是=shì 咸=xián 与=yù 维=wéi 新=xīn 的=de 时=shí 候=hòu 了=le 所=suǒ 以=yǐ 他=tā 们=men 便=biàn "
     "谈=tán 得=de 很=hěn 投=tóu 机=jī 立=lì 刻=kè 成=chéng 了=le 情=qíng 投=tóu 意=yì 合=hé 的=de 同=tóng "
     "志=zhì 也=yě 相=xiāng 约=yuē 去=qù 革=gé 命=mìng 他=tā 们=men 想=xiǎng 而=ér 又=yòu 想=xiǎng 才=cái "
-    "想=xiǎng 出=chū 静=jìng 修=xiū 庵=ān 里=lǐ 有=yǒu 一=yī 块=kuài 皇=huáng 帝=dì 万=wàn 岁=suì 万=wàn "
+    "想=xiǎng 出=chū 静=jìng 修=xiū 庵=ān 里=lǐ 有=yǒu 一=yí 块=kuài 皇=huáng 帝=dì 万=wàn 岁=suì 万=wàn "
     "万=wàn 岁=suì 的=de 龙=lóng 牌=pái 是=shì 应=yīng 该=gāi 赶=gǎn 紧=jǐn 革=gé 掉=diào 的=de 于=yú 是=shì "
     "又=yòu 立=lì 刻=kè 同=tóng 到=dào 庵=ān 里=lǐ 去=qù 革=gé 命=mìng 因=yīn 为=wèi 老=lǎo 尼=ní 姑=gū "
     "来=lái 阻=zǔ 挡=dǎng 说=shuō 了=le 三=sān 句=jù 话=huà 他=tā 们=men 便=biàn 将=jiāng 伊=yī 当=dàng "
     "作=zuò 满=mǎn 政=zhèng 府=fǔ 在=zài 头=tóu 上=shàng 很=hěn 给=gěi 了=le 不=bù 少=shǎo 的=de 棍=gùn "
     "子=zi 和=hé 栗=lì 凿=záo 尼=ní 姑=gū 待=dài 他=tā 们=men 走=zǒu 后=hòu 定=dìng 了=le 神=shén 来=lái "
     "检=jiǎn 点=diǎn 龙=lóng 牌=pái 固=gù 然=rán 已=yǐ 经=jīng 碎=suì 在=zài 地=dì 上=shang 了=le 而=ér "
-    "且=qiě 又=yòu 不=bù 见=jiàn 了=le 观=guān 音=yīn 娘=niáng 娘=niang 座=zuò 前=qián 的=de 一=yī 个=ge "
+    "且=qiě 又=yòu 不=bú 见=jiàn 了=le 观=guān 音=yīn 娘=niáng 娘=niang 座=zuò 前=qián 的=de 一=yí 个=ge "
     "宣=xuān 德=dé 炉=lú 这=zhè 事=shì 阿=ā 后=hòu 来=lái 才=cái 知=zhī 道=dào 他=tā 颇=pō 悔=huǐ 自=zì 己=jǐ "
     "睡=shuì 着=zháo 但=dàn 也=yě 深=shēn 怪=guài 他=tā 们=men 不=bù 来=lái 招=zhāo 呼=hū 他=tā 他=tā 又=yòu "
-    "退=tuì 一=yī 步=bù 想=xiǎng 道=dào ").strip()
+    "退=tuì 一=yí 步=bù 想=xiǎng 道=dào ").strip()
 # learner-known: the page after a beginner has marked known the 80 commonest
 # characters on it (by 字频 rank, up to 271), each in its default reading,
 # so 是 shi in 还是 keeps its pinyin. Pushed as the device's marks file.
@@ -201,7 +201,10 @@ def expected_drawn(shot):
     known readings (shot["known"]) taken out of the page's All list."""
     if shot.get("known"):
         known = {f"{c}={r}" for c, r in shot["known"]}
-        return " ".join(a for a in AQ59_ALL.split() if a not in known)
+        # Marks are on the dictionary reading: known 一 yī or 不 bù hides
+        # their spoken tones too (#37).
+        sandhi = {c for c, r in shot["known"] if (c, r) in (("一", "yī"), ("不", "bù"))}
+        return " ".join(a for a in AQ59_ALL.split() if a not in known and a.split("=")[0] not in sandhi)
     return shot.get("drawn") or PAGES[shot["page"]]["drawn"]
 
 

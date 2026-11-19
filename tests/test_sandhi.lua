@@ -76,6 +76,7 @@ check("看一看", "yi"); check("想一想", "yi")
 check("一步一步", "yí yí")
 -- Prefix words that end in 一 still change (刚一进门, 另一个).
 check("刚一进门", "yí"); check("另一个", "yí"); check("不一定", "bù yí")
+check("同一台战车", "yī"); check("规则设定一定要公平", "yí")
 
 -- Alone, before punctuation, at a line end, before a non-Han character.
 check("一", "yī"); check("不", "bù")
