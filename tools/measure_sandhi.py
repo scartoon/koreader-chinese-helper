@@ -165,7 +165,22 @@ def write_batch(n, batch):
             f.write(f"{b[0]}\t{b[7]}\n")
 
 
+def merge_verdicts():
+    """Each judge writes sandhi-NNN.verdicts.tsv; gather them into VERDICTS."""
+    rows, seen = [], set()
+    for path in sorted(glob.glob(os.path.join(JUDGE, "sandhi-[0-9][0-9][0-9].verdicts.tsv"))):
+        for r in csv.reader(open(path, encoding="utf-8"), delimiter="\t"):
+            if r and r[0] != "id" and r[0] not in seen:
+                seen.add(r[0])
+                rows.append(r)
+    with open(VERDICTS, "w", encoding="utf-8") as f:
+        f.write("id\tverdict\tconfidence\tshould_be\tnote\n")
+        for r in rows:
+            f.write("\t".join(r) + "\n")
+
+
 def report(args):
+    merge_verdicts()
     rules = {}
     for path in glob.glob(os.path.join(JUDGE, "sandhi-*.tsv.rules")):
         for line in open(path, encoding="utf-8"):
