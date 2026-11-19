@@ -103,7 +103,7 @@ function Overlay:plan(max_x)
                 item.text, true, bold)
             if ok and size then
                 measured[#measured + 1] = {
-                    text = item.text, box = item.box, rank = item.rank,
+                    text = item.text, box = item.box, rank = item.rank, tie = item.tie,
                     w = size.x, gloss = item,
                 }
             end

@@ -79,11 +79,11 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 18 + 8 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- spoken tones: 3 choices; dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
+eq(count, 19 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
-local marks_item = entry.sub_item_table[8]
+local marks_item = entry.sub_item_table[9]
 eq(marks_item.text_func(), "Known & remind-me readings: 0 known, 0 remind")
 assert(marks_item.help_text:find("chinesehelper_marks.lua", 1, true), marks_item.help_text)
 local marks_sub = marks_item.sub_item_table_func()
@@ -91,7 +91,7 @@ eq(#marks_sub, 2)
 assert(not marks_sub[1].enabled_func() and not marks_sub[2].enabled_func(), "nothing to list or clear yet")
 
 -- Character components: on by default, a toggle.
-local comp_item = entry.sub_item_table[12]
+local comp_item = entry.sub_item_table[13]
 eq(comp_item.text, "Show character components")
 assert(plugin.settings:componentsEnabled() and comp_item.checked_func())
 comp_item.callback()
@@ -100,7 +100,7 @@ comp_item.callback()
 assert(plugin.settings:componentsEnabled())
 
 -- The tapped character's frequency rank (#17): on by default, a toggle, right after components.
-local rank_item = entry.sub_item_table[13]
+local rank_item = entry.sub_item_table[14]
 eq(rank_item.text, "Show character frequency rank")
 assert(plugin.settings:charRankEnabled() and rank_item.checked_func())
 rank_item.callback()
@@ -109,7 +109,7 @@ rank_item.callback()
 assert(plugin.settings:charRankEnabled())
 
 -- The context line and the page underline: on by default, each its own toggle.
-local ctx_item, ul_item = entry.sub_item_table[14], entry.sub_item_table[15]
+local ctx_item, ul_item = entry.sub_item_table[15], entry.sub_item_table[16]
 eq(ctx_item.text, "Show the text around the character in the popup")
 eq(ul_item.text, "Underline the tapped character on the page")
 assert(plugin.settings:contextEnabled() and ctx_item.checked_func())
@@ -122,7 +122,7 @@ ctx_item.callback(); ul_item.callback()
 assert(plugin.settings:contextEnabled() and plugin.settings:underlineEnabled())
 
 -- "Try to match the book's font": on by default, a toggle, with help text.
-local font_item = entry.sub_item_table[16]
+local font_item = entry.sub_item_table[17]
 eq(font_item.text, "Try to match the book's font")
 assert(font_item.help_text:find("font menu", 1, true), font_item.help_text)
 assert(plugin.settings:matchBookFont() and font_item.checked_func())
@@ -155,30 +155,44 @@ eq(entry.sub_item_table[3].text_func(), "Which characters: all")
 assert(thresholds[1].checked_func() and not thresholds[4].checked_func())
 thresholds[4].callback()
 assert(entry.sub_item_table[3].text_func():find("1500"), "threshold label not updated")
+-- Frequency ranks (#42): right after Which characters; bundled, From my
+-- books disabled while there is no file, the file's path in the help.
+local ranks_item = entry.sub_item_table[4]
+eq(ranks_item.text_func(), "Frequency ranks: bundled")
+assert(ranks_item.help_text_func():find("chinesehelper_ranks.tsv", 1, true))
+assert(ranks_item.help_text_func():find("No file yet", 1, true))
+eq(#ranks_item.sub_item_table, 2)
+assert(ranks_item.sub_item_table[1].checked_func() and not ranks_item.sub_item_table[2].enabled_func())
+ranks_item.sub_item_table[2].callback()
+eq(plugin.settings:rankSource(), "books")
+eq(ranks_item.text_func(), "Frequency ranks: bundled", "chosen but no file: still bundled")
+assert(plugin:activeUserRanks() == nil)
+ranks_item.sub_item_table[1].callback()
+eq(plugin.settings:rankSource(), "bundled")
 -- Uncertain readings: default both, choices saved.
-assert(entry.sub_item_table[5].text_func():find("show both"))
-entry.sub_item_table[5].sub_item_table[2].callback()
+assert(entry.sub_item_table[6].text_func():find("show both"))
+entry.sub_item_table[6].sub_item_table[2].callback()
 eq(plugin.settings:uncertainMode(), "best")
 -- Popup text size. A size saved by an earlier version that is no longer a
 -- choice (70) shows and checks the default, 60%.
 settings.chinesehelper_popup_text_pct = 70
-assert(entry.sub_item_table[10].text_func():find("60%%"))
-assert(entry.sub_item_table[10].sub_item_table[2].checked_func(), "60% checked")
-for k, item in ipairs(entry.sub_item_table[10].sub_item_table) do
+assert(entry.sub_item_table[11].text_func():find("60%%"))
+assert(entry.sub_item_table[11].sub_item_table[2].checked_func(), "60% checked")
+for k, item in ipairs(entry.sub_item_table[11].sub_item_table) do
     if k ~= 2 then assert(not item.checked_func(), "only 60% checked") end
 end
-entry.sub_item_table[10].sub_item_table[4].callback()
-eq(plugin.settings:popupTextPercent(), 100)
-assert(entry.sub_item_table[10].text_func():find("100%%"))
--- Chinese text size: right after it, default 130%, choices saved.
-assert(entry.sub_item_table[11].text_func():find("Chinese text size: 130%%"))
-assert(entry.sub_item_table[11].sub_item_table[3].checked_func(), "130% checked")
 entry.sub_item_table[11].sub_item_table[4].callback()
+eq(plugin.settings:popupTextPercent(), 100)
+assert(entry.sub_item_table[11].text_func():find("100%%"))
+-- Chinese text size: right after it, default 130%, choices saved.
+assert(entry.sub_item_table[12].text_func():find("Chinese text size: 130%%"))
+assert(entry.sub_item_table[12].sub_item_table[3].checked_func(), "130% checked")
+entry.sub_item_table[12].sub_item_table[4].callback()
 eq(plugin.settings:chineseTextPercent(), 150)
-assert(entry.sub_item_table[11].text_func():find("150%%"))
+assert(entry.sub_item_table[12].text_func():find("150%%"))
 
 -- Edge pass-through width: default 5 mm, five radio choices, label follows.
-local edge_item = entry.sub_item_table[9]
+local edge_item = entry.sub_item_table[10]
 eq(edge_item.text_func(), "Edge pass-through width: 5 mm")
 local labels = {}
 for _, item in ipairs(edge_item.sub_item_table) do
@@ -267,7 +281,7 @@ plugin.ui = nil
 local data = assert(plugin:readings(), "readings")
 assert(plugin:readings() == data, "loaded once")
 assert(plugin:special(), "special words load when on")
-local special_item = entry.sub_item_table[7]
+local special_item = entry.sub_item_table[8]
 special_item.callback()
 assert(not plugin.settings:specialEnabled() and plugin:special() == nil, "nothing when off")
 special_item.callback()
@@ -293,7 +307,7 @@ local function names(list)
     return table.concat(out, ",")
 end
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
-local fb_item = entry.sub_item_table[17]
+local fb_item = entry.sub_item_table[18]
 eq(fb_item.text, "Dictionaries")
 -- Source labels: default "other dictionaries only".
 local labels_item = fb_item.sub_item_table[1]
@@ -425,7 +439,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[17].sub_item_table[4].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[18].sub_item_table[4].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
@@ -437,7 +451,7 @@ local sort_args
 package.loaded["ui/widget/sortwidget"] = { new = function(_, a) sort_args = a; return a end }
 local items4 = {}
 plugin:addToMainMenu(items4)
-local dict_menu = items4.chinesehelper.sub_item_table[17].sub_item_table
+local dict_menu = items4.chinesehelper.sub_item_table[18].sub_item_table
 local updated = 0
 dict_menu[2].callback({ updateItems = function() updated = updated + 1 end })
 eq(#sort_args.item_table, 7); eq(sort_args.item_table[1].text, "Wiktionary")
@@ -518,7 +532,7 @@ local items2 = {}
 plugin2:addToMainMenu(items2)
 local dict_items = {}
 local moe_modes2 = {}
-for k, it in ipairs(items2.chinesehelper.sub_item_table[17].sub_item_table) do
+for k, it in ipairs(items2.chinesehelper.sub_item_table[18].sub_item_table) do
     if k > 3 then
         if it.sub_item_table then moe_modes2[#moe_modes2 + 1] = it else dict_items[#dict_items + 1] = it end
     end
@@ -549,5 +563,41 @@ pdb.fallback = function(self, list) queries = queries + 1; return real_fallback(
 plugin2:fallbackLookup(Model.uncovered(texts_, rows))
 pdb.fallback = real_fallback
 eq(queries, 1, "Wiktionary and Wikipedia titles in one statement")
+
+-- Frequency ranks with a file (#42): From my books can be chosen, the help
+-- gives the file's date and works, and the readings follow the setting.
+do
+    local dir = os.tmpname()
+    os.remove(dir)
+    os.execute("mkdir -p '" .. dir .. "'")
+    local ds = package.loaded["datastorage"]
+    local real_settings_dir = ds.getSettingsDir
+    ds.getSettingsDir = function() return dir end
+    local path = dir .. "/chinesehelper_ranks.tsv"
+    local f = assert(io.open(path, "w"))
+    f:write("# date\t2026-11-19\n# works\t42\n# exact\t5700\n饕\t120\t40\t900\n")
+    f:close()
+    local lfs = package.loaded["libs/libkoreader-lfs"]
+    local real_attributes = lfs.attributes
+    lfs.attributes = function(p, what) if p == path then return 1 end return nil end
+    local items5 = {}
+    plugin:addToMainMenu(items5)
+    local ranks_item = items5.chinesehelper.sub_item_table[4]
+    assert(ranks_item.sub_item_table[2].enabled_func(), "file present: From my books enabled")
+    local help = ranks_item.help_text_func()
+    assert(help:find("42 works on 2026-11-19", 1, true), help)
+    local pub = plugin:readings():publicRank("饕")
+    eq((plugin:readings():char("饕")), pub, "bundled until chosen")
+    ranks_item.sub_item_table[2].callback()
+    eq(ranks_item.text_func(), "Frequency ranks: from my books")
+    eq((plugin:readings():char("饕")), 120)
+    eq(select(2, plugin:readings():rankInfo("饕")), "books")
+    ranks_item.sub_item_table[1].callback()
+    eq((plugin:readings():char("饕")), pub)
+    lfs.attributes = real_attributes
+    ds.getSettingsDir = real_settings_dir
+    os.remove(path)
+    os.remove(dir)
+end
 
 G_reader_settings = nil

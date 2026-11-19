@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.10.0"
+ChineseHelper.VERSION = "2.11.0"
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
@@ -136,6 +136,9 @@ ChineseHelper.READING_SOURCES = { wikt = true }
 function ChineseHelper:readings()
     local data = self:loadReadings()
     if data then
+        -- The reader's own frequency ranks (#42), while chosen and present.
+        local own = self:activeUserRanks()
+        data:setUserRanks(own and own.ranks, own and own.info.exact)
         local names = {}
         for _i, src in ipairs(self:fallbackSources()) do
             if ChineseHelper.READING_SOURCES[src.source] then names[#names + 1] = src.source end
@@ -498,6 +501,86 @@ function ChineseHelper.marksStore(path)
     }
 end
 
+------------------------------------------------------------------------
+-- The reader's own frequency ranks (#42): tools/build_user_ranks.py
+------------------------------------------------------------------------
+
+-- Next to the marks file, for the same reason: updates keep it.
+ChineseHelper.RANKS_FILE = "chinesehelper_ranks.tsv"
+
+function ChineseHelper.ranksPath()
+    return require("datastorage"):getSettingsDir() .. "/" .. ChineseHelper.RANKS_FILE
+end
+
+-- The parsed file (ch_ranks.lua: { ranks=, info= }), or nil when there is
+-- none. Read again only when the file's modification time changes (a new
+-- file pushed while KOReader runs).
+function ChineseHelper:userRanks()
+    local path = ChineseHelper.ranksPath()
+    local ok, lfs = pcall(require, "libs/libkoreader-lfs")
+    local mtime = ok and lfs.attributes(path, "modification") or nil
+    if not mtime then
+        session.user_ranks, session.user_ranks_mtime = nil, nil
+        return nil
+    end
+    if session.user_ranks_mtime ~= mtime then
+        local parsed, err = require("ch_ranks").load(path)
+        if not parsed then logger.warn("chinesehelper: cannot use", path, tostring(err)) end
+        session.user_ranks, session.user_ranks_mtime = parsed or false, mtime
+    end
+    return session.user_ranks or nil
+end
+
+-- The reader's ranks when Frequency ranks is From my books and the file is
+-- there; nil otherwise (the bundled ranks alone).
+function ChineseHelper:activeUserRanks()
+    if self.settings:rankSource() ~= Settings.RANKS_BOOKS then return nil end
+    return self:userRanks()
+end
+
+function ChineseHelper:ranksItem(refresh)
+    local plugin, settings = self, self.settings
+    local function choose(source)
+        return function()
+            settings:set("rank_source", source)
+            refresh()
+        end
+    end
+    return {
+        text_func = function()
+            local mine = plugin:activeUserRanks()
+            return T(_("Frequency ranks: %1"), mine and _("from my books") or _("bundled"))
+        end,
+        help_text_func = function()
+            local own = plugin:userRanks()
+            local about = own
+                and T(_("Your file: %1, counted from %2 works on %3 (exact ranks up to %4)."),
+                    ChineseHelper.ranksPath(), own.info.works or "?", own.info.date or "?",
+                    own.info.exact or "?")
+                or T(_("No file yet: build it on a computer with tools/build_user_ranks.py from your books and copy it to %1 (build_user_ranks.py --push does that over USB)."),
+                    ChineseHelper.ranksPath())
+            return _("Which characters count as common. Bundled: ranks among characters in modern written Chinese (wordfreq: web, news, subtitles). From my books: ranks counted from your own books, by how many of them a character appears in, then how often. Characters not in your books keep their bundled rank. This decides which characters get pinyin, the popup's 字频 line and which pinyin goes first on a crowded line.") .. "\n\n" .. about
+        end,
+        sub_item_table = {
+            {
+                text = _("Bundled (modern Chinese)"),
+                checked_func = function() return plugin:activeUserRanks() == nil end,
+                radio = true,
+                keep_menu_open = true,
+                callback = choose(Settings.RANKS_BUNDLED),
+            },
+            {
+                text = _("From my books"),
+                enabled_func = function() return plugin:userRanks() ~= nil end,
+                checked_func = function() return plugin:activeUserRanks() ~= nil end,
+                radio = true,
+                keep_menu_open = true,
+                callback = choose(Settings.RANKS_BOOKS),
+            },
+        },
+    }
+end
+
 -- The reader's reading marks, shared by every book for the session.
 function ChineseHelper:marks()
     if session.marks then return session.marks end
@@ -636,6 +719,7 @@ function ChineseHelper:addToMainMenu(menu_items)
                     return T(_("Outside the %1 most common"), value)
                 end, refresh),
             },
+            plugin:ranksItem(refresh),
             {
                 text_func = function()
                     return T(_("Pinyin size: %1% of text"), settings:sizePercent())
@@ -696,7 +780,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Show character frequency rank"),
-                help_text = _("A small grey 字频 line on the tapped character's own entry: its rank among characters in modern written Chinese, from wordfreq (1 is the most common; the default pinyin threshold is 3,500). Past 7,000 it shows 7,000+, since the data is too thin there for an exact rank; unranked means the character is not in the list."),
+                help_text = _("A small grey 字频 line on the tapped character's own entry: its rank among characters in modern written Chinese, from wordfreq (1 is the most common; the default pinyin threshold is 3,500). Past 7,000 it shows 7,000+, since the data is too thin there for an exact rank; unranked means the character is not in the list. With Frequency ranks from your books, the line says which ranks it shows: (my books), with N+ past your file's exact ranks, or (bundled) for a character not in your books."),
                 checked_func = function() return settings:charRankEnabled() end,
                 callback = function() settings:set("char_rank", not settings:charRankEnabled()) end,
             },

@@ -130,7 +130,7 @@ function Page.build(document, page, data, threshold, uncertain, special, scroll,
         local box = boxes_for(document, item, scroll and screen_h or nil)
         if box then
             glosses[#glosses + 1] = {
-                text = a.reading, box = box, rank = a.rank, char = item.text,
+                text = a.reading, box = box, rank = a.rank, tie = a.tie, char = item.text,
                 ws = item.ws, we = item.we, index = a.index, special = a.special, dict = a.dict,
             }
             if a.special then stats.special = stats.special + 1 end

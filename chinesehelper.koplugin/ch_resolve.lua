@@ -380,6 +380,7 @@ function Resolve.annotate(data, items, threshold, uncertain, special, marks, spo
             -- Unusual readings are kept like the rarest characters.
             out[#out + 1] = { index = i, reading = reading,
                               rank = (marked or remind or rank == 0) and math.huge or rank,
+                              tie = data.publicRank and data:publicRank(item.text) or nil,
                               match = match, special = marked or nil, remind = remind or nil,
                               dict = dict, sandhi = sandhi }
         end

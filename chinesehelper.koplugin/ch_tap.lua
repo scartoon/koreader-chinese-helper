@@ -640,7 +640,7 @@ function Tap:present(args)
     local rank_text
     if self.plugin.settings:charRankEnabled() then
         local data = self.plugin:readings()
-        if data then rank_text = Model.rankText((data:char(args.char))) end
+        if data then rank_text = Model.rankText(data:rankInfo(args.char)) end
     end
     local rank_placed = Model.markRank(blocks, args.matches, rank_text)
     Model.markSpoken(blocks, args.matches, args.spoken)

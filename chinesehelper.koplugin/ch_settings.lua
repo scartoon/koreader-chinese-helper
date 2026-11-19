@@ -69,6 +69,7 @@ Settings.DEFAULTS = {
     chinese_text_pct = 130,   -- "Chinese text size": MOE, 成語典, Xinhua and Moegirlpedia text, and the Origin & Usage view
     components = true,        -- "Show character components" in single-character popups
     char_rank = true,         -- "Show character frequency rank": 字频 N on the tapped character's entry
+    rank_source = "bundled",  -- "Frequency ranks": "bundled" (wordfreq) or "books" (the reader's own file, #42)
     popup_context = true,     -- "Show the text around the character in the popup"
     page_underline = true,    -- "Underline the tapped character on the page"
     match_book_font = true,   -- "Try to match the book's font": Chinese text in the popup in the book's font
@@ -99,6 +100,14 @@ function Settings:popupEnabled() return self:get("popup_enabled") == true end
 function Settings:specialEnabled() return self:get("special") == true end
 function Settings:componentsEnabled() return self:get("components") == true end
 function Settings:charRankEnabled() return self:get("char_rank") == true end
+
+Settings.RANKS_BUNDLED, Settings.RANKS_BOOKS = "bundled", "books"
+
+-- "Frequency ranks" (#42): "books" when chosen, else "bundled". Whether the
+-- reader's file exists is main.lua's check (ChineseHelper:userRanks).
+function Settings:rankSource()
+    return self:get("rank_source") == Settings.RANKS_BOOKS and Settings.RANKS_BOOKS or Settings.RANKS_BUNDLED
+end
 function Settings:contextEnabled() return self:get("popup_context") == true end
 function Settings:underlineEnabled() return self:get("page_underline") == true end
 function Settings:matchBookFont() return self:get("match_book_font") == true end

@@ -15,7 +15,7 @@ Layout.DEFAULT_MARGIN = 6
 --[[--
 Place the annotations of one line.
 
-  line   { {box={x=,w=}, w=annotation width, rank=rarity}, ... }
+  line   { {box={x=,w=}, w=annotation width, rank=rarity, tie=bundled rank or nil}, ... }
   max_x  right edge (screen width)
   margin minimum gap between neighbouring annotations
 
@@ -42,13 +42,18 @@ function Layout.placeLine(line, max_x, margin)
             cursor = text_x + item.w + margin
         end
         if fits then return placed end
-        -- Does not fit: drop the most common one (smallest rank).
-        local worst, worst_rank = 1, nil
+        -- Does not fit: drop the most common one (smallest rank). Equal
+        -- ranks (the reader's own rank of one character and the bundled
+        -- rank of another, #42): the smaller tie (bundled rank, 0 =
+        -- unranked = rarest) goes first, then the leftmost.
+        local worst, worst_rank, worst_tie = 1, nil, nil
         for index = 1, #remaining do
             local rank = remaining[index].rank
             if rank == nil then rank = 0 end
-            if worst_rank == nil or rank < worst_rank then
-                worst, worst_rank = index, rank
+            local tie = remaining[index].tie
+            if tie == nil or tie == 0 then tie = math.huge end
+            if worst_rank == nil or rank < worst_rank or (rank == worst_rank and tie < worst_tie) then
+                worst, worst_rank, worst_tie = index, rank, tie
             end
         end
         table.remove(remaining, worst)
