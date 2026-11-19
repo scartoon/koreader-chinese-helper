@@ -633,11 +633,28 @@ local function thousands(n)
     return (out:gsub("^,", ""))
 end
 
-function Model.rankText(rank)
+-- With the reader's own ranks on (#42), `source` says where this rank comes
+-- from: "books" (their file; `exact` its last exact rank) or "bundled" (a
+-- character not in their books keeps its wordfreq rank), shown after the
+-- number so it is not misread: "字频 1,234 (my books)".
+Model.RANK_SOURCES = { books = "my books", bundled = "bundled" }
+
+function Model.rankText(rank, source, exact)
     rank = tonumber(rank)
-    if not rank or rank <= 0 then return Model.RANK_PREFIX .. "unranked" end
-    if rank > Model.RANK_EXACT then return Model.RANK_PREFIX .. thousands(Model.RANK_EXACT) .. "+" end
-    return Model.RANK_PREFIX .. thousands(rank)
+    local text
+    if not rank or rank <= 0 then
+        text = Model.RANK_PREFIX .. "unranked"
+    else
+        local limit = (source == "books" and tonumber(exact)) or Model.RANK_EXACT
+        if rank > limit then
+            text = Model.RANK_PREFIX .. thousands(limit) .. "+"
+        else
+            text = Model.RANK_PREFIX .. thousands(rank)
+        end
+    end
+    local label = source and Model.RANK_SOURCES[source]
+    if label then text = text .. " (" .. label .. ")" end
+    return text
 end
 
 -- The small grey line above a block: its source label (when `labelled`) and

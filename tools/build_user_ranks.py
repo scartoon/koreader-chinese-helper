@@ -51,7 +51,6 @@ import re
 import sqlite3
 import subprocess
 import sys
-import tempfile
 from collections import Counter, defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -227,8 +226,9 @@ class UnionFind:
 def read_overrides(path):
     out = {}
     if path and os.path.exists(path):
-        for line in open(path, encoding="utf-8"):
-            line = line.rstrip("\n")
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        for line in lines:
             if not line.strip() or line.lstrip().startswith("#"):
                 continue
             parts = line.split("\t")
@@ -426,7 +426,7 @@ def push(path=OUT, dest=DEVICE_PATH, run=subprocess.run):
         sys.exit(f"no {path}: run tools/build_user_ranks.py first")
     run(["adb", "push", path, dest], check=True, capture_output=True, text=True)
     print(f"pushed {path} -> {dest}")
-    print("In KOReader: Chinese helper > Frequency ranks > From my books (reopen the book to apply).")
+    print("In KOReader: Chinese helper > Frequency ranks > From my books (a new file is picked up at the next page turn).")
 
 
 # ----------------------------------------------------------------------

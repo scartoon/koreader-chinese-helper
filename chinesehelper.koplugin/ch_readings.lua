@@ -101,12 +101,43 @@ function Readings:addUncertain(ch, confidence, first, second)
     self.uncertain[ch] = { tonumber(confidence), first, second }
 end
 
+-- The reader's own ranks (#42, ch_ranks.lua): `ranks` = { [char] = rank }
+-- from their books, `exact` the last exact rank; nil for the bundled ranks
+-- alone. They change only what Readings:char returns (which characters get
+-- pinyin, the popup's 字频, crowding); everything that decides what data is
+-- held in memory (hasRare, prefetch, word) keeps the bundled rank.
+function Readings:setUserRanks(ranks, exact)
+    self.user_ranks = ranks
+    self.user_exact = ranks and exact or nil
+end
+
 -- rank (0 = unranked), default reading; or nil for a character with no known
--- reading.
+-- reading. The rank is the reader's own when their ranks are on and list the
+-- character, the bundled one otherwise.
 function Readings:char(ch)
     local entry = self.chars[ch]
     if not entry then return nil end
-    return entry[1], entry[2]
+    local user = self.user_ranks and self.user_ranks[ch]
+    return user or entry[1], entry[2]
+end
+
+-- The bundled (wordfreq) rank, 0 = unranked; nil for a character with no
+-- known reading. Breaks ties between equal ranks (Layout.placeLine).
+function Readings:publicRank(ch)
+    local entry = self.chars[ch]
+    return entry and entry[1] or nil
+end
+
+-- For the popup's 字频 line: the rank Readings:char gives, where it comes
+-- from ("books" or "bundled", nil while the reader's ranks are off) and the
+-- last exact rank of that source (nil: the popup's own).
+function Readings:rankInfo(ch)
+    local entry = self.chars[ch]
+    if not entry then return nil end
+    if not self.user_ranks then return entry[1] end
+    local user = self.user_ranks[ch]
+    if user then return user, "books", self.user_exact end
+    return entry[1], "bundled"
 end
 
 -- Reading from a context rule for ch with the given neighbours (either may be
