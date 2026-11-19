@@ -722,4 +722,17 @@ function Model.place(h, screen_h, margin, box)
     return y, covers
 end
 
+--[[--
+The grey of the lines between the popup's bottom buttons (#43), as an 8-bit
+shade. KOReader's ButtonTable draws them in COLOR_GRAY (0xAA). Night mode
+inverts the screen, so they come out 0x55 on black, which the Boox's e-ink
+hardly shows. In night mode they are drawn 0x55 instead, coming out 0xAA on
+black: day mode's light grey line, mirrored.
+]]
+Model.SEPARATOR_DAY, Model.SEPARATOR_NIGHT = 0xAA, 0x55
+
+function Model.separatorShade(night)
+    return night and Model.SEPARATOR_NIGHT or Model.SEPARATOR_DAY
+end
+
 return Model
