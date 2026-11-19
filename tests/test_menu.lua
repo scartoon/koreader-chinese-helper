@@ -79,11 +79,11 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 17 + 8 + 5 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
+eq(count, 18 + 8 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- spoken tones: 3 choices; dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
-local marks_item = entry.sub_item_table[7]
+local marks_item = entry.sub_item_table[8]
 eq(marks_item.text_func(), "Known & remind-me readings: 0 known, 0 remind")
 assert(marks_item.help_text:find("chinesehelper_marks.lua", 1, true), marks_item.help_text)
 local marks_sub = marks_item.sub_item_table_func()
@@ -91,7 +91,7 @@ eq(#marks_sub, 2)
 assert(not marks_sub[1].enabled_func() and not marks_sub[2].enabled_func(), "nothing to list or clear yet")
 
 -- Character components: on by default, a toggle.
-local comp_item = entry.sub_item_table[11]
+local comp_item = entry.sub_item_table[12]
 eq(comp_item.text, "Show character components")
 assert(plugin.settings:componentsEnabled() and comp_item.checked_func())
 comp_item.callback()
@@ -100,7 +100,7 @@ comp_item.callback()
 assert(plugin.settings:componentsEnabled())
 
 -- The tapped character's frequency rank (#17): on by default, a toggle, right after components.
-local rank_item = entry.sub_item_table[12]
+local rank_item = entry.sub_item_table[13]
 eq(rank_item.text, "Show character frequency rank")
 assert(plugin.settings:charRankEnabled() and rank_item.checked_func())
 rank_item.callback()
@@ -109,7 +109,7 @@ rank_item.callback()
 assert(plugin.settings:charRankEnabled())
 
 -- The context line and the page underline: on by default, each its own toggle.
-local ctx_item, ul_item = entry.sub_item_table[13], entry.sub_item_table[14]
+local ctx_item, ul_item = entry.sub_item_table[14], entry.sub_item_table[15]
 eq(ctx_item.text, "Show the text around the character in the popup")
 eq(ul_item.text, "Underline the tapped character on the page")
 assert(plugin.settings:contextEnabled() and ctx_item.checked_func())
@@ -122,7 +122,7 @@ ctx_item.callback(); ul_item.callback()
 assert(plugin.settings:contextEnabled() and plugin.settings:underlineEnabled())
 
 -- "Try to match the book's font": on by default, a toggle, with help text.
-local font_item = entry.sub_item_table[15]
+local font_item = entry.sub_item_table[16]
 eq(font_item.text, "Try to match the book's font")
 assert(font_item.help_text:find("font menu", 1, true), font_item.help_text)
 assert(plugin.settings:matchBookFont() and font_item.checked_func())
@@ -162,23 +162,23 @@ eq(plugin.settings:uncertainMode(), "best")
 -- Popup text size. A size saved by an earlier version that is no longer a
 -- choice (70) shows and checks the default, 60%.
 settings.chinesehelper_popup_text_pct = 70
-assert(entry.sub_item_table[9].text_func():find("60%%"))
-assert(entry.sub_item_table[9].sub_item_table[2].checked_func(), "60% checked")
-for k, item in ipairs(entry.sub_item_table[9].sub_item_table) do
+assert(entry.sub_item_table[10].text_func():find("60%%"))
+assert(entry.sub_item_table[10].sub_item_table[2].checked_func(), "60% checked")
+for k, item in ipairs(entry.sub_item_table[10].sub_item_table) do
     if k ~= 2 then assert(not item.checked_func(), "only 60% checked") end
 end
-entry.sub_item_table[9].sub_item_table[4].callback()
-eq(plugin.settings:popupTextPercent(), 100)
-assert(entry.sub_item_table[9].text_func():find("100%%"))
--- Chinese text size: right after it, default 130%, choices saved.
-assert(entry.sub_item_table[10].text_func():find("Chinese text size: 130%%"))
-assert(entry.sub_item_table[10].sub_item_table[3].checked_func(), "130% checked")
 entry.sub_item_table[10].sub_item_table[4].callback()
+eq(plugin.settings:popupTextPercent(), 100)
+assert(entry.sub_item_table[10].text_func():find("100%%"))
+-- Chinese text size: right after it, default 130%, choices saved.
+assert(entry.sub_item_table[11].text_func():find("Chinese text size: 130%%"))
+assert(entry.sub_item_table[11].sub_item_table[3].checked_func(), "130% checked")
+entry.sub_item_table[11].sub_item_table[4].callback()
 eq(plugin.settings:chineseTextPercent(), 150)
-assert(entry.sub_item_table[10].text_func():find("150%%"))
+assert(entry.sub_item_table[11].text_func():find("150%%"))
 
 -- Edge pass-through width: default 5 mm, five radio choices, label follows.
-local edge_item = entry.sub_item_table[8]
+local edge_item = entry.sub_item_table[9]
 eq(edge_item.text_func(), "Edge pass-through width: 5 mm")
 local labels = {}
 for _, item in ipairs(edge_item.sub_item_table) do
@@ -267,7 +267,7 @@ plugin.ui = nil
 local data = assert(plugin:readings(), "readings")
 assert(plugin:readings() == data, "loaded once")
 assert(plugin:special(), "special words load when on")
-local special_item = entry.sub_item_table[6]
+local special_item = entry.sub_item_table[7]
 special_item.callback()
 assert(not plugin.settings:specialEnabled() and plugin:special() == nil, "nothing when off")
 special_item.callback()
@@ -293,7 +293,7 @@ local function names(list)
     return table.concat(out, ",")
 end
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
-local fb_item = entry.sub_item_table[16]
+local fb_item = entry.sub_item_table[17]
 eq(fb_item.text, "Dictionaries")
 -- Source labels: default "other dictionaries only".
 local labels_item = fb_item.sub_item_table[1]
@@ -425,7 +425,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[16].sub_item_table[4].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[17].sub_item_table[4].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
@@ -437,7 +437,7 @@ local sort_args
 package.loaded["ui/widget/sortwidget"] = { new = function(_, a) sort_args = a; return a end }
 local items4 = {}
 plugin:addToMainMenu(items4)
-local dict_menu = items4.chinesehelper.sub_item_table[16].sub_item_table
+local dict_menu = items4.chinesehelper.sub_item_table[17].sub_item_table
 local updated = 0
 dict_menu[2].callback({ updateItems = function() updated = updated + 1 end })
 eq(#sort_args.item_table, 7); eq(sort_args.item_table[1].text, "Wiktionary")
@@ -518,7 +518,7 @@ local items2 = {}
 plugin2:addToMainMenu(items2)
 local dict_items = {}
 local moe_modes2 = {}
-for k, it in ipairs(items2.chinesehelper.sub_item_table[16].sub_item_table) do
+for k, it in ipairs(items2.chinesehelper.sub_item_table[17].sub_item_table) do
     if k > 3 then
         if it.sub_item_table then moe_modes2[#moe_modes2 + 1] = it else dict_items[#dict_items + 1] = it end
     end

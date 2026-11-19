@@ -224,7 +224,9 @@ annotation layer uses (so the popup cannot disagree with the pinyin drawn):
 chosen reading (or nil), the deciding word (Model.matches' `decided`),
 whether this occurrence has pinyin drawn above it, whether the reading
 is only the uncertainty pair (Resolve.forPopup's `unsure`), and what
-decided it (Resolve.forPopup's `source`).
+decided it (Resolve.forPopup's `source`), then the rank and whether the
+reading is unusual, and the spoken tone drawn instead of the dictionary
+reading (一 and 不, #37), or nil. The popup marks the dictionary reading.
 ]]
 function Tap:resolve(hit, left, right)
     local data = self.plugin:readings()
@@ -244,8 +246,8 @@ function Tap:resolve(hit, left, right)
     end
     local drawn = items[i].ws and self.plugin.annotator:drawnAt(i)
     local reading, decided, unsure, source, rank, unusual = Resolve.forPopup(data, items, i,
-        settings:uncertainMode(), special, drawn and drawn.text)
-    return reading, decided, drawn ~= nil, unsure, source, rank, unusual
+        settings:uncertainMode(), special, drawn and (drawn.dict or drawn.text))
+    return reading, decided, drawn ~= nil, unsure, source, rank, unusual, drawn and drawn.dict and drawn.text
 end
 
 -- Tap:resolve on the Han run left .. char .. right alone (a character not on
@@ -395,7 +397,7 @@ function Tap:lookup(db, char, left, right, resolve)
     local rows = db:lookup(texts)
     local fallback, always = self:fallbackRows(texts, rows)
     for _, row in ipairs(fallback) do rows[#rows + 1] = row end
-    local chosen, decided, annotated, unsure, source, rank, unusual = resolve()
+    local chosen, decided, annotated, unsure, source, rank, unusual, spoken = resolve()
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end
     local matches = Model.matches{
@@ -405,7 +407,7 @@ function Tap:lookup(db, char, left, right, resolve)
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }
     return { cands = cands, rows = rows, matches = matches, chosen = chosen, annotated = annotated,
-             rank = rank, unusual = unusual }
+             rank = rank, unusual = unusual, spoken = spoken }
 end
 
 function Tap:showPopup(hit)
@@ -422,6 +424,7 @@ function Tap:showPopup(hit)
         annotated = found.annotated, context = self:context(hit), mark = self:mark(hit),
         sentence = function(close) return self:sentenceRow(hit, close) end,
         reading = { chosen = found.chosen, rank = found.rank, unusual = found.unusual },
+        spoken = found.spoken,
     }
     logger.dbg(string.format("chinesehelper: %s [%s|%s] reading %s, %d matches in %.1f ms",
         hit.char, table.concat(left, ""), table.concat(right, ""), tostring(found.chosen), #found.matches,
@@ -601,6 +604,8 @@ Show the popup. Returns it, or nil (straight to KOReader's dictionaries).
   args.parent                       the popup whose text was tapped, or nil (the page)
   args.reading                      { chosen=, rank=, unusual= } at the tapped position, for
                                     the reading-mark buttons (page taps only), or nil
+  args.spoken                       the spoken tone drawn above 一 or 不 when it is not the
+                                    dictionary's (#37), or nil
 ]]
 function Tap:present(args)
     local comp = self:components(args.db, args.char, args.cands, args.rows)
@@ -638,6 +643,7 @@ function Tap:present(args)
         if data then rank_text = Model.rankText((data:char(args.char))) end
     end
     local rank_placed = Model.markRank(blocks, args.matches, rank_text)
+    Model.markSpoken(blocks, args.matches, args.spoken)
     local words = {}
     for _, m in ipairs(args.matches) do
         local word = m.word

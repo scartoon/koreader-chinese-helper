@@ -27,6 +27,8 @@
 -- reading wins, longest word first. This is what turns 侥 into jiǎo in 侥幸
 -- but yáo in 僬侥.
 
+local Sandhi = require("ch_sandhi")
+
 local Resolve = {}
 
 -- Number of UTF-8 code points in s.
@@ -315,11 +317,15 @@ its own position (刨 páo in 刨根, then bào in 刨子).
     left bare only when both readings are known, annotated if either is
     remind. Marks change the pinyin drawn only, never Resolve.reading.
 
-Returns { {index=i, reading="tāo", rank=4396, match=..., special=bool}, ... }
-in page order; match is the word that decided the reading (see
-Resolve.reading), or nil.
+  spoken: draw 一 and 不 with their spoken tones (ch_sandhi.lua): yí gè, bú
+    shì. The marks still apply to the dictionary reading (a known bù hides
+    bú too); `dict` is then that reading.
+
+Returns { {index=i, reading="tāo", rank=4396, match=..., special=bool,
+dict="bù" or nil}, ... } in page order; match is the word that decided the
+reading (see Resolve.reading), or nil.
 ]]
-function Resolve.annotate(data, items, threshold, uncertain, special, marks)
+function Resolve.annotate(data, items, threshold, uncertain, special, marks, spoken)
     -- Rarity first: only a rare character, one with an unusual reading in a
     -- special word, or one with a remind mark, is worth resolving. Their
     -- candidate words are then fetched in one lookup for the whole page.
@@ -331,7 +337,13 @@ function Resolve.annotate(data, items, threshold, uncertain, special, marks)
             if (sp and sp.entry.marks[sp.pos]) or rank == 0 or (rank and rank > threshold)
                     or (marks and marks:mayRemind(item.text)) then
                 wanted[#wanted + 1] = { i, sp }
-                if data.prefetch then candidate_words(data, items, i, words) end
+                if data.prefetch then
+                    candidate_words(data, items, i, words)
+                    -- The next syllable decides a spoken tone.
+                    if spoken and Sandhi.SPOKEN[item.text] and items[i + 1] then
+                        candidate_words(data, items, i + 1, words)
+                    end
+                end
             end
         end
     end
@@ -356,12 +368,20 @@ function Resolve.annotate(data, items, threshold, uncertain, special, marks)
         if mark == "known" then reading = nil end
         local remind = mark == "remind"
         if reading and (marked or remind or rank == 0 or (rank and rank > threshold)) then
+            local dict, sandhi
+            if spoken and Sandhi.SPOKEN[item.text] then
+                local said, rule = Sandhi.spoken(data, items, i, reading, match, function(j)
+                    return (Resolve.reading(data, items, j, Resolve.UNCERTAIN_BEST, special))
+                end)
+                if said then reading, dict, sandhi = said, reading, rule end
+            end
             -- Rarity used to decide what to drop when a line is crowded:
             -- unranked characters count as rarest.
             -- Unusual readings are kept like the rarest characters.
             out[#out + 1] = { index = i, reading = reading,
                               rank = (marked or remind or rank == 0) and math.huge or rank,
-                              match = match, special = marked or nil, remind = remind or nil }
+                              match = match, special = marked or nil, remind = remind or nil,
+                              dict = dict, sandhi = sandhi }
         end
     end
     return out

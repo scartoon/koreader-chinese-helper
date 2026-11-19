@@ -15,6 +15,24 @@ Settings.POPUP_SIZES = { 40, 60, 80, 100, 120 }     -- popup text size, % of the
 Settings.CHINESE_SIZES = { 100, 115, 130, 150, 175 } -- Chinese text in the popup, % of the popup text size
 
 Settings.UNCERTAIN_BOTH = "both"
+-- "Spoken tones for 一 and 不" (#37): in learner mode (All characters),
+-- always, or never.
+Settings.SPOKEN_LEARNER, Settings.SPOKEN_ALWAYS, Settings.SPOKEN_NEVER = "learner", "always", "never"
+
+function Settings:spokenTonesMode()
+    local mode = self:get("spoken_tones")
+    if mode ~= Settings.SPOKEN_ALWAYS and mode ~= Settings.SPOKEN_NEVER then mode = Settings.SPOKEN_LEARNER end
+    return mode
+end
+
+-- Are 一 and 不 drawn with their spoken tones now?
+function Settings:spokenTones()
+    local mode = self:spokenTonesMode()
+    if mode == Settings.SPOKEN_ALWAYS then return true end
+    if mode == Settings.SPOKEN_NEVER then return false end
+    return self:threshold() == Settings.ALL
+end
+
 Settings.UNCERTAIN_BEST = "best"
 Settings.UNCERTAIN_SKIP = "skip"
 
@@ -24,6 +42,7 @@ Settings.DEFAULTS = {
     threshold = 3500,
     size_pct = 40,
     uncertain = "both",
+    spoken_tones = "learner", -- "Spoken tones for 一 and 不": "learner", "always", "never"
     special = true,
     special_style = "bold",   -- not in the menu: "bold", "underline" or "none"
     fallback_wikt = true,     -- fallback dictionaries, for words CC-CEDICT lacks
