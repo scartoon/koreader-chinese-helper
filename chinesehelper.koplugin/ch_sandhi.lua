@@ -74,10 +74,12 @@ for w in ("过来 過來 过去 過去 起来 起來 出来 出來 出去 下来
     Sandhi.DIRECTIONAL[w] = true
 end
 -- Complements common enough after V不 that V得C need not be a word
--- (做不到, 扩不动), after anything but these (他不动, 也不到, 一年不到).
-Sandhi.STRONG_COMPLEMENTS = set("到动動住完懂见見")
+-- (做不到, 轮不到), after anything but these (他不到, 也不到, 一年不到). Not
+-- 见, 动 or 懂: too often a plain negation (僵住不动, 岂能不懂).
+Sandhi.STRONG_COMPLEMENTS = set("到完")
 Sandhi.NOT_VERBS = set("我你他她它您们們谁誰这這那此其之也都就还還又才并並却卻再很更最已曾总總便倒竟绝絕决決"
-    .. "毫永从從根本全俱皆亦尚仍而且但可若如是着著了的得地么麼呢吧啊人年天时時日月岁歲个個些点點")
+    .. "毫永从從根本全俱皆亦尚仍而且但可若如是着著了的得地么麼呢吧啊人年天时時日月岁歲个個些点點"
+    .. "能会會要该該应應敢肯岂豈")
 -- Resultative and directional complements after V不 (看不见, 来不及).
 Sandhi.COMPLEMENTS = set("见見到了起动動住完及过過下上出来來去开開懂清着著透惯慣成掉走够夠赢贏得")
 
@@ -172,11 +174,15 @@ local function bu(data, items, i, match, next_reading)
     -- liǎo in CC-CEDICT) does not count.
     local lexical = match and match.len and match.len > 1 and match.start < i
         and not (match.start == i - 1 and match.len == 3)
-    if prev and not lexical then
+    -- 不 starts a fixed phrase (不得了, 不着边际): no A-不-A there.
+    local nxt2 = joined_next(data, items, i + 2)
+    local nxt3 = nxt2 and joined_next(data, items, i + 3)
+    local phrase = nxt2 and (data:word(Sandhi.BU .. nxt.text .. nxt2.text)
+        or (nxt3 and data:word(Sandhi.BU .. nxt.text .. nxt2.text .. nxt3.text)))
+    if prev and not lexical and not phrase then
         if prev.text == nxt.text then return "bu", "bu-aba" end
         -- AB不AB: 愿意不愿意.
         local prev2 = items[i - 1].joined and items[i - 2]
-        local nxt2 = joined_next(data, items, i + 2)
         if prev2 and nxt2 and han(data, prev2) and prev2.text == nxt.text and prev.text == nxt2.text then
             return "bu", "bu-aba"
         end

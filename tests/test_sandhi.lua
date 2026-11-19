@@ -155,5 +155,9 @@ check("数一数二", "yī")
 -- complements.
 check("明年一年做到", "yì"); check("四个人一人对付", "yì"); check("在旁边一边整理", "yì")
 check("愿意不愿意", "bu"); check("拿不过来", "bu"); check("想不起来", "bu")
-check("扩不动", "bu"); check("做不到", "bu"); check("轮不到", "bu")
+check("做不到", "bu"); check("轮不到", "bu")
 check("他不动", "bú"); check("也不到", "bú")
+
+-- Third round: fixed phrases after A; plain negations before 见, 动, 懂.
+check("得不得了", "bù"); check("着不着边际", "bù")
+check("僵住不动", "bú"); check("岂能不懂", "bù"); check("做不完", "bu")
