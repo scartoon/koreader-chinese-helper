@@ -194,6 +194,7 @@ function Popup:build()
         zero_sep = true,
         show_parent = self,
     }
+    Popup.shadeSeparators(button_table, Model.separatorShade(Screen.night_mode))
 
     -- Text area: as tall as the text, up to what the screen leaves.
     local text_w = inner_w - 2 * padding
@@ -218,6 +219,25 @@ function Popup:build()
     }
     self[1] = self.frame
     self.has_context = line ~= nil
+end
+
+--[[--
+Draws a ButtonTable's grey separator lines (the row lines and the lines
+between buttons in a row) in `shade` (Model.separatorShade). Black lines and
+white (no_vertical_sep) ones are left alone.
+]]
+function Popup.shadeSeparators(button_table, shade)
+    local default = Blitbuffer.COLOR_GRAY.a
+    if shade == default then return end
+    local color = Blitbuffer.Color8(shade)
+    local function visit(w)
+        if getmetatable(w) == LineWidget then
+            if w.background and w.background.a == default then w.background = color end
+        elseif type(w) == "table" and getmetatable(w) == HorizontalGroup then
+            for _, child in ipairs(w) do visit(child) end
+        end
+    end
+    for _, w in ipairs(button_table.container) do visit(w) end
 end
 
 -- The reading-mark buttons' text: a little smaller than the popup text.

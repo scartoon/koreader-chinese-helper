@@ -446,3 +446,13 @@ eq(bl[1].rank, "字频 9"); eq(bl[2].rank, nil)
 bl = { {} }
 assert(not Model.markRank(bl, { { len = 2 } }, "字频 9"), "no entry of its own")
 eq(bl[1].rank, nil)
+
+------------------------------------------------------------------------
+-- Button separators in night mode (#43)
+------------------------------------------------------------------------
+-- Day mode keeps KOReader's grey; night mode draws them darker, so that
+-- after the inversion they are as light on black as day's are on white.
+eq(Model.separatorShade(false), 0xAA)
+eq(Model.separatorShade(nil), 0xAA)
+eq(Model.separatorShade(true), 0x55)
+eq(Model.separatorShade(true), 0xFF - Model.separatorShade(false))
