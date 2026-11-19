@@ -145,3 +145,8 @@ do
     eq(blocks[1].spoken, nil)
     eq(Model.markSpoken({ {} }, { { len = 2 } }, "bú"), false, "only on the character's own entry")
 end
+
+-- From the corpus judging: 不不 stays bù bù; 我不见它 and 不打不成交 are plain
+-- negations (bú before 见); 数一数二 keeps yī.
+check("不不", "bù bù"); check("我不见它", "bú"); check("不打不成交", "bù bù")
+check("数一数二", "yī")

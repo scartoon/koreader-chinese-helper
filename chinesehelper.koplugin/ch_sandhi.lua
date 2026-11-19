@@ -12,8 +12,8 @@
 --
 --   不  bú before a fourth tone (不是, 不要). Neutral bu in A-不-A (是不是)
 --       and between a verb and its complement (看不见, 说不出): the
---       complement is one of Sandhi.COMPLEMENTS and the verb + complement,
---       or the verb + 得 + complement, is a dictionary word.
+--       complement is one of Sandhi.COMPLEMENTS and the verb + 得 +
+--       complement is a dictionary word. 不不 ("no, no") stays bù bù.
 --   一  yí before a fourth tone (一个, 一定), yì before the other tones (一天,
 --       一年, 一起). Neutral yi in a reduplicated verb (看一看). It stays yī
 --       as a number or ordinal: before punctuation or anything not Han;
@@ -135,9 +135,11 @@ local function yi(data, items, i, match, next_reading)
     local after = items[i + 2]
     if Sandhi.ORDINAL_WORDS[Sandhi.YI .. n] then return nil end
     if after and after.joined and Sandhi.ORDINAL_WORDS[Sandhi.YI .. n .. after.text] then return nil end
-    -- 看一看, but not the 一X一X of 一步一步 (yí bù yí bù).
+    -- 看一看, but not the 一X一X of 一步一步 (yí bù yí bù) nor 数一数二.
     if p and p == n then
         local before = items[i - 1].joined and items[i - 2]
+        local beyond = joined_next(data, items, i + 2)
+        if beyond and Sandhi.DIGITS[beyond.text] then return nil end   -- 数一数二: a numeral
         if not (before and before.text == Sandhi.YI) then return "yi", "yi-redup" end
     end
     local t = next_tone(data, nxt, next_reading(i + 1))
@@ -148,7 +150,7 @@ end
 
 local function bu(data, items, i, match, next_reading)
     local nxt = joined_next(data, items, i + 1)
-    if not nxt then return nil end
+    if not nxt or nxt.text == Sandhi.BU then return nil end   -- 不不: "no, no"
     local prev = joined_prev(data, items, i)
     -- A word that takes in the character before 不 decided its tone (决不,
     -- 好不容易): no neutral bu there. The V不C word itself (吃不了 chī bù
@@ -162,8 +164,9 @@ local function bu(data, items, i, match, next_reading)
             local after = joined_next(data, items, i + 2)
             if not (after and data:word("了" .. after.text)) then return "bu", "bu-liao" end
         end
-        if Sandhi.COMPLEMENTS[nxt.text] and (data:word(prev.text .. nxt.text)
-                or data:word(prev.text .. "得" .. nxt.text)) then
+        -- The potential form V得C must be a word: 看得见, 来得及, 说得出
+        -- (V + C alone lets in 我见, 打成, 年过: 我不见它, 不打不成交).
+        if Sandhi.COMPLEMENTS[nxt.text] and data:word(prev.text .. "得" .. nxt.text) then
             return "bu", "bu-comp"
         end
     end

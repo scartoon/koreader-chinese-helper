@@ -116,7 +116,7 @@ def sample(args):
     counts, rows = load()
     rng = random.Random(args.seed)
     held = set(open(os.path.join(ROOT, "build", "sandhi-heldout.txt")).read().split())
-    pool = [r for r in rows if r[0] in held]
+    pool = [r for r in rows if r[0] in held and (not args.rules or r[5] in args.rules.split(","))]
     done = set()
     if os.path.exists(VERDICTS):
         for r in csv.reader(open(VERDICTS, encoding="utf-8"), delimiter="\t"):
@@ -128,7 +128,7 @@ def sample(args):
         by_rule[r[5]].append(r)
     for rule, items in by_rule.items():
         have = sum(1 for r in picked if r[5] == rule)
-        extra = [r for r in items if r not in picked]
+        extra = [r for r in items if r not in picked and f"{r[0]}:{r[1]}" not in done]
         rng.shuffle(extra)
         picked += extra[:max(0, args.per_rule - have)]
     os.makedirs(JUDGE, exist_ok=True)
@@ -213,6 +213,7 @@ def main():
     s.add_argument("--seed", type=int, default=37)
     s.add_argument("--n", type=int, default=100)
     s.add_argument("--per-rule", type=int, default=25)
+    s.add_argument("--rules", default="", help="only these rules, comma-separated")
     r = sub.add_parser("report")
     r.add_argument("--wrong", action="store_true")
     args = ap.parse_args()
