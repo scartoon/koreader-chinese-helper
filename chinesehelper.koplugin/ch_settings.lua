@@ -75,6 +75,7 @@ Settings.DEFAULTS = {
     popup_context = true,     -- "Show the text around the character in the popup"
     page_underline = true,    -- "Underline the tapped character on the page"
     match_book_font = true,   -- "Try to match the book's font": Chinese text in the popup in the book's font
+    classical_mode = false,   -- "Classical mode" (#53): the Classical dictionary's block under CC-CEDICT's
 }
 
 -- store: G_reader_settings (readSetting, saveSetting, flush), or nil.
@@ -103,6 +104,7 @@ function Settings:specialEnabled() return self:get("special") == true end
 function Settings:componentsEnabled() return self:get("components") == true end
 function Settings:charRankEnabled() return self:get("char_rank") == true end
 function Settings:tradHeadsEnabled() return self:get("trad_heads") == true end
+function Settings:classicalEnabled() return self:get("classical_mode") == true end
 
 Settings.TEXT_ORIGINAL, Settings.TEXT_SIMPLIFIED = "original", "simplified"
 

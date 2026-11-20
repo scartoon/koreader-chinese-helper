@@ -79,7 +79,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 20 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 14 + 3, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3)
+eq(count, 20 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 14 + 3 + 1, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
@@ -336,9 +336,18 @@ eq(text_item.text_func(), "Dictionary text: simplified")
 eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝啬。贬义。", "simplified idiom line")
 text_item.sub_item_table[1].callback(); eq(plugin.settings:dictText(), "original")
 eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝嗇。貶義。", "the 成語典's own text")
+-- Classical mode (#53): off by default, a toggle, the same setting as the
+-- popup's 文言 button; greyed out without the classical table.
+local classical_item = fb_item.sub_item_table[3]
+eq(classical_item.text, "Classical mode")
+assert(classical_item.help_text:find("文言", 1, true), classical_item.help_text)
+assert(not plugin.settings:classicalEnabled() and not classical_item.checked_func(), "off by default")
+classical_item.callback(); assert(plugin.settings:classicalEnabled() and classical_item.checked_func())
+classical_item.callback(); assert(not plugin.settings:classicalEnabled())
+classical_item.enabled_func()
 -- Then Order and Collapse long entries.
-local collapse_item = fb_item.sub_item_table[4]
-eq(fb_item.sub_item_table[3].text, "Order")
+local collapse_item = fb_item.sub_item_table[5]
+eq(fb_item.sub_item_table[4].text, "Order")
 eq(collapse_item.text_func(), "Collapse long entries: 2 lines")
 collapse_item.sub_item_table[4].callback(); eq(plugin.settings:collapseLines(), 0)
 eq(collapse_item.text_func(), "Collapse long entries: never")
@@ -348,12 +357,12 @@ collapse_item.sub_item_table[2].callback()
 local all_items = fb_item.sub_item_table
 local moe_modes = {}
 fb_item = { sub_item_table = {} }
-for k = 5, #all_items do
+for k = 6, #all_items do
     local it = all_items[k]
     if it.sub_item_table then moe_modes[#moe_modes + 1] = it else fb_item.sub_item_table[#fb_item.sub_item_table + 1] = it end
 end
 eq(#moe_modes, 2)
-eq(all_items[8], moe_modes[1], "right after MOE's switch")
+eq(all_items[9], moe_modes[1], "right after MOE's switch")
 eq(moe_modes[1].text_func(), "    MOE for single characters: fallback")
 assert(moe_modes[1].sub_item_table[2].checked_func(), "Fallback checked by default")
 eq(moe_modes[1].sub_item_table[2].text, "Fallback: only when CC-CEDICT lacks it (default)")
@@ -460,7 +469,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[19].sub_item_table[5].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[19].sub_item_table[6].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
@@ -474,14 +483,14 @@ local items4 = {}
 plugin:addToMainMenu(items4)
 local dict_menu = items4.chinesehelper.sub_item_table[19].sub_item_table
 local updated = 0
-dict_menu[3].callback({ updateItems = function() updated = updated + 1 end })
+dict_menu[4].callback({ updateItems = function() updated = updated + 1 end })
 eq(#sort_args.item_table, 7); eq(sort_args.item_table[1].text, "Wiktionary")
 local moved = table.remove(sort_args.item_table, 6)   -- Wikipedia titles to the top
 table.insert(sort_args.item_table, 1, moved)
 sort_args.callback()
 eq(plugin.settings:get("fallback_order"), "wp,wikt,cbdb,moe,idioms,xinhua,moegirl")
 eq(updated, 1)
-eq(dict_menu[5].text_func(), "Wikipedia titles"); eq(#dict_menu, 4 + 7 + 2, "rebuilt, not added to")
+eq(dict_menu[6].text_func(), "Wikipedia titles"); eq(#dict_menu, 5 + 7 + 2, "rebuilt, not added to")
 plugin.settings:set("fallback_order", nil)
 
 -- The popup with idioms (ch_tap.lua present, with a stand-in for the popup
@@ -554,7 +563,7 @@ plugin2:addToMainMenu(items2)
 local dict_items = {}
 local moe_modes2 = {}
 for k, it in ipairs(items2.chinesehelper.sub_item_table[19].sub_item_table) do
-    if k > 4 then
+    if k > 5 then
         if it.sub_item_table then moe_modes2[#moe_modes2 + 1] = it else dict_items[#dict_items + 1] = it end
     end
 end

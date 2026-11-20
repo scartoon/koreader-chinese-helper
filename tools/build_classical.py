@@ -230,6 +230,7 @@ CLASSICAL_SQL = "SELECT trad, simp, senses FROM classical WHERE trad = ? OR simp
 VARIANT_SQL = "SELECT trad FROM classical_variant WHERE ch = ?"
 SCHEMA = """
 CREATE TABLE classical (trad TEXT PRIMARY KEY, simp TEXT NOT NULL, senses TEXT NOT NULL, raw TEXT NOT NULL) WITHOUT ROWID;
+-- senses: one "reading<TAB>gloss<TAB>sources" line per sense; raw: the collated input lines
 CREATE INDEX classical_simp ON classical(simp);
 CREATE TABLE classical_variant (ch TEXT PRIMARY KEY, trad TEXT NOT NULL) WITHOUT ROWID;
 """
@@ -240,7 +241,11 @@ def read_data(path=DATA):
     with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
         for row in csv.reader((line for line in f if not line.startswith("#")), delimiter="\t"):
             if row[0] == "entry":
-                entries.append((row[1], row[2], row[3], row[4]))
+                # For the plugin: one "reading<TAB>gloss<TAB>sources" line per
+                # sense (no JSON decoder needed on the device).
+                senses = "\n".join("\t".join((s["reading"], s["gloss"], ",".join(s["sources"])))
+                                   for s in json.loads(row[3]))
+                entries.append((row[1], row[2], senses, row[4]))
             elif row[0] == "variant":
                 var.append((row[1], row[2]))
     return entries, var

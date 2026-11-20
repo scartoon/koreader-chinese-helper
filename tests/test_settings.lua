@@ -32,6 +32,9 @@ eq(s:threshold(), 5000); assert(st.flushed > 0, "written to disk")
 -- Traditional forms on the head lines (#47): on by default.
 eq(Settings.new(store()):tradHeadsEnabled(), true)
 eq(Settings.new(store{ chinesehelper_trad_heads = false }):tradHeadsEnabled(), false)
+-- Classical mode (#53): off by default.
+eq(Settings.new(store()):classicalEnabled(), false)
+eq(Settings.new(store{ chinesehelper_classical_mode = true }):classicalEnabled(), true)
 
 -- Thresholds: All (0), 500 and 1,000 as well as the old steps; anything else
 -- is the default.

@@ -842,6 +842,7 @@ function ChineseHelper:addToMainMenu(menu_items)
                         },
                     },
                     plugin:dictTextItem(),
+                    plugin:classicalItem(),
                 }),
                 separator = true,
             },
@@ -917,6 +918,23 @@ function ChineseHelper:fallbackItems(apply, items)
     fixed = #items
     fill()
     return items
+end
+
+-- "Classical mode" (#53): the Classical dictionary's block right under the
+-- tapped character's CC-CEDICT entry. The same setting as the popup's 文言
+-- button. Needs a database with the classical table.
+function ChineseHelper:classicalItem()
+    local plugin, settings = self, self.settings
+    return {
+        text = _("Classical mode"),
+        help_text = _("For reading classical Chinese (文言). Every popup shows the Classical dictionary's entry for the tapped character right under its CC-CEDICT entry: up to five senses from classical texts, collapsed to a few lines. A character with no entry adds nothing. The 文言 button at the top of each popup turns this on (文言 ✓) and off. The Classical dictionary is condensed from Chinese Notes, English Wiktionary and Unihan."),
+        enabled_func = function()
+            local db = plugin:db()
+            return db ~= nil and db:hasClassical()
+        end,
+        checked_func = function() return settings:classicalEnabled() end,
+        callback = function() settings:set("classical_mode", not settings:classicalEnabled()) end,
+    }
 end
 
 -- "Dictionary text" (#48): each dictionary's text as its source writes it,

@@ -628,3 +628,28 @@ eq(Model.citationPick(cands({ "處", 0 }, { "好處", -1 }), "處"), "chù", "�
 eq(Model.citationPick(cands({ "应", 0 }, { "答应", -1 }, { "满口答应", -3 }), "应"), "yìng", "满口答应")
 eq(Model.citationPick(cands({ "处", 0 }, { "处理", 0 }), "处"), nil, "处理: not listed")
 eq(Model.citationPick(cands({ "好", 0 }, { "好处", 0 }), "好"), nil, "only the listed character")
+
+------------------------------------------------------------------------
+-- The Classical dictionary's blocks (#53)
+------------------------------------------------------------------------
+local fa = {
+    { trad = "發", simp = "发", senses = "fā\tto shoot (an arrow)\tCN\nfā\tto open; to uncover\tCN,Wikt" },
+    { trad = "髮", simp = "发", senses = "\thair of the head\tCN" },
+}
+local cb = Model.classicalBlocks(fa, "发", "髮", "**", "**", true)
+eq(#cb, 1, "the word's form only (头发 → 髮)")
+eq(cb[1].head, "**发** 髮"); eq(cb[1].word, "发"); eq(cb[1].trad, "髮"); eq(cb[1].source, "classical")
+assert(cb[1].collapse and cb[1].classical)
+eq(table.concat(cb[1].lines, " | "), "hair of the head")
+cb = Model.classicalBlocks(fa, "发", nil, "**", "**", true)
+eq(#cb, 2, "no word decides: each form")
+eq(table.concat(cb[1].lines, " | "), "fā: to shoot (an arrow) | fā: to open; to uncover")
+cb = Model.classicalBlocks(fa, "發", nil, "**", "**", true)
+eq(#cb, 1, "tapped in traditional: its own entry"); eq(cb[1].head, "**发** 發")
+cb = Model.classicalBlocks(fa, "髮", nil, "**", "**", false)
+eq(cb[1].head, "**发**", "Show traditional forms off: the word alone"); eq(cb[1].trad, nil)
+local zhi = Model.classicalBlocks({ { trad = "之", simp = "之", senses = "\thim; her; it\tCN,Wikt" } }, "之", nil, "", "", true)
+eq(zhi[1].head, "之"); eq(zhi[1].trad, nil, "the same form: nothing beside it")
+eq(#Model.classicalBlocks({}, "的", nil), 0, "no entry: nothing")
+eq(#Model.classicalBlocks({ { trad = "x", simp = "x", senses = "" } }, "x", nil), 0, "no senses: nothing")
+eq(Model.SOURCE_LABELS.classical, "文言")
