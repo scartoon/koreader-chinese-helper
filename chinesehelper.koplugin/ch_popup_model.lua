@@ -175,15 +175,32 @@ end
 --      (不是 bùshì "is not" must not also mark bùshi "fault");
 --   3. a neutral chosen reading standing for the entry with the same letters
 --      (西 in 东西 dōngxi: 西's own entry xī; 捣 drawn dao in 鼓捣: dǎo).
---      Where several tones have those letters (糊 hù, hú, hū for 含糊 hu),
---      only `prefer` (the character's default reading) when it is one of them.
+--      Where several tones have those letters, the ones whose traditional
+--      forms include `pick` (the word's traditional form of the character,
+--      Model.tradPick: 发 in 头发 is 髮, so fà, not fā; #51) when that
+--      separates them; otherwise only `prefer` (the character's default
+--      reading) when it is one of them (糊 hù, hú, hū for 含糊 hu: hú).
 -- `value` is what marked is set to. Returns whether anything was marked.
-local function markMatching(entries, chosen, value, prefer)
+local function markMatching(entries, chosen, value, prefer, pick)
     local want = Pinyin.lower(chosen)
     local neutral = want == Pinyin.stripTones(want)
     local function sameLetters(e) return neutral and Pinyin.stripTones(Pinyin.lower(e.syllables)) == want end
+    local function picked(e)
+        for _, t in ipairs(e.trads or {}) do if t == pick then return true end end
+        return false
+    end
+    local by_pick = false
+    if neutral and pick then
+        local with, without = 0, 0
+        for _, e in ipairs(entries) do
+            if sameLetters(e) then
+                if picked(e) then with = with + 1 else without = without + 1 end
+            end
+        end
+        by_pick = with > 0 and without > 0
+    end
     local narrowed = false
-    if neutral and prefer and prefer ~= "" then
+    if neutral and not by_pick and prefer and prefer ~= "" then
         prefer = Pinyin.lower(prefer)
         for _, e in ipairs(entries) do
             if sameLetters(e) and Pinyin.lower(e.syllables) == prefer then narrowed = true end
@@ -192,7 +209,11 @@ local function markMatching(entries, chosen, value, prefer)
     local tests = {
         function(e) return Pinyin.lower(e.syllables) == want end,
         function(e) return Pinyin.matches(e.syllables, want) end,
-        function(e) return sameLetters(e) and (not narrowed or Pinyin.lower(e.syllables) == prefer) end,
+        function(e)
+            if not sameLetters(e) then return false end
+            if by_pick then return picked(e) end
+            return not narrowed or Pinyin.lower(e.syllables) == prefer
+        end,
     }
     for _, test in ipairs(tests) do
         for _, proper in ipairs({ false, true }) do
@@ -429,7 +450,9 @@ The popup's matches.
   args.chosen       the resolver's reading of the tapped character ("dào", or a
                     pair "chéng/shèng"), or nil
   args.default      the tapped character's default reading, or nil: which of
-                    several same-letter tones a neutral `chosen` stands for
+                    several same-letter tones a neutral `chosen` stands for, when the
+                    word's traditional form of the character (Model.tradPick)
+                    does not settle it (#51)
   args.annotated    true when that reading is drawn above the character
   args.unsure       true when `chosen` is the uncertainty pair (no word or rule
                     decided; Resolve.forPopup): its readings are marked
@@ -575,13 +598,14 @@ function Model.matches(args)
         end
     end
     -- The tapped character: mark the resolver's reading(s).
+    local trad_pick = anchor and Model.tradPick(args.cands, args.rows)
     if anchor and fromCedict(anchor) and args.chosen and args.chosen ~= "" then
         local entries = anchor.entries
         local several = distinctReadings(entries) > 1 or toneless
         local rank = 0
         for reading in args.chosen:gmatch("[^/]+") do
             rank = rank + 1
-            if not markMatching(entries, reading, several or nil, args.default) then
+            if not markMatching(entries, reading, several or nil, args.default, trad_pick) then
                 -- A reading CC-CEDICT does not list for the character itself
                 -- (it may come from a pypinyin phrase): shown, with no senses.
                 entries[#entries + 1] = { pinyin = reading, syllables = reading, senses = {},
@@ -631,7 +655,7 @@ function Model.matches(args)
     end
     words = kept
     if anchor then
-        anchor.trad_pick = Model.tradPick(args.cands, args.rows)
+        anchor.trad_pick = trad_pick
         anchor.simp_pick = Model.simpPick(args.cands, args.rows)
         table.insert(words, 1, anchor)
     end

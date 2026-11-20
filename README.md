@@ -507,7 +507,9 @@ always be told from a plain negation, so where no word confirms it, 不 keeps th
 
 Where CC-CEDICT gives a word's syllable only as a neutral tone, that is
 drawn above a rare character (刺猬 *cìwei*, 鼓捣 *gǔdao*, 疙瘩 *gēda*), and its popup entry (猬
-*wèi*) is marked with the same letters. Where CC-CEDICT lists the word both ways (大爷 *dàyé*
+*wèi*) is marked with the same letters. When the character has several entries with those
+letters, the one whose traditional form the word uses is marked (发 in 头发 *tóufa*: 髮 *fà*,
+not 發 *fā*), else the character's default. Where CC-CEDICT lists the word both ways (大爷 *dàyé*
 "idler" / *dàye* "uncle"), the toned reading is drawn and the popup marks the neutral one.
 
 What is drawn on a page:
