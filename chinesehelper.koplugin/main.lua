@@ -785,6 +785,12 @@ function ChineseHelper:addToMainMenu(menu_items)
                 callback = function() settings:set("char_rank", not settings:charRankEnabled()) end,
             },
             {
+                text = _("Show traditional forms"),
+                help_text = _("On each entry's head line, the word's traditional form beside it, smaller and grey, when it is not the same: 头发 頭髮. A word shows the one form it is written with; a single character with several shows them all, the one the word around it uses first (发 髮/發 in 头发). Nothing is added when the traditional form is the same (人民), or when the book is in traditional characters. The entries' own text is not changed."),
+                checked_func = function() return settings:tradHeadsEnabled() end,
+                callback = function() settings:set("trad_heads", not settings:tradHeadsEnabled()) end,
+            },
+            {
                 text = _("Show the text around the character in the popup"),
                 help_text = _("A line at the top of the popup with the text around the tapped character, as much of its sentence as fits on one line, the character in bold and underlined. It is drawn at the Chinese text size. It shows the text as it is on the page and never goes past the end of the sentence, the paragraph or the page. Popups opened from the word buttons mark the whole word."),
                 checked_func = function() return settings:contextEnabled() end,

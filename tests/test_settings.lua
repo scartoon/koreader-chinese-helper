@@ -29,6 +29,10 @@ eq(s:popupEnabled(), false)
 s:set("threshold", 5000)
 eq(s:threshold(), 5000); assert(st.flushed > 0, "written to disk")
 
+-- Traditional forms on the head lines (#47): on by default.
+eq(Settings.new(store()):tradHeadsEnabled(), true)
+eq(Settings.new(store{ chinesehelper_trad_heads = false }):tradHeadsEnabled(), false)
+
 -- Thresholds: All (0), 500 and 1,000 as well as the old steps; anything else
 -- is the default.
 for _, t in ipairs({ 0, 500, 1000, 1500, 2500, 3500, 5000, 7000 }) do
