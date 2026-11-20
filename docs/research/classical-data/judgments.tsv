@@ -1,0 +1,151 @@
+id	status	needed	keywords
+1	ok	foot soldiers, troops	soldier|troops|infantry|footm
+2	ok	and, and thus (linking two verbs)	\band\b|conjunction|connect
+3	ok	what, how (interrogative)	\bwhat\b|\bhow\b|\bwhy\b|interrogat
+4	ok	and, as well as; extending to	\band\b|as well as|together with|to reach|extend
+5	ok	sentence-final particle of assertion	final particle|sentence-final|end of (a )?sentence|affirm|assert|declarative
+6	ok	his, its (possessive pronoun)	\bhis\b|\bits\b|\btheir\b|possessive
+7	ok	the one who, those who (nominalizer)	one who|those who|person who|that which|nominali|people who
+8	ok	should, ought to	should|ought|proper|appropriate|fitting
+9	ok	to govern, run (a state)	govern|manag|\brule\b|to rule|administer|\bto do\b
+10	excl	modern annotation (由於)	
+11	ok	by (agent of a passive), at the hands of	\bby\b|passive|agent
+12	ok	then, thereupon	\bthen\b|thereupon|accordingly|and so
+13	ok	final particle: completed action, emphasis	particle|completed|change of (state|situation)|perfect|final
+14	ok	and then	\band\b|and then|\bthen\b
+15	ok	oneself	oneself|\bself\b|personally|one's own
+16	ok	sentence-final particle of assertion	final particle|sentence-final|end of (a )?sentence|affirm|assert|declarative
+17	ok	with (to contend with)	\bwith\b|together with
+18	ok	that which; the reason (所以…者, nominalizer)	one who|that which|nominali|those who|the reason
+19	ok	subordinating particle between subject and predicate, 's	possessive|genitive|attributive|subordinat|'s\b|\bof\b|modif|subject and (the )?predicate
+20	ok	then, thereupon	\bthen\b|thereupon|accordingly|and so
+21	ok	subordinating particle between subject and predicate	subject and (the )?predicate|nominali|subordinat|possessive|genitive|attributive|\bof\b
+22	ok	oneself	oneself|\bself\b|personally
+23	excl	variant note (無「已」字)	
+24	ok	this (demonstrative)	\bthis\b|\bthat\b|demonstrative
+25	ok	it, therein (pronoun)	\bits?\b|\bthat\b|\bthis\b|\bthem\b|\bhis\b|\btheir\b
+26	ok	to use, with, by means of (instrumental)	\buse\b|\bwith\b|by means|by way of|\btake\b|instrument
+27	ok	with, by means of (instrumental)	\buse\b|\bwith\b|by means|by way of|\btake\b|instrument
+28	ok	general, commander	general|commander
+29	ok	like, such (若是: like this)	\blike\b|\bas\b|\bsuch\b|\bthus\b|similar
+30	ok	general (將軍)	general|commander
+31	ok	to cause, make, let	to cause|to make|\blet\b|to enable
+32	ok	why	\bwhy\b|\bwhat\b|\bhow\b
+33	excl	modern annotation (已經)	
+34	ok	and	\band\b|as well as|together with
+35	ok	this (於是: thereupon)	\bthis\b|thereupon|\bthat\b
+36	ok	therefore	therefore|hence|\bthus\b|consequently|\bso\b
+37	ok	to associate with, side with	associate|take part|participat|join|keep company|befriend|ally|side with
+38	ok	to cause, make, let	to cause|to make|\blet\b|to enable
+39	ok	chancellor, minister	minister|chancellor|premier
+40	ok	that by which (所以, nominalizer)	that which|by which|nominali|\bwhat\b|means
+41	excl	heading (安王 reign name)	
+42	ok	none, no one	no one|nobody|none|nothing|\bnot\b
+43	ok	nothing, none	no one|nobody|none|nothing|\bnot\b
+44	ok	to act as, serve as	to be\b|to act as|to serve as|to become|to be made
+45	ok	final particle: completed action, emphasis	particle|completed|change of (state|situation)|perfect|final
+46	ok	final particle (in it, there)	particle|final|in it|therein|\bthere\b
+47	ok	to carry out, practise	to do\b|carry out|practi|perform|\bto act\b|implement|conduct
+48	name	藺相如 (personal name)	
+49	ok	reason, cause (無故: without reason)	reason|cause
+50	ok	final particle	particle|final|in it|therein|\bthere\b
+51	ok	then, thereupon	\bthen\b|thereupon|finally|consequently|subsequently|and so
+52	ok	to die	\bdie|death|\bdied\b|decease
+53	ok	to resent, bear a grudge against	resent|grudge|complain|enmity|hatred|blame
+54	ok	to trust, be trusted; loyal, sincere	trust|faith|believ|loyal|honest|sincer
+55	ok	sentence-initial particle (now, indeed)	initial particle|beginning of a sentence|introduc|\bnow\b|particle
+56	ok	those whom (所 + verb, nominalizer)	that which|\bwhat\b|those whom|nominali|object of
+57	ok	master, teacher (夫子)	master|teacher|\bsir\b|gentleman|scholar
+58	ok	idly, without effort (坐定: settle while sitting by)	idly|without effort|effortless|passiv|sit by|just sit
+59	ok	only, merely	only|merely|\bjust\b|simply
+60	ok	to perish, be destroyed (敗亡)	\bdie|perish|death|destroy|ruin|\blost\b|to lose|\bflee
+61	ok	the people	people|citizen|populace|subject
+62	ok	not	\bnot\b|\bno\b|negat
+63	excl	commentary (正作)	
+64	name	仲子 (personal name)	
+65	excl	modern annotation	
+66	ok	great, highest (太子: crown prince)	crown prince|\bgreat|highest|supreme|\bgrand
+67	ok	army	army|troops|military|division
+68	ok	before, earlier	before|earlier|former|preceding|ahead|front
+69	ok	not, is not	\bnot\b|wrong|negat
+70	ok	to have	to have|there (is|are)|exist|possess
+71	ok	to turn back	turn|return|go back|come back
+72	ok	greatly	\bgreat|\bbig\b|large
+73	ok	to tell, report	tell|inform|report|announce
+74	ok	affair, matter	matter|affair|thing|event|business
+75	name	田光 (personal name)	
+76	ok	gold, money	gold|money|metal
+77	ok	to know	\bknow
+78	ok	then (consequence)	\bthen\b|in that case|consequently|therefore
+79	ok	to dispel, resolve (doubt)	resolv|explain|dispel|solve|untie|clear up
+80	ok	to catch, obtain	obtain|\bget\b|catch|captur|acquire
+81	ok	(sun) to set; to go in	enter|go in|\bset\b|sunset
+82	ok	heaven; the world (天下)	world|heaven|\bsky\b|empire|realm
+83	ok	on top of, above	above|on top|upon|\bover\b|\btop\b
+84	ok	to avenge, repay	aveng|repay|reveng|requite|retaliat
+85	ok	humble, lowly (小人: I, your humble servant)	humble|lowly|petty|common people|\bsmall\b
+86	ok	words, speech	words|speech|saying|remark|statement
+87	ok	name; rank, title (名分)	name|title|rank|reputation
+88	ok	death	\bdie|death|dead
+89	name	向寵 (personal name)	
+90	excl	modern annotation (2月)	
+91	ok	to be enthroned, established as heir	enthron|establish|set up|accede|install|throne
+92	ok	one	\bone\b|single
+93	ok	pleased (說 = 悅)	pleas|delight|happy|glad|joy
+94	ok	to step forward, advance	advance|forward|come forward|move forward|go in
+95	ok	and others, etc. (plural)	and others|\betc|et al|and so on|plural
+96	ok	to plant, cultivate	plant|cultivat|\bsow|\bgrow
+97	ok	spring	spring
+98	ok	various, all (諸侯: the feudal lords)	various|\ball\b|many|several|plural|feudal lord
+99	excl	heading (year)	
+100	ok	all, each	\ball\b|each|every|entirely
+101	ok	evening (旦夕: morning and evening)	evening|night|dusk
+102	ok	harm	harm|damage|injur|evil|calamit|hurt
+103	name	中丘 (place name)	
+104	ok	to decline, refuse	declin|refus|resign|take leave
+105	ok	lowly, of humble status	lowly|humble|\blow\b|\bmean\b|\bbase\b|inferior
+106	name	鄂 (place name)	
+107	ok	question particle	question|interrogat|particle
+108	ok	bridge	bridge
+109	ok	to make manifest, show clearly	manifest|\bshow|make clear|illuminat|display|reveal
+110	name	智伯 (personal name)	
+111	ok	emperor	emperor|ruler|sovereign
+112	name	馮 (personal name)	
+113	ok	ox, cattle	\box\b|oxen|cattle|\bcow|bull
+114	ok	sentence, phrase (句讀)	sentence|phrase|clause
+115	ok	to say	\bsay|said|speak|call
+116	ok	state of Song	state of Song|Song (state|dynasty)|\bstate\b
+117	name	荊軻 (personal name)	
+118	ok	state of Chu	state of Chu|Chu (state|kingdom)|\bstate\b
+119	ok	to be fond of, addicted to	fond|addict|\blike\b|\blove\b|taste for|crave|indulge|enjoy
+120	ok	gradually, little by little	gradual|little by little|bit by bit|slightly|somewhat
+121	ok	far, distant	\bfar\b|distant|remote
+122	ok	secretly	secret|covert|hidden|in private|stealth
+123	ok	clan, family (范氏: the Fan clan)	clan|family|surname|lineage
+124	ok	to attend on, wait on	attend|serve|wait on|servant|accompany
+125	ok	all the many, various (群物)	group|crowd|herd|flock|many|numerous|multitude|\ball\b|various
+126	excl	modern annotation (李注本)	
+127	ok	fine jade	jade|\bgem
+128	ok	benevolence	benevol|humane|kindness|humanity
+129	ok	ever, once (未嘗: never)	\bever\b|\bonce\b|formerly|in the past
+130	ok	Han dynasty	Han dynasty|dynasty|\bHan\b
+131	ok	respect for elder brothers	brother|fraternal
+132	name	荊軻 (personal name)	
+133	ok	third earthly branch	earthly branch|\bbranch|3rd|third
+134	ok	right, proper (不韙: wrong)	\bright\b|proper|correct|\bgood\b|\bwrong
+135	ok	poetic particle (like "ah")	particle|interjection|\bah\b|poetic|exclam|\boh\b
+136	ok	tenth heavenly stem	heavenly stem|\bstem\b|tenth|10th
+137	ok	beans, pulses	bean|pulse|legume|\bsoy
+138	ok	sharp	sharp|keen
+139	name	桓王 (posthumous title)	
+140	ok	roast meat	roast|broil|grill|barbecu
+141	ok	marriage (= 婚)	marr|wedding
+142	ok	lower garment, skirt	skirt|garment|cloth|dress
+143	ok	to nudge with the elbow	nudge|to elbow|jog|poke
+144	name	鞠武 (personal name)	
+145	ok	state of Wei	state of Wei|Wei (state|kingdom)|\bWei\b
+146	ok	enemy, vengeance (報讎)	enem|reveng|vengeance|feud|aveng|\bfoe
+147	ok	outspoken, upright (骨鯁)	upright|outspoken|frank|blunt|honest|straightforward
+148	name	尹鐸 (personal name)	
+149	ok	silk	silk|cloth|fabric
+150	ok	state of Zhu	\bstate\b|\bZhu\b
