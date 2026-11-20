@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.15.0 (2026-11-20)
+
+Classical mode (#53) and the Classical dictionary (#55)
+- A new **文言** button in the popup's title bar, left of the reading-mark button, turns
+  Classical mode on (**文言 ✓**). It stays on for later popups, in every book and after a
+  restart, until tapped again; it is also **Classical mode** in Popup → Dictionaries (off by
+  default). Popups opened from a popup's text follow it but have no button.
+- With it on, the popup shows the tapped character's **Classical dictionary** entry right under
+  its CC-CEDICT entry, labelled 文言: up to five senses classical texts use and modern Chinese
+  mostly doesn't (之 *him; her; it*, 說 = 悅 *pleased*), cut to two lines with
+  [Tap to show more]. A simplified character shows the traditional form its word uses (发 in 头发
+  → 髮); a variant form (説) shows its standard form's entry (說).
+- The dictionary covers 21,292 characters and 184 variant forms. It was condensed once by Claude
+  Haiku (`tools/build_classical.py`, Batch API, $1.37) from Chinese Notes' *Literary Chinese*
+  senses (CC BY-SA 3.0), English Wiktionary (CC BY-SA 4.0) and, for characters outside the 3,000
+  most common, Unihan (Unicode License v3); the result is CC BY-SA 4.0. Senses that cite no
+  source line, or that only restate a reading, are dropped. On the research note's sample,
+  CC-CEDICT alone had the needed sense 84% of the time, with the Classical dictionary under it
+  95%.
+- The database grows from 37.8 MB to 43.1 MB (the zip by 1.5 MB).
+- README screenshots retaken with the 文言 button.
+
 ## 2.14.3 (2026-11-20)
 
 Neutral tones the traditional form can't decide (#52)
