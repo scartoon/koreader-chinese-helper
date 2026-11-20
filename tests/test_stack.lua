@@ -427,3 +427,25 @@ do
     plugin.ui = real_ui
 end
 print("dictionary context size: ok")
+
+-- A traditional character in a popup's MOE text (#50): the nested popup's
+-- head lines lead with the simplified form, the tapped form beside it.
+do
+    plugin.settings:set("trad_heads", true)
+    local p0 = root("", "鬢", "")
+    local MOE = "耳旁的頭髮。如：「兩鬢斑白」。"
+    p0.on_char_tap(p0, hitIn(MOE, "頭"))
+    local nested = tap:stack()[2]
+    eq(nested.title, "頭")
+    eq(nested.blocks[1].word, "头"); eq(nested.blocks[1].trad, "頭")
+    local found
+    for _, b in ipairs(nested.blocks) do
+        if b.trad == "頭髮" then found = b end
+    end
+    assert(found, "the word block 頭髮")
+    eq(found.word, "头发")
+    assert(found.head:find("头发 頭髮", 1, true), found.head)
+    p0.on_outside()
+    plugin.settings:set("trad_heads", nil)
+end
+print("traditional taps in nested popups: ok")

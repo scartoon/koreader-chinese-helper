@@ -486,10 +486,11 @@ eq(tradOf("中", "国", "", { row("国", "國", "guó", "country"), row("中国"
 eq(tradOf("", "干", "", { row("干", "乾", "gān", "dry"), row("干", "幹", "gàn", "to do"),
                           row("干", "干", "gān", "shield") }, 1), "乾/干/幹",
    "the head reading gān's forms first")
--- A traditional text: the word as tapped is the traditional form.
-eq(tradOf("頭", "髮", "", { row("发", "髮", "fà", "hair"), row("头发", "頭髮", "tóufa", "hair") }, 1), nil)
-eq(tradOf("頭", "髮", "", { row("发", "髮", "fà", "hair"), row("头发", "頭髮", "tóufa", "hair") }, 2), nil)
-eq(tradOf("", "觀", "", { row("观", "觀", "guān", "to look at") }), nil)
+-- A traditional text: the grey form is the word as tapped, after its
+-- simplified form (#50; nothing was added before 2.14.0).
+eq(tradOf("頭", "髮", "", { row("发", "髮", "fà", "hair"), row("头发", "頭髮", "tóufa", "hair") }, 1), "髮")
+eq(tradOf("頭", "髮", "", { row("发", "髮", "fà", "hair"), row("头发", "頭髮", "tóufa", "hair") }, 2), "頭髮")
+eq(tradOf("", "觀", "", { row("观", "觀", "guān", "to look at") }), "觀")
 -- Fallback rows: an empty or copied trad gives nothing; a longer wording is not a form.
 eq(tradOf("", "辅", "助", { frow("辅助", "", "fǔ zhù", "to assist", "wikt") }, 1), nil)
 eq(tradOf("", "辅", "助", { frow("辅助", "辅助", "fǔ zhù", "to assist", "wikt") }, 1), nil)
@@ -503,6 +504,67 @@ eq(ab[3].always, true); eq(ab[3].trad, "頭髮")
 for _, b in ipairs(Model.blocks(am, "发", false)) do eq(b.trad, nil, "off") end
 eq(Model.render(matches("", "观", "", { row("观", "觀", "guān", "to look at") }), "观", false),
    "观  guān\nto look at")
+
+------------------------------------------------------------------------
+-- Traditional taps: the simplified form in bold, the tapped form grey (#50)
+------------------------------------------------------------------------
+local function headOf(left, char, right, rows, k, extra, b0, b1)
+    local bl = Model.blocks(matches(left, char, right, rows, extra), char, false, b0, b1, true)
+    local b = bl[k or 1]
+    if not b then return nil end
+    return b.trad and (b.word .. " " .. b.trad) or nil, b
+end
+local TT = { row("头", "頭", "tóu", "head"), row("头", "頭", "tou", "suffix for nouns"),
+             row("发", "發", "fā", "to send out"), row("发", "髮", "fà", "hair"),
+             row("头发", "頭髮", "tóufa", "hair (on the head)"), row("发现", "發現", "fāxiàn", "to find") }
+eq(headOf("", "頭", "髮花白", TT, 1), "头 頭", "頭 in 頭髮")
+eq(headOf("", "頭", "髮花白", TT, 2), "头发 頭髮", "the word block")
+eq(headOf("頭", "髮", "花白", TT, 1), "发 髮")
+eq(headOf("", "發", "現", TT, 1), "发 發")
+eq(headOf("", "發", "現", TT, 2), "发现 發現")
+local _, hb = headOf("", "頭", "髮花白", TT, 2, nil, "<", ">")
+eq(hb.head, "<头发> 頭髮  tóufa", "the plain head line leads with both forms")
+eq(hb.word, "头发"); eq(hb.trad, "頭髮"); eq(hb.rest, "  tóufa")
+eq(Model.render(matches("", "頭", "髮", TT), "頭", false, nil, nil, true),
+   "头 頭  tóu\nhead\ntou: suffix for nouns\n\n头发 頭髮  tóufa\nhair (on the head)")
+-- 乾: 干 in 乾淨, itself in 乾隆 (a row keyed by 乾 as simplified).
+local QIAN = { row("乾", "乾", "qián", "one of the Eight Trigrams"), row("干", "乾", "gān", "dry"),
+               row("干净", "乾淨", "gānjìng", "clean"), row("乾隆", "乾隆", "Qiánlóng", "the Qianlong era") }
+eq(headOf("", "乾", "淨", QIAN, 1), "干 乾", "乾 in 乾淨")
+eq(headOf("", "乾", "淨", QIAN, 2), "干净 乾淨")
+eq(headOf("", "乾", "隆", QIAN, 1), nil, "乾 in 乾隆: nothing added")
+eq(headOf("", "乾", "隆", QIAN, 2), nil)
+eq(headOf("", "乾", "", QIAN, 1, { chosen = "gān" }), "干 乾", "alone: the head line's reading's")
+eq(headOf("", "乾", "", QIAN, 1, { chosen = "qián" }), nil)
+-- 著 in 著名: 著 zhù is its own simplified form.
+local ZHU = { row("著", "著", "zhù", "to make known"), row("着", "著", "zhe", "aspect particle"),
+              row("着", "著", "zhuó", "to wear"), row("著", "著", "zhuó", "used in 執著"),
+              row("著名", "著名", "zhùmíng", "famous") }
+eq(headOf("", "著", "名", ZHU, 1, { chosen = "zhù" }), nil, "著 in 著名")
+eq(headOf("", "著", "名", ZHU, 2), nil)
+eq(headOf("", "人", "民", { row("人", "人", "rén", "person"), row("人民", "人民", "rénmín", "the people") }, 2), nil)
+eq(headOf("", "東", "西", { row("东", "東", "dōng", "east"), row("东西", "東西", "dōngxi", "thing") }, 2),
+   "东西 東西")
+-- Fallback rows: an empty or different-length simp adds nothing.
+eq(headOf("", "輔", "助", { frow("", "輔助", "fǔ zhù", "to assist", "wikt") }, 1), nil)
+eq(headOf("", "哎", "呀媽呀", { frow("哎妈", "哎呀媽呀", "āi mā", "oh my", "wikt") }, 1), nil)
+eq(headOf("", "輔", "助", { frow("辅助", "輔助", "fǔ zhù", "to assist", "wikt") }, 1), "辅助 輔助")
+-- An MOE Always block matched by its traditional form: the same rule.
+local tam = matches("", "頭", "髮", TT, { always = { frow("头发", "頭髮", "tóu fǎ", "人的頭上所生的毛。", "moe") } })
+local tab = Model.blocks(tam, "頭", false, nil, nil, true)
+eq(tab[3].always, true); eq(tab[3].word, "头发"); eq(tab[3].trad, "頭髮")
+-- The setting off: the head line exactly as before.
+for _, b in ipairs(Model.blocks(tam, "頭", false, "<", ">")) do
+    eq(b.trad, nil, "off"); eq(b.word, nil, "off")
+end
+eq(Model.blocks(tam, "頭", false, "<", ">")[2].head, "<頭髮>  tóufa")
+eq(Model.render(tam, "頭", false), "頭  tóu\nhead\ntou: suffix for nouns\n\n頭髮  tóufa\nhair (on the head)"
+   .. "\n\n頭髮  tóu fǎ · not in CC-CEDICT\n人的頭上所生的毛。")
+-- Simplified taps unchanged.
+eq(headOf("头", "发", "", TT, 1), "发 髮/發")
+eq(headOf("头", "发", "", TT, 2), "头发 頭髮")
+eq(Model.simpPick(Text.candidates({}, "乾", chars("淨")), QIAN), "干")
+eq(Model.simpPick(Text.candidates({}, "乾", chars("隆")), QIAN), "乾")
 
 -- #48: a self-referring variant sense as CC-CEDICT writes it ("variant of
 -- 個|个 gè" on 个) is dropped like the simplified one; another form's stays.

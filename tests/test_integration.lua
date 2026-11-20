@@ -66,7 +66,9 @@ local function popup(text, char, opts)
         wordReading = function(w) return Resolve.wordReading(data, w) end,
     }
     return { chosen = chosen, decided = decided, unsure = unsure, source = source, matches = matches, drawn = drawn,
-             text = Model.render(matches, char, drawn ~= nil) }
+             text = Model.render(matches, char, drawn ~= nil),
+             -- With "Show traditional forms" on (#47, #50).
+             ttext = Model.render(matches, char, drawn ~= nil, nil, nil, true) }
 end
 
 -- The marked readings of match `word` ("" when nothing is marked).
@@ -336,3 +338,54 @@ for line in f:lines() do
 end
 f:close()
 assert(checked > 100, "only " .. checked .. " annotations checked")
+
+------------------------------------------------------------------------
+-- Traditional taps (#50): the head line leads with the simplified form, the
+-- tapped form small and grey after it ("头 頭" in the rendered text).
+------------------------------------------------------------------------
+local function heads(p)
+    local out = {}
+    for block in (p.ttext .. "\n\n"):gmatch("(.-)\n\n") do
+        local head = block:match("^[^\n]*")
+        out[#out + 1] = head
+    end
+    return out
+end
+local function headOf(p, word)
+    for _, h in ipairs(heads(p)) do
+        if h:find(word, 1, true) == 1 then return h end
+    end
+    error(word .. " not a head line:\n" .. p.ttext)
+end
+p = popup("他頭髮花白。", "頭")
+assert(headOf(p, "头 頭  tóu"), p.ttext)
+assert(headOf(p, "头 頭  tóu"):find("likely here", 1, true), p.ttext)
+assert(headOf(p, "头发 頭髮  tóufa"), p.ttext)
+p = popup("他頭髮花白。", "髮")
+assert(headOf(p, "发 髮  fà"), p.ttext)
+assert(headOf(p, "头发 頭髮  tóufa"), p.ttext)
+p = popup("我發現了。", "發")
+assert(headOf(p, "发 發  fā"), p.ttext)
+assert(headOf(p, "发现 發現"), p.ttext)
+p = popup("很乾淨。", "乾")
+assert(headOf(p, "干 乾  gān"), p.ttext)
+assert(headOf(p, "干净 乾淨"), p.ttext)
+p = popup("乾隆皇帝。", "乾")
+eq(heads(p)[1]:sub(1, #"乾  qián"), "乾  qián", "乾 in 乾隆: nothing added")
+assert(headOf(p, "乾隆  Qiánlóng"), p.ttext)
+p = popup("他很著名。", "著")
+eq(heads(p)[1]:sub(1, #"著  zhù"), "著  zhù", "著 in 著名: nothing added")
+assert(headOf(p, "著名  zhùmíng"), p.ttext)
+p = popup("買東西。", "東")
+assert(headOf(p, "东 東  dōng"), p.ttext)
+assert(headOf(p, "东西 東西  dōngxi"), p.ttext)
+p = popup("人民。", "人")
+assert(headOf(p, "人  rén"), p.ttext); assert(headOf(p, "人民  rénmín"), p.ttext)
+-- The setting off: as in 2.13.0.
+p = popup("他頭髮花白。", "頭")
+assert(p.text:find("^頭  tóu"), p.text); assert(p.text:find("\n\n頭髮  tóufa", 1, true), p.text)
+-- Simplified taps unchanged (#47).
+p = popup("他头发花白。", "头")
+assert(headOf(p, "头 頭  tóu"), p.ttext); assert(headOf(p, "头发 頭髮  tóufa"), p.ttext)
+p = popup("我发现了。", "发")
+assert(headOf(p, "发 發/髮  fā"), p.ttext)

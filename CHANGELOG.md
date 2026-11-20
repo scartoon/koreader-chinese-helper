@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.14.0 (2026-11-19)
+
+Simplified forms for traditional taps (#50)
+- A character or word tapped in traditional characters (a page of a traditional book, or MOE's
+  and the 成語典's text in a popup, now in MOE's own characters since 2.13.0) shows its
+  simplified form on the head line, in bold, with the form as tapped beside it, small and grey,
+  just like a simplified tap: 頭 in 頭髮花白 is **头** 頭 *tóu*, the word **头发** 頭髮 *tóufa*;
+  發 in 發現 **发** 發, 東西 **东西** 東西.
+- A character shows **one** simplified form, the one the word around it uses (乾 in 乾淨 →
+  **干** 乾; 噁 in 噁心 → **恶** 噁), else its head line's reading's (乾 on its own, read gān → **干** 乾).
+  Nothing is added where the form is the same in both scripts (乾 in 乾隆, 著 in 著名, 人民).
+- Applies to every block with a head line: CC-CEDICT's, the fallback dictionaries', MOE Always
+  blocks, idiom blocks and nested popups. Simplified taps are unchanged (checked on 18,090
+  common simplified words). A fallback row with an empty or other-length simplified form, or
+  one outside the BMP that would draw as a box, adds nothing.
+- Same setting, **Show traditional forms**; off, head lines are exactly as in 2.13.0.
+
 ## 2.13.0 (2026-11-19)
 
 Dictionary text as each source writes it (#48)
