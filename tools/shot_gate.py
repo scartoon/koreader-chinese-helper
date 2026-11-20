@@ -144,6 +144,7 @@ function G.open(files)
                 end
             end
         end
+        Model.chooseText(rows, settings:dictText() == "simplified")
         return Model.pickIdioms(rows, settings:fallbackOrder())
     end
     local names_all = {}
@@ -266,6 +267,9 @@ function G.popup(g, text, threshold, mode, char, nth)
     local rows = g.main:lookup(texts)
     local fallback, always = g.lookup(Model.uncovered(texts, rows), nil, g.always_texts(texts))
     for _, r in ipairs(fallback) do rows[#rows + 1] = r end
+    -- Dictionary text (#48), as Tap:lookup picks it (the shots pin the default).
+    Model.chooseText(rows, g.settings:dictText() == "simplified")
+    Model.chooseText(always, g.settings:dictText() == "simplified")
     g.data:prefetch(texts)
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = drawn ~= nil, decided = decided,

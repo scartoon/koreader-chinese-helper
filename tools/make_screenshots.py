@@ -275,6 +275,7 @@ def settings_variant(original, pinyin=True, threshold=None):
             "chinesehelper_page_underline": "true",
             "chinesehelper_match_book_font": "false" if os.environ.get("SHOT_MATCH_FONT") == "false" else "true",
             "chinesehelper_trad_heads": "false" if os.environ.get("SHOT_TRAD") == "false" else "true",
+            "chinesehelper_dict_text": '"original"',   # the gate's (the default, #48)
             "night_mode": "true" if os.environ.get("SHOT_NIGHT") == "true" else "false",
             "autowarmth_control_nightmode": "false",
             "debug": "true"}
