@@ -466,4 +466,5 @@ assert(table.concat(cb[1].lines, "|"):find("yuè: ", 1, true), "說 = 悅: " .. 
 eq(classical("不亦说乎", "说")[1].head, "**说** 說", "a simplified tap finds the traditional entry")
 eq(#db:classical("説"), 1, "a variant (説) gets its target's entry (說)")
 eq(db:classical("説")[1].trad, "說")
-eq(#classical("我的书", "的"), 0, "no entry: nothing added")
+eq(#classical("好吗", "吗"), 0, "no entry: nothing added")
+eq(classical("委讬", "讬")[1].head, "**讬** 託", "no thin Unihan copy of a simplified form (#55): 讬 finds 託")

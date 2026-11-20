@@ -50,6 +50,7 @@ import re
 import sqlite3
 import sys
 import time
+import unicodedata
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -94,14 +95,23 @@ def jobs_for(by, prompt):
     return jobs
 
 
+def senses_from(reply, text):
+    """The reply's senses, or None. A reply that corrects itself ("Wait,
+    ... The correct reply is: {...}") counts by its last JSON line."""
+    tries = [reply] + [ln for ln in reversed(reply.split("\n")) if ln.startswith('{"senses"')]
+    for t in tries:
+        try:
+            return condense.add_sources(json.loads(t)["senses"], text)
+        except (ValueError, KeyError, TypeError):
+            pass
+    return None
+
+
 def parse_reply(ch, text, msg_content, stop_reason, usage):
     reply = "".join(b.text for b in msg_content if b.type == "text").strip()
     if reply.startswith("```"):
         reply = reply.strip("`").removeprefix("json").strip()
-    try:
-        senses = condense.add_sources(json.loads(reply)["senses"], text)
-    except (ValueError, KeyError, TypeError):
-        senses = None
+    senses = senses_from(reply, text)
     return {"char": ch, "variant": VARIANT, "model": condense.MODEL, "input": text, "senses": senses,
             "raw_reply": reply if senses is None else None, "stop_reason": stop_reason,
             "usage": {"input": usage.input_tokens, "output": usage.output_tokens}}
@@ -173,6 +183,28 @@ def content_words(s):
     return {w for w in WORD.findall(s.lower()) if w not in STOP and len(w) > 2}
 
 
+def toneless(s):
+    return "".join(c for c in unicodedata.normalize("NFD", s) if not unicodedata.combining(c)).lower()
+
+
+def reading_only(line):
+    """True for a collated line that gives a reading and no sense: Chinese
+    Notes rows whose English is just the toneless pinyin ("[CN] lǎn lan"),
+    or that and "radical" ("[CN] fù fu radical")."""
+    words = re.sub(r"^\[\w+\]\s*", "", line).split()
+    if not words:
+        return True
+    reading = toneless(words[0])
+    rest = [toneless(w).strip("();,.") for w in words[1:]]
+    return reading in rest and all(w in (reading, "", "radical") for w in rest)
+
+
+# Glosses that only report the input had no sense (囕 "lan (reading only;
+# no sense given)"); "particle with no meaning" is a real sense and stays.
+NO_SENSE = re.compile(r"no (classical |further )?(sense|gloss)|no meaning (given|supplied)|reading only"
+                      r"|only a reading|sense unspecified|kwukyel", re.I)
+
+
 def validate(rec):
     """(senses kept, flags): drop senses citing no existing line, cut to
     MAX_SENSES, flag English senses sharing under half their words with the
@@ -187,6 +219,9 @@ def validate(rec):
         gloss = (s.get("gloss") or "").strip()
         if not cited or not gloss:
             flags.append(("no-line", gloss))
+            continue
+        if NO_SENSE.search(gloss) or all(reading_only(lines[n]) for n in cited):
+            flags.append(("no-sense", gloss + "  <=  " + " | ".join(lines[n] for n in cited)))
             continue
         words = content_words(gloss)
         src = set().union(*(content_words(lines[n]) for n in cited))
@@ -318,6 +353,8 @@ def main():
             missing += 1
             continue
         rec = json.load(open(path))
+        if rec["senses"] is None and rec.get("raw_reply"):
+            rec["senses"] = senses_from(rec["raw_reply"], text)
         if rec["senses"] is None:
             unparsed.append(ch)
             continue
@@ -326,7 +363,16 @@ def main():
         if senses:
             entries[ch] = {"simp": by[ch][0]["simp"], "senses": senses,
                            "raw": "\n".join(text.split("\n")[1:])}
-    var = variants(entries)
+    # A simplified character with an entry of its own drawn only from
+    # Unihan (讬, 砻) is also the simp of a traditional entry (託, 礱). The
+    # popup prefers the tapped character's own entry, so this thin copy
+    # would hide the traditional one: drop it, and the simp lookup finds 託.
+    simps = {e["simp"] for t, e in entries.items() if e["simp"] != t}
+    thin = [t for t, e in entries.items() if t in simps and e["simp"] == t
+            and all(s["sources"] == ["Unihan"] for s in e["senses"])]
+    for t in thin:
+        del entries[t]
+    var = {v: t for v, t in variants(entries).items() if v not in simps}
     os.makedirs(os.path.dirname(DATA), exist_ok=True)
     with gzip.open(DATA, "wt", encoding="utf-8", newline="", compresslevel=9) as f:
         f.write("# Classical dictionary (tools/build_classical.py, #55). CC BY-SA 4.0: condensed by Claude Haiku\n"
@@ -342,7 +388,7 @@ def main():
             f.write("\t".join(row) + "\n")
     kinds = collections.Counter(k for _, k, _ in flags)
     print(f"wrote {DATA}: {len(entries)} entries, {len(var)} variants; "
-          f"{missing} not condensed yet, {len(unparsed)} unparsed {''.join(unparsed[:20])}; flags {dict(kinds)}")
+          f"{len(thin)} Unihan-only simplified copies dropped; {missing} not condensed yet, {len(unparsed)} unparsed {''.join(unparsed[:20])}; flags {dict(kinds)}")
 
 
 if __name__ == "__main__":
