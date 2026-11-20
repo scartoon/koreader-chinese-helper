@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.12.0 (2026-11-19)
+
+Traditional forms on the head lines (#47)
+- Each popup entry's head line shows the word's traditional form beside it, in the same
+  typeface, smaller (0.8×) and grey, when it differs: **头发** 頭髮, **中国** 中國; nothing for
+  人民. A word shows the one form its entry gives (发现 發現, 干净 乾淨). A single character with
+  several shows them all, "/"-joined, the one the word around it uses first (发 in 头发:
+  髮/發; 干 in 干净: 乾/干/幹), the character itself included when it is one of them.
+- Applies to every block: CC-CEDICT's, the fallback dictionaries', MOE Always blocks and
+  nested popups. A Wiktionary "traditional" form of another length (a longer wording, another
+  word) is not shown. A book in traditional characters adds nothing. The entries' text and the
+  components block are unchanged.
+- **New setting, Show traditional forms** (on by default), after Show character frequency rank.
+
 ## 2.11.1 (2026-11-19)
 
 Frequency ranks labels (#45, #46)

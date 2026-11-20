@@ -268,6 +268,7 @@ def settings_variant(original, pinyin=True, threshold=None):
     keys = {"chinesehelper_threshold": THRESHOLD if threshold is None else threshold, "chinesehelper_pinyin_enabled": "true" if pinyin else "false",
             "chinesehelper_popup_enabled": "true", "chinesehelper_popup_text_pct": 60,
             "chinesehelper_chinese_text_pct": 130, "chinesehelper_char_rank": "true",
+            "chinesehelper_rank_source": '"bundled"',   # the gate's ranks, whatever the reader picked
             "chinesehelper_labels": '"fallback"', "chinesehelper_moe_chars": '"fallback"', "chinesehelper_moe_words": '"fallback"',
             "chinesehelper_uncertain": '"both"',
             "chinesehelper_components": "true", "chinesehelper_popup_context": "true",
