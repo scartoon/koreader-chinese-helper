@@ -486,7 +486,7 @@ eq(tradOf("中", "国", "", { row("国", "國", "guó", "country"), row("中国"
 eq(tradOf("", "干", "", { row("干", "乾", "gān", "dry"), row("干", "幹", "gàn", "to do"),
                           row("干", "干", "gān", "shield") }, 1), "乾/干/幹",
    "the head reading gān's forms first")
--- A traditional text: the grey form is the word as tapped, after its
+-- A traditional text: the smaller form is the word as tapped, after its
 -- simplified form (#50; nothing was added before 2.14.0).
 eq(tradOf("頭", "髮", "", { row("发", "髮", "fà", "hair"), row("头发", "頭髮", "tóufa", "hair") }, 1), "髮")
 eq(tradOf("頭", "髮", "", { row("发", "髮", "fà", "hair"), row("头发", "頭髮", "tóufa", "hair") }, 2), "頭髮")
@@ -531,7 +531,7 @@ eq(markedOf("含", "糊", "", HU, { chosen = "hu", default = "hú" }), "hú")
 eq(markedOf("头", "发", "", NT, { chosen = "fā", default = "fā" }), "fā")
 
 ------------------------------------------------------------------------
--- Traditional taps: the simplified form in bold, the tapped form grey (#50)
+-- Traditional taps: the simplified form in bold, the tapped form smaller (#50)
 ------------------------------------------------------------------------
 local function headOf(left, char, right, rows, k, extra, b0, b1)
     local bl = Model.blocks(matches(left, char, right, rows, extra), char, false, b0, b1, true)

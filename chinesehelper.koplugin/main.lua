@@ -796,7 +796,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Show traditional forms"),
-                help_text = _("On each entry's head line, the word's traditional form beside it, smaller and grey, when it is not the same: 头发 頭髮. A word shows the one form it is written with; a single character with several shows them all, the one the word around it uses first (发 髮/發 in 头发). Nothing is added when the traditional form is the same (人民). A character or word tapped in traditional characters (in a traditional book, or in MOE's text) shows its simplified form in bold, with the form as tapped beside it: 头发 頭髮; a character shows the one simplified form the word around it uses (干 乾 in 乾淨). The entries' own text is set by Dictionaries → Dictionary text."),
+                help_text = _("On each entry's head line, the word's traditional form beside it, smaller, when it is not the same: 头发 頭髮. A word shows the one form it is written with; a single character with several shows them all, the one the word around it uses first (发 髮/發 in 头发). Nothing is added when the traditional form is the same (人民). A character or word tapped in traditional characters (in a traditional book, or in MOE's text) shows its simplified form in bold, with the form as tapped beside it: 头发 頭髮; a character shows the one simplified form the word around it uses (干 乾 in 乾淨). The entries' own text is set by Dictionaries → Dictionary text."),
                 checked_func = function() return settings:tradHeadsEnabled() end,
                 callback = function() settings:set("trad_heads", not settings:tradHeadsEnabled()) end,
             },

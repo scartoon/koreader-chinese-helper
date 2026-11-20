@@ -377,7 +377,7 @@ function Model.simpText(m, entries)
 end
 
 --[[--
-The head line's two forms (#47, #50): the bold word and the small grey
+The head line's two forms (#47, #50): the bold word and the smaller
 form, or nil when nothing is added. A word tapped in simplified characters:
 the word and its traditional form (Model.tradText). One tapped in
 traditional characters: its simplified form (Model.simpText) and the word

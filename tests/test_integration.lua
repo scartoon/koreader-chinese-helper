@@ -341,7 +341,7 @@ assert(checked > 100, "only " .. checked .. " annotations checked")
 
 ------------------------------------------------------------------------
 -- Traditional taps (#50): the head line leads with the simplified form, the
--- tapped form small and grey after it ("头 頭" in the rendered text).
+-- tapped form smaller after it ("头 頭" in the rendered text).
 ------------------------------------------------------------------------
 local function heads(p)
     local out = {}

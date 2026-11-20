@@ -70,7 +70,7 @@ local Popup = InputContainer:extend{
 Popup.LABEL_MIN_PX = 18     -- never smaller than this, in screen pixels
 Popup.LABEL_RATIO = 0.62    -- of the popup text size
 -- The traditional form beside a headword (#47): the same typeface, this
--- much of the headword's size, in the labels' grey.
+-- much of the headword's size, in the text's own shade (#54).
 Popup.TRAD_RATIO = 0.8
 
 Popup.BOLD_START = TextBoxWidget.PTF_BOLD_START
@@ -509,14 +509,14 @@ end
 
 --[[--
 A block's head line with its traditional form (block.trad, #47): the word
-in bold, then the form smaller and grey (Popup.TRAD_RATIO, COLOR_GRAY_5),
+in bold, then the form smaller (Popup.TRAD_RATIO), in the text's own shade (#54),
 then the rest (reading, markers), which wraps under itself when long. nil
 when the word and the form leave too little room for the rest: the caller
 draws the plain head line.
 ]]
 function Popup:headLine(b, width)
     local word = TextWidget:new{ text = b.word, face = self.face, bold = true }
-    local trad = TextWidget:new{ text = b.trad, face = self.trad_face, fgcolor = Blitbuffer.COLOR_GRAY_5 }
+    local trad = TextWidget:new{ text = b.trad, face = self.trad_face }
     local space_w = TextWidget:new{ text = " ", face = self.face }
     local sw = space_w:getSize().w
     space_w:free()
