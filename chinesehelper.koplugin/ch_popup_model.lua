@@ -26,6 +26,12 @@ Model.EVIDENCE = { word = true, special = true, fallback = true, rule = true }
 -- own text names both forms ("variant of 夠|够 gòu", #48): either counts.
 -- (Plain spaces, not %S: under some C locales byte 0xA0, inside 夠, counts
 -- as a space.)
+local function chars(s)
+    local out = {}
+    for ch in (s or ""):gmatch("[%z\1-\127\194-\244][\128-\191]*") do out[#out + 1] = ch end
+    return out
+end
+
 local function selfVariant(sense, word)
     local target = sense:match("^[%a ]*variant of ([^ ]+)")
     if target == nil then return false end
@@ -62,8 +68,12 @@ Entries for one word from its CC-CEDICT rows: self-referring variant senses
 dropped (and rows left with none), rows with the same pinyin merged (歷 and
 曆 are both lì), ordinary readings before capitalised ones (surnames, place
 names), CC-CEDICT's order otherwise.
-Returns { {pinyin=, syllables=, senses={...}, proper=bool, trads={...}}, ... }
-(trads: the traditional forms of the rows whose simplified form is `word`).
+Returns { {pinyin=, syllables=, senses={...}, proper=bool, trads={...}, simps={...},
+selfsimp=bool}, ... }
+(trads: the traditional forms of the rows whose simplified form is `word`;
+simps: the simplified forms of the rows matched by `word` as their
+traditional form, where they differ from it and have its length (#50);
+selfsimp: some row has `word` as its simplified form).
 ]]
 function Model.cleanRows(word, rows)
     local kept, by_pinyin = {}, {}
@@ -87,7 +97,7 @@ function Model.cleanRows(word, rows)
                 for _, s in ipairs(senses) do seen[s] = true end
                 entry = { pinyin = pinyin, syllables = row.syllables or pinyin, senses = senses,
                           seen = seen, order = #kept + 1, proper = pinyin:match("^%u") ~= nil,
-                          source = row.source or "cedict", trads = {} }
+                          source = row.source or "cedict", trads = {}, simps = {} }
                 by_pinyin[pinyin] = entry
                 kept[#kept + 1] = entry
             end
@@ -99,6 +109,20 @@ function Model.cleanRows(word, rows)
                 local have = false
                 for _, t in ipairs(entry.trads) do if t == trad then have = true end end
                 if not have then entry.trads[#entry.trads + 1] = trad end
+            end
+            -- The simplified form of a row matched by its traditional form
+            -- (#50): 头 for 頭. An empty simp or one of another length (a
+            -- fallback row's other wording) gives none, nor one with a
+            -- character past the BMP (噁's 𫫇), which e-reader fonts draw
+            -- as a box.
+            local simp = row.simp
+            if simp == word then
+                entry.selfsimp = true
+            elseif row.trad == word and simp and simp ~= "" and #chars(simp) == #chars(word)
+                    and not simp:find("[\240-\244]") then
+                local have = false
+                for _, t in ipairs(entry.simps) do if t == simp then have = true end end
+                if not have then entry.simps[#entry.simps + 1] = simp end
             end
         end
     end
@@ -240,12 +264,6 @@ function Model.takeFallback(remaining, rows)
     return kept, left
 end
 
-local function chars(s)
-    local out = {}
-    for ch in (s or ""):gmatch("[%z\1-\127\194-\244][\128-\191]*") do out[#out + 1] = ch end
-    return out
-end
-
 --[[--
 For the tapped character with several traditional forms (发: 發 and 髮), the
 one the word around it uses: from the longest candidate word with a
@@ -269,6 +287,87 @@ function Model.tradPick(cands, rows)
         end
     end
     return best
+end
+
+--[[--
+The reverse of Model.tradPick (#50): for a tapped traditional character, the
+simplified form the word around it uses: from the longest candidate word
+with a CC-CEDICT row keyed by that word as traditional, the character's
+place in the row's simplified form (乾淨 → 干, 乾隆 → 乾, 頭髮 → 头). nil
+when no word says.
+]]
+function Model.simpPick(cands, rows)
+    local by_trad = {}
+    for _, row in ipairs(rows or {}) do
+        if (row.source == nil or row.source == "cedict") and row.trad and not by_trad[row.trad]
+                and not (row.simp or ""):find("[\240-\244]") then
+            by_trad[row.trad] = row
+        end
+    end
+    local best, best_len
+    for _, c in ipairs(cands or {}) do
+        local row = by_trad[c.text]
+        if c.len > 1 and row and (not best_len or c.len > best_len) then
+            local s = chars(row.simp)[1 - c.start]
+            if s then best, best_len = s, c.len end
+        end
+    end
+    return best
+end
+
+--[[--
+The simplified form of a word tapped in traditional characters (#50), or
+nil when it is not one (the word is itself a simplified form, or no row
+gives another). `m` and `entries` as for Model.tradText.
+  * A word of two or more characters: the head line's entry's form.
+  * A single character: one form, the one the word around it uses
+    (m.simp_pick, even when the character's own rows lack it), else the
+    head line's reading's, else the first. A row
+    keyed by the character as simplified counts as its own form (乾 qián,
+    著 zhù), so 乾 in 乾隆 and 著 in 著名 give nil.
+]]
+function Model.simpText(m, entries)
+    local word = m.word
+    if not entries or #entries == 0 then return nil end
+    local function own(e)
+        if e.selfsimp then return word end
+        return (e.simps or {})[1]
+    end
+    local s
+    if (m.len or #chars(word)) > 1 then
+        s = own(entries[1])
+    else
+        if m.simp_pick then
+            -- The word's spelling settles it, even where the character's
+            -- own rows give another form (噁心 → 恶, the character's row 𫫇).
+            s = m.simp_pick
+        else
+            s = own(entries[1])
+            if not s then
+                for _, e in ipairs(entries) do
+                    s = own(e)
+                    if s then break end
+                end
+            end
+        end
+    end
+    if s == nil or s == word then return nil end
+    return s
+end
+
+--[[--
+The head line's two forms (#47, #50): the bold word and the small grey
+form, or nil when nothing is added. A word tapped in simplified characters:
+the word and its traditional form (Model.tradText). One tapped in
+traditional characters: its simplified form (Model.simpText) and the word
+as tapped.
+]]
+function Model.headForms(m, entries)
+    local s = Model.simpText(m, entries)
+    if s then return s, m.word end
+    local t = Model.tradText(m, entries)
+    if t then return m.word, t end
+    return nil
 end
 
 --[[--
@@ -533,6 +632,7 @@ function Model.matches(args)
     words = kept
     if anchor then
         anchor.trad_pick = Model.tradPick(args.cands, args.rows)
+        anchor.simp_pick = Model.simpPick(args.cands, args.rows)
         table.insert(words, 1, anchor)
     end
     -- An Always block's readings in the order of the word's own entries (so
@@ -671,7 +771,9 @@ b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
 With `trad` (the "Show traditional forms" setting, #47), a block whose
 word's traditional form differs also has trad= (Model.tradText), word= and
 rest= (the head line after the word), for the popup to draw the form beside
-the word; head is the same either way.
+the word; head is the same either way. A word tapped in traditional
+characters (#50) has word= its simplified form and trad= the word as
+tapped (Model.headForms), and head leads with both: "**头发** 頭髮  tóufa".
 The tapped character's marked readings are unmarked when `annotated` (the
 reading is drawn on the page, so it comes first with no label) or when
 Model.matches set m.mark (the uncertainty pair, or a default reading nothing
@@ -710,8 +812,14 @@ function Model.blocks(matches, char, annotated, b0, b1, trad)
                 block.head = b0 .. m.word .. b1 .. rest
                 block.source = e.source or "cedict"
                 if trad then
-                    block.trad = Model.tradText(m, m.entries)
-                    block.word, block.rest = m.word, rest
+                    local word, form = Model.headForms(m, m.entries)
+                    block.word, block.trad, block.rest = word or m.word, form, rest
+                    -- Tapped in traditional characters (#50): the plain head
+                    -- line (the popup's fallback when the drawn one has too
+                    -- little room) leads with the simplified form too.
+                    if word and word ~= m.word then
+                        block.head = b0 .. word .. b1 .. " " .. form .. rest
+                    end
                 end
                 block.lines[#block.lines + 1] = senses
                 local idiom = m.idiom
@@ -729,7 +837,8 @@ function Model.blocks(matches, char, annotated, b0, b1, trad)
         if m.always then
             -- MOE's Always entries: their own block, right after the match's,
             -- collapsed in the popup (ch_popup.lua), never marked.
-            local block = build{ word = m.word, len = m.len, entries = m.always, trad_pick = m.trad_pick }
+            local block = build{ word = m.word, len = m.len, entries = m.always, trad_pick = m.trad_pick,
+                                 simp_pick = m.simp_pick }
             block.always, block.collapse = true, true
             blocks[#blocks + 1] = block
         end
