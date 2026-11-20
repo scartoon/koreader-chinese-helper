@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.14.2 (2026-11-20)
+
+Head line's second form in the text's shade (#54)
+- The traditional form beside a headword (**观** 觀), and the form as tapped beside a
+  traditional tap (**头** 頭), are now the same shade as the text, not grey. They are still
+  smaller and not bold. The label line, 字频, the spoken-tone note and [Tap to show more] stay
+  grey.
+- README screenshots with a second form retaken.
+
 ## 2.14.1 (2026-11-19)
 
 Neutral tones marked by the word's traditional form (#51)
