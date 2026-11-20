@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.13.0 (2026-11-19)
+
+Dictionary text as each source writes it (#48)
+- Each dictionary's text is now shown as its source writes it, by default: MOE 重編國語辭典 and
+  the 成語典 (short lines and Origin & Usage) in MOE's traditional characters, Wiktionary's
+  glosses with their Chinese as written (`original form of 廩／廪`), and CC-CEDICT's
+  cross-references with both forms (`variant of 夠|够 gòu`, `used in 鞦韆|秋千 qiūqiān`).
+- **New setting, Dictionary text** (Popup → Dictionaries): **Original** (default) or
+  **Simplified**, which gives exactly the text of 2.12.0 (`variant of 够 gòu`). It applies from
+  the next popup, to every block, MOE Always blocks, idiom short lines, the Origin & Usage view
+  and nested popups. Head lines are unchanged (**头发** 頭髮), and so are the dictionaries that
+  are simplified or English already (Xinhua, Moegirlpedia, CBDB, Wikipedia titles).
+- Both versions are stored; nothing is converted on the device. **Rebuild your MOE and 成語典
+  files** (`tools/build_optional.py --only moe,idioms --force`, then copy them over): files
+  built before 2.13.0 hold one version, which the popup shows whatever the setting, and
+  **Status** says so. `--traditional` is gone from the build scripts.
+- Sizes: the release database 36.3 → 37.8 MB (the zip 17.4 → 17.6 MB); the MOE file 28.2 →
+  45.2 MB, the 成語典 file 21.7 → 36.3 MB.
+- MOE's popup label is now **國語辭典** (was MOE); the menu and Status still say MOE 重編國語辭典.
+- A self-referring "variant of" sense is dropped in either form (`variant of 個|个 gè` on 个).
+
 ## 2.12.0 (2026-11-19)
 
 Traditional forms on the head lines (#47)
