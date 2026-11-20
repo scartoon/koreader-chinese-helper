@@ -738,7 +738,7 @@ end
 -- mmah and ids label the components block (ch_components.lua).
 Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", wp = "WP", cbdb = "CBDB", moe = "國語辭典",
                         idioms = "成语典", xinhua = "新华",
-                        moegirl = "Moegirl", mmah = "MMAH", ids = "IDS" }
+                        moegirl = "Moegirl", mmah = "MMAH", ids = "IDS", classical = "文言" }
 
 ------------------------------------------------------------------------
 -- Idioms (the user's 成語典 and Xinhua files, tools/chengyu.py): a short
@@ -910,6 +910,50 @@ function Model.blocks(matches, char, annotated, b0, b1, trad)
             local block = build{ word = m.word, len = m.len, entries = m.always, trad_pick = m.trad_pick,
                                  simp_pick = m.simp_pick }
             block.always, block.collapse = true, true
+            blocks[#blocks + 1] = block
+        end
+    end
+    return blocks
+end
+
+--[[--
+The Classical dictionary's blocks for the tapped character (#53): `rows`
+from DB:classical. A simplified character standing for several traditional
+ones (发: 發, 髮) shows the one the word around it uses (`trad_pick`,
+Model.tradPick), else each in turn. One block per entry, collapsed like an
+Always block: head line the character (with its traditional form beside it
+when `trad` and it differs), then one sense per line, "reading: gloss" when
+the sense gives a reading. Empty when there is no entry: nothing is added.
+]]
+function Model.classicalBlocks(rows, char, trad_pick, b0, b1, trad)
+    b0, b1 = b0 or "", b1 or ""
+    local picked = {}
+    for _, r in ipairs(rows or {}) do
+        if r.trad == char then picked = { r } break end
+    end
+    if #picked == 0 then
+        for _, r in ipairs(rows or {}) do
+            if trad_pick and r.trad == trad_pick then picked = { r } break end
+        end
+    end
+    if #picked == 0 then picked = rows or {} end
+    local blocks = {}
+    for _, r in ipairs(picked) do
+        local block = { lines = {}, source = "classical", classical = true, collapse = true }
+        for line in (r.senses or ""):gmatch("[^\n]+") do
+            local reading, gloss = line:match("^([^\t]*)\t([^\t]*)")
+            if gloss and gloss ~= "" then
+                block.lines[#block.lines + 1] = (reading ~= "" and (reading .. ": ") or "") .. gloss
+            end
+        end
+        if #block.lines > 0 then
+            local word = (r.simp ~= "" and r.simp) or r.trad
+            block.head = b0 .. word .. b1
+            if trad then
+                local form = r.trad ~= word and r.trad or nil
+                block.word, block.trad, block.rest = word, form, ""
+                if form then block.head = b0 .. word .. b1 .. " " .. form end
+            end
             blocks[#blocks + 1] = block
         end
     end

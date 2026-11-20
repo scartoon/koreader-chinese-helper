@@ -28,6 +28,7 @@ Marks.VERSION = 1
 Marks.KNOWN = "known"
 Marks.REMIND = "remind"
 local CHECK = "\226\156\147"   -- ✓
+Marks.CHECK = CHECK
 
 function Marks.new(opts)
     local self = setmetatable({

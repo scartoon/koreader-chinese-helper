@@ -295,6 +295,37 @@ function DB:notes(list)
     return out
 end
 
+-- The Classical dictionary (#53, #55). Kept identical to
+-- tools/build_classical.py's CLASSICAL_SQL and VARIANT_SQL.
+DB.CLASSICAL_SQL = "SELECT trad, simp, senses FROM classical WHERE trad = ? OR simp = ? ORDER BY trad"
+DB.CLASSICAL_VARIANT_SQL = "SELECT trad FROM classical_variant WHERE ch = ?"
+
+-- Whether this database has the Classical dictionary.
+function DB:hasClassical()
+    if self.has_classical == nil then self.has_classical = self:hasColumn("classical", "senses") end
+    return self.has_classical
+end
+
+-- The Classical entries for one character: { {trad=, simp=, senses=}, ... }
+-- (senses: "reading<TAB>gloss<TAB>sources" lines), keyed by its traditional
+-- or simplified form; a variant with no entry of its own (説) gets its
+-- target's (說). Empty when there is none, or no table.
+function DB:classical(ch)
+    local out = {}
+    local function collect(want)
+        pcall(self.each, self, DB.CLASSICAL_SQL, { want, want }, function(row)
+            if want == ch or row[1] == want then out[#out + 1] = { trad = row[1], simp = row[2], senses = row[3] } end
+        end)
+    end
+    collect(ch)
+    if #out == 0 then
+        local target
+        pcall(self.each, self, DB.CLASSICAL_VARIANT_SQL, { ch }, function(row) target = row[1] end)
+        if target then collect(target) end
+    end
+    return out
+end
+
 -- { [word] = { "syllables", freq } } for the words of `list` in the words table.
 function DB:words(list)
     local out = {}

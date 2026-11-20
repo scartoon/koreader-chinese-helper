@@ -28,6 +28,7 @@ local Components = require("ch_components")
 local Context = require("ch_context")
 local Edge = require("ch_edge")
 local Model = require("ch_popup_model")
+local Marks = require("ch_marks")
 local Page = require("ch_page")
 local Resolve = require("ch_resolve")
 local Snippet = require("ch_snippet")
@@ -639,16 +640,45 @@ function Tap:present(args)
     local keep_mark = false
     local close_all = function() self:closeAll() end
     self:attachIdioms(args.matches)
-    local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1,
-        self.plugin.settings:tradHeadsEnabled())
+    local settings = self.plugin.settings
     -- The tapped character's frequency rank, on its own entry (#17).
     local rank_text
-    if self.plugin.settings:charRankEnabled() then
+    if settings:charRankEnabled() then
         local data = self.plugin:readings()
         if data then rank_text = Model.rankText(data:rankInfo(args.char)) end
     end
-    local rank_placed = Model.markRank(blocks, args.matches, rank_text)
-    Model.markSpoken(blocks, args.matches, args.spoken)
+    local block = comp and Components.block(comp.c, b0, b1, comp.via, comp.changes)
+    local has_classical = args.db and args.db.hasClassical and args.db:hasClassical()
+    -- The popup's blocks, built again when Classical mode is switched (#53).
+    local function makeBlocks()
+        local trad = settings:tradHeadsEnabled()
+        local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1, trad)
+        local rank_placed = Model.markRank(blocks, args.matches, rank_text)
+        Model.markSpoken(blocks, args.matches, args.spoken)
+        local first = args.matches[1]
+        local own = (first and first.len == 1) and 2 or 1
+        if has_classical and settings:classicalEnabled() then
+            -- Right under the character's own entry, before MOE's Always
+            -- entry, the components and the words (#53).
+            local cl = Model.classicalBlocks(args.db:classical(args.char), args.char,
+                Model.tradPick(args.cands, args.rows), b0, b1, trad)
+            for k, b in ipairs(cl) do table.insert(blocks, own + k - 1, b) end
+        end
+        if block then
+            -- Below the character's own entry (when it has one), its
+            -- Classical entry and its MOE Always entry.
+            local at = own
+            if at == 2 then
+                while blocks[at] and (blocks[at].classical or blocks[at].always) do at = at + 1 end
+            end
+            table.insert(blocks, at, block)
+        end
+        Model.chineseLast(blocks)
+        -- No entry of its own: the rank goes above the first block.
+        if rank_text and not rank_placed and blocks[1] then blocks[1].rank = rank_text end
+        return blocks
+    end
+    local blocks = makeBlocks()
     local words = {}
     for _, m in ipairs(args.matches) do
         local word = m.word
@@ -670,24 +700,32 @@ function Tap:present(args)
     -- sentence row (Translate), then Close on a row of its own, always the
     -- last. The components block has none of its own.
     local button_rows = Text.rows(words, Tap.BUTTONS_PER_ROW)
-    local block = comp and Components.block(comp.c, b0, b1, comp.via, comp.changes)
-    if block then
-        -- Below the character's own entry (when it has one) and its MOE
-        -- Always entry.
-        local first = args.matches[1]
-        local at = (first and first.len == 1) and 2 or 1
-        if at == 2 and blocks[2] and blocks[2].always then at = 3 end
-        table.insert(blocks, at, block)
-    end
-    Model.chineseLast(blocks)
-    -- No entry of its own: the rank goes above the first block.
-    if rank_text and not rank_placed and blocks[1] then blocks[1].rank = rank_text end
     local sentence_row = not parent and args.sentence and args.sentence(close_all)
     if sentence_row then button_rows[#button_rows + 1] = sentence_row end
     -- Close: a popup opened from another closes alone (as the Back key);
     -- the first closes and takes the page underline with it.
     local close = function() if parent then self:back(popup) else self:closeAll() end end
     button_rows[#button_rows + 1] = { { text = _("Close"), callback = close } }
+    -- The title bar's buttons (first popup only): 文言 (Classical mode, #53),
+    -- then the reading-mark buttons (#26).
+    local function titleButtons()
+        if parent then return nil end
+        local list = {}
+        if has_classical then
+            list[1] = {
+                text = settings:classicalEnabled() and (Tap.CLASSICAL_BUTTON .. " " .. Marks.CHECK) or Tap.CLASSICAL_BUTTON,
+                callback = function()
+                    settings:set("classical_mode", not settings:classicalEnabled())
+                    popup.blocks = makeBlocks()
+                    popup:setMarkButtons(titleButtons())
+                end,
+            }
+        end
+        local marks = args.reading and self:markButtons(args.char, args.reading, function() return popup end,
+            titleButtons)
+        for _, m in ipairs(marks or {}) do list[#list + 1] = m end
+        return #list > 0 and list or nil
+    end
     local font_size = self:textHeight()
     popup = Popup:new{
         title = args.char,
@@ -710,9 +748,7 @@ function Tap:present(args)
         chinese_pct = self.plugin.settings:chineseTextPercent(),
         collapse_lines = self.plugin.settings:collapseLines(),
         book_font = self:bookFont(),
-        mark_buttons = not parent and args.reading and self:markButtons(args.char, args.reading, function()
-            return popup
-        end) or nil,
+        mark_buttons = titleButtons(),
     }
     self:push(popup)
     UIManager:show(popup)
@@ -724,9 +760,12 @@ The reading-mark buttons (#26) for `char` at the tapped position: one per
 reading of reading.chosen (two for the uncertainty pair), or nil. A tap
 saves the mark, rebuilds the page's pinyin at once and gives the popup its
 new labels; the page and the popup repaint together, the popup on top.
-get_popup: returns the popup (built after the buttons).
+get_popup: returns the popup (built after the buttons); refresh (optional):
+returns the title bar's whole button list after a mark changes.
 ]]
-function Tap:markButtons(char, reading, get_popup)
+Tap.CLASSICAL_BUTTON = "文言"
+
+function Tap:markButtons(char, reading, get_popup, refresh)
     if not reading.chosen or reading.chosen == "" then return nil end
     local ok, marks = pcall(self.plugin.marks, self.plugin)
     if not ok or not marks then return nil end
@@ -746,7 +785,9 @@ function Tap:markButtons(char, reading, get_popup)
                 end
                 self.plugin.annotator:refreshPage()
                 local popup = get_popup()
-                if popup then popup:setMarkButtons(self:markButtons(char, reading, get_popup)) end
+                if popup then
+                    popup:setMarkButtons(refresh and refresh() or self:markButtons(char, reading, get_popup))
+                end
             end,
         }
     end

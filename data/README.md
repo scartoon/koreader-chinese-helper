@@ -12,6 +12,7 @@ committed so that a rebuild needs no dataset downloads beyond CC-CEDICT:
 | `rules.tsv` | `tools/learn_from_cpp.py` | Context rules: char, L or R, the neighbouring character, the reading, the number of training examples (each: at least 5, at least 95% agreeing). |
 | `rules_exclude.tsv` | hand | Learned rules `learn_from_cpp.py` must leave out (char, L or R, the neighbour, why): it generates `rules.tsv`, so a bad rule is excluded here rather than deleted there. |
 | `uncertain.tsv` | `tools/learn_from_cpp.py` | Characters whose default reading is unreliable when no word or rule decides: char, confidence in the default, the two most likely readings. Below 75% confidence, plus the hand-checked pairs from `overrides.tsv`. |
+| `classical.tsv.gz` | `tools/build_classical.py` | The Classical dictionary (#55): 21,292 characters' classical senses (at most five each, as JSON with reading and sources, plus the collated source lines) and 184 variant forms pointing to an entry. Condensed once by Claude Haiku; `build_db.py` (or `build_classical.py --into DB`) writes it into the `classical` and `classical_variant` tables. CC BY-SA 4.0. |
 
 Everything else is generated into `build/` (git-ignored) by `tools/build_data.py` and packed
 into the database with CC-CEDICT by `tools/build_db.py`:

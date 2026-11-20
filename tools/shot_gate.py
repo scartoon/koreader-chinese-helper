@@ -212,11 +212,19 @@ local function present(g, char, cands, rows, matches, annotated)
     local buttons = {}
     for _, m in ipairs(matches) do buttons[#buttons + 1] = m.word end
     for _, c in ipairs(Model.chuchu(matches)) do buttons[#buttons + 1] = c.text .. "(" .. c.word .. ")" end
+    local first = matches[1]
+    local own = (first and first.len == 1) and 2 or 1
+    if g.classical then   -- Classical mode (#53): right under the character's own entry
+        local cl = Model.classicalBlocks(g.main:classical(char), char, Model.tradPick(cands, rows), "**", "**",
+            g.settings:tradHeadsEnabled())
+        for k, b in ipairs(cl) do table.insert(blocks, own + k - 1, b) end
+    end
     local block = comp and Components.block(comp.c, "**", "**", comp.via, comp.changes)
-    if block then   -- below the character's own entry and its MOE Always entry
-        local first = matches[1]
-        local at = (first and first.len == 1) and 2 or 1
-        if at == 2 and blocks[2] and blocks[2].always then at = 3 end
+    if block then   -- below the character's own entry, its Classical and its MOE Always entry
+        local at = own
+        if at == 2 then
+            while blocks[at] and (blocks[at].classical or blocks[at].always) do at = at + 1 end
+        end
         table.insert(blocks, at, block)
     end
     Model.chineseLast(blocks)
@@ -332,8 +340,12 @@ class Gate:
         rows = sorted((to_py(a) for a in anns.values()), key=lambda a: a["index"])
         return [(a["char"], a["reading"], a["special"]) for a in rows]
 
-    def popup(self, text, threshold, char, nth=1, mode="both"):
-        return to_py(self.G.popup(self.g, text, threshold, mode, char, nth))
+    def popup(self, text, threshold, char, nth=1, mode="both", classical=False):
+        self.g.classical = classical
+        try:
+            return to_py(self.G.popup(self.g, text, threshold, mode, char, nth))
+        finally:
+            self.g.classical = False
 
 
 def format_popup(p):

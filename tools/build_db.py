@@ -45,6 +45,8 @@ Schema:
     special(word, pinyin, marks, freq, note)  special_guard(ordinary, word, offset)
     components(ch, body)      a character's parts (format: tools/components.py Builder)
     component_notes(ch, text) Wiktionary's glyph-origin text (the popup's Origin view)
+    classical(trad, simp, senses, raw), classical_variant(ch, trad)
+                              the Classical dictionary (tools/build_classical.py)
     meta(key, value)          source versions and counts
 See chinesehelper.koplugin/ch_db.lua and ch_readings.lua for how they are used.
 
@@ -70,6 +72,7 @@ from pinyin_util import numbered_to_marked  # noqa: E402
 import fallback_sources  # noqa: E402
 import components  # noqa: E402
 import wikipedia_dump  # noqa: E402
+import build_classical  # noqa: E402
 
 URL = "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -401,6 +404,9 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, orig
                      "mmah_license": "LGPL v3 or later (Make Me a Hanzi dictionary.txt)",
                      "ids_url": comps[2]["ids"][0], "ids_sha256": comps[2]["ids"][1],
                      "ids_license": "MIT (yi-bai/ids)"})
+    # The Classical dictionary (#55): data/classical.tsv.gz, its own tables,
+    # read only by the popup in Classical mode.
+    meta.update(build_classical.write_tables(con))
     con.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
     con.commit()
     con.execute("VACUUM")
@@ -513,6 +519,9 @@ def main():
         comps = (bodies, notes, {"mmah": (MMAH_URL, sha256_of(mmah)), "ids": (IDS_URL, sha256_of(ids))})
     meta = build(entries, header, sha, args.out, wikt, wp, comps, originals)
     check_query_plans(args.out)
+    con = sqlite3.connect(args.out)
+    build_classical.check_plans(con)
+    con.close()
     size = os.path.getsize(args.out)
     print(f"CC-CEDICT {header.get('date', '(no date)')}: {len(entries)} entries, SHA-256 {sha}")
     print("Tables: " + ", ".join(f"{k} {meta[k]}" for k in
