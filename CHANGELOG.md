@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.14.1 (2026-11-19)
+
+Neutral tones marked by the word's traditional form (#51)
+- 发 in 头发 is now marked **fà** "likely here" and listed first (was fā, "to send out"). The
+  word draws 发 neutral (tóufa), and two of 发's entries have those letters. The popup now
+  picks the one whose traditional form the word uses (頭髮 → 髮 → fà), and falls back to the
+  character's default reading only when that doesn't separate them (含糊's 糊: hú).
+- A scan of every CC-CEDICT word with such a tie (`tools/scan_neutral_ties.py`: 323 ties on 76
+  characters) found 6 changes, all for the better: 头发, 剪头发, 烫头发, 耳发 and 头发胡子一把抓 (fà), and
+  跟斗 (dǒu, was dòu). The other 317 ties keep the default.
+- Only the popup's marking changes; the pinyin drawn on the page is the same.
+
 ## 2.14.0 (2026-11-19)
 
 Simplified forms for traditional taps (#50)

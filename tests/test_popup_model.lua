@@ -506,6 +506,31 @@ eq(Model.render(matches("", "观", "", { row("观", "觀", "guān", "to look at"
    "观  guān\nto look at")
 
 ------------------------------------------------------------------------
+-- A neutral reading with several same-letter tones (#51): the word's
+-- traditional form of the character picks the entry.
+------------------------------------------------------------------------
+local NT = { row("发", "發", "fā", "to send out", "fā"), row("发", "髮", "fà", "hair", "fà"),
+             row("头发", "頭髮", "tóufa", "hair (on the head)", "tóu fa"),
+             row("发现", "發現", "fāxiàn", "to find", "fā xiàn") }
+local function markedOf(left, char, right, rows, extra)
+    local out = {}
+    for _, e in ipairs(matches(left, char, right, rows, extra)[1].entries) do
+        if e.marked then out[#out + 1] = e.pinyin end
+    end
+    return table.concat(out, ",")
+end
+eq(markedOf("头", "发", "", NT, { chosen = "fa", default = "fā" }), "fà", "头发: 髮 → fà")
+eq(matches("头", "发", "", NT, { chosen = "fa", default = "fā" })[1].entries[1].pinyin, "fà", "listed first")
+eq(markedOf("", "发", "", NT, { chosen = "fa", default = "fā" }), "fā", "no word: the default")
+eq(markedOf("", "发", "现", NT, { chosen = "fā", default = "fā" }), "fā")
+-- The pick on both entries (same traditional form): the default decides.
+local HU = { row("糊", "糊", "hū", "to paste", "hū"), row("糊", "糊", "hú", "muddled", "hú"),
+             row("糊", "糊", "hù", "paste", "hù"), row("含糊", "含糊", "hánhu", "vague", "hán hu") }
+eq(markedOf("含", "糊", "", HU, { chosen = "hu", default = "hú" }), "hú")
+-- A toned reading never reaches the tie-break.
+eq(markedOf("头", "发", "", NT, { chosen = "fā", default = "fā" }), "fā")
+
+------------------------------------------------------------------------
 -- Traditional taps: the simplified form in bold, the tapped form grey (#50)
 ------------------------------------------------------------------------
 local function headOf(left, char, right, rows, k, extra, b0, b1)

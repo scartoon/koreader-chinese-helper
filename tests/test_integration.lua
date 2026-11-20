@@ -389,3 +389,32 @@ p = popup("他头发花白。", "头")
 assert(headOf(p, "头 頭  tóu"), p.ttext); assert(headOf(p, "头发 頭髮  tóufa"), p.ttext)
 p = popup("我发现了。", "发")
 assert(headOf(p, "发 發/髮  fā"), p.ttext)
+
+------------------------------------------------------------------------
+-- A neutral reading on a character with several same-letter tones (#51):
+-- the word's traditional form of it picks the entry (头发 → 髮 → fà), the
+-- character's default only when that does not separate them.
+------------------------------------------------------------------------
+p = popup("头发花白。", "发")
+eq(p.chosen, "fa")
+eq(marked(p, "发"), "fà", "发 in 头发: hair, not to send out")
+eq(p.matches[1].entries[1].pinyin, "fà", "and listed first")
+assert(p.text:find("^发  fà · likely here\nhair"), p.text)
+assert(p.text:find("头发  tóufa · likely here · decides 发's reading", 1, true), p.text)
+p = popup("他剪头发了。", "发")
+eq(marked(p, "发"), "fà", "剪头发")
+p = popup("他发现了。", "发")
+eq(p.chosen, "fā"); eq(marked(p, "发"), "fā", "发现 unchanged")
+p = popup("翻了个跟斗。", "斗")
+eq(marked(p, "斗"), "dǒu", "跟斗: 斗 dǒu (the scan's other change)")
+-- Not separated by the traditional form: the default, as before.
+p = popup("他说得含糊。", "糊")
+eq(marked(p, "糊"), "hú", "含糊: 糊's default")
+p = popup("这是好处。", "处")
+eq(marked(p, "处"), "chǔ", "好处: 處 either way, so 处's default (MOE says chù: #51's report)")
+-- Only the popup's marking: the page draws the same pinyin.
+for _, t in ipairs({ { "头发花白。", "发" }, { "翻了个跟斗。", "斗" } }) do
+    local q = popup(t[1], t[2], { threshold = 1 })
+    eq(q.drawn, q.chosen, t[1] .. " drawn as resolved")
+end
+eq(popup("头发花白。", "发", { threshold = 1 }).drawn, "fa", "头发's 发 still drawn fa")
