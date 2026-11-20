@@ -87,6 +87,7 @@ menu's **Order** changes it). The MOE dictionary can also show its entry for eve
 | Xinhua idioms | 新华 | 23,500\* | [optional](#optional-dictionaries) | chengyu and set phrases, with classical sources (in Chinese) |
 | Wikipedia titles | WP | 39,000 | bundled | technology, engineering, military and history terms, and proper names (English article title) |
 | Moegirlpedia slang | Moegirl | 350 | [optional](#optional-dictionaries) | internet slang (in Chinese) |
+| Classical dictionary | 文言 | __N_ENTRIES__ characters | bundled, [Classical mode](#classical-mode) only | the senses of single characters in classical Chinese, condensed from Chinese Notes, Wiktionary and Unihan |
 
 \* Chengyu CC-CEDICT lacks. Both files also add a Chinese line and an Origin & Usage view to chengyu the
 other dictionaries have: MOE idioms covers 5,470 chengyu in all, Xinhua idioms 30,200
@@ -144,7 +145,7 @@ Tools menu). Settings apply to all books.
 | Show the text around the character in the popup | On (default) / off; drawn at the Chinese text size. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
 | Try to match the book's font | On (default) / off: Chinese text in the popup in the book's font. See [The popup](#the-popup) |
-| Dictionaries | Source labels (all entries / other dictionaries only (default) / none); **Dictionary text** (original (default) / simplified, see [Dictionary text](#dictionary-text)); **Order** of the dictionaries after CC-CEDICT; **Collapse long entries** (1 / 2 (default) / 3 lines / never); then each dictionary on/off, in that order (default: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang), with **MOE for single characters** (off / fallback (default) / always) and **MOE for words** (off / fallback (default) / always) under MOE's. See [Fallback dictionaries](#fallback-dictionaries) and [MOE Always](#moe-always) |
+| Dictionaries | Source labels (all entries / other dictionaries only (default) / none); **Dictionary text** (original (default) / simplified, see [Dictionary text](#dictionary-text)); **Classical mode** (off (default) / on, the same as the popup's 文言 button, see [Classical mode](#classical-mode)); **Order** of the dictionaries after CC-CEDICT; **Collapse long entries** (1 / 2 (default) / 3 lines / never); then each dictionary on/off, in that order (default: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang), with **MOE for single characters** (off / fallback (default) / always) and **MOE for words** (off / fallback (default) / always) under MOE's. See [Fallback dictionaries](#fallback-dictionaries) and [MOE Always](#moe-always) |
 | Status | Version, data versions and load times, each fallback dictionary (version, entries, on or off, or not installed; MOE's modes and whether its file is ready for Always), and what the current page needed |
 
 ### Learner mode
@@ -432,6 +433,34 @@ occurrences) and on 临高启明 (38,398):
 A chengyu here is any headword CC-CEDICT tags *idiom* or either file lists, so "100%" only means
 the two files cover their own lists; the gain is the 1,282 chengyu (5,397 occurrences) that had
 no entry even with the MOE dictionary, such as 精兵强将, 受制于人, 由来已久.
+
+### Classical mode
+
+For classical Chinese (文言), and the classical passages modern books quote: the **文言** button at
+the top right of the popup, left of the reading-mark button, turns Classical mode on. Every popup
+then shows the **Classical dictionary**'s entry for the tapped character right under its CC-CEDICT
+entry, labelled 文言: up to five senses that classical texts use and modern Chinese mostly
+doesn't, cut to two lines with [Tap to show more] like [MOE Always](#moe-always). The button reads
+**文言 ✓** while the mode is on; it stays on for later popups, in every book and after a restart,
+until you tap it again (or switch **Classical mode** in the Dictionaries menu). Popups opened from
+a popup's text follow it but have no button. A character with no entry adds nothing.
+
+<img src="docs/classical.png" alt="Popup for 之 in 三国演义's 窦武、陈蕃谋诛之: the line 时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不密，反为所害，中涓自此愈横。 with 之 marked; the title bar, 之 on the left and the buttons 文言 ✓ and Remind me: zhī on the right; 字频 69, 之 zhī (possessive particle, literary equivalent of 的 de); him; her; it; then the block labelled 文言: 之, him; her; it; them (object pronoun in non-subject position), genitive or attributive marker (possession or modification) [Tap to show more]; then its parts, labelled Wikt">
+
+A simplified character that stands for several traditional ones shows the one its word uses (发 in
+头发: 髮 *hair*), otherwise each; a variant form (説) shows its standard form's entry (說).
+
+The dictionary covers __N_ENTRIES__ characters (and __N_VARIANTS__ variant forms). It was built
+once by `tools/build_classical.py` from the senses three open dictionaries mark as classical,
+literary or archaic: [Chinese Notes](https://github.com/alexamies/chinesenotes.com)' *Literary
+Chinese* senses, English Wiktionary's, and Unihan's definitions for characters outside the 3,000
+most common. Claude Haiku condensed each character's senses into at most five, citing the lines
+each came from; the build drops senses that cite nothing and flags those whose words aren't in
+their sources. On 128 judged words from classical texts, CC-CEDICT alone had the needed sense 84%
+of the time, and with the Classical dictionary under it 95%
+([research note](docs/research/classical-dictionary.md)). MOE's classical senses are not in it
+(its licence does not allow it); with the MOE file installed, [MOE Always](#moe-always) shows
+them.
 
 ### Translating the sentence
 
@@ -802,6 +831,10 @@ Everything the plugin needs is in one SQLite database,
   lists and some kinds of place, organisation and work (towns, stations, companies, films…;
   others remain: glaciers, museums, TV series). Neither has a row for a headword CC-CEDICT has,
   or for everyday combinations it leaves out on purpose (很多, 这次, 脸上).
+- **The Classical dictionary** (`classical`, `classical_variant`): __N_ENTRIES__ characters' classical
+  senses, at most five each, and __N_VARIANTS__ variant forms ([Classical mode](#classical-mode)).
+  Its source is `data/classical.tsv.gz`, condensed once by `tools/build_classical.py`, so a
+  database build needs no API key.
 - **Character components** (`components`): 13,362 characters' parts, roles, readings, glosses and
   sound labels, from Wiktionary, Make Me a Hanzi and yi-bai/ids (about 2.9 MB). The database also
   holds 6,591 Wiktionary origin texts (`component_notes`) that the popup does not use.
@@ -1013,6 +1046,13 @@ Hanzi and yi-bai/ids:
   `tools/components.py`. Its `graphics.txt` (Arphic licence) is not used.
 - **[yi-bai/ids](https://github.com/yi-bai/ids)** by Yi Bai, MIT License: character structures
   (`ids_lv2.txt`) for the components of characters no other source analyses.
+- The **Classical dictionary** (`data/classical.tsv.gz`, the `classical` table), CC BY-SA 4.0,
+  condensed by Claude Haiku from: **[Chinese Notes](https://github.com/alexamies/chinesenotes.com)**
+  dictionary, © Fo Guang Shan 佛光山 2013–2025, CC BY-SA 3.0 (its *Literary Chinese* senses,
+  adapted under 4.0);
+  English **Wiktionary** (above); and the **[Unihan database](https://www.unicode.org/charts/unihan.html)**
+  `kDefinition` and variant fields, © Unicode, Inc.,
+  [Unicode License v3](https://www.unicode.org/license.txt).
 
 Not distributed, never in the repository or a release; tools in `tools/` build them from the
 originals for the user's own device ([Optional dictionaries](#optional-dictionaries) links each
