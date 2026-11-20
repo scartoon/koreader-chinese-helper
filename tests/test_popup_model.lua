@@ -614,3 +614,17 @@ local orig, simp = Model.chooseText(textRows(), false), Model.chooseText(textRow
 eq(orig[1].defs, "variant of 夠|够 gòu"); eq(orig[1].defs_simp, nil); eq(orig[3].short, "吝嗇")
 eq(simp[1].defs, "variant of 够 gòu"); eq(simp[2].defs, "enough"); eq(simp[3].short, "吝啬"); eq(simp[3].view, "释义")
 eq(simp[3].short_simp, nil)
+
+------------------------------------------------------------------------
+-- Citation tones for ties the traditional form can't break (#52)
+------------------------------------------------------------------------
+local function cands(...)
+    local out = {}
+    for _, c in ipairs({ ... }) do out[#out + 1] = { text = c[1], start = c[2], len = select(2, c[1]:gsub("[^\128-\191]", "")) } end
+    return out
+end
+eq(Model.citationPick(cands({ "处", 0 }, { "好处", -1 }), "处"), "chù", "好处")
+eq(Model.citationPick(cands({ "處", 0 }, { "好處", -1 }), "處"), "chù", "好處")
+eq(Model.citationPick(cands({ "应", 0 }, { "答应", -1 }, { "满口答应", -3 }), "应"), "yìng", "满口答应")
+eq(Model.citationPick(cands({ "处", 0 }, { "处理", 0 }), "处"), nil, "处理: not listed")
+eq(Model.citationPick(cands({ "好", 0 }, { "好处", 0 }), "好"), nil, "only the listed character")
