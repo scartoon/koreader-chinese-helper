@@ -178,7 +178,8 @@ end
 --      Where several tones have those letters, the ones whose traditional
 --      forms include `pick` (the word's traditional form of the character,
 --      Model.tradPick: 发 in 头发 is 髮, so fà, not fā; #51) when that
---      separates them; otherwise only `prefer` (the character's default
+--      separates them; otherwise only `prefer` (the word's citation tone
+--      from Model.NEUTRAL_CITATIONS, #52, else the character's default
 --      reading) when it is one of them (糊 hù, hú, hū for 含糊 hu: hú).
 -- `value` is what marked is set to. Returns whether anything was marked.
 local function markMatching(entries, chosen, value, prefer, pick)
@@ -283,6 +284,50 @@ function Model.takeFallback(remaining, rows)
         if not taken[t] then left[#left + 1] = t end
     end
     return kept, left
+end
+
+--[[--
+Neutral-tone ties the traditional form can't break (#52): words CC-CEDICT
+gives a neutral syllable on a character with several same-letter tones, both
+under one traditional form, so markMatching would fall back to the
+character's default reading (处 chǔ in 好处). Here, the word's citation tone
+of that character, where MOE and pypinyin's phrase data agree on it (难处's
+neutral word nánchu "difficulty" is 处 chù; pypinyin's chǔ is the other
+难处, nánchǔ "hard to get on with"). Left out: Taiwan readings (悄悄话 qiǎo,
+连累 lèi) and 生分 (the sources disagree). Popup marking only: the pinyin
+drawn on the page doesn't use this. word -> { char -> reading }, simplified
+and traditional forms.
+]]
+Model.NEUTRAL_CITATIONS = {}
+for _, row in ipairs({
+    { "好处", "好處", "处", "處", "chù" }, { "坏处", "壞處", "处", "處", "chù" },
+    { "害处", "害處", "处", "處", "chù" }, { "难处", "難處", "处", "處", "chù" },
+    { "答应", "答應", "应", "應", "yìng" }, { "照应", "照應", "应", "應", "yìng" },
+    { "满口答应", "滿口答應", "应", "應", "yìng" },
+    { "裁缝", "裁縫", "缝", "縫", "féng" },
+    { "思量", "思量", "量", "量", "liáng" }, { "掂量", "掂量", "量", "量", "liáng" },
+    { "停当", "停當", "当", "當", "dàng" },
+    { "大部分", "大部分", "分", "分", "fèn" },
+    { "松散", "鬆散", "散", "散", "sǎn" },
+    { "哭丧脸", "哭喪臉", "丧", "喪", "sāng" }, { "哭丧着脸", "哭喪著臉", "丧", "喪", "sāng" },
+}) do
+    Model.NEUTRAL_CITATIONS[row[1]] = { [row[3]] = row[5] }
+    Model.NEUTRAL_CITATIONS[row[2]] = { [row[4]] = row[5] }
+end
+
+--[[--
+The tapped character's citation reading from Model.NEUTRAL_CITATIONS (#52):
+from the longest candidate word listed with that character. nil when none.
+]]
+function Model.citationPick(cands, char)
+    local best, best_len
+    for _, c in ipairs(cands or {}) do
+        local cite = Model.NEUTRAL_CITATIONS[c.text]
+        if cite and cite[char] and (not best_len or c.len > best_len) then
+            best, best_len = cite[char], c.len
+        end
+    end
+    return best
 end
 
 --[[--
@@ -599,13 +644,14 @@ function Model.matches(args)
     end
     -- The tapped character: mark the resolver's reading(s).
     local trad_pick = anchor and Model.tradPick(args.cands, args.rows)
+    local cite = anchor and Model.citationPick(args.cands, anchor.word)
     if anchor and fromCedict(anchor) and args.chosen and args.chosen ~= "" then
         local entries = anchor.entries
         local several = distinctReadings(entries) > 1 or toneless
         local rank = 0
         for reading in args.chosen:gmatch("[^/]+") do
             rank = rank + 1
-            if not markMatching(entries, reading, several or nil, args.default, trad_pick) then
+            if not markMatching(entries, reading, several or nil, cite or args.default, trad_pick) then
                 -- A reading CC-CEDICT does not list for the character itself
                 -- (it may come from a pypinyin phrase): shown, with no senses.
                 entries[#entries + 1] = { pinyin = reading, syllables = reading, senses = {},

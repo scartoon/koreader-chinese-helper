@@ -410,8 +410,31 @@ eq(marked(p, "斗"), "dǒu", "跟斗: 斗 dǒu (the scan's other change)")
 -- Not separated by the traditional form: the default, as before.
 p = popup("他说得含糊。", "糊")
 eq(marked(p, "糊"), "hú", "含糊: 糊's default")
-p = popup("这是好处。", "处")
-eq(marked(p, "处"), "chǔ", "好处: 處 either way, so 处's default (MOE says chù: #51's report)")
+------------------------------------------------------------------------
+-- #52: ties the traditional form can't break, settled by the hand list of
+-- citation tones (Model.NEUTRAL_CITATIONS); popup marking only.
+------------------------------------------------------------------------
+local cites = {
+    { "这是好处。", "处", "chù" }, { "没有坏处。", "处", "chù" }, { "这有害处。", "处", "chù" },
+    { "他有难处。", "处", "chù" }, { "她答应了。", "应", "yìng" }, { "互相照应。", "应", "yìng" },
+    { "他满口答应。", "应", "yìng" }, { "他是裁缝。", "缝", "féng" }, { "他思量着。", "量", "liáng" },
+    { "掂量一下。", "量", "liáng" }, { "事情停当了。", "当", "dàng" }, { "大部分人。", "分", "fèn" },
+    { "组织松散。", "散", "sǎn" }, { "他哭丧着脸。", "丧", "sāng" },
+    { "這是好處。", "處", "chù" }, { "她答應了。", "應", "yìng" }, { "他是裁縫。", "縫", "féng" },
+}
+for _, t in ipairs(cites) do
+    local q = popup(t[1], t[2])
+    eq(marked(q, t[2]), t[3], t[1])
+    eq(q.matches[1].entries[1].pinyin, t[3], t[1] .. " listed first")
+    local d = popup(t[1], t[2], { threshold = 1 })
+    eq(d.drawn, d.chosen, t[1] .. " drawn as resolved")
+end
+-- Left out of the list: the default, as before.
+eq(marked(popup("他说得含糊。", "糊"), "糊"), "hú", "含糊 unchanged")
+eq(marked(popup("说悄悄话。", "悄"), "悄"), "qiāo", "悄悄话: Taiwan's qiǎo left out")
+eq(marked(popup("连累了他。", "累"), "累"), "lěi", "连累: Taiwan's lèi left out")
+-- Outside the words, the character's default: 处理 chǔ, 回应 yìng (its own word).
+eq(marked(popup("处理问题。", "处"), "处"), "chǔ", "处理")
 -- Only the popup's marking: the page draws the same pinyin.
 for _, t in ipairs({ { "头发花白。", "发" }, { "翻了个跟斗。", "斗" } }) do
     local q = popup(t[1], t[2], { threshold = 1 })

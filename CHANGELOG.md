@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.14.3 (2026-11-20)
+
+Neutral tones the traditional form can't decide (#52)
+- 处 in 好处 is now marked **chù** "likely here" and listed first (was chǔ, the character's
+  default). The same goes for 坏处, 害处 and 难处 (chù), 答应, 照应 and 满口答应 (yìng),
+  裁缝 (féng), 思量 and 掂量 (liáng), 停当 (dàng), 大部分 (fèn), 松散 (sǎn) and
+  哭丧(着)脸 (sāng), in simplified and traditional text.
+- These come from a short hand-checked list, used only where #51's scan found that the
+  traditional form can't decide and that MOE's citation tone differs. Each one is a reading MOE
+  and pypinyin's phrase data agree on (难处: the neutral word nánchu, "difficulty").
+  Taiwan readings (悄悄话 qiǎo, 连累 lèi) and 生分, where the sources disagree, are left out.
+- Only the popup's marking changes; the pinyin drawn on the page is the same.
+
 ## 2.14.2 (2026-11-20)
 
 Head line's second form in the text's shade (#54)
