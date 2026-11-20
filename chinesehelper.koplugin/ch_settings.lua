@@ -70,6 +70,7 @@ Settings.DEFAULTS = {
     components = true,        -- "Show character components" in single-character popups
     char_rank = true,         -- "Show character frequency rank": 字频 N on the tapped character's entry
     trad_heads = true,        -- "Show traditional forms": 头发 頭髮 on the popup's head lines (#47)
+    dict_text = "original",   -- "Dictionary text": "original" (as each source writes it) or "simplified" (#48)
     rank_source = "bundled",  -- "Frequency ranks": "bundled" (wordfreq) or "books" (the reader's own file, #42)
     popup_context = true,     -- "Show the text around the character in the popup"
     page_underline = true,    -- "Underline the tapped character on the page"
@@ -102,6 +103,13 @@ function Settings:specialEnabled() return self:get("special") == true end
 function Settings:componentsEnabled() return self:get("components") == true end
 function Settings:charRankEnabled() return self:get("char_rank") == true end
 function Settings:tradHeadsEnabled() return self:get("trad_heads") == true end
+
+Settings.TEXT_ORIGINAL, Settings.TEXT_SIMPLIFIED = "original", "simplified"
+
+-- "Dictionary text" (#48): "simplified" when chosen, else "original".
+function Settings:dictText()
+    return self:get("dict_text") == Settings.TEXT_SIMPLIFIED and Settings.TEXT_SIMPLIFIED or Settings.TEXT_ORIGINAL
+end
 
 Settings.RANKS_BUNDLED, Settings.RANKS_BOOKS = "bundled", "books"
 

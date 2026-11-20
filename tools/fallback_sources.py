@@ -4,7 +4,7 @@ tools/measure_fallback.py).
 
 Every source becomes rows in the same shape as CC-CEDICT's `entries`:
 
-    (simp, trad, pinyin, syllables, defs, source)
+    (simp, trad, pinyin, syllables, defs, source[, defs_simp])
 
     simp, trad  the headword's simplified and traditional forms (the same
                 string when they do not differ); the popup looks words up by
@@ -15,6 +15,9 @@ Every source becomes rows in the same shape as CC-CEDICT's `entries`:
     defs        senses joined with "/" as in CC-CEDICT; a "/" inside a sense is
                 written as a full-width "／"
     source      "wikt", "wp", "cbdb", "moe" or "moegirl"
+    defs_simp   the same senses in simplified characters (simplify.py), the
+                popup's Dictionary text: Simplified (#48); None, or left out,
+                when they are the same as defs. defs is the source's own text.
 
 What every source gets (the plugin can only ever match these):
   * headwords of 1-8 Han characters only: the popup's context stops at any
@@ -32,12 +35,12 @@ Sources:
         one take their characters' unambiguous readings, or no pinyin), dialect-only senses
         dropped, soft redirects (simplified pages) and alternative forms
         resolved to their entries, entries that only name places dropped.
-        Chinese in the glosses is simplified (simplify.py, t2s): "廩／廪"
-        pairs collapse to 廪, other text is converted.
+        Chinese in the glosses is kept as written in defs; defs_simp has it
+        simplified (simplify.py, t2s): "廩／廪" pairs collapse to 廪, other
+        text is converted.
   moe   教育部《重編國語辭典修訂本》 via g0v/moedict-data (CC BY-ND 3.0 TW):
-        built only into the user's own local file, never the release. The
-        definitions are simplified (simplify.py, tw2s) unless the user asks
-        for the original text.
+        built only into the user's own local file, never the release. defs is
+        MOE's own text, defs_simp the simplified one (simplify.py, tw2s).
   wp    Chinese Wikipedia article titles with an English article, filtered
         to technology, engineering, military and history (CC BY-SA 4.0):
         the gloss is the English article's title.
@@ -75,17 +78,30 @@ def cedict_forms(db_path):
     """Every CC-CEDICT headword (simplified and traditional) and the measure
     words its senses name ("CL: 个 gè, 件 jiàn"), from the plugin database."""
     con = sqlite3.connect(db_path)
+    # Databases from 2.13.0 on keep CC-CEDICT's own cross-references in defs
+    # ("CL: 個|个 gè") and the simplified ones in defs_simp (#48).
+    has_simp = any(r[1] == "defs_simp" for r in con.execute("PRAGMA table_info(entries)"))
+    sql = "SELECT simp, trad, COALESCE(defs_simp, defs) FROM entries" if has_simp \
+        else "SELECT simp, trad, defs FROM entries"
     forms, measure = set(), set()
-    for simp, trad, defs in con.execute("SELECT simp, trad, defs FROM entries"):
+    for simp, trad, defs in con.execute(sql):
         forms.add(simp)
         forms.add(trad)
-        for m in re.finditer(r"CL: ([^/]+)", defs):
-            for part in m.group(1).split(","):
-                word = part.strip().split(" ")[0]
-                if len(word) == 1:
-                    measure.add(word)
+        measure.update(measure_words(defs))
     con.close()
     return forms, measure
+
+
+def measure_words(defs):
+    """The single-character measure words a CC-CEDICT defs names ("CL: 个 gè,
+    件 jiàn"; of "個|个", the simplified form)."""
+    out = set()
+    for m in re.finditer(r"CL: ([^/]+)", defs):
+        for part in m.group(1).split(","):
+            word = part.strip().split(" ")[0].split("|")[-1]
+            if len(word) == 1:
+                out.add(word)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -425,7 +441,8 @@ def read_wiktionary(path, stats):
 
 
 def wiktionary_rows(path, cedict, measure, stats, dropped=None, readings=None):
-    """Rows (simp, trad, pinyin, syllables, defs, "wikt") for the fallback table.
+    """Rows (simp, trad, pinyin, syllables, defs, "wikt", defs_simp) for the
+    fallback table: the glosses as Wiktionary writes them, and simplified.
     readings: char_readings_from_entries() of CC-CEDICT, for the entries with
     only regional readings (character_pinyin()) and the mismatch count;
     without it those rows have no pinyin."""
@@ -461,7 +478,8 @@ def wiktionary_rows(path, cedict, measure, stats, dropped=None, readings=None):
                   else "wikt: regional-only, no pinyin"] += 1
         elif readings and reading_mismatch(simp, trad, pinyin, readings):
             stats["wikt: rows with a syllable no CC-CEDICT reading of its character has"] += 1
-        rows.append((simp, trad, pinyin, "", "/".join(simple), "wikt"))
+        defs, defs_simp = "/".join(senses), "/".join(simple)
+        rows.append((simp, trad, pinyin, "", defs, "wikt", defs_simp if defs_simp != defs else None))
 
     for word, ent in entries.items():
         senses_by_py = ent["pinyin"]
@@ -489,12 +507,12 @@ def wiktionary_rows(path, cedict, measure, stats, dropped=None, readings=None):
 PUA = re.compile("[-]|\\{\\[[0-9a-f]+\\]\\}")
 
 
-def moe_rows(path, cedict, measure, stats, dropped=None, simplify=True, covered=None):
-    """Rows (simp, trad, pinyin, syllables, defs, "moe"). The simplified form is
-    OpenCC's tw2s (characters only: tw2sp would also swap vocabulary, 滑鼠 ->
-    鼠标, and index a word under another word). simplify: the definitions in
-    simplified characters (simplify.py, tw2s with its fixes); False keeps
-    MOE's text as written.
+def moe_rows(path, cedict, measure, stats, dropped=None, covered=None):
+    """Rows (simp, trad, pinyin, syllables, defs, "moe", defs_simp). The
+    simplified form is OpenCC's tw2s (characters only: tw2sp would also swap
+    vocabulary, 滑鼠 -> 鼠标, and index a word under another word). defs is
+    MOE's text as written, defs_simp the same in simplified characters
+    (simplify.py, tw2s with its fixes), None when nothing changes.
     covered: a list that, when given, receives the rows for headwords
     CC-CEDICT has (dropped otherwise), built the same way and through the same
     everyday-combinations filter; write_local_file stores them with
@@ -539,12 +557,11 @@ def moe_rows(path, cedict, measure, stats, dropped=None, simplify=True, covered=
             continue
         out = covered if is_covered else rows
         for pinyin, senses in hets:
-            if simplify:
-                simple = [simplifier.convert(x) for x in senses]
-                if simple != senses:
-                    stats[tag + ": rows with definitions simplified"] += 1
-                senses = simple
-            out.append((simp, trad, pinyin, "", "/".join(senses), "moe"))
+            simple = [simplifier.convert(x) for x in senses]
+            if simple != senses:
+                stats[tag + ": rows with definitions simplified"] += 1
+            defs, defs_simp = "/".join(senses), "/".join(simple)
+            out.append((simp, trad, pinyin, "", defs, "moe", defs_simp if defs_simp != defs else None))
     stats["moe: rows"] = len(rows)
     if covered is not None:
         stats["moe covered: rows"] = len(covered)
@@ -829,20 +846,34 @@ def moegirl_rows(slob_path, cedict, measure, stats, examples=None):
 # user's own MOE file, so the plugin queries both with the same SQL.
 # ---------------------------------------------------------------------------
 
-# The release database keeps this table exactly as it was (build_db.py): it
-# has no covered rows, and a new column would change the release file for
-# nothing. The user's own files (write_local_file) add a `covered` column:
-# 1 for a row whose headword CC-CEDICT has (only build_moe.py writes those),
-# which the plugin's fallback lookup leaves out.
+# The release database's table (build_db.py) has no covered rows, and no
+# `covered` column. The user's own files (write_local_file) add one: 1 for a
+# row whose headword CC-CEDICT has (only build_moe.py writes those), which
+# the plugin's fallback lookup leaves out. Both have `defs_simp` (2.13.0,
+# #48): the simplified text, NULL when it is the same as defs; files built
+# before have neither and their one text is shown in both modes.
 FALLBACK_SCHEMA = """
     CREATE TABLE fallback (simp TEXT NOT NULL, trad TEXT NOT NULL, pinyin TEXT NOT NULL,
-                           syllables TEXT NOT NULL, defs TEXT NOT NULL, source TEXT NOT NULL);
+                           syllables TEXT NOT NULL, defs TEXT NOT NULL, source TEXT NOT NULL,
+                           defs_simp TEXT);
 """
 FALLBACK_SCHEMA_COVERED = """
     CREATE TABLE fallback (simp TEXT NOT NULL, trad TEXT NOT NULL, pinyin TEXT NOT NULL,
                            syllables TEXT NOT NULL, defs TEXT NOT NULL, source TEXT NOT NULL,
-                           covered INTEGER NOT NULL DEFAULT 0);
+                           covered INTEGER NOT NULL DEFAULT 0, defs_simp TEXT);
 """
+COLUMNS = "(simp, trad, pinyin, syllables, defs, source, defs_simp)"
+COLUMNS_COVERED = "(simp, trad, pinyin, syllables, defs, source, defs_simp, covered)"
+
+
+def full_rows(rows):
+    """Rows of 7 (defs_simp None where a row has no 7th value, or where it is
+    the same as defs), without repeats, in a stable order."""
+    out = set()
+    for r in rows:
+        simp_defs = r[6] if len(r) > 6 else None
+        out.add((*r[:6], simp_defs if simp_defs != r[4] else None))
+    return sorted(out, key=lambda r: (*r[:6], r[6] or ""))
 
 
 def write_fallback(con, rows, covered=None):
@@ -853,18 +884,20 @@ def write_fallback(con, rows, covered=None):
     them."""
     if covered is None:
         con.executescript(FALLBACK_SCHEMA)
-        con.executemany("INSERT INTO fallback VALUES (?, ?, ?, ?, ?, ?)", sorted(set(rows)))
+        con.executemany(f"INSERT INTO fallback {COLUMNS} VALUES (?, ?, ?, ?, ?, ?, ?)", full_rows(rows))
     else:
         con.executescript(FALLBACK_SCHEMA_COVERED)
-        con.executemany("INSERT INTO fallback VALUES (?, ?, ?, ?, ?, ?, 0)", sorted(set(rows)))
-        con.executemany("INSERT INTO fallback VALUES (?, ?, ?, ?, ?, ?, 1)", sorted(set(covered)))
+        con.executemany(f"INSERT INTO fallback {COLUMNS_COVERED} VALUES (?, ?, ?, ?, ?, ?, ?, 0)", full_rows(rows))
+        con.executemany(f"INSERT INTO fallback {COLUMNS_COVERED} VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
+                        full_rows(covered))
     con.execute("CREATE INDEX fallback_simp ON fallback(simp)")
     con.execute("CREATE INDEX fallback_trad ON fallback(trad)")
 
 
 # Keep in step with DB.fallbackSql in chinesehelper.koplugin/ch_db.lua
 # (tests/test_db.lua checks that they match). uncovered: leave out covered
-# rows (a table with the `covered` column).
+# rows (a table with the `covered` column); simp: also read defs_simp (a
+# table that has it).
 def has_covered(con):
     """Whether this connection's fallback table has the `covered` column
     (the user's own files from 2.5.0 on)."""
@@ -877,20 +910,22 @@ def uncovered_rows(con):
     return "covered = 0" if has_covered(con) else "1"
 
 
-def fallback_sql(n, uncovered=False):
+def fallback_sql(n, uncovered=False, simp=False):
     marks = ",".join("?" * n)
+    cols = "simp, trad, pinyin, syllables, defs, source" + (", defs_simp" if simp else "")
     if uncovered:
-        return (f"SELECT simp, trad, pinyin, syllables, defs, source FROM fallback WHERE (simp IN ({marks}) "
+        return (f"SELECT {cols} FROM fallback WHERE (simp IN ({marks}) "
                 f"OR trad IN ({marks})) AND covered = 0 ORDER BY rowid")
-    return (f"SELECT simp, trad, pinyin, syllables, defs, source FROM fallback WHERE simp IN ({marks}) "
+    return (f"SELECT {cols} FROM fallback WHERE simp IN ({marks}) "
             f"OR trad IN ({marks}) ORDER BY rowid")
 
 
-def fallback_all_sql(n):
+def fallback_all_sql(n, simp=False):
     """Every row for n words, covered or not, with the `covered` column: the
     plugin's single MOE query when MOE is shown Always (DB.fallbackAllSql)."""
     marks = ",".join("?" * n)
-    return (f"SELECT simp, trad, pinyin, syllables, defs, source, covered FROM fallback WHERE simp IN ({marks}) "
+    cols = "simp, trad, pinyin, syllables, defs, source, covered" + (", defs_simp" if simp else "")
+    return (f"SELECT {cols} FROM fallback WHERE simp IN ({marks}) "
             f"OR trad IN ({marks}) ORDER BY rowid")
 
 
@@ -901,11 +936,7 @@ def forms_from_entries(entries):
     for simp, trad, _py, _syl, defs in entries:
         forms.add(simp)
         forms.add(trad)
-        for m in re.finditer(r"CL: ([^/]+)", defs):
-            for part in m.group(1).split(","):
-                word = part.strip().split(" ")[0]
-                if len(word) == 1:
-                    measure.add(word)
+        measure.update(measure_words(defs))
     return forms, measure
 
 
@@ -938,7 +969,7 @@ def write_local_file(out, rows, meta, name, extra=None, covered=()):
     con.commit()
     for n in (1, 36):
         for uncovered in (False, True):
-            sql = fallback_sql(n, uncovered)
+            sql = fallback_sql(n, uncovered, simp=True)
             plan = "\n".join(r[3] for r in con.execute("EXPLAIN QUERY PLAN " + sql, ["x"] * (2 * n)))
             if "USING INDEX fallback_simp" not in plan or "USING INDEX fallback_trad" not in plan:
                 raise SystemExit(f"{name} lookup does not use its indexes:\n{plan}")

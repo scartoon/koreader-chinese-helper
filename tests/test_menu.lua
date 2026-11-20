@@ -79,7 +79,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 20 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 14, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each)
+eq(count, 20 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 14 + 3, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
@@ -326,9 +326,19 @@ labels_item.sub_item_table[1].callback(); eq(plugin.settings:labelMode(), "all")
 labels_item.sub_item_table[3].callback(); eq(plugin.settings:labelMode(), "none")
 eq(labels_item.text_func(), "Source labels: none")
 labels_item.sub_item_table[2].callback()
+-- Dictionary text (#48): Original by default, or Simplified.
+local text_item = fb_item.sub_item_table[2]
+eq(text_item.text_func(), "Dictionary text: original")
+assert(text_item.help_text:find("头发 頭髮", 1, true) and text_item.help_text:find("夠|够", 1, true))
+assert(text_item.sub_item_table[1].checked_func() and not text_item.sub_item_table[2].checked_func())
+text_item.sub_item_table[2].callback(); eq(plugin.settings:dictText(), "simplified")
+eq(text_item.text_func(), "Dictionary text: simplified")
+eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝啬。贬义。", "simplified idiom line")
+text_item.sub_item_table[1].callback(); eq(plugin.settings:dictText(), "original")
+eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝嗇。貶義。", "the 成語典's own text")
 -- Then Order and Collapse long entries.
-eq(fb_item.sub_item_table[2].text, "Order")
-local collapse_item = fb_item.sub_item_table[3]
+local collapse_item = fb_item.sub_item_table[4]
+eq(fb_item.sub_item_table[3].text, "Order")
 eq(collapse_item.text_func(), "Collapse long entries: 2 lines")
 collapse_item.sub_item_table[4].callback(); eq(plugin.settings:collapseLines(), 0)
 eq(collapse_item.text_func(), "Collapse long entries: never")
@@ -338,12 +348,12 @@ collapse_item.sub_item_table[2].callback()
 local all_items = fb_item.sub_item_table
 local moe_modes = {}
 fb_item = { sub_item_table = {} }
-for k = 4, #all_items do
+for k = 5, #all_items do
     local it = all_items[k]
     if it.sub_item_table then moe_modes[#moe_modes + 1] = it else fb_item.sub_item_table[#fb_item.sub_item_table + 1] = it end
 end
 eq(#moe_modes, 2)
-eq(all_items[7], moe_modes[1], "right after MOE's switch")
+eq(all_items[8], moe_modes[1], "right after MOE's switch")
 eq(moe_modes[1].text_func(), "    MOE for single characters: fallback")
 assert(moe_modes[1].sub_item_table[2].checked_func(), "Fallback checked by default")
 eq(moe_modes[1].sub_item_table[2].text, "Fallback: only when CC-CEDICT lacks it (default)")
@@ -367,10 +377,12 @@ for _, it in ipairs(fb_item.sub_item_table) do assert(it.enabled_func() and it.c
 local status = table.concat(plugin:fallbackStatus(), "\n")
 assert(status:find("Wiktionary: on (dump 2026-10-01", 1, true), status)
 assert(status:find("CBDB office titles: on (CBDB 2026-11-07, 3 entries)", 1, true), status)
-assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 3 entries, simplified text)", 1, true), status)
+assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 3 entries, original and simplified text)", 1, true), status)
 assert(status:find("Wikipedia titles: on %(dump %d%d%d%d%-%d%d%-%d%d, %d+ entries%)"), status)
 assert(status:find("Moegirlpedia slang: on (snapshot 2023-05-07, 3 entries)", 1, true), status)
-assert(status:find("MOE 成語典: on (2020_20260929, 2 idioms, 1 not in CC-CEDICT, simplified text)", 1, true), status)
+assert(status:find("MOE 成語典: on (2020_20260929, 2 idioms, 1 not in CC-CEDICT, original and simplified text)", 1, true), status)
+eq(Plugin.textState("simplified"), "simplified text only: rebuild it for the Dictionary text setting")
+eq(Plugin.textState(nil), "traditional text only: rebuild it for the Dictionary text setting")
 assert(status:find("Xinhua idioms: on (chinese-xinhua 2018-12-16, 4 idioms, 2 not in CC-CEDICT)", 1, true), status)
 assert(status:find("^Wiktionary.*\nCBDB.*\nMOE 重.*\nMOE 成.*\nXinhua.*\nWikipedia.*\nMoegirlpedia"),
     "Status in priority order")
@@ -410,7 +422,7 @@ end
 eq(idioms({ "一毛不拔", "玉石俱碎", "精兵强将", "首鼠两端", "东西" }),
    "一毛不拔:idioms/idioms,玉石俱碎:idioms/idioms,精兵強將:xinhua/xinhua,精兵强将:xinhua/xinhua,"
    .. "首鼠两端:xinhua/xinhua,首鼠兩端:xinhua/xinhua")
-eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝啬。贬义。")
+eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝嗇。貶義。")
 eq(idioms({}), "")
 local function item(source)
     for _, it in ipairs(fb_item.sub_item_table) do
@@ -448,7 +460,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[19].sub_item_table[4].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[19].sub_item_table[5].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
@@ -462,14 +474,14 @@ local items4 = {}
 plugin:addToMainMenu(items4)
 local dict_menu = items4.chinesehelper.sub_item_table[19].sub_item_table
 local updated = 0
-dict_menu[2].callback({ updateItems = function() updated = updated + 1 end })
+dict_menu[3].callback({ updateItems = function() updated = updated + 1 end })
 eq(#sort_args.item_table, 7); eq(sort_args.item_table[1].text, "Wiktionary")
 local moved = table.remove(sort_args.item_table, 6)   -- Wikipedia titles to the top
 table.insert(sort_args.item_table, 1, moved)
 sort_args.callback()
 eq(plugin.settings:get("fallback_order"), "wp,wikt,cbdb,moe,idioms,xinhua,moegirl")
 eq(updated, 1)
-eq(dict_menu[4].text_func(), "Wikipedia titles"); eq(#dict_menu, 3 + 7 + 2, "rebuilt, not added to")
+eq(dict_menu[5].text_func(), "Wikipedia titles"); eq(#dict_menu, 4 + 7 + 2, "rebuilt, not added to")
 plugin.settings:set("fallback_order", nil)
 
 -- The popup with idioms (ch_tap.lua present, with a stand-in for the popup
@@ -499,7 +511,7 @@ local function blockOf(p, word)
 end
 local p = popupFor("一", "毛", "不拔")
 local b = blockOf(p, "一毛不拔")
-eq(b.source, "cedict"); eq(b.note.source, "idioms"); eq(b.note.text, "形容人非常吝啬。贬义。")
+eq(b.source, "cedict"); eq(b.note.source, "idioms"); eq(b.note.text, "形容人非常吝嗇。貶義。")
 eq(p.labels.idioms, "成语典")
 assert(buttonTexts(p):find("一毛不拔,成语 Origin & Usage,", 1, true), buttonTexts(p))
 local before = #shown
@@ -510,7 +522,7 @@ eq(view.title, "一毛不拔 · Origin & Usage · 教育部《成语典》")
 -- A full-height popup on the stack: the text in the larger Chinese size,
 -- no label, only Close; a character tapped in it opens its own popup.
 eq(view.full, true); eq(view.blocks[1].large, true); eq(view.blocks[1].nolabel, true)
-assert(view.blocks[1].lines[1]:find("典源　《孟子．尽心上》", 1, true), view.blocks[1].lines[1])
+assert(view.blocks[1].lines[1]:find("典源　《孟子．盡心上》", 1, true), view.blocks[1].lines[1])
 eq(buttonTexts(view), "Close")
 eq(view.chinese_pct, 150, "the Chinese text size set above")
 assert(view.on_char_tap and view.on_back and view.on_outside)
@@ -542,7 +554,7 @@ plugin2:addToMainMenu(items2)
 local dict_items = {}
 local moe_modes2 = {}
 for k, it in ipairs(items2.chinesehelper.sub_item_table[19].sub_item_table) do
-    if k > 3 then
+    if k > 4 then
         if it.sub_item_table then moe_modes2[#moe_modes2 + 1] = it else dict_items[#dict_items + 1] = it end
     end
 end

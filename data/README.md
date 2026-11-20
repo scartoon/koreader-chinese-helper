@@ -31,11 +31,14 @@ into the database with CC-CEDICT by `tools/build_db.py`:
 - `special`, `special_guard`: the unusual-readings list (from `special_curated.tsv`, plus words
   found automatically) and the overlap guards that keep it from matching by accident.
 - `entries`: CC-CEDICT itself, one row per entry, with numbered pinyin converted to tone marks
-  and cross-references made readable (`variant of 夠|够[gou4]` → `variant of 够 gòu`,
-  `鮮卑|鲜卑` → `鲜卑`, `95後|95后` → `95后`).
+  and cross-references made readable: `defs` keeps both forms as CC-CEDICT gives them
+  (`variant of 夠|够[gou4]` → `variant of 夠|够 gòu`), `defs_simp` the simplified form for the
+  popup's Dictionary text: Simplified (`variant of 够 gòu`, `鮮卑|鲜卑` → `鲜卑`, `95後|95后` →
+  `95后`), NULL where nothing changes.
 - `fallback`: entries from English Wiktionary and Chinese Wikipedia titles for words CC-CEDICT
   does not have (`tools/fallback_sources.py`). Same columns as `entries` plus `source` ("wikt" or
-  "wp"); `syllables` is empty (fallback entries take no part in reading markers).
+  "wp"); `syllables` is empty (fallback entries take no part in reading markers); `defs` is the
+  source's own text and `defs_simp` the simplified one (NULL when the same).
 
 ## Sources and licences
 
@@ -85,8 +88,9 @@ dropped; headwords CC-CEDICT has (in either script) dropped; everyday combinatio
 numeral, demonstrative, pronoun, adverb, measure word or particle before a word CC-CEDICT has, or
 a locative or particle after one, e.g. 很多, 这次, 一天, 脸上; entries Wiktionary marks historical or
 classical are kept) and numerals dropped; senses kept with their qualifiers ("(historical)"), one
-"/" between senses, a "/" inside a sense written "／"; Chinese in the senses converted to
-simplified characters (`tools/simplify.py`, OpenCC `t2s`): a "traditional／simplified" pair is
+"/" between senses, a "/" inside a sense written "／"; the senses kept as written, and a copy
+with their Chinese converted to simplified characters (`tools/simplify.py`, OpenCC `t2s`): a
+"traditional／simplified" pair is
 shortened to its simplified side (`original form of 廩／廪` → `original form of 廪`), a single
 character named as a form (`variant of 乾`) and Japanese are left as written, and so is a
 character whose simplified form is outside the BMP.
@@ -110,7 +114,8 @@ and `tools/build_moegirl.py` build into separate files for the user's own device
 - **MOE**, 中華民國教育部《重編國語辭典修訂本》 — https://dict.revised.moe.edu.tw/ — © Ministry of
   Education, Republic of China (Taiwan), CC BY-ND 3.0 TW —
   https://creativecommons.org/licenses/by-nd/3.0/tw/ — read from g0v/moedict-data,
-  https://github.com/g0v/moedict-data.
+  https://github.com/g0v/moedict-data. Definitions kept as written, with a copy converted with
+  `tools/simplify.py` (tw2s).
 - **CBDB**, the China Biographical Database (Harvard University, Academia Sinica, Peking
   University) — https://cbdb.hsites.harvard.edu/ — its SQLite release,
   https://huggingface.co/datasets/cbdb/cbdb-sqlite (via https://github.com/cbdb-project/cbdb_sqlite).
@@ -130,7 +135,8 @@ and `tools/build_moegirl.py` build into separate files for the user's own device
   each), 用法說明, 辨識 (not its example table) and 近義/反義; for related entries their own
   釋義 and 書證, and their main entry's 典源, notes and 典故說明 under its name. Editorial marks,
   pointers to other entries and lines with characters the device fonts lack taken out; text
-  converted with `tools/simplify.py` (tw2s). Idioms CC-CEDICT has get no fallback row.
+  kept as written, with a copy converted with `tools/simplify.py` (tw2s). Idioms CC-CEDICT has
+  get no fallback row.
 - **Xinhua idioms**, `data/idiom.json` of chinese-xinhua — https://github.com/pwxcoo/chinese-xinhua
   (the repository's MIT licence covers its code; the text is scraped from a published
   dictionary). Used: idioms of 4–8 Han characters with their explanation, derivation and

@@ -289,7 +289,7 @@ eq(blocks[1].source, "cedict"); eq(blocks[2].source, "moe")
 eq(blocks[2].head, "尚书省  shàng shū shěng"); eq(blocks[2].lines[1], "官署名")
 eq(Model.render(m, "尚", false), blocks[1].head .. "\n" .. table.concat(blocks[1].lines, "\n") .. "\n\n"
     .. blocks[2].head .. "\n" .. table.concat(blocks[2].lines, "\n"))
-eq(Model.SOURCE_LABELS.cedict, "CEDICT"); eq(Model.SOURCE_LABELS.wikt, "Wikt"); eq(Model.SOURCE_LABELS.moe, "MOE")
+eq(Model.SOURCE_LABELS.cedict, "CEDICT"); eq(Model.SOURCE_LABELS.wikt, "Wikt"); eq(Model.SOURCE_LABELS.moe, "國語辭典")
 eq(Model.SOURCE_LABELS.wp, "WP"); eq(Model.SOURCE_LABELS.cbdb, "CBDB"); eq(Model.SOURCE_LABELS.moegirl, "Moegirl")
 eq(table.concat(Model.SOURCE_ORDER, ","), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl", "the default priority")
 eq(Model.SOURCE_LABELS.idioms, "成语典"); eq(Model.SOURCE_LABELS.xinhua, "新华")
@@ -503,3 +503,27 @@ eq(ab[3].always, true); eq(ab[3].trad, "頭髮")
 for _, b in ipairs(Model.blocks(am, "发", false)) do eq(b.trad, nil, "off") end
 eq(Model.render(matches("", "观", "", { row("观", "觀", "guān", "to look at") }), "观", false),
    "观  guān\nto look at")
+
+-- #48: a self-referring variant sense as CC-CEDICT writes it ("variant of
+-- 個|个 gè" on 个) is dropped like the simplified one; another form's stays.
+local kept = Model.cleanRows("个", {
+    { simp = "个", trad = "个", pinyin = "gè", syllables = "gè", defs = "variant of 個|个 gè" },
+    { simp = "个", trad = "個", pinyin = "gè", syllables = "gè", defs = "individual/variant of 箇|个 gè" },
+})
+eq(#kept, 1); eq(table.concat(kept[1].senses, ";"), "individual")
+kept = Model.cleanRows("够", { { simp = "够", trad = "夠", pinyin = "gòu", syllables = "gòu",
+                                 defs = "variant of 夠|够 gòu/enough" } })
+eq(table.concat(kept[1].senses, ";"), "enough")
+kept = Model.cleanRows("彀", { { simp = "彀", trad = "彀", pinyin = "gòu", syllables = "gòu",
+                                 defs = "variant of 夠|够 gòu" } })
+eq(table.concat(kept[1].senses, ";"), "variant of 夠|够 gòu")
+-- Dictionary text (#48): the original text, or the simplified copy where
+-- there is one; the copies go either way.
+local function textRows()
+    return { { defs = "variant of 夠|够 gòu", defs_simp = "variant of 够 gòu" }, { defs = "enough" },
+             { short = "吝嗇", short_simp = "吝啬", view = "釋義", view_simp = "释义" } }
+end
+local orig, simp = Model.chooseText(textRows(), false), Model.chooseText(textRows(), true)
+eq(orig[1].defs, "variant of 夠|够 gòu"); eq(orig[1].defs_simp, nil); eq(orig[3].short, "吝嗇")
+eq(simp[1].defs, "variant of 够 gòu"); eq(simp[2].defs, "enough"); eq(simp[3].short, "吝啬"); eq(simp[3].view, "释义")
+eq(simp[3].short_simp, nil)

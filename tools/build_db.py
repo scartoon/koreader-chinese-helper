@@ -29,10 +29,14 @@ Steps:
      and the build fails if any of them scans a table.
 
 Schema:
-    entries(simp, trad, pinyin, syllables, defs)   one row per CC-CEDICT line
+    entries(simp, trad, pinyin, syllables, defs, defs_simp)   one row per CC-CEDICT line
         pinyin     tone marks, joined into words: "Zhōngguó", "dōngxi"
         syllables  tone marks, one per character: "Zhōng guó", "dōng xi"
-        defs       senses joined with "/", cross-references made readable
+        defs       senses joined with "/", cross-references made readable and
+                   kept as CC-CEDICT writes them ("variant of 夠|够 gòu")
+        defs_simp  the same with cross-references simplified ("variant of 够
+                   gòu"), the popup's Dictionary text: Simplified; NULL when it
+                   is the same as defs
     chars(ch, rank, reading)  words(word, syllables, freq, rare)
         rare       1 when the word contains a character that can be annotated
     word_marks(word, syllables)   the reading the popup marks where it is not
@@ -118,20 +122,27 @@ XREF_RE = re.compile(rf"(?:({XREF_FORM})(?:\|({XREF_FORM}))?)?\[([A-Za-z0-9:, ·
 BARE_XREF_RE = re.compile(rf"({XREF_FORM})\|({XREF_FORM})")
 
 
-def clean_sense(sense):
+def clean_sense(sense, simplified=True):
     """'variant of 夠|够[gou4]' -> 'variant of 够 gòu', 'CL:個|个[ge4],隻|只[zhi1]'
     -> 'CL: 个 gè, 只 zhī', 'Taiwan pr. [jue2]' -> 'Taiwan pr. jué',
     'branch of Xianbei 鮮卑|鲜卑' -> 'branch of Xianbei 鲜卑'.
-    Cross-references show the simplified form (the reader mostly reads modern
-    simplified Mandarin)."""
+    simplified=False keeps both forms as CC-CEDICT gives them ('variant of
+    夠|够 gòu', 'CL: 個|个 gè, 隻|只 zhī', 'branch of Xianbei 鮮卑|鲜卑'): the
+    popup's default, each dictionary as its source writes it (#48)."""
     def repl(m):
         first, second, py = m.groups()
-        form = (second or first) if first else ""
+        if not first:
+            form = ""
+        elif simplified:
+            form = second or first
+        else:
+            form = f"{first}|{second}" if second else first
         py = joined_pinyin(py)
         return f"{form} {py}" if form else py
     sense = XREF_RE.sub(repl, sense)
     # Without pinyin: 鮮卑|鲜卑 -> 鲜卑.
-    sense = BARE_XREF_RE.sub(lambda m: m.group(2), sense)
+    if simplified:
+        sense = BARE_XREF_RE.sub(lambda m: m.group(2), sense)
     if sense.startswith("CL:"):
         sense = "CL: " + ", ".join(p.strip() for p in sense[3:].split(","))
     return sense.replace("\t", " ").strip()
@@ -142,7 +153,11 @@ def opener(path):
 
 
 def read_cedict(path):
-    header, entries = {}, []
+    """(header, entries, originals): entries (simp, trad, pinyin, syllables,
+    defs) with cross-references simplified, as every build step reads them;
+    originals[i] the defs of entries[i] as CC-CEDICT writes them (the
+    database's `defs`)."""
+    header, entries, originals = {}, [], []
     with opener(path) as f:
         for line in f:
             if line.startswith("#"):
@@ -154,9 +169,11 @@ def read_cedict(path):
             if not m:
                 continue
             trad, simp, py, defs = m.groups()
-            senses = [clean_sense(s) for s in defs.split("/") if s.strip()]
-            entries.append((simp, trad, joined_pinyin(py), syllable_pinyin(py), "/".join(senses)))
-    return header, entries
+            parts = [s for s in defs.split("/") if s.strip()]
+            entries.append((simp, trad, joined_pinyin(py), syllable_pinyin(py),
+                            "/".join(clean_sense(s) for s in parts)))
+            originals.append("/".join(clean_sense(s, simplified=False) for s in parts))
+    return header, entries, originals
 
 
 def download():
@@ -200,7 +217,7 @@ def int_or_zero(s):
 SCHEMA = """
     PRAGMA page_size = 4096;
     CREATE TABLE entries (simp TEXT NOT NULL, trad TEXT NOT NULL, pinyin TEXT NOT NULL,
-                          syllables TEXT NOT NULL, defs TEXT NOT NULL);
+                          syllables TEXT NOT NULL, defs TEXT NOT NULL, defs_simp TEXT);
     CREATE TABLE chars (ch TEXT PRIMARY KEY, rank INTEGER NOT NULL, reading TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE words (word TEXT PRIMARY KEY, syllables TEXT NOT NULL, freq INTEGER NOT NULL,
                         rare INTEGER NOT NULL) WITHOUT ROWID;
@@ -306,8 +323,11 @@ def resolver_digest(*tables):
     return h.hexdigest()
 
 
-def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None):
-    """wikt: (path, rows, stats) for the Wiktionary fallback rows, or None;
+def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, originals=None):
+    """originals: the entries' defs as CC-CEDICT writes them (read_cedict),
+    stored as `defs` with the simplified ones in `defs_simp`; without it the
+    entries' own defs only.
+    wikt: (path, rows, stats) for the Wiktionary fallback rows, or None;
     wp: (dump folder, rows, stats) for the Wikipedia titles, or None;
     comps: (bodies, notes, {source: (url, sha256)}) for the components, or None."""
     os.makedirs(os.path.dirname(out), exist_ok=True)
@@ -316,7 +336,9 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None):
         os.remove(tmp)
     con = sqlite3.connect(tmp)
     con.executescript(SCHEMA)
-    con.executemany("INSERT INTO entries VALUES (?, ?, ?, ?, ?)", cedict_entries)
+    originals = originals or [e[4] for e in cedict_entries]
+    con.executemany("INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?)",
+                    [(*e[:4], orig, e[4] if e[4] != orig else None) for e, orig in zip(cedict_entries, originals)])
     con.execute("CREATE INDEX entries_simp ON entries(simp)")
     con.execute("CREATE INDEX entries_trad ON entries(trad)")
 
@@ -353,6 +375,8 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None):
 
     meta = {
         "cedict_date": header.get("date", ""), "cedict_entries": str(len(cedict_entries)),
+        # #48: defs as each source writes it, defs_simp the simplified text.
+        "dict_text": "both",
         "cedict_sha256": sha, "wordfreq": version("wordfreq"), "pypinyin": version("pypinyin"),
         "chars": str(len(chars)), "words": str(len(words)), "rare_words": str(sum(w[3] for w in words)), "rules": str(len(rules)),
         "uncertain": str(len(uncertain)), "special": str(len(special)), "special_guard": str(len(guard)),
@@ -389,7 +413,7 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None):
 # (tests/test_db.lua checks that they match).
 def entries_sql(n):
     marks = ",".join("?" * n)
-    return (f"SELECT simp, trad, pinyin, syllables, defs FROM entries WHERE simp IN ({marks}) "
+    return (f"SELECT simp, trad, pinyin, syllables, defs, defs_simp FROM entries WHERE simp IN ({marks}) "
             f"OR trad IN ({marks}) ORDER BY rowid")
 
 
@@ -412,8 +436,8 @@ def check_query_plans(path):
         (entries_sql(36), 72, ("USING INDEX entries_simp", "USING INDEX entries_trad")),
         (words_sql(1), 1, ("USING PRIMARY KEY",)),
         (words_sql(9), 9, ("USING PRIMARY KEY",)),
-        (fallback_sources.fallback_sql(1), 2, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
-        (fallback_sources.fallback_sql(36), 72, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
+        (fallback_sources.fallback_sql(1, simp=True), 2, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
+        (fallback_sources.fallback_sql(36, simp=True), 72, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
         (COMPONENTS_SQL, 2, ("USING PRIMARY KEY",)),
         (NOTES_SQL, 2, ("USING INDEX component_notes_ch",)),
     ]
@@ -455,7 +479,7 @@ def main():
     if args.learn:
         subprocess.run([sys.executable, os.path.join(ROOT, "tools", "learn_from_cpp.py")], check=True)
 
-    header, entries = read_cedict(path)
+    header, entries, originals = read_cedict(path)
     if len(entries) < 100000:
         sys.exit(f"Only {len(entries)} entries read from {path}; is it CC-CEDICT?")
     wikt = None
@@ -487,7 +511,7 @@ def main():
         for k in sorted(stats):
             print(f"  components, {k}: {stats[k]:,}")
         comps = (bodies, notes, {"mmah": (MMAH_URL, sha256_of(mmah)), "ids": (IDS_URL, sha256_of(ids))})
-    meta = build(entries, header, sha, args.out, wikt, wp, comps)
+    meta = build(entries, header, sha, args.out, wikt, wp, comps, originals)
     check_query_plans(args.out)
     size = os.path.getsize(args.out)
     print(f"CC-CEDICT {header.get('date', '(no date)')}: {len(entries)} entries, SHA-256 {sha}")

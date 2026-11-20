@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.12.0"
+ChineseHelper.VERSION = "2.13.0"
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
@@ -375,7 +375,17 @@ function ChineseHelper:idiomLookup(words)
             end
         end
     end
+    Model.chooseText(rows, self.settings:dictText() == "simplified")
     return Model.pickIdioms(rows, self.settings:fallbackOrder())
+end
+
+-- A MOE or 成語典 file's text on the Status screen (meta moe_text or
+-- idioms_text): "both" from 2.13.0 on (#48); a file with one text says so
+-- and that the Dictionary text setting needs a rebuilt file.
+function ChineseHelper.textState(value)
+    if value == "both" then return _("original and simplified text") end
+    return T(_("%1 only: rebuild it for the Dictionary text setting"),
+        value == "simplified" and _("simplified text") or _("traditional text"))
 end
 
 -- One Status line per fallback dictionary, in priority order: version,
@@ -393,8 +403,7 @@ function ChineseHelper:fallbackStatus()
         -- Files built before 1.8.0 have no moe_text: their text is traditional.
         moe = function(m)
             local line = T(_("MOE 重編國語辭典: %1 (moedict-data %2, %3 entries, %4)"), state("moe"),
-                (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?",
-                m.moe_text == "simplified" and _("simplified text") or _("traditional text"))
+                (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?", ChineseHelper.textState(m.moe_text))
             if not self.settings:fallbackEnabled("moe") then return line end
             local chars, words = self.settings:moeMode("chars"), self.settings:moeMode("words")
             line = line .. "\n  " .. T(_("characters: %1, words: %2"), ChineseHelper.MOE_MODE_NAMES[chars],
@@ -407,9 +416,10 @@ function ChineseHelper:fallbackStatus()
             end
             return line
         end,
+        -- (Files built before 1.9.0 have no idioms_text: their text is simplified.)
         idioms = function(m) return T(_("MOE 成語典: %1 (%2, %3 idioms, %4 not in CC-CEDICT, %5)"), state("idioms"),
             m.idioms_version or "?", m.idioms_rows or "?", m.idioms_fallback_rows or "?",
-            m.idioms_text == "traditional" and _("traditional text") or _("simplified text")) end,
+            ChineseHelper.textState(m.idioms_text or "simplified")) end,
         xinhua = function(m) return T(_("Xinhua idioms: %1 (chinese-xinhua %2, %3 idioms, %4 not in CC-CEDICT)"),
             state("xinhua"), (m.xinhua_commit_date or "?"):sub(1, 10), m.xinhua_rows or "?",
             m.xinhua_fallback_rows or "?") end,
@@ -786,7 +796,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Show traditional forms"),
-                help_text = _("On each entry's head line, the word's traditional form beside it, smaller and grey, when it is not the same: 头发 頭髮. A word shows the one form it is written with; a single character with several shows them all, the one the word around it uses first (发 髮/發 in 头发). Nothing is added when the traditional form is the same (人民), or when the book is in traditional characters. The entries' own text is not changed."),
+                help_text = _("On each entry's head line, the word's traditional form beside it, smaller and grey, when it is not the same: 头发 頭髮. A word shows the one form it is written with; a single character with several shows them all, the one the word around it uses first (发 髮/發 in 头发). Nothing is added when the traditional form is the same (人民), or when the book is in traditional characters. The entries' own text is set by Dictionaries → Dictionary text."),
                 checked_func = function() return settings:tradHeadsEnabled() end,
                 callback = function() settings:set("trad_heads", not settings:tradHeadsEnabled()) end,
             },
@@ -830,8 +840,8 @@ function ChineseHelper:addToMainMenu(menu_items)
                               checked_func = function() return settings:labelMode() == "none" end,
                               callback = function() settings:set("labels", "none") end },
                         },
-                        separator = true,
                     },
+                    plugin:dictTextItem(),
                 }),
                 separator = true,
             },
@@ -907,6 +917,27 @@ function ChineseHelper:fallbackItems(apply, items)
     fixed = #items
     fill()
     return items
+end
+
+-- "Dictionary text" (#48): each dictionary's text as its source writes it,
+-- or in simplified characters. Applies from the next popup.
+function ChineseHelper:dictTextItem()
+    local settings = self.settings
+    local names = { original = _("original"), simplified = _("simplified") }
+    local function choice(value, label)
+        return { text = label, radio = true, keep_menu_open = true,
+                 checked_func = function() return settings:dictText() == value end,
+                 callback = function() settings:set("dict_text", value) end }
+    end
+    return {
+        text_func = function() return T(_("Dictionary text: %1"), names[settings:dictText()]) end,
+        help_text = _("Original: each dictionary's text as its source writes it. MOE 重編國語辭典 and the 成語典 are in traditional characters, Wiktionary's glosses quote Chinese the way Wiktionary does (廩／廪), and CC-CEDICT names both forms in its cross-references (variant of 夠|够 gòu). Simplified: the same text in simplified characters (variant of 够 gòu). The head lines (头发 頭髮) are not changed, and nor is the text of dictionaries that are simplified already (Xinhua, Moegirlpedia). MOE and 成語典 files built before version 2.13.0 hold only one text: rebuild them for this setting."),
+        sub_item_table = {
+            choice("original", _("Original: as each dictionary writes it (default)")),
+            choice("simplified", _("Simplified characters")),
+        },
+        separator = true,
+    }
 end
 
 -- "1 line", "2 lines", "3 lines", "never".

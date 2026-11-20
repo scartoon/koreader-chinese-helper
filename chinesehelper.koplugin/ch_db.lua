@@ -3,8 +3,8 @@
 -- (lua-ljsqlite3). Opened on first use and kept open for the rest of the
 -- KOReader session, shared by every book (main.lua).
 --
---   entries(simp, trad, pinyin, syllables, defs)   CC-CEDICT, one row per entry;
---                         indexes on simp and trad (the popup's lookup)
+--   entries(simp, trad, pinyin, syllables, defs, defs_simp)   CC-CEDICT, one row
+--                         per entry; indexes on simp and trad (the popup's lookup)
 --   chars(ch, rank, reading)                       the resolver's tables
 --   words(word, syllables, freq, rare)             (see ch_readings.lua);
 --   word_marks(word, syllables)                    chars, word_marks, rules and
@@ -18,8 +18,13 @@
 --                         from 2.5.0 on add a `covered` column: 1 for a row
 --                         whose headword CC-CEDICT has (MOE's file only),
 --                         never a fallback entry
---   idioms(simp, trad, short, view)                in the user's 成語典 and Xinhua
---                         files only: an idiom's Chinese short line and Origin & Usage view
+--   idioms(simp, trad, short, view, short_simp, view_simp)   in the user's 成語典
+--                         and Xinhua files only: an idiom's Chinese short line and
+--                         Origin & Usage view
+--   Text columns (#48, 2.13.0): defs, short and view hold each dictionary's
+--   text as its source writes it; defs_simp, short_simp and view_simp the
+--   same in simplified characters, NULL when that is no different. Files
+--   built before 2.13.0 have only the one text (DB:hasColumn).
 --   components(ch, body)                           a character's parts, for the popup
 --   component_notes(ch, text)                      (ch_components.lua); missing from
 --                         databases built before 1.7.0
@@ -82,28 +87,32 @@ local function padded_args(list, times)
 end
 
 -- CC-CEDICT rows for n candidate words (simplified or traditional form).
+-- (The plugin's own database always has defs_simp: it ships with the code.)
 function DB.entriesSql(n)
-    return "SELECT simp, trad, pinyin, syllables, defs FROM entries WHERE simp IN (" .. marks(n)
+    return "SELECT simp, trad, pinyin, syllables, defs, defs_simp FROM entries WHERE simp IN (" .. marks(n)
         .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
 end
 
 -- Fallback rows for n candidate words (simplified or traditional form).
--- uncovered: leave out covered rows (a table with the `covered` column).
+-- uncovered: leave out covered rows (a table with the `covered` column);
+-- simp: also read defs_simp (a table that has it).
 -- Kept identical to tools/fallback_sources.py's fallback_sql.
-function DB.fallbackSql(n, uncovered)
+function DB.fallbackSql(n, uncovered, simp)
+    local cols = "simp, trad, pinyin, syllables, defs, source" .. (simp and ", defs_simp" or "")
     if uncovered then
-        return "SELECT simp, trad, pinyin, syllables, defs, source FROM fallback WHERE (simp IN (" .. marks(n)
+        return "SELECT " .. cols .. " FROM fallback WHERE (simp IN (" .. marks(n)
             .. ") OR trad IN (" .. marks(n) .. ")) AND covered = 0 ORDER BY rowid"
     end
-    return "SELECT simp, trad, pinyin, syllables, defs, source FROM fallback WHERE simp IN (" .. marks(n)
+    return "SELECT " .. cols .. " FROM fallback WHERE simp IN (" .. marks(n)
         .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
 end
 
 -- Every fallback row for n words, covered ones included, with the `covered`
 -- column (a table that has it): MOE's one query per tap when it is shown
 -- Always. Kept identical to tools/fallback_sources.py's fallback_all_sql.
-function DB.fallbackAllSql(n)
-    return "SELECT simp, trad, pinyin, syllables, defs, source, covered FROM fallback WHERE simp IN (" .. marks(n)
+function DB.fallbackAllSql(n, simp)
+    local cols = "simp, trad, pinyin, syllables, defs, source, covered" .. (simp and ", defs_simp" or "")
+    return "SELECT " .. cols .. " FROM fallback WHERE simp IN (" .. marks(n)
         .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
 end
 
@@ -131,15 +140,16 @@ function DB:each(sql, args, fn)
     if args and #args > 0 then stmt:clearbind() end
 end
 
--- Rows { {simp=, trad=, pinyin=, syllables=, defs=}, ... } for every CC-CEDICT
--- entry whose simplified or traditional form is one of `words`, in
--- CC-CEDICT order.
+-- Rows { {simp=, trad=, pinyin=, syllables=, defs=, defs_simp=}, ... } for
+-- every CC-CEDICT entry whose simplified or traditional form is one of
+-- `words`, in CC-CEDICT order (defs_simp nil when the same as defs).
 function DB:lookup(words)
     if #words == 0 then return {} end
     local args, n = padded_args(words, 2)
     local rows = {}
     self:each(DB.entriesSql(n), args, function(row)
-        rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5] }
+        rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
+                            defs_simp = row[6] }
     end)
     return rows
 end
@@ -178,17 +188,25 @@ function DB:formsOf(s)
     return out
 end
 
--- Whether the fallback table has the `covered` column, checked once per
--- database (files built before 2.5.0, and the release database, have none).
-function DB:hasCovered()
-    if self.has_covered == nil then
-        local found = false
-        pcall(self.each, self, "PRAGMA table_info(fallback)", nil, function(row)
-            if row[2] == "covered" then found = true end
+-- Whether table `tbl` has column `col`, checked once per database and
+-- table (false when the table is missing).
+function DB:hasColumn(tbl, col)
+    self.columns = self.columns or {}
+    local cols = self.columns[tbl]
+    if not cols then
+        cols = {}
+        pcall(self.each, self, "PRAGMA table_info(" .. tbl .. ")", nil, function(row)
+            cols[row[2]] = true
         end)
-        self.has_covered = found
+        self.columns[tbl] = cols
     end
-    return self.has_covered
+    return cols[col] == true
+end
+
+-- Whether the fallback table has the `covered` column (files built before
+-- 2.5.0, and the release database, have none).
+function DB:hasCovered()
+    return self:hasColumn("fallback", "covered")
 end
 
 -- Rows { {simp=, trad=, pinyin=, syllables=, defs=, source=}, ... } from the
@@ -199,9 +217,10 @@ function DB:fallback(words)
     if #words == 0 then return {} end
     local args, n = padded_args(words, 2)
     local rows = {}
-    local ok, err = pcall(self.each, self, DB.fallbackSql(n, self:hasCovered()), args, function(row)
+    local simp = self:hasColumn("fallback", "defs_simp")
+    local ok, err = pcall(self.each, self, DB.fallbackSql(n, self:hasCovered(), simp), args, function(row)
         rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
-                            source = row[6] }
+                            source = row[6], defs_simp = row[7] }
     end)
     if not ok then return {}, err end
     return rows
@@ -214,9 +233,10 @@ function DB:fallbackAll(words)
     if #words == 0 or not self:hasCovered() then return {} end
     local args, n = padded_args(words, 2)
     local rows = {}
-    local ok, err = pcall(self.each, self, DB.fallbackAllSql(n), args, function(row)
+    local simp = self:hasColumn("fallback", "defs_simp")
+    local ok, err = pcall(self.each, self, DB.fallbackAllSql(n, simp), args, function(row)
         rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
-                            source = row[6], covered = tonumber(row[7]) == 1 }
+                            source = row[6], covered = tonumber(row[7]) == 1, defs_simp = row[8] }
     end)
     if not ok then return {}, err end
     return rows
@@ -224,20 +244,24 @@ end
 
 -- An idiom's short line and Origin & Usage view for n candidate words, from the
 -- user's 成語典 or Xinhua file (tools/chengyu.py). Kept identical to
--- tools/chengyu.py's idioms_sql.
-function DB.idiomsSql(n)
-    return "SELECT simp, trad, short, view FROM idioms WHERE simp IN (" .. marks(n)
+-- tools/chengyu.py's idioms_sql. simp: also read short_simp and view_simp.
+function DB.idiomsSql(n, simp)
+    local cols = "simp, trad, short, view" .. (simp and ", short_simp, view_simp" or "")
+    return "SELECT " .. cols .. " FROM idioms WHERE simp IN (" .. marks(n)
         .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
 end
 
--- Rows { {simp=, trad=, short=, view=}, ... } for `words`; none from a
--- database without the table (every database but those two files).
+-- Rows { {simp=, trad=, short=, view=, short_simp=, view_simp=}, ... } for
+-- `words`; none from a database without the table (every database but those
+-- two files).
 function DB:idioms(words)
     if #words == 0 then return {} end
     local args, n = padded_args(words, 2)
     local rows = {}
-    local ok, err = pcall(self.each, self, DB.idiomsSql(n), args, function(row)
-        rows[#rows + 1] = { simp = row[1], trad = row[2], short = row[3], view = row[4] }
+    local simp = self:hasColumn("idioms", "short_simp")
+    local ok, err = pcall(self.each, self, DB.idiomsSql(n, simp), args, function(row)
+        rows[#rows + 1] = { simp = row[1], trad = row[2], short = row[3], view = row[4],
+                            short_simp = row[5], view_simp = row[6] }
     end)
     if not ok then return {}, err end
     return rows

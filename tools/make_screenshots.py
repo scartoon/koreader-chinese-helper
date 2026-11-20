@@ -13,7 +13,9 @@ a default run: the AI's answer varies, so it can't be gated like the others.
 For checks, not the README: SHOT_FONT="STKaiti" uses another book font (taps
 must still land: the device log is checked as usual), SHOT_MATCH_FONT=false
 turns "Try to match the book's font" off, SHOT_TRAD=false turns "Show
-traditional forms" off, SHOT_NIGHT=true takes the shots in night mode, and SHOT_OUT=dir saves there
+traditional forms" off, SHOT_TEXT=simplified sets "Dictionary text" to
+Simplified, SHOT_MOE=always shows MOE Always for characters and words,
+SHOT_NIGHT=true takes the shots in night mode, and SHOT_OUT=dir saves there
 instead of docs/.
 
 Needs the optional dictionaries (CBDB, MOE, 成語典, Xinhua, Moegirlpedia) in
@@ -63,6 +65,11 @@ WORK = os.path.join(ROOT, "build", "screenshots")
 BACKUP = os.path.join(WORK, "settings.reader.lua.backup")
 DOCS = os.environ.get("SHOT_OUT") or os.path.join(ROOT, "docs")
 THRESHOLD = 3500
+# Settings for checks (see above); the gate takes the same.
+SHOT_TEXT = "simplified" if os.environ.get("SHOT_TEXT") == "simplified" else "original"
+SHOT_MOE = "always" if os.environ.get("SHOT_MOE") == "always" else "fallback"
+# MOE's text in the shots, as the Dictionary text setting gives it (#48).
+MOE_QUOTE = "「今年歡笑復明年，秋月春風等閒度。」" if SHOT_TEXT == "original" else "「今年欢笑复明年，秋月春风等闲度。」"
 
 READER = {   # the sidecar's reader settings
     "copt_font_size": 20, "copt_line_spacing": 100, "copt_h_page_margins": "{ [1] = 50, [2] = 50 }",
@@ -156,13 +163,15 @@ SHOTS = {
         "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 890), [])],
         frames=[(1, (105, 1158)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
-        "**秋** 秋/鞦  qiū", "[MMAH]", "  [MOE]\n  **秋月春风**", "**秋月春风** 秋月春風  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
+        "**秋** 秋/鞦  qiū", "[MMAH]", "  [國語辭典]\n  **秋月春风**", "**秋月春风** 秋月春風  qiū yuè chūn fēng", MOE_QUOTE, "[Wikt]", "**秋月**  qiūyuè"])],
         frames=[(1, (83, 1179))]),
-    # A character of the popup's own text: 欢, inside MOE's quotation of 〈琵琶行〉,
-    # opens its popup on top; the context line is the quotation (the device's
-    # log must give it as the sentence), the 欢 below underlined.
-    "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["  [MOE]\n  **秋月春风** 秋月春風  qiū yuè chūn fēng"]),
-                                     ("欢", "nested", (1322, 772), ["「今年欢笑复明年，秋月春风等闲度。」"])],
+    # A character of the popup's own text: 歡, inside MOE's quotation of 〈琵琶行〉
+    # (MOE's own characters, #48), opens its popup on top; the context line is
+    # the quotation (the device's log must give it as the sentence), the 歡
+    # below underlined.
+    "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["  [國語辭典]\n  **秋月春风** 秋月春風  qiū yuè chūn fēng",
+                                                            MOE_QUOTE]),
+                                     (MOE_QUOTE[3], "nested", (1322, 772), [MOE_QUOTE])],
                    frames=[(2, (83, 1179))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃** 竊  qiè"])],
         frames=[(1, (15, 1166))]),
@@ -269,12 +278,13 @@ def settings_variant(original, pinyin=True, threshold=None):
             "chinesehelper_popup_enabled": "true", "chinesehelper_popup_text_pct": 60,
             "chinesehelper_chinese_text_pct": 130, "chinesehelper_char_rank": "true",
             "chinesehelper_rank_source": '"bundled"',   # the gate's ranks, whatever the reader picked
-            "chinesehelper_labels": '"fallback"', "chinesehelper_moe_chars": '"fallback"', "chinesehelper_moe_words": '"fallback"',
+            "chinesehelper_labels": '"fallback"', "chinesehelper_moe_chars": f'"{SHOT_MOE}"', "chinesehelper_moe_words": f'"{SHOT_MOE}"',
             "chinesehelper_uncertain": '"both"',
             "chinesehelper_components": "true", "chinesehelper_popup_context": "true",
             "chinesehelper_page_underline": "true",
             "chinesehelper_match_book_font": "false" if os.environ.get("SHOT_MATCH_FONT") == "false" else "true",
             "chinesehelper_trad_heads": "false" if os.environ.get("SHOT_TRAD") == "false" else "true",
+            "chinesehelper_dict_text": f'"{SHOT_TEXT}"',   # the gate's (the default, #48)
             "night_mode": "true" if os.environ.get("SHOT_NIGHT") == "true" else "false",
             "autowarmth_control_nightmode": "false",
             "debug": "true"}
@@ -518,6 +528,8 @@ def main():
         sys.exit(f"unknown shots {unknown}; known: {' '.join(SHOTS)}")
     os.makedirs(WORK, exist_ok=True)
     gate = Gate()
+    defaults = gate.lua.eval('require("ch_settings").DEFAULTS')   # what the gate's settings read
+    defaults["dict_text"], defaults["moe_chars"], defaults["moe_words"] = SHOT_TEXT, SHOT_MOE, SHOT_MOE
     print(f"gate sources: {gate.sources}")
     for name in wanted:   # the whole gate first: no device work if any shot fails it
         gate_shot(gate, name, SHOTS[name])
