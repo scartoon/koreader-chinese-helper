@@ -635,7 +635,8 @@ function Tap:present(args)
     local keep_mark = false
     local close_all = function() self:closeAll() end
     self:attachIdioms(args.matches)
-    local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1)
+    local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1,
+        self.plugin.settings:tradHeadsEnabled())
     -- The tapped character's frequency rank, on its own entry (#17).
     local rank_text
     if self.plugin.settings:charRankEnabled() then

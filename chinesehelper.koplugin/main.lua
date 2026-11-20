@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.11.1"
+ChineseHelper.VERSION = "2.12.0"
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
@@ -783,6 +783,12 @@ function ChineseHelper:addToMainMenu(menu_items)
                 help_text = _("A small grey 字频 line on the tapped character's own entry: its rank among characters in modern written Chinese, from wordfreq (1 is the most common; the default pinyin threshold is 3,500). Past 7,000 it shows 7,000+, since the data is too thin there for an exact rank; unranked means the character is not in the list. With Frequency ranks from your books, it shows your rank, with N+ past your file's exact ranks, or the bundled rank marked (bundled) for a character not in your books."),
                 checked_func = function() return settings:charRankEnabled() end,
                 callback = function() settings:set("char_rank", not settings:charRankEnabled()) end,
+            },
+            {
+                text = _("Show traditional forms"),
+                help_text = _("On each entry's head line, the word's traditional form beside it, smaller and grey, when it is not the same: 头发 頭髮. A word shows the one form it is written with; a single character with several shows them all, the one the word around it uses first (发 髮/發 in 头发). Nothing is added when the traditional form is the same (人民), or when the book is in traditional characters. The entries' own text is not changed."),
+                checked_func = function() return settings:tradHeadsEnabled() end,
+                callback = function() settings:set("trad_heads", not settings:tradHeadsEnabled()) end,
             },
             {
                 text = _("Show the text around the character in the popup"),

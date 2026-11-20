@@ -33,7 +33,8 @@ Entries for one word from its CC-CEDICT rows: self-referring variant senses
 dropped (and rows left with none), rows with the same pinyin merged (歷 and
 曆 are both lì), ordinary readings before capitalised ones (surnames, place
 names), CC-CEDICT's order otherwise.
-Returns { {pinyin=, syllables=, senses={...}, proper=bool}, ... }.
+Returns { {pinyin=, syllables=, senses={...}, proper=bool, trads={...}}, ... }
+(trads: the traditional forms of the rows whose simplified form is `word`).
 ]]
 function Model.cleanRows(word, rows)
     local kept, by_pinyin = {}, {}
@@ -57,9 +58,18 @@ function Model.cleanRows(word, rows)
                 for _, s in ipairs(senses) do seen[s] = true end
                 entry = { pinyin = pinyin, syllables = row.syllables or pinyin, senses = senses,
                           seen = seen, order = #kept + 1, proper = pinyin:match("^%u") ~= nil,
-                          source = row.source or "cedict" }
+                          source = row.source or "cedict", trads = {} }
                 by_pinyin[pinyin] = entry
                 kept[#kept + 1] = entry
+            end
+            -- The traditional form of a row keyed by the word as simplified
+            -- (#47); a row matched by its traditional form (a traditional
+            -- text) gives none.
+            local trad = row.trad
+            if row.simp == word and trad and trad ~= "" then
+                local have = false
+                for _, t in ipairs(entry.trads) do if t == trad then have = true end end
+                if not have then entry.trads[#entry.trads + 1] = trad end
             end
         end
     end
@@ -199,6 +209,76 @@ function Model.takeFallback(remaining, rows)
         if not taken[t] then left[#left + 1] = t end
     end
     return kept, left
+end
+
+local function chars(s)
+    local out = {}
+    for ch in (s or ""):gmatch("[%z\1-\127\194-\244][\128-\191]*") do out[#out + 1] = ch end
+    return out
+end
+
+--[[--
+For the tapped character with several traditional forms (发: 發 and 髮), the
+one the word around it uses: from the longest candidate word with a
+CC-CEDICT row keyed by that word as simplified, the character's place in
+the row's traditional form (头发 → 髮, 发现 → 發). nil when no word says.
+(Components.pickTrad's rule, without its components data.)
+]]
+function Model.tradPick(cands, rows)
+    local by_simp = {}
+    for _, row in ipairs(rows or {}) do
+        if (row.source == nil or row.source == "cedict") and row.simp and not by_simp[row.simp] then
+            by_simp[row.simp] = row
+        end
+    end
+    local best, best_len
+    for _, c in ipairs(cands or {}) do
+        local row = by_simp[c.text]
+        if c.len > 1 and row and (not best_len or c.len > best_len) then
+            local t = chars(row.trad)[1 - c.start]
+            if t then best, best_len = t, c.len end
+        end
+    end
+    return best
+end
+
+--[[--
+The traditional form shown after a block's headword (#47), or nil when it
+is the same as the word. `m` is the match (word=, len=, trad_pick=), `entries`
+the block's entries (cleanRows' trads; the first entry is the head line's).
+  * A word of two or more characters: one form, the head line's row's, and
+    only one of the same length as the word (a few Wiktionary rows give a
+    longer wording or another word as their "traditional" form).
+  * A single character: every form its rows give, "/"-joined, the one the
+    word around it uses (m.trad_pick) first, then the head line's reading's,
+    then the rest. When the character is itself one of several forms (干:
+    乾/幹/干) it is listed with them; when it is the only form, nothing.
+]]
+function Model.tradText(m, entries)
+    local word = m.word
+    if not entries or #entries == 0 then return nil end
+    if (m.len or #chars(word)) > 1 then
+        local t = (entries[1].trads or {})[1]
+        if t and t ~= word and #chars(t) == #chars(word) then return t end
+        return nil
+    end
+    local list, seen = {}, {}
+    local function add(t)
+        if t and t ~= "" and not seen[t] and #chars(t) == 1 then
+            seen[t] = true
+            list[#list + 1] = t
+        end
+    end
+    local all = {}
+    for _, e in ipairs(entries) do
+        for _, t in ipairs(e.trads or {}) do all[t] = true end
+    end
+    if m.trad_pick and all[m.trad_pick] then add(m.trad_pick) end
+    for _, e in ipairs(entries) do
+        for _, t in ipairs(e.trads or {}) do add(t) end
+    end
+    if #list == 0 or (#list == 1 and list[1] == word) then return nil end
+    return table.concat(list, "/")
 end
 
 --[[--
@@ -422,7 +502,10 @@ function Model.matches(args)
         if not empty(m) then kept[#kept + 1] = m end
     end
     words = kept
-    if anchor then table.insert(words, 1, anchor) end
+    if anchor then
+        anchor.trad_pick = Model.tradPick(args.cands, args.rows)
+        table.insert(words, 1, anchor)
+    end
     -- An Always block's readings in the order of the word's own entries (so
     -- the reading marked likely comes first), then those it does not list,
     -- in the file's order (the build sorts MOE's rows, so that order is not
@@ -555,13 +638,17 @@ The popup's content as blocks, one per match:
     note = { source = "idioms" / "xinhua", text = "比喻…" } or nil: an idiom's
       Chinese short line, under an entry whose text is not Chinese already }
 b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
+With `trad` (the "Show traditional forms" setting, #47), a block whose
+word's traditional form differs also has trad= (Model.tradText), word= and
+rest= (the head line after the word), for the popup to draw the form beside
+the word; head is the same either way.
 The tapped character's marked readings are unmarked when `annotated` (the
 reading is drawn on the page, so it comes first with no label) or when
 Model.matches set m.mark (the uncertainty pair, or a default reading nothing
 decided: listed with no label), and "likely here" otherwise. A reading a source does not give itself
 (Model.GENERATED_READING) is followed by "· generated pinyin".
 ]]
-function Model.blocks(matches, char, annotated, b0, b1)
+function Model.blocks(matches, char, annotated, b0, b1, trad)
     b0, b1 = b0 or "", b1 or ""
     local default_mark = annotated and "" or Model.MARK_LIKELY
     local blocks = {}
@@ -589,8 +676,13 @@ function Model.blocks(matches, char, annotated, b0, b1)
                 local tag = m.decided and (" · decides " .. char .. "'s reading") or ""
                 -- A word with no pinyin (a dialect word without a Standard
                 -- reading) shows the word alone.
-                block.head = b0 .. m.word .. b1 .. (e.pinyin ~= "" and ("  " .. e.pinyin) or "") .. marked .. tag
+                local rest = (e.pinyin ~= "" and ("  " .. e.pinyin) or "") .. marked .. tag
+                block.head = b0 .. m.word .. b1 .. rest
                 block.source = e.source or "cedict"
+                if trad then
+                    block.trad = Model.tradText(m, m.entries)
+                    block.word, block.rest = m.word, rest
+                end
                 block.lines[#block.lines + 1] = senses
                 local idiom = m.idiom
                 if idiom and (idiom.short or "") ~= "" and not Model.CHINESE_SOURCES[block.source] then
@@ -607,7 +699,7 @@ function Model.blocks(matches, char, annotated, b0, b1)
         if m.always then
             -- MOE's Always entries: their own block, right after the match's,
             -- collapsed in the popup (ch_popup.lua), never marked.
-            local block = build{ word = m.word, len = m.len, entries = m.always }
+            local block = build{ word = m.word, len = m.len, entries = m.always, trad_pick = m.trad_pick }
             block.always, block.collapse = true, true
             blocks[#blocks + 1] = block
         end
@@ -718,10 +810,12 @@ blank line:
   **大宛**  Dàyuān · decides 宛's reading
   Dayuan, ancient state of Central Asia
 ]]
-function Model.render(matches, char, annotated, b0, b1)
+function Model.render(matches, char, annotated, b0, b1, trad)
     local out = {}
-    for _, block in ipairs(Model.blocks(matches, char, annotated, b0, b1)) do
-        out[#out + 1] = block.head .. "\n" .. table.concat(block.lines, "\n")
+    for _, block in ipairs(Model.blocks(matches, char, annotated, b0, b1, trad)) do
+        local head = block.head
+        if block.trad then head = (b0 or "") .. block.word .. (b1 or "") .. " " .. block.trad .. block.rest end
+        out[#out + 1] = head .. "\n" .. table.concat(block.lines, "\n")
             .. (block.note and ("\n" .. block.note.text) or "")
     end
     return table.concat(out, "\n\n")

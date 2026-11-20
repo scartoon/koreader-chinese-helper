@@ -69,6 +69,7 @@ Settings.DEFAULTS = {
     chinese_text_pct = 130,   -- "Chinese text size": MOE, 成語典, Xinhua and Moegirlpedia text, and the Origin & Usage view
     components = true,        -- "Show character components" in single-character popups
     char_rank = true,         -- "Show character frequency rank": 字频 N on the tapped character's entry
+    trad_heads = true,        -- "Show traditional forms": 头发 頭髮 on the popup's head lines (#47)
     rank_source = "bundled",  -- "Frequency ranks": "bundled" (wordfreq) or "books" (the reader's own file, #42)
     popup_context = true,     -- "Show the text around the character in the popup"
     page_underline = true,    -- "Underline the tapped character on the page"
@@ -100,6 +101,7 @@ function Settings:popupEnabled() return self:get("popup_enabled") == true end
 function Settings:specialEnabled() return self:get("special") == true end
 function Settings:componentsEnabled() return self:get("components") == true end
 function Settings:charRankEnabled() return self:get("char_rank") == true end
+function Settings:tradHeadsEnabled() return self:get("trad_heads") == true end
 
 Settings.RANKS_BUNDLED, Settings.RANKS_BOOKS = "bundled", "books"
 

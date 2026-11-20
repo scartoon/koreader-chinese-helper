@@ -207,7 +207,7 @@ local function present(g, char, cands, rows, matches, annotated)
     local words = {}
     for _, m in ipairs(matches) do if m.len and m.len > 1 then words[#words + 1] = m.word end end
     if #words > 0 then Model.attachIdioms(matches, g.idioms(words)) end
-    local blocks = Model.blocks(matches, char, annotated, "**", "**")
+    local blocks = Model.blocks(matches, char, annotated, "**", "**", g.settings:tradHeadsEnabled())
     local buttons = {}
     for _, m in ipairs(matches) do buttons[#buttons + 1] = m.word end
     for _, c in ipairs(Model.chuchu(matches)) do buttons[#buttons + 1] = c.text .. "(" .. c.word .. ")" end
@@ -226,7 +226,10 @@ local function present(g, char, cands, rows, matches, annotated)
     end
     local out = {}
     for _, b in ipairs(blocks) do
-        out[#out + 1] = { label = label(b.source), head = b.head or false, lines = b.lines,
+        -- A traditional form (#47) as the popup draws it: after the word.
+        local head = b.head or false
+        if b.trad then head = "**" .. b.word .. "** " .. b.trad .. b.rest end
+        out[#out + 1] = { label = label(b.source), head = head, lines = b.lines,
                           always = b.always and true or false,
                           note = b.note and { label = label(b.note.source), text = b.note.text } or false }
     end

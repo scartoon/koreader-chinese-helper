@@ -455,3 +455,51 @@ eq(Model.separatorShade(false), 0xAA)
 eq(Model.separatorShade(nil), 0xAA)
 eq(Model.separatorShade(true), 0x55)
 eq(Model.separatorShade(true), 0xFF - Model.separatorShade(false))
+
+------------------------------------------------------------------------
+-- Traditional forms beside the headword (#47)
+------------------------------------------------------------------------
+local FA = { row("发", "發", "fā", "to send out"), row("发", "髮", "fà", "hair") }
+local function tradOf(left, char, right, rows, k, extra)
+    local bl = Model.blocks(matches(left, char, right, rows, extra), char, false, nil, nil, true)
+    return bl[k or 1] and bl[k or 1].trad
+end
+eq(tradOf("", "观", "", { row("观", "觀", "guān", "to look at") }), "觀")
+local tb = Model.blocks(matches("", "观", "", { row("观", "觀", "guān", "to look at") }), "观", false, "<", ">", true)[1]
+eq(tb.head, "<观>  guān", "head unchanged")
+eq(tb.word, "观"); eq(tb.rest, "  guān")
+eq(Model.render(matches("", "观", "", { row("观", "觀", "guān", "to look at") }), "观", false, nil, nil, true),
+   "观 觀  guān\nto look at")
+local TF = { FA[1], FA[2], row("头发", "頭髮", "tóufa", "hair (on the head)"),
+             row("发现", "發現", "fāxiàn", "to find") }
+eq(tradOf("头", "发", "", TF, 2), "頭髮", "the whole word")
+eq(tradOf("", "发", "现", TF, 2), "發現")
+eq(tradOf("头", "发", "", TF, 1), "髮/發", "the character: the word's form first")
+eq(tradOf("", "发", "现", TF, 1), "發/髮")
+eq(tradOf("", "发", "", FA, 1), "發/髮", "alone: the head line's reading first")
+eq(tradOf("", "发", "", FA, 1, { chosen = "fà" }), "髮/發", "the chosen reading's first")
+eq(tradOf("", "人", "民", { row("人", "人", "rén", "person"), row("人民", "人民", "rénmín", "the people") }, 1), nil)
+eq(tradOf("", "人", "民", { row("人", "人", "rén", "person"), row("人民", "人民", "rénmín", "the people") }, 2), nil,
+   "the same: nothing")
+eq(tradOf("中", "国", "", { row("国", "國", "guó", "country"), row("中国", "中國", "Zhōngguó", "China") }, 2), "中國")
+-- A character that is one of its own traditional forms: listed with them.
+eq(tradOf("", "干", "", { row("干", "乾", "gān", "dry"), row("干", "幹", "gàn", "to do"),
+                          row("干", "干", "gān", "shield") }, 1), "乾/干/幹",
+   "the head reading gān's forms first")
+-- A traditional text: the word as tapped is the traditional form.
+eq(tradOf("頭", "髮", "", { row("发", "髮", "fà", "hair"), row("头发", "頭髮", "tóufa", "hair") }, 1), nil)
+eq(tradOf("頭", "髮", "", { row("发", "髮", "fà", "hair"), row("头发", "頭髮", "tóufa", "hair") }, 2), nil)
+eq(tradOf("", "觀", "", { row("观", "觀", "guān", "to look at") }), nil)
+-- Fallback rows: an empty or copied trad gives nothing; a longer wording is not a form.
+eq(tradOf("", "辅", "助", { frow("辅助", "", "fǔ zhù", "to assist", "wikt") }, 1), nil)
+eq(tradOf("", "辅", "助", { frow("辅助", "辅助", "fǔ zhù", "to assist", "wikt") }, 1), nil)
+eq(tradOf("", "辅", "助", { frow("辅助", "輔助", "fǔ zhù", "to assist", "wikt") }, 1), "輔助")
+eq(tradOf("", "哎", "妈", { frow("哎妈", "哎呀媽呀", "āi mā", "oh my", "wikt") }, 1), nil)
+-- An Always block: the same rule.
+local am = matches("头", "发", "", TF, { always = { frow("头发", "頭髮", "tóu fǎ", "人的头上所生的毛。", "moe") } })
+local ab = Model.blocks(am, "发", false, nil, nil, true)
+eq(ab[3].always, true); eq(ab[3].trad, "頭髮")
+-- The setting off: no traditional forms anywhere.
+for _, b in ipairs(Model.blocks(am, "发", false)) do eq(b.trad, nil, "off") end
+eq(Model.render(matches("", "观", "", { row("观", "觀", "guān", "to look at") }), "观", false),
+   "观  guān\nto look at")
