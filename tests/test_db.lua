@@ -81,14 +81,23 @@ data.lookup = real
 for _, n in ipairs({ 1, 2, 36 }) do
     eq(DB.fallbackSql(n), PY_FALLBACK_SQL(n), "fallback SQL for " .. n)
     eq(DB.fallbackSql(n, true), PY_FALLBACK_SQL(n, true), "fallback SQL without covered rows for " .. n)
+    for _, unc in ipairs({ false, true }) do
+        eq(DB.fallbackSql(n, unc, true), PY_FALLBACK_SQL(n, unc, true), "fallback SQL with defs_simp for " .. n)
+    end
 end
 for _, n in ipairs({ 1, 2, 16 }) do
     eq(DB.idiomsSql(n), PY_IDIOMS_SQL(n), "idioms SQL for " .. n)
+    eq(DB.idiomsSql(n, true), PY_IDIOMS_SQL(n, true), "idioms SQL with the simplified text for " .. n)
 end
 eq(#db:idioms({ "一毛不拔" }), 0, "the release database has no idioms table")
 local idb = DB.open(TEST_KOREADER_DIR .. "/data/chinesehelper/chinesehelper-idioms.sqlite", H.SQ3)
 local irows = idb:idioms({ "一毛不拔", "玉石俱碎", "东西" })
 eq(#irows, 2); eq(irows[1].short ~= nil, true)
+-- Both texts (#48): the 成語典's own, and simplified where it differs.
+local yimao
+for _, r in ipairs(irows) do if r.simp == "一毛不拔" then yimao = r end end
+eq(yimao.short, "形容人非常吝嗇。貶義。"); eq(yimao.short_simp, "形容人非常吝啬。贬义。")
+assert(yimao.view:find("盡心上", 1, true) and yimao.view_simp:find("尽心上", 1, true))
 eq(#idb:idioms({}), 0)
 idb:close()
 
@@ -99,7 +108,8 @@ eq(db:hasCovered(), false, "the release database has no covered column")
 local function rowsText(rows)
     local out = {}
     for _, r in ipairs(rows) do
-        out[#out + 1] = table.concat({ r.simp, r.trad, r.pinyin, r.syllables, r.defs, r.source }, "|")
+        -- (The old file holds the simplified text only.)
+        out[#out + 1] = table.concat({ r.simp, r.trad, r.pinyin, r.syllables, r.defs_simp or r.defs, r.source }, "|")
     end
     return table.concat(out, "\n")
 end
@@ -124,12 +134,23 @@ mdb.each = function(self, sql, ...)
     if sql:find("PRAGMA", 1, true) then checks = checks + 1 end
     return real_each(self, sql, ...)
 end
-mdb.has_covered = nil
+mdb.columns = nil
 mdb:fallback({ "丁匠" }); mdb:fallback({ "典史" }); mdb:fallback({ "和" }); mdb:fallbackAll({ "和" })
-eq(checks, 1, "the column is checked once per database")
+eq(checks, 1, "the columns are checked once per database")
+-- #48: MOE's own text and the simplified copy; none from the old file.
+local ding = mdb:fallback({ "丁匠" })[1]
+eq(ding.defs, "官府徵調的工匠。"); eq(ding.defs_simp, "官府征调的工匠。")
+eq(mdb:fallback({ "典史" })[1].defs_simp, nil, "nothing to simplify: no copy")
+eq(odb:fallback({ "丁匠" })[1].defs_simp, nil)
+eq(odb:hasColumn("fallback", "defs_simp"), false)
+local juan = mdb:fallbackAll({ "涓" })[1]
+eq(juan.covered, true); eq(juan.defs, "細小的流水。"); eq(juan.defs_simp, "细小的流水。")
 mdb.each = real_each
 -- MOE Always (#11): one query for every row, covered or not.
-for _, n in ipairs({ 1, 2, 36 }) do eq(DB.fallbackAllSql(n), PY_FALLBACK_ALL_SQL(n), "all-rows SQL for " .. n) end
+for _, n in ipairs({ 1, 2, 36 }) do
+    eq(DB.fallbackAllSql(n), PY_FALLBACK_ALL_SQL(n), "all-rows SQL for " .. n)
+    eq(DB.fallbackAllSql(n, true), PY_FALLBACK_ALL_SQL(n, true), "all-rows SQL with defs_simp for " .. n)
+end
 local all = mdb:fallbackAll(probe_words)
 local ncov, nunc = 0, 0
 for _, r in ipairs(all) do if r.covered then ncov = ncov + 1 else nunc = nunc + 1 end end

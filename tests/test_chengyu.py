@@ -202,15 +202,22 @@ class IdiomsEntries(unittest.TestCase):
 
     def test_tables(self):
         stats = Counter()
-        entries = [{"simp": "玉石俱焚", "trad": "玉石俱焚", "pinyin": "yù", "short": "比喻/好坏", "view": "v"},
-                   {"simp": "一毛不拔", "trad": "一毛不拔", "pinyin": "yī", "short": "吝啬", "view": ""}]
-        fallback, idioms = chengyu.tables(entries, "idioms", {"一毛不拔"}, stats)
-        self.assertEqual(fallback, [("玉石俱焚", "玉石俱焚", "yù", "", "比喻／好坏", "idioms")])
-        self.assertEqual(len(idioms), 2)
+        # The source's text, and (#48) its simplified copy when it differs.
+        entries = [{"simp": "玉石俱焚", "trad": "玉石俱焚", "pinyin": "yù", "short": "比喻/好壞", "view": "v",
+                    "short_simp": "比喻/好坏", "view_simp": "v"},
+                   {"simp": "一毛不拔", "trad": "一毛不拔", "pinyin": "yī", "short": "吝嗇", "view": "",
+                    "short_simp": "吝啬", "view_simp": ""},
+                   {"simp": "首鼠两端", "trad": "首鼠兩端", "pinyin": "shǒu", "short": "犹豫", "view": ""}]
+        fallback, idioms = chengyu.tables(entries, "idioms", {"一毛不拔", "首鼠两端"}, stats)
+        self.assertEqual(fallback, [("玉石俱焚", "玉石俱焚", "yù", "", "比喻／好壞", "idioms", "比喻／好坏")])
+        self.assertEqual(len(idioms), 3)
         con = sqlite3.connect(":memory:")
         chengyu.write_idioms(con, idioms)
-        got = con.execute(chengyu.idioms_sql(2), ["一毛不拔", "", "", ""]).fetchall()
-        self.assertEqual(got, [("一毛不拔", "一毛不拔", "吝啬", "")])
+        got = con.execute(chengyu.idioms_sql(2, simp=True), ["一毛不拔", "首鼠两端", "", ""]).fetchall()
+        self.assertEqual(got, [("一毛不拔", "一毛不拔", "吝嗇", "", "吝啬", None),
+                               ("首鼠两端", "首鼠兩端", "犹豫", "", None, None)])
+        got = con.execute(chengyu.idioms_sql(1), ["玉石俱焚", ""]).fetchall()
+        self.assertEqual(got, [("玉石俱焚", "玉石俱焚", "比喻/好壞", "v")])
 
 
 if __name__ == "__main__":

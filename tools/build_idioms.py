@@ -5,7 +5,6 @@ ministry's own download page.
 
     python3 -m venv .venv && .venv/bin/pip install opencc && .venv/bin/python tools/build_idioms.py --push
     .venv/bin/python tools/build_idioms.py                 # -> build/chinesehelper-idioms.sqlite only
-    .venv/bin/python tools/build_idioms.py --traditional   # text as the 成語典 writes it
 
 The plugin database (for CC-CEDICT's headwords) is taken from the latest
 release when chinesehelper.koplugin/data/ has none.
@@ -29,8 +28,9 @@ entry's when it only says which idiom it equals) and the 出处 view (釋義,
 典源 with its notes, 典故說明, 書證, usage, examples, 辨識, 近義/反義). A
 related entry's view also has its main entry's source text and story, headed
 with the main entry's name. Idioms CC-CEDICT lacks also get a fallback
-entry. Text is simplified (tools/simplify.py, tw2s); headwords are indexed
-under both forms. Readings are the 成語典's (Taiwan standard) and never
+entry. The text is kept as the 成語典 writes it, and again in simplified
+characters (tools/simplify.py, tw2s) for the popup's Dictionary text:
+Simplified; headwords are indexed under both forms. Readings are the 成語典's (Taiwan standard) and never
 decide the pinyin drawn above characters.
 """
 import argparse
@@ -94,7 +94,6 @@ def main():
                                                   "taken from the latest release when missing")
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--push", action="store_true", help=f"adb push the file to {fallback_sources.DEVICE_DIR}/")
-    ap.add_argument("--traditional", action="store_true", help="keep the 成語典's traditional characters")
     args = ap.parse_args()
     fallback_sources.ensure_db(args.db)
     src = args.source
@@ -113,7 +112,7 @@ def main():
 
     from simplify import Simplifier
     simplifier = Simplifier("tw2s")
-    convert = (lambda s: s) if args.traditional else simplifier.convert
+    convert = simplifier.convert
     stats = Counter()
     entries = []
     for e in chengyu.idioms_entries(rows, stats):
@@ -121,7 +120,8 @@ def main():
         # The Simplifier, not bare OpenCC, so that a character whose simplified
         # form the fonts lack stays traditional (炊瓊爇桂, not 𦶟).
         entries.append({"simp": simplifier.convert(e["trad"]), "trad": e["trad"], "pinyin": e["pinyin"],
-                        "short": convert(e["short"]), "view": chengyu.view_text(sections)})
+                        "short": e["short"], "view": chengyu.view_text(e["sections"]),
+                        "short_simp": convert(e["short"]), "view_simp": chengyu.view_text(sections)})
     cedict, _measure = fallback_sources.cedict_forms(args.db)
     fallback, idioms = chengyu.tables(entries, "idioms", cedict, stats)
     for k in sorted(stats):
@@ -130,7 +130,7 @@ def main():
             "idioms_fallback_rows": str(len(set(fallback))), "idioms_version": version,
             "idioms_file": os.path.basename(src), "idioms_sha256": sha, "idioms_url": PAGE,
             "idioms_built": date.today().isoformat(), "idioms_license": LICENSE,
-            "idioms_text": "traditional" if args.traditional else "simplified"}
+            "idioms_text": "both"}
     fallback_sources.write_local_file(args.out, fallback, meta, "成語典",
                                       extra=lambda con: chengyu.write_idioms(con, idioms))
     print(f"成語典 {version}: {meta['idioms_rows']} idioms, {meta['idioms_fallback_rows']} not in CC-CEDICT; "

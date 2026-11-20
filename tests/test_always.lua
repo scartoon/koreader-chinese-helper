@@ -112,14 +112,19 @@ local s = shape(p)
 assert(s:find("^cedict:涓  juān | moe%*:涓  juān | components:"), s)
 eq(p.blocks[1].rank ~= nil, true, "字频 on CC-CEDICT's entry")
 eq(p.blocks[2].rank, nil, "never on MOE's")
-eq(p.blocks[2].collapse, true); eq(p.blocks[2].lines[1], "细小的流水。")
+eq(p.blocks[2].collapse, true); eq(p.blocks[2].lines[1], "細小的流水。", "MOE's own text (#48)")
 eq(p.collapse_lines, 2, "collapse setting passed to the popup")
 -- 和: two MOE readings as one block; hàn, which CC-CEDICT lacks, marked.
 p = popup("", "和", "平")
 local moe = block(p, function(b) return b.always end)
 -- The test file has hàn first: CC-CEDICT's readings come first all the same.
-eq(moe.head, "和  hé"); eq(moe.lines[2], "hàn · " .. Model.NOT_CEDICT .. ": 连词。")
+eq(moe.head, "和  hé"); eq(moe.lines[2], "hàn · " .. Model.NOT_CEDICT .. ": 連詞。")
 eq(p.blocks[2], moe, "right after the character's own entry")
+-- Dictionary text: Simplified (#48) gives the simplified copy, Always rows too.
+set("dict_text", "simplified")
+p = popup("", "和", "平")
+eq(block(p, function(b) return b.always end).lines[2], "hàn · " .. Model.NOT_CEDICT .. ": 连词。")
+set("dict_text", nil)
 -- Words stay Fallback by default: 台風 (only covered rows in MOE: CC-CEDICT
 -- has 颱風) is not shown.
 p = popup("台", "風", "")
@@ -162,7 +167,8 @@ eq(plugin:moeHasCovered(), false)
 for k, c in ipairs(cases) do
     local q = popup(c[1], c[2], c[3])
     eq(block(q, function(b) return b.always end), nil, "old file: no Always block for " .. c[2])
-    eq(without(q), always_shapes[k], "old file: as Fallback for " .. c[2])
+    -- (Its one text, here simplified, whatever the Dictionary text setting.)
+    eq(without(q), (always_shapes[k]:gsub("官府徵調的工匠", "官府征调的工匠")), "old file: as Fallback for " .. c[2])
 end
 local status = table.concat(plugin:fallbackStatus(), "\n")
 assert(status:find("rebuild", 1, true), "Status says to rebuild: " .. status)

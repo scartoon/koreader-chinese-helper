@@ -1,7 +1,8 @@
 """MOE's covered rows (tools/fallback_sources.py, moe_rows' covered option and
 write_local_file): headwords CC-CEDICT has are kept, flagged covered = 1,
 without changing anything else in the file; the release database's table
-keeps its schema.
+has no `covered` column. Every row keeps MOE's own text in defs and the
+simplified text in defs_simp (#48).
 
     python3 -m unittest tests/test_fallback_moe.py
 """
@@ -52,13 +53,15 @@ class CoveredRows(unittest.TestCase):
     def test_uncovered_rows_unchanged(self):
         self.assertEqual(self.kept, self.plain)
         self.assertEqual([r[0] for r in self.plain], ["丁匠"])
+        # Nothing to simplify: no second copy.
+        self.assertEqual(self.plain[0][4:], ("官府的工匠。", "moe", None))
 
     def test_covered_rows(self):
-        self.assertEqual(sorted((r[0], r[1], r[2], r[4]) for r in self.covered), [
-            ("台风", "颱風", "tái fēng", "热带气旋。"),
-            ("和", "和", "hàn", "连词。"),
-            ("和", "和", "hé", "平静。/连带。"),
-            ("涓", "涓", "juān", "细小的流水。"),
+        self.assertEqual(sorted((r[0], r[1], r[2], r[4], r[6]) for r in self.covered), [
+            ("台风", "颱風", "tái fēng", "熱帶氣旋。", "热带气旋。"),
+            ("和", "和", "hàn", "連詞。", "连词。"),
+            ("和", "和", "hé", "平靜。/連帶。", "平静。/连带。"),
+            ("涓", "涓", "juān", "細小的流水。", "细小的流水。"),
         ])
         self.assertTrue(all(r[5] == "moe" and r[3] == "" for r in self.covered))
 
@@ -79,21 +82,25 @@ class CoveredRows(unittest.TestCase):
         rows = with_cov.execute("SELECT simp, covered FROM fallback ORDER BY rowid").fetchall()
         self.assertEqual(sum(c for _, c in rows), 4)
         self.assertEqual({s for s, c in rows if c == 0}, {"丁匠"})
-        cols = "simp, trad, pinyin, syllables, defs, source"
+        cols = "simp, trad, pinyin, syllables, defs, source, defs_simp"
         self.assertEqual(with_cov.execute(f"SELECT {cols} FROM fallback WHERE covered = 0 ORDER BY rowid").fetchall(),
                          without.execute(f"SELECT {cols} FROM fallback ORDER BY rowid").fetchall())
         # The plugin's query leaves covered rows out, whichever form matches.
         words = ["丁匠", "和", "涓", "台风", "颱風", "台風"]
         got = with_cov.execute(fs.fallback_sql(len(words), uncovered=True), words + words).fetchall()
         self.assertEqual([r[0] for r in got], ["丁匠"])
+        got = with_cov.execute(fs.fallback_all_sql(1, simp=True), ["涓", "涓"]).fetchall()
+        self.assertEqual(got, [("涓", "涓", "juān", "", "細小的流水。", "moe", 1, "细小的流水。")])
         with_cov.close()
         without.close()
 
-    def test_release_table_unchanged(self):
+    def test_release_table(self):
         con = sqlite3.connect(":memory:")
-        fs.write_fallback(con, self.plain)
+        # Rows of 6 (sources with nothing to simplify) and of 7 together.
+        fs.write_fallback(con, self.plain + [("红夷大炮", "紅夷大炮", "", "", "Hongyipao", "wp")])
         self.assertEqual([r[1] for r in con.execute("PRAGMA table_info(fallback)")],
-                         ["simp", "trad", "pinyin", "syllables", "defs", "source"])
+                         ["simp", "trad", "pinyin", "syllables", "defs", "source", "defs_simp"])
+        self.assertEqual(con.execute("SELECT count(*) FROM fallback WHERE defs_simp IS NULL").fetchone(), (2,))
         self.assertFalse(fs.has_covered(con))
         self.assertEqual(fs.uncovered_rows(con), "1")
 

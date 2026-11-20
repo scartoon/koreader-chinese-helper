@@ -22,10 +22,39 @@ Model.EVIDENCE = { word = true, special = true, fallback = true, rule = true }
 -- A reading drawn on the page gets no marker either: the reader can see it.
 
 -- A sense that only says the entry is a variant of the very word being shown
--- ("variant of 着 zháo" on a 着 entry) tells the reader nothing.
+-- ("variant of 着 zháo" on a 着 entry) tells the reader nothing. CC-CEDICT's
+-- own text names both forms ("variant of 夠|够 gòu", #48): either counts.
+-- (Plain spaces, not %S: under some C locales byte 0xA0, inside 夠, counts
+-- as a space.)
 local function selfVariant(sense, word)
-    local target = sense:match("^[%a ]*variant of (%S+)")
-    return target ~= nil and target == word
+    local target = sense:match("^[%a ]*variant of ([^ ]+)")
+    if target == nil then return false end
+    if target == word then return true end
+    for form in target:gmatch("[^|]+") do
+        if form == word then return true end
+    end
+    return false
+end
+
+--[[--
+The dictionary text to show (#48): rows from the databases (DB:lookup,
+DB:fallback, DB:fallbackAll, DB:idioms) carry each source's own text in
+defs, short and view, and the simplified text, where it differs, in
+defs_simp, short_simp and view_simp. With `simplified`, those replace the
+originals; either way the *_simp fields are dropped. Rows from files built
+before 2.13.0 have no simplified copy and keep their one text. Changes the
+rows in place and returns them.
+]]
+function Model.chooseText(rows, simplified)
+    for _, row in ipairs(rows or {}) do
+        if simplified then
+            if row.defs_simp then row.defs = row.defs_simp end
+            if row.short_simp then row.short = row.short_simp end
+            if row.view_simp then row.view = row.view_simp end
+        end
+        row.defs_simp, row.short_simp, row.view_simp = nil, nil, nil
+    end
+    return rows
 end
 
 --[[--

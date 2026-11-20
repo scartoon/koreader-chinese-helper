@@ -397,6 +397,10 @@ function Tap:lookup(db, char, left, right, resolve)
     local rows = db:lookup(texts)
     local fallback, always = self:fallbackRows(texts, rows)
     for _, row in ipairs(fallback) do rows[#rows + 1] = row end
+    -- Each dictionary's own text, or the simplified text (#48).
+    local simplified = self.plugin.settings:dictText() == "simplified"
+    Model.chooseText(rows, simplified)
+    Model.chooseText(always, simplified)
     local chosen, decided, annotated, unsure, source, rank, unusual, spoken = resolve()
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end

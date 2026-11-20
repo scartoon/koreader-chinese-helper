@@ -9,11 +9,14 @@ Each file holds three tables:
             (tools/fallback_sources.py), for the idioms CC-CEDICT lacks:
             (simp, trad, pinyin, "", short, source), source "idioms" or
             "xinhua". The popup shows them like any fallback entry.
-  idioms    (simp, trad, short, view) for every idiom the source has,
+  idioms    (simp, trad, short, view, short_simp, view_simp) for every idiom the source has,
             CC-CEDICT's too: `short` is the one line of Chinese explanation
             the popup adds under an English entry, `view` the text of the
             出处 view (source text, the story, usage, examples), "" when the
-            source has nothing beyond the short line.
+            source has nothing beyond the short line. short and view are the
+            source's own text; short_simp and view_simp the 成語典's in
+            simplified characters (#48), NULL when the same (always for
+            Xinhua, which is simplified already).
   meta      source, version, counts, licence.
 
 Neither source decides readings: their pinyin is only shown on their own
@@ -463,32 +466,43 @@ def xinhua_entries(path, stats):
 # ---------------------------------------------------------------------------
 
 IDIOMS_SCHEMA = """
-    CREATE TABLE idioms (simp TEXT NOT NULL, trad TEXT NOT NULL, short TEXT NOT NULL, view TEXT NOT NULL);
+    CREATE TABLE idioms (simp TEXT NOT NULL, trad TEXT NOT NULL, short TEXT NOT NULL, view TEXT NOT NULL,
+                         short_simp TEXT, view_simp TEXT);
 """
 
 
 # Keep in step with DB.idiomsSql in chinesehelper.koplugin/ch_db.lua
-# (tests/test_db.lua checks that they match).
-def idioms_sql(n):
+# (tests/test_db.lua checks that they match). simp: also read short_simp and
+# view_simp (files built from 2.13.0 on).
+def idioms_sql(n, simp=False):
     marks = ",".join("?" * n)
-    return (f"SELECT simp, trad, short, view FROM idioms WHERE simp IN ({marks}) "
+    cols = "simp, trad, short, view" + (", short_simp, view_simp" if simp else "")
+    return (f"SELECT {cols} FROM idioms WHERE simp IN ({marks}) "
             f"OR trad IN ({marks}) ORDER BY rowid")
 
 
 def write_idioms(con, rows):
-    """rows: (simp, trad, short, view)."""
+    """rows: (simp, trad, short, view[, short_simp, view_simp]); a simplified
+    text the same as the original is stored as NULL."""
+    full = set()
+    for r in rows:
+        short_simp = r[4] if len(r) > 4 else None
+        view_simp = r[5] if len(r) > 5 else None
+        full.add((*r[:4], short_simp if short_simp != r[2] else None, view_simp if view_simp != r[3] else None))
     con.executescript(IDIOMS_SCHEMA)
-    con.executemany("INSERT INTO idioms VALUES (?, ?, ?, ?)", sorted(set(rows)))
+    con.executemany("INSERT INTO idioms VALUES (?, ?, ?, ?, ?, ?)",
+                    sorted(full, key=lambda r: (*r[:4], r[4] or "", r[5] or "")))
     con.execute("CREATE INDEX idioms_simp ON idioms(simp)")
     con.execute("CREATE INDEX idioms_trad ON idioms(trad)")
     for n in (1, 16):
-        plan = "\n".join(r[3] for r in con.execute("EXPLAIN QUERY PLAN " + idioms_sql(n), ["x"] * (2 * n)))
+        plan = "\n".join(r[3] for r in con.execute("EXPLAIN QUERY PLAN " + idioms_sql(n, True), ["x"] * (2 * n)))
         if "USING INDEX idioms_simp" not in plan or "USING INDEX idioms_trad" not in plan:
             raise SystemExit(f"idioms lookup does not use its indexes:\n{plan}")
 
 
 def tables(entries, source, cedict, stats):
-    """entries: dicts {simp, trad, pinyin, short, view} (final text). Returns
+    """entries: dicts {simp, trad, pinyin, short, view} (final text), with
+    short_simp and view_simp when the text has a simplified version. Returns
     (fallback rows, idioms rows)."""
     fallback, idioms = [], []
     for e in entries:
@@ -498,13 +512,15 @@ def tables(entries, source, cedict, stats):
             continue
         if not e["short"] and not e["view"]:
             continue
-        idioms.append((simp, trad, e["short"], e["view"]))
+        short_simp, view_simp = e.get("short_simp"), e.get("view_simp")
+        idioms.append((simp, trad, e["short"], e["view"], short_simp, view_simp))
         if e["view"]:
             stats[f"{source}: idioms with a 出处 view"] += 1
         if simp in cedict or trad in cedict:
             stats[f"{source}: CC-CEDICT has the idiom (short line and view only)"] += 1
         elif e["short"]:
-            fallback.append((simp, trad, e["pinyin"], "", e["short"].replace("/", "／"), source))
+            fallback.append((simp, trad, e["pinyin"], "", e["short"].replace("/", "／"), source,
+                             short_simp.replace("/", "／") if short_simp else None))
     stats[f"{source}: idioms rows"] = len(set(idioms))
     stats[f"{source}: fallback rows"] = len(set(fallback))
     return fallback, idioms

@@ -16,7 +16,6 @@ A file already in build/ is skipped (with --push it is still pushed); --force
 builds it again. Downloads go into build/sources/ and are reused. The plugin
 database, which every script reads for CC-CEDICT's headwords, is taken from
 the latest release when chinesehelper.koplugin/data/ doesn't have it.
---traditional is passed to the scripts that take it (MOE, MOE idioms).
 """
 import argparse
 import glob
@@ -35,14 +34,14 @@ DB = os.path.join(ROOT, "chinesehelper.koplugin", "data", "chinesehelper.sqlite"
 MB = 1_000_000
 
 # name: (label, script, download MB, extra disk MB beyond the download, file MB,
-#        glob of the downloaded source, takes --traditional)
+#        glob of the downloaded source)
 DICTS = {
-    "moe": ("MOE dictionary", "build_moe.py", 15, 0, 17.0, "moe/dict-revised.json.xz", True),
-    "idioms": ("MOE idioms", "build_idioms.py", 5, 5, 21.7, "idioms/dict_idioms_*", True),
-    "xinhua": ("Xinhua idioms", "build_xinhua.py", 10, 0, 14.9, "xinhua/idiom.json", False),
-    "cbdb": ("CBDB office titles", "build_cbdb.py", 140, 590, 0.5, "cbdb/db/*", False),
+    "moe": ("MOE dictionary", "build_moe.py", 15, 0, 17.0, "moe/dict-revised.json.xz"),
+    "idioms": ("MOE idioms", "build_idioms.py", 5, 5, 21.7, "idioms/dict_idioms_*"),
+    "xinhua": ("Xinhua idioms", "build_xinhua.py", 10, 0, 14.9, "xinhua/idiom.json"),
+    "cbdb": ("CBDB office titles", "build_cbdb.py", 140, 590, 0.5, "cbdb/db/*"),
     "moegirl": ("Moegirlpedia slang", "build_moegirl.py", 1400, 0, 0.1,
-                "moegirl/zhmoegirl-20230507-alpha.slob", False),
+                "moegirl/zhmoegirl-20230507-alpha.slob"),
 }
 DEFAULT = ["moe", "idioms", "xinhua"]
 ALL = DEFAULT + ["cbdb"]
@@ -86,8 +85,6 @@ def main():
     group.add_argument("--only", metavar="NAMES", help=f"comma-separated, from: {', '.join(DICTS)}")
     ap.add_argument("--force", action="store_true", help="build files that are already in build/ again")
     ap.add_argument("--push", action="store_true", help=f"adb push each file to {fallback_sources.DEVICE_DIR}/")
-    ap.add_argument("--traditional", action="store_true",
-                    help="keep MOE's and the MOE idioms' traditional characters (default: simplified)")
     args = ap.parse_args()
     names = pick(args)
     sys.stdout.reconfigure(line_buffering=True)  # in order with the scripts' output when piped
@@ -121,8 +118,6 @@ def main():
         cmd = [sys.executable, os.path.join(TOOLS, script)]
         if args.push:
             cmd.append("--push")
-        if args.traditional and DICTS[n][6]:
-            cmd.append("--traditional")
         if subprocess.run(cmd, cwd=ROOT).returncode != 0:
             failed.append(n)
     if args.push:

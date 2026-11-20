@@ -111,10 +111,10 @@ def make_test_files(data_dir):
     files = {
         "moe": ([
             ("尚书省", "尚書省", "shàng shū shěng", "", "官署名。", "moe"),     # Wiktionary has it too
-            ("丁匠", "丁匠", "dīng jiàng", "", "官府的工匠。", "moe"),           # MOE only
+            ("丁匠", "丁匠", "dīng jiàng", "", "官府徵調的工匠。", "moe", "官府征调的工匠。"),   # MOE only
             ("典史", "典史", "diǎn shǐ", "", "官名。", "moe"),                  # CBDB has it too
         ], {"fallback_sources": "moe", "moe_rows": "3", "moe_commit_date": "2026-07-11T09:55:26Z",
-            "moe_text": "simplified"}),
+            "moe_text": "both"}),
         "cbdb": ([
             ("尚书省", "尚書省", "shang shu sheng", "", "Department of State Affairs (Ming office title)", "cbdb"),
             ("典史", "典史", "dian shi", "", "Clerk／District Jailor (Ming office title)", "cbdb"),
@@ -128,7 +128,7 @@ def make_test_files(data_dir):
         "idioms": ([
             ("玉石俱碎", "玉石俱碎", "yù shí jù suì", "", "犹「玉石俱焚」：比喻好坏同时受害。", "idioms"),
         ], {"fallback_sources": "idioms", "idioms_rows": "2", "idioms_fallback_rows": "1",
-            "idioms_version": "2020_20260929", "idioms_text": "simplified"}),
+            "idioms_version": "2020_20260929", "idioms_text": "both"}),
         "xinhua": ([
             ("玉石俱碎", "玉石俱碎", "yù shí jù suì", "", "犹玉石俱焚。", "xinhua"),
             ("精兵强将", "精兵強將", "jīng bīng qiáng jiàng", "", "精良的士兵，勇猛的将领。", "xinhua"),
@@ -137,7 +137,9 @@ def make_test_files(data_dir):
     }
     idioms = {
         "idioms": [("玉石俱碎", "玉石俱碎", "犹「玉石俱焚」：比喻好坏同时受害。", "释义\n犹「玉石俱焚」。"),
-                   ("一毛不拔", "一毛不拔", "形容人非常吝啬。贬义。", "释义\n一根毫毛也不愿意拔取。\n\n典源　《孟子．尽心上》")],
+                   # As the 成語典 writes it, and simplified (#48).
+                   ("一毛不拔", "一毛不拔", "形容人非常吝嗇。貶義。", "释义\n一根毫毛也不願意拔取。\n\n典源　《孟子．盡心上》",
+                    "形容人非常吝啬。贬义。", "释义\n一根毫毛也不愿意拔取。\n\n典源　《孟子．尽心上》")],
         "xinhua": [("玉石俱碎", "玉石俱碎", "犹玉石俱焚。", ""),
                    ("精兵强将", "精兵強將", "精良的士兵，勇猛的将领。", "释义\n精良的士兵。\n\n出处\n《水浒传》"),
                    ("一毛不拔", "一毛不拔", "一根汗毛也不肯拔。", "释义\n一根汗毛也不肯拔。"),
@@ -147,10 +149,10 @@ def make_test_files(data_dir):
     # the fallback lookup never returns: 和 and 涓 as CC-CEDICT has them, and
     # 台風 / 颱風, a simplified form CC-CEDICT lacks whose traditional form it has.
     covered = {"moe": [
-        ("和", "和", "hé", "", "连带。/平静。", "moe"),
-        ("和", "和", "hàn", "", "连词。", "moe"),
-        ("涓", "涓", "juān", "", "细小的流水。", "moe"),
-        ("台風", "颱風", "tái fēng", "", "热带气旋。", "moe"),
+        ("和", "和", "hé", "", "連帶。/平靜。", "moe", "连带。/平静。"),
+        ("和", "和", "hàn", "", "連詞。", "moe", "连词。"),
+        ("涓", "涓", "juān", "", "細小的流水。", "moe", "细小的流水。"),
+        ("台風", "颱風", "tái fēng", "", "熱帶氣旋。", "moe", "热带气旋。"),
     ]}
     files["moe"][1].update({"moe_covered": "1", "moe_covered_char_rows": "3", "moe_covered_word_rows": "1"})
     for source, (rows, meta) in files.items():
@@ -159,12 +161,18 @@ def make_test_files(data_dir):
             os.remove(path)
         extra = (lambda con, r=idioms[source]: chengyu.write_idioms(con, r)) if source in idioms else None
         fallback_sources.write_local_file(path, rows, meta, source, extra=extra, covered=covered.get(source, ()))
-    # The same MOE rows as a file built before 2.5.0: no `covered` column.
+    # The same MOE rows as a file built before 2.5.0: no `covered` column, and
+    # (as before 2.13.0) no `defs_simp`: one text, here the simplified one.
     old = os.path.join(data_dir, "moe-old.sqlite")
     if os.path.exists(old):
         os.remove(old)
     con = sqlite3.connect(old)
-    fallback_sources.write_fallback(con, files["moe"][0])
+    con.execute("CREATE TABLE fallback (simp TEXT NOT NULL, trad TEXT NOT NULL, pinyin TEXT NOT NULL, "
+                "syllables TEXT NOT NULL, defs TEXT NOT NULL, source TEXT NOT NULL)")
+    con.executemany("INSERT INTO fallback VALUES (?, ?, ?, ?, ?, ?)",
+                    sorted((*r[:4], r[6] if len(r) > 6 else r[4], r[5]) for r in files["moe"][0]))
+    con.execute("CREATE INDEX fallback_simp ON fallback(simp)")
+    con.execute("CREATE INDEX fallback_trad ON fallback(trad)")
     con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
     con.execute("INSERT INTO meta VALUES ('fallback_sources', 'moe')")
     con.commit()
