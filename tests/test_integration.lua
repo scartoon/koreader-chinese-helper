@@ -441,3 +441,29 @@ for _, t in ipairs({ { "头发花白。", "发" }, { "翻了个跟斗。", "斗"
     eq(q.drawn, q.chosen, t[1] .. " drawn as resolved")
 end
 eq(popup("头发花白。", "发", { threshold = 1 }).drawn, "fa", "头发's 发 still drawn fa")
+
+------------------------------------------------------------------------
+-- The Classical dictionary (#53, #55), on the release database
+------------------------------------------------------------------------
+assert(db:hasClassical(), "the release database has the classical table")
+local function classical(text, char)
+    local p = popup(text, char)
+    local items = H.items(text)
+    local i
+    for k, item in ipairs(items) do if item.text == char then i = k break end end
+    local left, right = {}, {}
+    for k = math.max(1, i - 7), i - 1 do left[#left + 1] = items[k].text end
+    for k = i + 1, math.min(#items, i + 7) do right[#right + 1] = items[k].text end
+    local cands, texts = Text.candidates(left, char, right)
+    return Model.classicalBlocks(db:classical(char), char, Model.tradPick(cands, db:lookup(texts)), "**", "**", true), p
+end
+local cb = classical("學而時習之", "之")
+eq(#cb, 1); eq(cb[1].head, "**之**"); eq(cb[1].source, "classical")
+assert(#cb[1].lines >= 3 and #cb[1].lines <= 5, table.concat(cb[1].lines, " | "))
+cb = classical("不亦說乎", "說")
+eq(#cb, 1); eq(cb[1].head, "**说** 說", "tapped in traditional: the simplified form leads")
+assert(table.concat(cb[1].lines, "|"):find("yuè: ", 1, true), "說 = 悅: " .. table.concat(cb[1].lines, " | "))
+eq(classical("不亦说乎", "说")[1].head, "**说** 說", "a simplified tap finds the traditional entry")
+eq(#db:classical("説"), 1, "a variant (説) gets its target's entry (說)")
+eq(db:classical("説")[1].trad, "說")
+eq(#classical("我的书", "的"), 0, "no entry: nothing added")

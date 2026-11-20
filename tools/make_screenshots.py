@@ -193,6 +193,11 @@ SHOTS = {
     # character, then after the 80 commonest readings on the page are known.
     "learner": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[], frames=[(0, (440, 995))]),
     "learner-known": dict(page="aq59", threshold=0, known=LEARNER_KNOWN, taps=[], frames=[(0, (440, 995))]),
+    # Classical mode (#53): 之 in 窦武、陈蕃谋诛之 ("plotted to kill them"), its 文言
+    # block under CC-CEDICT's entry and the 文言 ✓ button in the title bar.
+    "classical": dict(page="sg1", classical=True, taps=[("之", 3, (1330, 1085), [
+        "**之**  zhī", "[文言]", "him; her; it; them (object pronoun in non-subject position)"])],
+        frames=[(1, (95, 1191))]),
     # The popup's title-bar button, on 盘 in that paragraph.
     "mark-button": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[("盘", 1, (260, 565), ["**盘** 盤  pán"])],
                         frames=[(1, (188, 561))]),
@@ -262,7 +267,7 @@ def gate_shot(gate, name, shot):
         if nth is None or nth == "nested":
             popups.append(None)
             continue
-        p = gate.popup(text, threshold, char, nth)
+        p = gate.popup(text, threshold, char, nth, classical=bool(shot.get("classical")))
         shown = format_popup(p)
         missing = [e for e in expect if e not in shown]
         if missing:
@@ -272,7 +277,7 @@ def gate_shot(gate, name, shot):
     return popups, len(drawn.split()) if drawn else 0
 
 
-def settings_variant(original, pinyin=True, threshold=None):
+def settings_variant(original, pinyin=True, threshold=None, classical=False):
     """The user's settings.reader.lua with the shot settings."""
     keys = {"chinesehelper_threshold": THRESHOLD if threshold is None else threshold, "chinesehelper_pinyin_enabled": "true" if pinyin else "false",
             "chinesehelper_popup_enabled": "true", "chinesehelper_popup_text_pct": 60,
@@ -285,6 +290,7 @@ def settings_variant(original, pinyin=True, threshold=None):
             "chinesehelper_match_book_font": "false" if os.environ.get("SHOT_MATCH_FONT") == "false" else "true",
             "chinesehelper_trad_heads": "false" if os.environ.get("SHOT_TRAD") == "false" else "true",
             "chinesehelper_dict_text": f'"{SHOT_TEXT}"',   # the gate's (the default, #48)
+            "chinesehelper_classical_mode": "true" if classical else "false",   # #53
             "night_mode": "true" if os.environ.get("SHOT_NIGHT") == "true" else "false",
             "autowarmth_control_nightmode": "false",
             "debug": "true"}
@@ -336,7 +342,8 @@ def screencap():
 def open_page(shot, original):
     page = PAGES[shot["page"]]
     adb("shell", "am", "force-stop", PACKAGE)
-    push_text(settings_variant(original, pinyin=not shot.get("pinyin_off"), threshold=shot.get("threshold")), SETTINGS)
+    push_text(settings_variant(original, pinyin=not shot.get("pinyin_off"), threshold=shot.get("threshold"),
+                               classical=bool(shot.get("classical"))), SETTINGS)
     push_text(marks_file(shot.get("known")), MARKS)
     adb("shell", "mkdir", "-p", os.path.dirname(SIDECAR))
     push_text(sidecar(page["xp"]), SIDECAR)
