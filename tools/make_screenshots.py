@@ -156,12 +156,12 @@ SHOTS = {
         "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 890), [])],
         frames=[(1, (105, 1158)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
-        "**秋** 秋/鞦  qiū", "[MMAH]", "  [MOE]\n  **秋月春风**", "**秋月春风** 秋月春風  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
+        "**秋** 秋/鞦  qiū", "[MMAH]", "  [國語辭典]\n  **秋月春风**", "**秋月春风** 秋月春風  qiū yuè chūn fēng", "[Wikt]", "**秋月**  qiūyuè"])],
         frames=[(1, (83, 1179))]),
     # A character of the popup's own text: 欢, inside MOE's quotation of 〈琵琶行〉,
     # opens its popup on top; the context line is the quotation (the device's
     # log must give it as the sentence), the 欢 below underlined.
-    "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["  [MOE]\n  **秋月春风** 秋月春風  qiū yuè chūn fēng"]),
+    "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["  [國語辭典]\n  **秋月春风** 秋月春風  qiū yuè chūn fēng"]),
                                      ("欢", "nested", (1322, 772), ["「今年欢笑复明年，秋月春风等闲度。」"])],
                    frames=[(2, (83, 1179))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃** 竊  qiè"])],

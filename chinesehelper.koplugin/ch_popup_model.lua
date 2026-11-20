@@ -534,9 +534,10 @@ function Model.matches(args)
 end
 
 -- Short names of the dictionaries, shown as the entries' source labels.
--- (Moegirlpedia is "Moegirl", not "Moe", which would read as MOE.)
+-- (Moegirlpedia is "Moegirl", not "Moe". MOE's dictionary goes by its own
+-- short name, in its own characters: 國語辭典.)
 -- mmah and ids label the components block (ch_components.lua).
-Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", wp = "WP", cbdb = "CBDB", moe = "MOE",
+Model.SOURCE_LABELS = { cedict = "CEDICT", wikt = "Wikt", wp = "WP", cbdb = "CBDB", moe = "國語辭典",
                         idioms = "成语典", xinhua = "新华",
                         moegirl = "Moegirl", mmah = "MMAH", ids = "IDS" }
 
