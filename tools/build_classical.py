@@ -1,0 +1,344 @@
+#!/usr/bin/env python3
+"""Build the Classical dictionary (#55): the classical senses of single
+characters from Chinese Notes, English Wiktionary and (for rare characters)
+Unihan, condensed by Claude Haiku into at most five English senses each.
+Writes data/classical.tsv.gz, which is committed, so tools/build_db.py needs
+no API key: only this script calls the API.
+
+    .venv/bin/python tools/build_classical.py --estimate      # collate, print the cost, call nothing
+    ANTHROPIC_API_KEY=... .venv/bin/python tools/build_classical.py --run
+    .venv/bin/python tools/build_classical.py                 # write from the cache only
+    .venv/bin/python tools/build_classical.py --into chinesehelper.koplugin/data/chinesehelper.sqlite
+                                     # (re)write only the classical tables into an existing database
+
+Steps:
+  1. Collate (tools/collate_classical.py's extractors), with #49's fixes:
+     no CC-CEDICT senses (its own block sits right above), Unihan only for
+     characters ranked above 3,000, no Korean/Japanese/Vietnamese Wiktionary
+     senses, no Chinese Notes rows without a gloss. MOE stays out (BY-ND).
+  2. Condense with tools/condense_classical_prompt.txt (the v3 prompt) and
+     claude-haiku-5-5 through the Message Batches API (half price). Every
+     reply is cached in build/classical/condense_cache/ under a hash of the
+     model, prompt and input (tools/condense_classical.py's key), so a rerun
+     only sends new or changed inputs. --run stops before sending if the
+     estimate is over --max-usd.
+  3. Validate each entry mechanically: senses citing no existing line are
+     dropped, entries are cut to five senses, and senses sharing few words
+     with their cited lines are flagged (build/classical/flags.tsv) for
+     review.
+  4. Variant characters with no entry of their own (説 → 說, 衞 → 衛) map to
+     one that has an entry, through Unihan's kZVariant and kSemanticVariant.
+
+Output, data/classical.tsv.gz: one row per character, keyed by its
+traditional form (a simplified character can stand for several: 发 →
+發/髮):
+    kind=entry    trad, simp, senses (JSON [{gloss, reading, sources}]), raw (the collated lines)
+    kind=variant  the variant, its target (an entry's trad)
+
+Licences: Chinese Notes CC BY-SA 3.0 (adapted under 4.0), Wiktionary CC
+BY-SA 4.0, Unihan Unicode License v3; the condensed result is CC BY-SA 4.0.
+"""
+import argparse
+import collections
+import csv
+import gzip
+import hashlib
+import io
+import json
+import os
+import re
+import sqlite3
+import sys
+import time
+import zipfile
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import collate_classical as collate  # noqa: E402
+import condense_classical as condense  # noqa: E402
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(ROOT, "build", "classical")
+DATA = os.path.join(ROOT, "data", "classical.tsv.gz")
+VARIANT = "bundled"
+MAX_SENSES = 5
+BATCH_FILE = os.path.join(OUT, "batches.json")
+csv.field_size_limit(10 ** 8)
+
+
+def collated_rows():
+    """{trad: [row]} from the bundled sources, cached in build/classical/collated-bundled.tsv."""
+    path = os.path.join(OUT, "collated-bundled.tsv")
+    if not os.path.exists(path):
+        rank = dict(sqlite3.connect(collate.DB).execute("SELECT ch, rank FROM chars"))
+        rows = collate.extract_wikt() + collate.extract_cn() + \
+            [r for r in collate.extract_unihan(rank) if r["tag"] == "rare"]
+        os.makedirs(OUT, exist_ok=True)
+        with open(path, "w", newline="") as f:
+            w = csv.DictWriter(f, collate.FIELDS, delimiter="\t")
+            w.writeheader()
+            w.writerows(rows)
+    by = collections.defaultdict(list)
+    for r in csv.DictReader(open(path), delimiter="\t"):
+        if r["sense"].strip():
+            by[r["trad"]].append(r)
+    return by
+
+
+def jobs_for(by, prompt):
+    jobs = []
+    for ch in sorted(by):
+        text = condense.input_text(ch, by[ch], VARIANT)
+        if text:
+            key = hashlib.sha256(json.dumps([condense.MODEL, prompt, VARIANT, text]).encode()).hexdigest()[:24]
+            jobs.append((ch, text, key))
+    return jobs
+
+
+def parse_reply(ch, text, msg_content, stop_reason, usage):
+    reply = "".join(b.text for b in msg_content if b.type == "text").strip()
+    if reply.startswith("```"):
+        reply = reply.strip("`").removeprefix("json").strip()
+    try:
+        senses = condense.add_sources(json.loads(reply)["senses"], text)
+    except (ValueError, KeyError, TypeError):
+        senses = None
+    return {"char": ch, "variant": VARIANT, "model": condense.MODEL, "input": text, "senses": senses,
+            "raw_reply": reply if senses is None else None, "stop_reason": stop_reason,
+            "usage": {"input": usage.input_tokens, "output": usage.output_tokens}}
+
+
+def run_batches(jobs, prompt, max_usd):
+    import anthropic
+    from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
+    from anthropic.types.messages.batch_create_params import Request
+    todo = [j for j in jobs if not os.path.exists(condense.cache_path(j[2]))]
+    by_key = {k: (ch, text) for ch, text, k in jobs}
+    client = anthropic.Anthropic()          # the key comes from ANTHROPIC_API_KEY only
+    state = json.load(open(BATCH_FILE)) if os.path.exists(BATCH_FILE) else []
+    pending = [b for b in state if not b.get("collected")]
+    if not pending and todo:
+        est_in = sum(condense.estimate_tokens(prompt) + condense.estimate_tokens(t) for _, t, _ in todo)
+        est_out = 150 * len(todo)
+        usd = (est_in / 1e6 * condense.PRICE_IN + est_out / 1e6 * condense.PRICE_OUT) / 2
+        print(f"sending {len(todo)} requests, Batch API estimate ~${usd:.2f}")
+        if usd > max_usd:
+            sys.exit(f"estimate ${usd:.2f} is over --max-usd {max_usd}: not sent")
+        for i in range(0, len(todo), 50000):
+            chunk = todo[i:i + 50000]
+            batch = client.messages.batches.create(requests=[
+                Request(custom_id=key, params=MessageCreateParamsNonStreaming(
+                    model=condense.MODEL, max_tokens=2000, system=prompt,
+                    thinking={"type": "disabled"},
+                    messages=[{"role": "user", "content": text}]))
+                for _, text, key in chunk])
+            state.append({"id": batch.id, "n": len(chunk), "collected": False})
+            json.dump(state, open(BATCH_FILE, "w"))
+            print("batch", batch.id, len(chunk))
+        pending = [b for b in state if not b.get("collected")]
+    used_in = used_out = 0
+    for b in pending:
+        while True:
+            batch = client.messages.batches.retrieve(b["id"])
+            if batch.processing_status == "ended":
+                break
+            c = batch.request_counts
+            print(f"{b['id']}: {batch.processing_status}, {c.succeeded} done, {c.processing} processing", flush=True)
+            time.sleep(60)
+        errors = collections.Counter()
+        for res in client.messages.batches.results(b["id"]):
+            if res.result.type != "succeeded":
+                errors[res.result.type] += 1
+                continue
+            ch, text = by_key[res.custom_id]
+            msg = res.result.message
+            rec = parse_reply(ch, text, msg.content, msg.stop_reason, msg.usage)
+            json.dump(rec, open(condense.cache_path(res.custom_id), "w"), ensure_ascii=False)
+            used_in += msg.usage.input_tokens
+            used_out += msg.usage.output_tokens
+        b["collected"] = True
+        b["errors"] = dict(errors)
+        json.dump(state, open(BATCH_FILE, "w"))
+        print(f"{b['id']}: collected; not succeeded: {dict(errors) or 'none'}")
+    if used_in:
+        print(f"this run: {used_in:,} input + {used_out:,} output tokens, "
+              f"${(used_in / 1e6 * condense.PRICE_IN + used_out / 1e6 * condense.PRICE_OUT) / 2:.2f} (batch price)")
+
+
+WORD = re.compile(r"[a-z]+")
+STOP = set("a an the of to in on or and as for by with from at be is it its one sth sb someone something "
+           "used also eg ie etc kind type form".split())
+
+
+def content_words(s):
+    return {w for w in WORD.findall(s.lower()) if w not in STOP and len(w) > 2}
+
+
+def validate(rec):
+    """(senses kept, flags): drop senses citing no existing line, cut to
+    MAX_SENSES, flag English senses sharing under half their words with the
+    cited lines."""
+    lines = {}
+    for line in rec["input"].split("\n")[1:]:
+        num, rest = line.split(". ", 1)
+        lines[int(num)] = rest
+    kept, flags = [], []
+    for s in rec["senses"] or []:
+        cited = [n for n in s.get("lines", []) if isinstance(n, int) and n in lines]
+        gloss = (s.get("gloss") or "").strip()
+        if not cited or not gloss:
+            flags.append(("no-line", gloss))
+            continue
+        words = content_words(gloss)
+        src = set().union(*(content_words(lines[n]) for n in cited))
+        stems = {w[:5] for w in src}
+        missing = [w for w in words if w not in src and w[:5] not in stems]
+        if words and len(missing) * 2 > len(words):
+            flags.append(("few-words", gloss + "  <=  " + " | ".join(lines[n] for n in cited)))
+        kept.append({"gloss": gloss, "reading": s.get("reading") or "", "sources": s["sources"]})
+    if len(kept) > MAX_SENSES:
+        flags.append(("over-cap", str(len(kept))))
+        kept = kept[:MAX_SENSES]
+    return kept, flags
+
+
+def variants(entries):
+    """{variant: target} for characters with no entry whose Unihan kZVariant
+    or kSemanticVariant has one (the target with the most senses wins)."""
+    z = zipfile.ZipFile(os.path.join(collate.SRC, "unihan", "Unihan.zip"))
+    cands = collections.defaultdict(set)
+    for line in io.TextIOWrapper(z.open("Unihan_Variants.txt"), encoding="utf-8"):
+        if line.startswith("#") or not line.strip():
+            continue
+        cp, field, value = line.rstrip("\n").split("\t")
+        if field not in ("kZVariant", "kSemanticVariant"):
+            continue
+        ch = chr(int(cp[2:], 16))
+        for v in value.split():
+            cands[ch].add(chr(int(v.split("<")[0][2:], 16)))
+    out = {}
+    for ch, targets in cands.items():
+        if ch in entries:
+            continue
+        have = [t for t in targets if t in entries]
+        if have:
+            out[ch] = max(have, key=lambda t: (len(entries[t]["senses"]), t))
+    return out
+
+
+# Keep in step with DB.classicalSql and DB.classicalVariantSql in chinesehelper.koplugin/ch_db.lua.
+CLASSICAL_SQL = "SELECT trad, simp, senses FROM classical WHERE trad = ? OR simp = ? ORDER BY trad"
+VARIANT_SQL = "SELECT trad FROM classical_variant WHERE ch = ?"
+SCHEMA = """
+CREATE TABLE classical (trad TEXT PRIMARY KEY, simp TEXT NOT NULL, senses TEXT NOT NULL, raw TEXT NOT NULL) WITHOUT ROWID;
+CREATE INDEX classical_simp ON classical(simp);
+CREATE TABLE classical_variant (ch TEXT PRIMARY KEY, trad TEXT NOT NULL) WITHOUT ROWID;
+"""
+
+
+def read_data(path=DATA):
+    entries, var = [], []
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
+        for row in csv.reader((line for line in f if not line.startswith("#")), delimiter="\t"):
+            if row[0] == "entry":
+                entries.append((row[1], row[2], row[3], row[4]))
+            elif row[0] == "variant":
+                var.append((row[1], row[2]))
+    return entries, var
+
+
+def write_tables(con, path=DATA):
+    """The classical tables from data/classical.tsv.gz into an open database
+    (replacing any there). Returns the meta rows."""
+    entries, var = read_data(path)
+    con.executescript("DROP TABLE IF EXISTS classical; DROP TABLE IF EXISTS classical_variant;" + SCHEMA)
+    con.executemany("INSERT INTO classical VALUES (?, ?, ?, ?)", entries)
+    con.executemany("INSERT INTO classical_variant VALUES (?, ?)", var)
+    with open(path, "rb") as f:
+        sha = hashlib.sha256(f.read()).hexdigest()
+    return {"classical": str(len(entries)), "classical_variants": str(len(var)), "classical_sha256": sha,
+            "classical_model": condense.MODEL,
+            "classical_license": "CC BY-SA 4.0 (condensed by Claude Haiku from Chinese Notes CC BY-SA 3.0, "
+                                 "English Wiktionary CC BY-SA 4.0, Unihan Unicode License v3)"}
+
+
+def check_plans(con):
+    for sql, n, want in ((CLASSICAL_SQL, 2, ("USING PRIMARY KEY", "USING INDEX classical_simp")),
+                         (VARIANT_SQL, 1, ("USING PRIMARY KEY",))):
+        plan = "\n".join(r[3] for r in con.execute("EXPLAIN QUERY PLAN " + sql, ["x"] * n))
+        if any(w not in plan for w in want) or re.search(r"\bSCAN classical", plan):
+            sys.exit(f"Query does not use its index:\n{sql}\n{plan}")
+        print("Query plan ok: " + sql[:60] + "\n    " + plan.replace("\n", "\n    "))
+
+
+def into(db):
+    con = sqlite3.connect(db)
+    meta = write_tables(con)
+    con.executemany("INSERT OR REPLACE INTO meta VALUES (?, ?)", meta.items())
+    con.commit()
+    con.execute("VACUUM")
+    check_plans(con)
+    con.close()
+    print(f"{db}: {meta['classical']} classical entries, {meta['classical_variants']} variants, "
+          f"{os.path.getsize(db) / 1e6:.1f} MB")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--into", metavar="DB", help="only write the classical tables into this database")
+    ap.add_argument("--estimate", action="store_true", help="collate and print the cost; call nothing")
+    ap.add_argument("--run", action="store_true", help="send the uncached inputs through the Batch API")
+    ap.add_argument("--max-usd", type=float, default=5.0)
+    args = ap.parse_args()
+    if args.into:
+        return into(args.into)
+    prompt = open(condense.PROMPT).read()
+    by = collated_rows()
+    jobs = jobs_for(by, prompt)
+    cached = sum(os.path.exists(condense.cache_path(k)) for *_, k in jobs)
+    est_in = sum(condense.estimate_tokens(prompt) + condense.estimate_tokens(t) for _, t, _ in jobs)
+    est_out = 150 * (len(jobs) - cached)
+    todo_in = sum(condense.estimate_tokens(prompt) + condense.estimate_tokens(t)
+                  for _, t, k in jobs if not os.path.exists(condense.cache_path(k)))
+    usd = (todo_in / 1e6 * condense.PRICE_IN + est_out / 1e6 * condense.PRICE_OUT) / 2
+    print(f"{len(jobs)} characters ({cached} cached); all inputs ~{est_in:,.0f} tokens; "
+          f"to send: ~${usd:.2f} at batch price")
+    if args.estimate:
+        return
+    if args.run:
+        run_batches(jobs, prompt, args.max_usd)
+    entries, flags, missing, unparsed = {}, [], 0, []
+    for ch, text, key in jobs:
+        path = condense.cache_path(key)
+        if not os.path.exists(path):
+            missing += 1
+            continue
+        rec = json.load(open(path))
+        if rec["senses"] is None:
+            unparsed.append(ch)
+            continue
+        senses, fl = validate(rec)
+        flags += [(ch, kind, detail) for kind, detail in fl]
+        if senses:
+            entries[ch] = {"simp": by[ch][0]["simp"], "senses": senses,
+                           "raw": "\n".join(text.split("\n")[1:])}
+    var = variants(entries)
+    os.makedirs(os.path.dirname(DATA), exist_ok=True)
+    with gzip.open(DATA, "wt", encoding="utf-8", newline="", compresslevel=9) as f:
+        f.write("# Classical dictionary (tools/build_classical.py, #55). CC BY-SA 4.0: condensed by Claude Haiku\n"
+                "# from Chinese Notes (CC BY-SA 3.0), English Wiktionary (CC BY-SA 4.0) and Unihan (Unicode License v3).\n")
+        w = csv.writer(f, delimiter="\t", lineterminator="\n", quoting=csv.QUOTE_MINIMAL)
+        for ch in sorted(entries):
+            e = entries[ch]
+            w.writerow(["entry", ch, e["simp"], json.dumps(e["senses"], ensure_ascii=False), e["raw"]])
+        for ch in sorted(var):
+            w.writerow(["variant", ch, var[ch], "", ""])
+    with open(os.path.join(OUT, "flags.tsv"), "w") as f:
+        for row in flags:
+            f.write("\t".join(row) + "\n")
+    kinds = collections.Counter(k for _, k, _ in flags)
+    print(f"wrote {DATA}: {len(entries)} entries, {len(var)} variants; "
+          f"{missing} not condensed yet, {len(unparsed)} unparsed {''.join(unparsed[:20])}; flags {dict(kinds)}")
+
+
+if __name__ == "__main__":
+    main()
