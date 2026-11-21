@@ -41,6 +41,14 @@ Results go to the same lookups cache with "method": "baidu".
 
     tools/verify_neutral_tones.py --baidu --limit 10  # a pilot
     tools/verify_neutral_tones.py --baidu             # every main-reading candidate not cached
+
+--haiku (#64): the same Baidu JSON and the same baidu_verdict(), but fetched
+through Claude Haiku 5.5's server-side web fetch tool, because Baidu shows its
+captcha to direct scripted requests after about 20. The model only triggers
+the fetch; the raw JSON is read from the web_fetch_tool_result block and judged
+mechanically. Cached like --baidu, with "method": "haiku".
+
+    ANTHROPIC_API_KEY=... tools/verify_neutral_tones.py --haiku --limit 5
 """
 import argparse
 import json
@@ -69,6 +77,8 @@ BAIDU_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 
             "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
 BAIDU_PAUSE = float(os.environ.get("BAIDU_PAUSE", "2.0"))   # seconds between requests
 
+HAIKU = "claude-haiku-5-5"
+HAIKU_PRICE_IN, HAIKU_PRICE_OUT = 0.10 / 1e6, 0.50 / 1e6
 MODEL = "claude-sonnet-5-5"
 MAX_SEARCHES = 3
 # USD, for the estimate: Sonnet 5.5 per million tokens, web search per search.
@@ -228,6 +238,91 @@ def baidu_fetch(word):
     return data
 
 
+def haiku_fetch(client, word):
+    """Baidu's JSON for word through Haiku's web fetch tool: (data or None, usage).
+    Raises BaiduBlocked on the captcha. Cached in build/neutral/baidu/ like baidu_fetch."""
+    path = os.path.join(BAIDU_RAW, word + ".json")
+    usage = {"input": 0, "output": 0, "searches": 0}
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            return json.load(f), usage
+    url = BAIDU_API + urllib.parse.urlencode({"wd": word, "from": "poem", "pn": 1})
+    raw = None
+    for attempt in range(3):   # the model sometimes answers without a usable fetch
+        msg = client.messages.create(
+            model=HAIKU, max_tokens=2000,
+            tools=[{"type": "web_fetch_20250910", "name": "web_fetch", "max_uses": 1}],
+            messages=[{"role": "user", "content": f"Fetch this URL once with the web_fetch tool, then reply only OK: {url}"}])
+        usage["input"] += msg.usage.input_tokens
+        usage["output"] += msg.usage.output_tokens
+        for b in msg.content:
+            if b.type == "web_fetch_tool_result":
+                d = b.model_dump()
+                raw = ((d.get("content") or {}).get("content") or {}).get("source", {}).get("data") or raw
+                if raw is None:
+                    log(f"{word}: web fetch result without a document: {json.dumps(d, ensure_ascii=False)[:200]}")
+        if raw is not None:
+            break
+        log(f"{word}: haiku fetch gave no document ({msg.stop_reason}), attempt {attempt + 1}")
+    if raw is None:
+        return None, usage
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        log(f"{word}: haiku fetch not JSON: {raw[:120]!r}")
+        return None, usage
+    if "tri_cap" in data or "svcp_url" in data:
+        raise BaiduBlocked(word)
+    os.makedirs(BAIDU_RAW, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    return data, usage
+
+
+def run_haiku(rows, cache, limit, workers):
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        sys.exit("ANTHROPIC_API_KEY is not set for this process")
+    import anthropic
+    client = anthropic.Anthropic(max_retries=4)
+    todo = [r for r in rows if r["wikt_reading"] == "main" and "A" not in r["sources"].split(",")
+            and r["word"] not in cache]
+    if limit:
+        todo = todo[:limit]
+    log(f"haiku start: {len(todo)} words")
+    counts, spent, blocked = {}, [0.0], threading.Event()
+
+    def one(row):
+        if blocked.is_set():
+            return
+        try:
+            data, usage = haiku_fetch(client, row["word"])
+        except BaiduBlocked:
+            log(f"{row['word']}: captcha through the web fetch tool; stopping")
+            blocked.set()
+            return
+        except Exception as e:   # noqa: BLE001  logged, retried next run
+            log(f"{row['word']}: error {type(e).__name__}: {e}")
+            return
+        ans = baidu_verdict(row, data)
+        with lock:
+            spent[0] += usage["input"] * HAIKU_PRICE_IN + usage["output"] * HAIKU_PRICE_OUT
+            if ans["verdict"] == "fetch failed":
+                counts["fetch failed"] = counts.get("fetch failed", 0) + 1
+                return
+            res = {"word": row["word"], "cedict": row["cedict"], "proposed": row["proposed"], "method": "haiku",
+                   "model": HAIKU, "answer": ans, "usage": usage, "time": time.strftime("%Y-%m-%dT%H:%M:%S")}
+            with open(CACHE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(res, ensure_ascii=False) + "\n")
+            v = check(row, ans)
+            counts[v] = counts.get(v, 0) + 1
+        log(f"{row['word']}: haiku {ans['verdict']} -> {v} {ans['snippet']!r}")
+
+    with ThreadPoolExecutor(workers) as pool:
+        list(pool.map(one, todo))
+    log(f"haiku done: {counts}, ${spent[0]:.3f}")
+    print(f"haiku: {len(todo)} words, {counts}, ${spent[0]:.3f}" + ("; BLOCKED by captcha" if blocked.is_set() else "") + f"; log {LOG}")
+
+
 def baidu_syllables(pinyin):
     """'jìn·qù' -> [('jìn', False), ('qù', True)]: (syllable, dot before it)."""
     return [(m.group(2), m.group(1) == "·") for m in re.finditer(r"(·?)\s*([^\s·]+)", pinyin.replace("•", "·"))]
@@ -237,6 +332,14 @@ def xiandai_style(definition):
     """A definition worded like 现代汉语词典's (an example after ～, no （名）/（动）
     tag and no ［近］ synonyms, which Baidu's other source adds)."""
     return "～" in definition and not definition.startswith("（") and "［" not in definition
+
+
+# Read through by hand (#64): a dotted line next to a full-tone line that is a
+# separate sense, which the ～ test in xiandai_style() misses (no example given).
+SENSE_SPLIT = {
+    "隔断": "gé duàn 阻绝；使隔开 (verb) / gé·duàn partition (noun)",
+    "小月": "xiǎo yuè short month / xiǎo·yuè 〈口〉miscarriage",
+}
 
 
 def baidu_verdict(row, data):
@@ -271,6 +374,9 @@ def baidu_verdict(row, data):
             full_xh += [(py, d) for d in defs if xiandai_style(d)]
     if dotted:
         py, defs = dotted[0]
+        if word in SENSE_SPLIT:
+            return dict(out, verdict="both readings", snippet=SENSE_SPLIT[word],
+                        note="separate full-tone sense (read by hand): not approved")
         if full_xh:   # 大大: dà dà 表示数量大…：费用～超过了预算 next to dà·da 〈口〉伯父
             fpy, fd = full_xh[0]
             return dict(out, verdict="both readings", snippet=f"{py} / {fpy} {fd[:40]}",
@@ -336,6 +442,10 @@ def write_outputs(rows, cache):
                 counts["list"] += 1
             elif row["word"] in cache:
                 ans = cache[row["word"]]["answer"]
+                raw = os.path.join(BAIDU_RAW, row["word"] + ".json")
+                if cache[row["word"]].get("method") in ("baidu", "haiku") and os.path.exists(raw):
+                    with open(raw, encoding="utf-8") as rf:   # re-judged with the current rules
+                        ans = baidu_verdict(row, json.load(rf))
                 verdict = check(row, ans)
                 syl, url, snippet = ans.get("syllable", ""), ans.get("url", ""), ans.get("snippet", "")
                 counts["lookup" if verdict == "neutral" else verdict if verdict in counts else "no evidence"] += 1
@@ -371,6 +481,8 @@ def main():
     ap.add_argument("--write", action="store_true", help="write the evidence TSV and override file only")
     ap.add_argument("--baidu", action="store_true",
                     help="look up the main-reading candidates in Baidu Hanyu (#64): no model, no API key")
+    ap.add_argument("--haiku", action="store_true",
+                    help="as --baidu, but fetched through Claude Haiku's web fetch tool (#64)")
     args = ap.parse_args()
 
     rows = read_candidates()
@@ -385,6 +497,9 @@ def main():
           f"{len(cache)} looked up already, {len(todo)} to look up; "
           f"${per:.3f} per lookup ({'measured over ' + str(len(measured)) if measured else 'guessed'}), "
           f"estimate ${per * len(todo):.2f}")
+    if args.haiku:
+        run_haiku(rows, cache, args.limit, args.workers)
+        return
     if args.baidu:
         run_baidu(rows, cache, args.limit)
         return
