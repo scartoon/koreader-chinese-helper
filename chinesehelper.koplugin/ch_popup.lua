@@ -46,7 +46,7 @@ local Popup = InputContainer:extend{
     blocks = nil,      -- the entries (ch_popup_model.lua Model.blocks), and the
                        -- components block (ch_components.lua Components.block)
     labels = nil,      -- source -> label text (Model.SOURCE_LABELS)
-    label_mode = "fallback", -- which entries carry a label: "all", "fallback", "none"
+    label_mode = "all", -- which entries carry a label: "all" or "none"
     context = nil,     -- page text around the tap (ch_tap.lua Tap:context), or nil
     on_close = nil,    -- called when the popup closes, however it closes
     buttons = nil,     -- ButtonTable rows
@@ -550,9 +550,7 @@ end
 
 -- Should this block carry its source label?
 function Popup:labelled(block)
-    if block.nolabel or self.label_mode == "none" then return false end
-    if self.label_mode == "fallback" then return block.source ~= "cedict" end
-    return true
+    return not block.nolabel and self.label_mode ~= "none"
 end
 
 function Popup:labelPx()
@@ -652,10 +650,9 @@ function Popup:body(text_w, max_h, full)
                 end
                 lines_box = lines_box or box(text, face, width, tappable)
             end
-            -- The source label and, on the tapped character's own entry,
-            -- its frequency rank: one small grey line.
-            local label = Model.labelText(b, self:labelled(b), self.labels)
-            if label then
+            -- On the tapped character's own entry, its frequency rank (and
+            -- spoken mark); then the source label on a row of its own.
+            for _, label in ipairs(Model.labelLines(b, self:labelled(b), self.labels)) do
                 add(TextWidget:new{
                     text = label, face = label_face,
                     fgcolor = self:secondaryColor(), max_width = width,

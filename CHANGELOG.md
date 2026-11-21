@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.17.0 (2026-11-20)
+
+Popup labels: the source label on its own row, CC-CEDICT always labelled (#59)
+- The small grey lines above an entry are now two rows: first the tapped character's 字频 rank
+  (and **spoken here**, when shown), then the entry's source label on a row of its own. A label
+  and 字频 no longer share a line (it read `文言 · 字频 16`, as if 字频 belonged to the
+  dictionary).
+- CC-CEDICT entries are now always labelled **CEDICT**, with Classical mode on or off, so the
+  文言 entry and CC-CEDICT's are easy to tell apart.
+- **Source labels** now offers **All entries** (default) and **None**; "Other dictionaries only"
+  is gone, and a saved "other dictionaries only" setting reads as All entries.
+- Menu help, README text and screenshots updated.
+
 ## 2.16.0 (2026-11-20)
 
 Classical mode: the Classical entry first, in full (#56)

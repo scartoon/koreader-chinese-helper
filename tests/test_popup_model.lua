@@ -426,18 +426,23 @@ assert(not Model.tappable({ source = "mmah", components = true, lines = { "x" } 
 assert(not Model.tappable({ source = "wikt", components = true, lines = { "x" } }, "lines"), "Wiktionary components")
 assert(Model.tappable({ source = "xinhua", lines = { "x" }, large = true }, "lines"), "a Origin & Usage view")
 
--- The frequency rank's text (#17) and the grey line it shares with the label.
+-- The frequency rank's text (#17) and the grey lines above a block: the rank
+-- line first, then the source label on its own row (#59).
 eq(Model.rankText(1), "字频 1")
 eq(Model.rankText(4270), "字频 4,270")
 eq(Model.rankText(7000), "字频 7,000")
 eq(Model.rankText(7001), "字频 7,000+")
 eq(Model.rankText(0), "字频 unranked")
 eq(Model.rankText(nil), "字频 unranked")
-eq(Model.labelText({ source = "cedict" }, false, Model.SOURCE_LABELS), nil, "no label, no rank: no line")
-eq(Model.labelText({ source = "cedict", rank = "字频 4,270" }, false, Model.SOURCE_LABELS), "字频 4,270")
-eq(Model.labelText({ source = "cedict", rank = "字频 4,270" }, true, Model.SOURCE_LABELS), "CEDICT · 字频 4,270",
-   "label mode all: one line")
-eq(Model.labelText({ source = "wikt" }, true, Model.SOURCE_LABELS), "Wikt")
+local function ll(...) return table.concat(Model.labelLines(...), " / ") end
+eq(ll({ source = "cedict" }, false, Model.SOURCE_LABELS), "", "no label, no rank: no line")
+eq(ll({ source = "cedict", rank = "字频 4,270" }, false, Model.SOURCE_LABELS), "字频 4,270")
+eq(ll({ source = "cedict", rank = "字频 4,270" }, true, Model.SOURCE_LABELS), "字频 4,270 / CEDICT",
+   "rank first, the label on a row of its own")
+eq(ll({ source = "classical", rank = "字频 16" }, true, Model.SOURCE_LABELS), "字频 16 / 文言")
+eq(ll({ source = "cedict", spoken = "spoken here: yì" }, true, Model.SOURCE_LABELS), "spoken here: yì / CEDICT",
+   "a spoken mark without a rank")
+eq(ll({ source = "wikt" }, true, Model.SOURCE_LABELS), "Wikt")
 -- Only the character's own block gets it.
 local bl = { {}, {} }
 assert(Model.markRank(bl, { { len = 1 }, { len = 4 } }, "字频 9"))

@@ -495,6 +495,37 @@ do
 end
 print("classical first: ok")
 
+-- The grey lines above each block (#59): 字频 first, the source label on a
+-- row of its own below it; CC-CEDICT labelled CEDICT in both modes.
+do
+    local function grey(p, upto)
+        local out = {}
+        for k = 1, upto do
+            local b = p.blocks[k]
+            local labelled = not b.nolabel and p.label_mode ~= "none"   -- as Popup:labelled
+            out[#out + 1] = table.concat(Model.labelLines(b, labelled, p.labels), " / ")
+                .. " | " .. tostring(b.source)
+        end
+        -- (The number depends on the rank source: 15 bundled, 16 on the Boox.)
+        return (table.concat(out, " ; "):gsub("字频 %d+", "字频 N"))
+    end
+    plugin.settings:set("classical_mode", true)
+    local on = root("这件", "大", "事")
+    eq(grey(on, 2), "字频 N / 文言 | classical ; CEDICT | cedict")
+    on.on_outside()
+    plugin.settings:set("classical_mode", false)
+    local off = root("这件", "大", "事")
+    eq(grey(off, 1), "字频 N / CEDICT | cedict")
+    off.on_outside()
+    plugin.settings:set("labels", "none")
+    off = root("这件", "大", "事")
+    eq(grey(off, 1), "字频 N | cedict", "None: the rank stays")
+    for k = 2, #off.blocks do eq(grey(off, k):match("[^;]*$"), "  | " .. tostring(off.blocks[k].source), "no labels") end
+    off.on_outside()
+    plugin.settings:set("labels", nil)
+end
+print("label rows: ok")
+
 -- A lookup from a word button hands the Chinese text size on to the context
 -- line in KOReader's dictionary popup (#32).
 do
