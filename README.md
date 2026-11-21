@@ -116,6 +116,9 @@ menu's **Order** changes it). The MOE dictionary can also show its entry for eve
 | Moegirlpedia slang | Moegirl | 350 | [optional](#optional-dictionaries) | internet slang (in Chinese) |
 | Classical dictionary | 文言 | 21,292 characters | bundled, [Classical mode](#classical-mode) only | the senses of single characters in classical Chinese, condensed from Chinese Notes, Wiktionary and Unihan |
 
+An entry CC-CEDICT gives only as a cross-reference (贤惠: "variant of 賢慧|贤慧 xiánhuì", 河北:
+"see 河北省") also shows the definitions of the word it points to, on a line led by that word.
+
 \* Chengyu CC-CEDICT lacks. Both files also add a Chinese line and an Origin & Usage view to chengyu the
 other dictionaries have: MOE idioms covers 5,470 chengyu in all, Xinhua idioms 30,200
 ([Chengyu](#chengyu)).

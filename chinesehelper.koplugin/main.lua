@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.17.2"
+ChineseHelper.VERSION = "2.18.0"
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
