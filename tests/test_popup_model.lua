@@ -455,6 +455,10 @@ eq(Model.separatorShade(false), 0xAA)
 eq(Model.separatorShade(nil), 0xAA)
 eq(Model.separatorShade(true), 0x55)
 eq(Model.separatorShade(true), 0xFF - Model.separatorShade(false))
+-- Secondary text (#57): grey by day, the normal text colour in night mode.
+eq(Model.secondaryGrey(false), true, "day: grey")
+eq(Model.secondaryGrey(nil), true, "no night flag: grey")
+eq(Model.secondaryGrey(true), false, "night: normal colour")
 
 ------------------------------------------------------------------------
 -- Traditional forms beside the headword (#47)

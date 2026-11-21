@@ -1114,4 +1114,15 @@ function Model.separatorShade(night)
     return night and Model.SEPARATOR_NIGHT or Model.SEPARATOR_DAY
 end
 
+--[[--
+Whether the popup's small secondary text (source labels, 字频, spoken here,
+note labels, [Tap to show more]/[Tap to show less]) is drawn grey (#57).
+Grey by day. Night mode inverts the screen, so the grey would come out dark
+grey on black, which the Boox's e-ink hardly shows: at night it is drawn in
+the normal text colour, and reads as secondary by its smaller size alone.
+]]
+function Model.secondaryGrey(night)
+    return not night
+end
+
 return Model
