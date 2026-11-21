@@ -920,8 +920,8 @@ end
 The Classical dictionary's blocks for the tapped character (#53): `rows`
 from DB:classical. A simplified character standing for several traditional
 ones (发: 發, 髮) shows the one the word around it uses (`trad_pick`,
-Model.tradPick), else each in turn. One block per entry, collapsed like an
-Always block: head line the character (with its traditional form beside it
+Model.tradPick), else each in turn. One block per entry, never collapsed
+(#56: shown in full, first in the popup): head line the character (with its traditional form beside it
 when `trad` and it differs), then one sense per line, "reading: gloss" when
 the sense gives a reading. Empty when there is no entry: nothing is added.
 ]]
@@ -939,7 +939,7 @@ function Model.classicalBlocks(rows, char, trad_pick, b0, b1, trad)
     if #picked == 0 then picked = rows or {} end
     local blocks = {}
     for _, r in ipairs(picked) do
-        local block = { lines = {}, source = "classical", classical = true, collapse = true }
+        local block = { lines = {}, source = "classical", classical = true }
         for line in (r.senses or ""):gmatch("[^\n]+") do
             local reading, gloss = line:match("^([^\t]*)\t([^\t]*)")
             if gloss and gloss ~= "" then

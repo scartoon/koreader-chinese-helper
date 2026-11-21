@@ -75,7 +75,7 @@ Settings.DEFAULTS = {
     popup_context = true,     -- "Show the text around the character in the popup"
     page_underline = true,    -- "Underline the tapped character on the page"
     match_book_font = true,   -- "Try to match the book's font": Chinese text in the popup in the book's font
-    classical_mode = false,   -- "Classical mode" (#53): the Classical dictionary's block under CC-CEDICT's
+    classical_mode = false,   -- "Classical mode" (#53, #56): the Classical dictionary's entry first, in full
 }
 
 -- store: G_reader_settings (readSetting, saveSetting, flush), or nil.

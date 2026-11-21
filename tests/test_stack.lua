@@ -370,34 +370,34 @@ do
     plugin.settings:set("threshold", 3500)
     -- Rare (drawn by the rules): I know; tap -> Known ✓; tap -> cleared.
     local p = page_popup("饕", { chosen = "tāo", rank = 6000 })
-    eq(labels(p), "文言 | I know tāo")
+    eq(labels(p), "文言 Mode | I know tāo")
     p.mark_buttons[2].callback()
     eq(fake:get("饕", "tāo"), "known"); eq(refreshed, 1, "page rebuilt at once"); eq(writes, 1)
-    eq(labels(p), "文言 | Known tāo " .. CHECK)
+    eq(labels(p), "文言 Mode | Known tāo " .. CHECK)
     p.mark_buttons[2].callback()
-    eq(fake:get("饕", "tāo"), nil); eq(labels(p), "文言 | I know tāo"); eq(refreshed, 2)
+    eq(fake:get("饕", "tāo"), nil); eq(labels(p), "文言 Mode | I know tāo"); eq(refreshed, 2)
     p.on_outside()
     -- Common (not drawn): Remind me; tap -> Reminding ✓.
     p = page_popup("是", { chosen = "shì", rank = 10 })
-    eq(labels(p), "文言 | Remind me: shì")
+    eq(labels(p), "文言 Mode | Remind me: shì")
     p.mark_buttons[2].callback()
-    eq(fake:get("是", "shì"), "remind"); eq(labels(p), "文言 | Reminding shì " .. CHECK)
+    eq(fake:get("是", "shì"), "remind"); eq(labels(p), "文言 Mode | Reminding shì " .. CHECK)
     p.mark_buttons[2].callback(); p.on_outside()
     -- Common but unusual here (a special word): drawn, so I know.
     p = page_popup("单", { chosen = "chán", rank = 300, unusual = true })
-    eq(labels(p), "文言 | I know chán"); p.on_outside()
+    eq(labels(p), "文言 Mode | I know chán"); p.on_outside()
     -- Undecided position: one button per reading of the pair.
     p = page_popup("覃", { chosen = "qín/tán", rank = 5000 })
-    eq(labels(p), "文言 | I know qín | I know tán")
+    eq(labels(p), "文言 Mode | I know qín | I know tán")
     p.mark_buttons[3].callback()
     eq(fake:get("覃", "tán"), "known"); eq(fake:get("覃", "qín"), nil)
-    eq(labels(p), "文言 | I know qín | Known tán " .. CHECK)
+    eq(labels(p), "文言 Mode | I know qín | Known tán " .. CHECK)
     p.on_outside()
     -- No reading: no mark buttons, only 文言. A nested popup: none.
     p = page_popup("饕", { chosen = nil, rank = 6000 })
-    eq(labels(p), "文言"); p.on_outside()
+    eq(labels(p), "文言 Mode"); p.on_outside()
     -- 文言 (#53): Classical mode on and off from the popup, rebuilt in place;
-    -- the Classical block right under the character's own entry.
+    -- the Classical block first (#56).
     p = page_popup("是", { chosen = "shì", rank = 10 })
     p.blocks_set = 0
     local function sources(q)
@@ -408,18 +408,18 @@ do
     assert(not sources(p):find("classical"), sources(p))
     p.mark_buttons[1].callback()
     assert(plugin.settings:classicalEnabled(), "on")
-    eq(labels(p), "文言 " .. CHECK .. " | Remind me: shì")
-    eq(p.blocks[2].source, "classical", sources(p)); assert(p.blocks[2].head:find("是", 1, true))
+    eq(labels(p), "文言 Mode " .. CHECK .. " | Remind me: shì")
+    eq(p.blocks[1].source, "classical", sources(p)); assert(p.blocks[1].head:find("是", 1, true))
     p.on_outside()
     p = page_popup("是", { chosen = "shì", rank = 10 })
-    eq(labels(p), "文言 " .. CHECK .. " | Remind me: shì", "kept for the next popup")
-    eq(p.blocks[2].source, "classical")
+    eq(labels(p), "文言 Mode " .. CHECK .. " | Remind me: shì", "kept for the next popup")
+    eq(p.blocks[1].source, "classical")
     p.mark_buttons[2].callback()
-    eq(labels(p), "文言 " .. CHECK .. " | Reminding shì " .. CHECK, "a mark tap keeps 文言")
+    eq(labels(p), "文言 Mode " .. CHECK .. " | Reminding shì " .. CHECK, "a mark tap keeps 文言")
     p.mark_buttons[2].callback()
     p.mark_buttons[1].callback()
     assert(not plugin.settings:classicalEnabled(), "off")
-    eq(labels(p), "文言 | Remind me: shì"); assert(not sources(p):find("classical"), sources(p))
+    eq(labels(p), "文言 Mode | Remind me: shì"); assert(not sources(p):find("classical"), sources(p))
     p.on_outside()
     local p0 = page_popup("饕", { chosen = "tāo", rank = 6000 })
     local cands, words = Text.candidates({}, "餮", {})
@@ -434,6 +434,66 @@ do
     plugin.settings:set("threshold", nil)
 end
 print("mark buttons: ok")
+
+-- Classical mode (#56): the Classical entries first and in full, 字频 above
+-- them, everything else below in its usual order; no entry: no change.
+do
+    local function shape(p)
+        local out = {}
+        for k, b in ipairs(p.blocks) do
+            out[#out + 1] = k .. ":" .. tostring(b.source) .. (b.rank and "+rank" or "")
+                .. (b.collapse and "+collapse" or "") .. (b.components and "+comp" or "")
+        end
+        return table.concat(out, " ")
+    end
+    local function without(p, kind)
+        local out = {}
+        for _, b in ipairs(p.blocks) do
+            if not b[kind] then out[#out + 1] = tostring(b.source) .. ":" .. tostring(b.head) end
+        end
+        return table.concat(out, " ")
+    end
+    -- 之 in 窦武、陈蕃谋诛之: off, then on.
+    plugin.settings:set("classical_mode", false)
+    local off = root("窦武、陈蕃谋诛", "之", "")
+    assert(not shape(off):find("classical"), shape(off))
+    assert(off.blocks[1].rank, "off: 字频 on the CC-CEDICT entry " .. shape(off))
+    local off_order = without(off, "classical")
+    off.on_outside()
+    plugin.settings:set("classical_mode", true)
+    local on = root("窦武、陈蕃谋诛", "之", "")
+    eq(on.blocks[1].source, "classical", shape(on))
+    assert(on.blocks[1].rank and not on.blocks[1].collapse, "rank on top, expanded: " .. shape(on))
+    for k = 2, #on.blocks do assert(not on.blocks[k].rank, "one rank only: " .. shape(on)) end
+    eq(on.blocks[2].head, off.blocks[1].head, "CC-CEDICT's 之 next")
+    eq(without(on, "classical"), off_order, "everything else below, in the same order")
+    -- A nested popup: the same order (and no title-bar buttons).
+    local cands, words = Text.candidates({}, "其", {})
+    local rows = plugin:db():lookup(words)
+    local nested = tap:present{ db = plugin:db(), char = "其", cands = cands, rows = rows,
+        matches = Model.matches{ cands = cands, rows = rows, order = plugin.settings:fallbackOrder() },
+        annotated = false, parent = on }
+    eq(nested.blocks[1].source, "classical", "nested: " .. shape(nested))
+    assert(nested.blocks[1].rank and not nested.blocks[1].collapse, "nested: " .. shape(nested))
+    eq(nested.mark_buttons, nil, "nested: no buttons")
+    on.on_outside()
+    -- 发 with no word around it: both forms, both on top, both in full.
+    local fa = root("", "发", "")
+    eq(fa.blocks[1].source, "classical", shape(fa)); eq(fa.blocks[2].source, "classical", shape(fa))
+    assert(not fa.blocks[1].collapse and not fa.blocks[2].collapse, shape(fa))
+    assert(fa.blocks[1].rank and not fa.blocks[2].rank and not fa.blocks[3].rank, shape(fa))
+    assert(fa.blocks[3].source ~= "classical", shape(fa))
+    fa.on_outside()
+    -- 吗 has no Classical entry: the same popup on and off.
+    local ma_on = root("好", "吗", "")
+    local s_on, w_on = shape(ma_on), without(ma_on, "none")
+    ma_on.on_outside()
+    plugin.settings:set("classical_mode", false)
+    local ma_off = root("好", "吗", "")
+    eq(shape(ma_off), s_on, "吗: no entry, no change"); eq(without(ma_off, "none"), w_on)
+    ma_off.on_outside()
+end
+print("classical first: ok")
 
 -- A lookup from a word button hands the Chinese text size on to the context
 -- line in KOReader's dictionary popup (#32).
