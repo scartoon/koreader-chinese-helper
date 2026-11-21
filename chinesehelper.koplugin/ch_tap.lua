@@ -657,24 +657,29 @@ function Tap:present(args)
         Model.markSpoken(blocks, args.matches, args.spoken)
         local first = args.matches[1]
         local own = (first and first.len == 1) and 2 or 1
-        if has_classical and settings:classicalEnabled() then
-            -- Right under the character's own entry, before MOE's Always
-            -- entry, the components and the words (#53).
-            local cl = Model.classicalBlocks(args.db:classical(args.char), args.char,
-                Model.tradPick(args.cands, args.rows), b0, b1, trad)
-            for k, b in ipairs(cl) do table.insert(blocks, own + k - 1, b) end
-        end
         if block then
-            -- Below the character's own entry (when it has one), its
-            -- Classical entry and its MOE Always entry.
+            -- Below the character's own entry (when it has one) and its MOE
+            -- Always entry.
             local at = own
             if at == 2 then
-                while blocks[at] and (blocks[at].classical or blocks[at].always) do at = at + 1 end
+                while blocks[at] and blocks[at].always do at = at + 1 end
             end
             table.insert(blocks, at, block)
         end
+        if has_classical and settings:classicalEnabled() then
+            -- Classical mode (#53, #56): the Classical entries first, in full,
+            -- above everything else; the rank moves up onto the first of them.
+            local cl = Model.classicalBlocks(args.db:classical(args.char), args.char,
+                Model.tradPick(args.cands, args.rows), b0, b1, trad)
+            if #cl > 0 then
+                if rank_placed then blocks[1].rank = nil end
+                rank_placed = false
+                for k, b in ipairs(cl) do table.insert(blocks, k, b) end
+            end
+        end
         Model.chineseLast(blocks)
-        -- No entry of its own: the rank goes above the first block.
+        -- No entry of its own, or Classical entries first: the rank goes
+        -- above the first block.
         if rank_text and not rank_placed and blocks[1] then blocks[1].rank = rank_text end
         return blocks
     end
@@ -706,7 +711,7 @@ function Tap:present(args)
     -- the first closes and takes the page underline with it.
     local close = function() if parent then self:back(popup) else self:closeAll() end end
     button_rows[#button_rows + 1] = { { text = _("Close"), callback = close } }
-    -- The title bar's buttons (first popup only): 文言 (Classical mode, #53),
+    -- The title bar's buttons (first popup only): 文言 Mode (Classical mode, #53),
     -- then the reading-mark buttons (#26).
     local function titleButtons()
         if parent then return nil end
@@ -763,7 +768,7 @@ new labels; the page and the popup repaint together, the popup on top.
 get_popup: returns the popup (built after the buttons); refresh (optional):
 returns the title bar's whole button list after a mark changes.
 ]]
-Tap.CLASSICAL_BUTTON = "文言"
+Tap.CLASSICAL_BUTTON = "文言 Mode"
 
 function Tap:markButtons(char, reading, get_popup, refresh)
     if not reading.chosen or reading.chosen == "" then return nil end

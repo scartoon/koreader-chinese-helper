@@ -643,7 +643,7 @@ local fa = {
 local cb = Model.classicalBlocks(fa, "发", "髮", "**", "**", true)
 eq(#cb, 1, "the word's form only (头发 → 髮)")
 eq(cb[1].head, "**发** 髮"); eq(cb[1].word, "发"); eq(cb[1].trad, "髮"); eq(cb[1].source, "classical")
-assert(cb[1].collapse and cb[1].classical)
+assert(cb[1].classical and not cb[1].collapse, "never collapsed (#56)")
 eq(table.concat(cb[1].lines, " | "), "hair of the head")
 cb = Model.classicalBlocks(fa, "发", nil, "**", "**", true)
 eq(#cb, 2, "no word decides: each form")

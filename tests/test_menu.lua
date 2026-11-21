@@ -340,7 +340,8 @@ eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非�
 -- popup's 文言 button; greyed out without the classical table.
 local classical_item = fb_item.sub_item_table[3]
 eq(classical_item.text, "Classical mode")
-assert(classical_item.help_text:find("文言", 1, true), classical_item.help_text)
+assert(classical_item.help_text:find("文言 Mode ✓", 1, true), classical_item.help_text)
+assert(classical_item.help_text:find("first, in full", 1, true), classical_item.help_text)
 assert(not plugin.settings:classicalEnabled() and not classical_item.checked_func(), "off by default")
 classical_item.callback(); assert(plugin.settings:classicalEnabled() and classical_item.checked_func())
 classical_item.callback(); assert(not plugin.settings:classicalEnabled())
