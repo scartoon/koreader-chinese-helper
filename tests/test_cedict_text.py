@@ -21,6 +21,9 @@ class CleanSense(unittest.TestCase):
         ("Taiwan pr. [jue2]", "Taiwan pr. jué", "Taiwan pr. jué"),
         ("see 東西[dong1 xi5]", None, None),
         ("used in 95後|95后[jiu3 wu3 hou4]", "used in 95後|95后 jiǔwǔhòu", "used in 95后 jiǔwǔhòu"),
+        # ü written "u : " in some references (#63).
+        ("see 呂梁市|吕梁市[Lu : 3 liang2 Shi4]", "see 呂梁市|吕梁市 Lǚliáng Shì", "see 吕梁市 Lǚliáng Shì"),
+        ("erhua form of 女孩[nu : 3 hai2]", "erhua form of 女孩 nǚhái", "erhua form of 女孩 nǚhái"),
     ]
 
     def test_both_texts(self):
