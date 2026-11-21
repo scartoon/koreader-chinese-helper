@@ -88,8 +88,10 @@ end
 
 -- CC-CEDICT rows for n candidate words (simplified or traditional form).
 -- (The plugin's own database always has defs_simp: it ships with the code.)
+-- The xref_* columns (#61): a cross-reference-only entry's target word.
 function DB.entriesSql(n)
-    return "SELECT simp, trad, pinyin, syllables, defs, defs_simp FROM entries WHERE simp IN (" .. marks(n)
+    return "SELECT simp, trad, pinyin, syllables, defs, defs_simp, xref_simp, xref_trad, xref_pinyin, "
+        .. "xref_defs, xref_defs_simp FROM entries WHERE simp IN (" .. marks(n)
         .. ") OR trad IN (" .. marks(n) .. ") ORDER BY rowid"
 end
 
@@ -140,16 +142,22 @@ function DB:each(sql, args, fn)
     if args and #args > 0 then stmt:clearbind() end
 end
 
--- Rows { {simp=, trad=, pinyin=, syllables=, defs=, defs_simp=}, ... } for
--- every CC-CEDICT entry whose simplified or traditional form is one of
--- `words`, in CC-CEDICT order (defs_simp nil when the same as defs).
+-- Rows { {simp=, trad=, pinyin=, syllables=, defs=, defs_simp=, xref=}, ... }
+-- for every CC-CEDICT entry whose simplified or traditional form is one of
+-- `words`, in CC-CEDICT order (defs_simp nil when the same as defs). xref,
+-- for an entry whose only senses are cross-references (#61): the word they
+-- lead to, {simp=, trad=, pinyin=, defs=, defs_simp=}; nil otherwise.
 function DB:lookup(words)
     if #words == 0 then return {} end
     local args, n = padded_args(words, 2)
     local rows = {}
     self:each(DB.entriesSql(n), args, function(row)
+        local xref
+        if row[10] ~= nil then
+            xref = { simp = row[7], trad = row[8], pinyin = row[9], defs = row[10], defs_simp = row[11] }
+        end
         rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = row[4], defs = row[5],
-                            defs_simp = row[6] }
+                            defs_simp = row[6], xref = xref }
     end)
     return rows
 end

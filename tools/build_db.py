@@ -29,7 +29,7 @@ Steps:
      and the build fails if any of them scans a table.
 
 Schema:
-    entries(simp, trad, pinyin, syllables, defs, defs_simp)   one row per CC-CEDICT line
+    entries(simp, trad, pinyin, syllables, defs, defs_simp, xref_*)   one row per CC-CEDICT line
         pinyin     tone marks, joined into words: "Zhōngguó", "dōngxi"
         syllables  tone marks, one per character: "Zhōng guó", "dōng xi"
         defs       senses joined with "/", cross-references made readable and
@@ -37,6 +37,11 @@ Schema:
         defs_simp  the same with cross-references simplified ("variant of 够
                    gòu"), the popup's Dictionary text: Simplified; NULL when it
                    is the same as defs
+        xref_simp, xref_trad, xref_pinyin, xref_defs, xref_defs_simp
+                   for an entry whose only senses are cross-references (贤惠:
+                   "variant of 賢慧|贤慧 xiánhuì"), the word they lead to and
+                   its senses, as its own row's columns (cedict_xrefs.py, #61);
+                   NULL otherwise
     chars(ch, rank, reading)  words(word, syllables, freq, rare)
         rare       1 when the word contains a character that can be annotated
     word_marks(word, syllables)   the reading the popup marks where it is not
@@ -73,6 +78,7 @@ import fallback_sources  # noqa: E402
 import components  # noqa: E402
 import wikipedia_dump  # noqa: E402
 import build_classical  # noqa: E402
+import cedict_xrefs  # noqa: E402
 
 URL = "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -155,11 +161,13 @@ def opener(path):
     return gzip.open(path, "rt", encoding="utf-8") if path.endswith(".gz") else open(path, encoding="utf-8")
 
 
-def read_cedict(path):
+def read_cedict(path, raw=None):
     """(header, entries, originals): entries (simp, trad, pinyin, syllables,
     defs) with cross-references simplified, as every build step reads them;
     originals[i] the defs of entries[i] as CC-CEDICT writes them (the
-    database's `defs`)."""
+    database's `defs`). With a list `raw`, (trad, simp, numbered pinyin,
+    [senses]) for each entry as CC-CEDICT writes it is appended to it (for
+    cedict_xrefs.Resolver)."""
     header, entries, originals = {}, [], []
     neutral = load_neutral_overrides(os.path.join(ROOT, "data", "neutral_tone_overrides.tsv"))
     with opener(path) as f:
@@ -175,10 +183,62 @@ def read_cedict(path):
             trad, simp, py, defs = m.groups()
             py = neutral_override(simp, py, neutral)  # 喷嚏 pēnti (see build_data.load_cedict)
             parts = [s for s in defs.split("/") if s.strip()]
+            if raw is not None:
+                raw.append((trad, simp, py, parts))
             entries.append((simp, trad, joined_pinyin(py), syllable_pinyin(py),
                             "/".join(clean_sense(s) for s in parts)))
             originals.append("/".join(clean_sense(s, simplified=False) for s in parts))
     return header, entries, originals
+
+
+def xref_columns(raw, entries, originals, stats=None):
+    """The entries table's xref_* columns (#61), one tuple per entry:
+    (xref_simp, xref_trad, xref_pinyin, xref_defs, xref_defs_simp), all None
+    unless the entry's only senses are cross-references the resolver follows
+    (cedict_xrefs.py: 贤惠 "variant of 賢慧|贤慧[xian2 hui4]"). Then they are
+    the word the reference leads to (through a chain, the word it ends on):
+    its forms, pinyin and senses, as the target's own defs / defs_simp (the
+    senses of several rows with the same forms and pinyin joined, repeats
+    dropped). stats (a Counter) gets the resolver's outcome per pattern."""
+    res = cedict_xrefs.Resolver(raw)
+    out = []
+    for i in range(len(raw)):
+        if res.xrefs[i] is None:
+            out.append((None,) * 5)
+            continue
+        status, rows = res.target(i)
+        if stats is not None:
+            kinds = sorted({cedict_xrefs.kind_group(k) for k, _ in res.xrefs[i]})
+            stats[(" + ".join(kinds), status if rows else "unresolved: " + status)] += 1
+        if not rows:
+            out.append((None,) * 5)
+            continue
+        orig, simp = [], []
+        for r in rows:
+            for s in originals[r].split("/"):
+                if s not in orig:
+                    orig.append(s)
+            for s in entries[r][4].split("/"):
+                if s not in simp:
+                    simp.append(s)
+        orig, simp = "/".join(orig), "/".join(simp)
+        t = entries[rows[0]]
+        out.append((t[0], t[1], t[2], orig, simp if simp != orig else None))
+    return out
+
+
+def print_xref_stats(stats):
+    """The build's summary line (#61): resolved and unresolved entries per pattern."""
+    resolved, unresolved = Counter(), Counter()
+    for (kind, status), n in stats.items():
+        if status.startswith("unresolved: "):
+            if status != "unresolved: kind":
+                unresolved[status[len("unresolved: "):]] += n
+        else:
+            resolved[kind] += n
+    print("Cross-references resolved: " + ", ".join(f"{k} {n:,}" for k, n in resolved.most_common())
+          + f" (total {sum(resolved.values()):,}); unresolved: "
+          + ", ".join(f"{k} {n:,}" for k, n in unresolved.most_common()))
 
 
 def download():
@@ -222,7 +282,9 @@ def int_or_zero(s):
 SCHEMA = """
     PRAGMA page_size = 4096;
     CREATE TABLE entries (simp TEXT NOT NULL, trad TEXT NOT NULL, pinyin TEXT NOT NULL,
-                          syllables TEXT NOT NULL, defs TEXT NOT NULL, defs_simp TEXT);
+                          syllables TEXT NOT NULL, defs TEXT NOT NULL, defs_simp TEXT,
+                          xref_simp TEXT, xref_trad TEXT, xref_pinyin TEXT, xref_defs TEXT,
+                          xref_defs_simp TEXT);
     CREATE TABLE chars (ch TEXT PRIMARY KEY, rank INTEGER NOT NULL, reading TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE words (word TEXT PRIMARY KEY, syllables TEXT NOT NULL, freq INTEGER NOT NULL,
                         rare INTEGER NOT NULL) WITHOUT ROWID;
@@ -328,10 +390,11 @@ def resolver_digest(*tables):
     return h.hexdigest()
 
 
-def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, originals=None):
+def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, originals=None, xrefs=None):
     """originals: the entries' defs as CC-CEDICT writes them (read_cedict),
     stored as `defs` with the simplified ones in `defs_simp`; without it the
     entries' own defs only.
+    xrefs: the entries' xref_* columns (xref_columns), or None (all NULL).
     wikt: (path, rows, stats) for the Wiktionary fallback rows, or None;
     wp: (dump folder, rows, stats) for the Wikipedia titles, or None;
     comps: (bodies, notes, {source: (url, sha256)}) for the components, or None."""
@@ -342,8 +405,10 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, orig
     con = sqlite3.connect(tmp)
     con.executescript(SCHEMA)
     originals = originals or [e[4] for e in cedict_entries]
-    con.executemany("INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?)",
-                    [(*e[:4], orig, e[4] if e[4] != orig else None) for e, orig in zip(cedict_entries, originals)])
+    xrefs = xrefs or [(None,) * 5] * len(cedict_entries)
+    con.executemany("INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [(*e[:4], orig, e[4] if e[4] != orig else None, *x)
+                     for e, orig, x in zip(cedict_entries, originals, xrefs)])
     con.execute("CREATE INDEX entries_simp ON entries(simp)")
     con.execute("CREATE INDEX entries_trad ON entries(trad)")
 
@@ -382,6 +447,8 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, orig
         "cedict_date": header.get("date", ""), "cedict_entries": str(len(cedict_entries)),
         # #48: defs as each source writes it, defs_simp the simplified text.
         "dict_text": "both",
+        # #61: cross-reference-only entries carry their target's senses.
+        "cedict_xrefs": str(sum(1 for x in xrefs if x[3])),
         "cedict_sha256": sha, "wordfreq": version("wordfreq"), "pypinyin": version("pypinyin"),
         "chars": str(len(chars)), "words": str(len(words)), "rare_words": str(sum(w[3] for w in words)), "rules": str(len(rules)),
         "uncertain": str(len(uncertain)), "special": str(len(special)), "special_guard": str(len(guard)),
@@ -421,7 +488,8 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, orig
 # (tests/test_db.lua checks that they match).
 def entries_sql(n):
     marks = ",".join("?" * n)
-    return (f"SELECT simp, trad, pinyin, syllables, defs, defs_simp FROM entries WHERE simp IN ({marks}) "
+    return (f"SELECT simp, trad, pinyin, syllables, defs, defs_simp, xref_simp, xref_trad, xref_pinyin, "
+            f"xref_defs, xref_defs_simp FROM entries WHERE simp IN ({marks}) "
             f"OR trad IN ({marks}) ORDER BY rowid")
 
 
@@ -487,9 +555,12 @@ def main():
     if args.learn:
         subprocess.run([sys.executable, os.path.join(ROOT, "tools", "learn_from_cpp.py")], check=True)
 
-    header, entries, originals = read_cedict(path)
+    raw = []
+    header, entries, originals = read_cedict(path, raw)
     if len(entries) < 100000:
         sys.exit(f"Only {len(entries)} entries read from {path}; is it CC-CEDICT?")
+    xref_stats = Counter()
+    xrefs = xref_columns(raw, entries, originals, xref_stats)
     wikt = None
     if not args.no_wiktionary:
         wpath = args.wiktionary if os.path.exists(args.wiktionary) else download_wiktionary(args.wiktionary)
@@ -519,7 +590,7 @@ def main():
         for k in sorted(stats):
             print(f"  components, {k}: {stats[k]:,}")
         comps = (bodies, notes, {"mmah": (MMAH_URL, sha256_of(mmah)), "ids": (IDS_URL, sha256_of(ids))})
-    meta = build(entries, header, sha, args.out, wikt, wp, comps, originals)
+    meta = build(entries, header, sha, args.out, wikt, wp, comps, originals, xrefs)
     check_query_plans(args.out)
     con = sqlite3.connect(args.out)
     build_classical.check_plans(con)
@@ -530,6 +601,7 @@ def main():
                                  ("chars", "words", "word_marks", "rules", "uncertain", "special",
                                   "special_guard")))
     print(f"Resolver tables SHA-256 {meta['resolver_sha256']}")
+    print_xref_stats(xref_stats)
     if wikt:
         print(f"Wiktionary fallback: {meta['wikt_rows']} rows (dump {meta['wikt_dump']}, "
               f"extracted {meta['wikt_extracted']}, SHA-256 {meta['wikt_sha256']})")

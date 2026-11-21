@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.18.0 (2026-11-21)
+
+Cross-reference-only CC-CEDICT entries show their target's definitions (#61)
+- An entry whose only sense is a cross-reference now shows what it means: 贤惠 still reads
+  "variant of 賢慧|贤慧 xiánhuì", and below it "贤慧: (of a wife) wise and kind; perfect in her
+  traditional roles". The same for 7,213 entries: "variant of" in all its forms (old, erhua,
+  archaic, ...), "see" and "same as". The borrowed line follows the tapped form (賢慧: when
+  賢惠 was tapped) and the Dictionary text setting; a chain of references (利是 → 利事 → 红包) ends
+  on the word with the definitions, its pinyin shown.
+- "used in", "abbr. for" and "see also" entries are unchanged, as are entries whose references
+  lead to several different words (北海: see 北海公园, see 北海市). The build prints the counts.
+- The database grows by 1.5 MB (44.6 MB).
+
 ## 2.17.2 (2026-11-21)
 
 Neutral tones: the 普通话水平测试 must-read list (#60)

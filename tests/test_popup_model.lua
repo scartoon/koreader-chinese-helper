@@ -624,6 +624,34 @@ eq(orig[1].defs, "variant of 夠|够 gòu"); eq(orig[1].defs_simp, nil); eq(orig
 eq(simp[1].defs, "variant of 够 gòu"); eq(simp[2].defs, "enough"); eq(simp[3].short, "吝啬"); eq(simp[3].view, "释义")
 eq(simp[3].short_simp, nil)
 
+-- #61: a cross-reference-only entry's target, under the entry's own line;
+-- the same text choice; the tapped form's script; none when the row is
+-- dropped as a variant of the word itself.
+local function xrefRows()
+    return { { simp = "贤惠", trad = "賢惠", pinyin = "xiánhuì", syllables = "xián huì",
+               defs = "variant of 賢慧|贤慧 xiánhuì",
+               xref = { simp = "贤慧", trad = "賢慧", pinyin = "xiánhuì", defs = "wise and kind/see also 賢人|贤人 xiánrén",
+                        defs_simp = "wise and kind/see also 贤人 xiánrén" } } }
+end
+local xo = Model.cleanRows("贤惠", Model.chooseText(xrefRows(), false))
+eq(#xo[1].xrefs, 1); eq(xo[1].xrefs[1].word, "贤慧")
+eq(table.concat(Model.xrefLines(xo[1]), "|"), "贤慧: wise and kind; see also 賢人|贤人 xiánrén")
+local xs = Model.cleanRows("贤惠", Model.chooseText(xrefRows(), true))
+eq(table.concat(Model.xrefLines(xs[1]), "|"), "贤慧: wise and kind; see also 贤人 xiánrén")
+eq(xrefRows()[1].xref.defs_simp ~= nil, true)
+local xt = Model.cleanRows("賢惠", Model.chooseText(xrefRows(), false))
+eq(Model.xrefLines(xt[1])[1], "賢慧: wise and kind; see also 賢人|贤人 xiánrén", "tapped in traditional")
+local lishi = Model.cleanRows("利是", { { simp = "利是", trad = "利是", pinyin = "lìshì", syllables = "lì shì",
+    defs = "variant of 利事 lìshì", xref = { simp = "红包", trad = "紅包", pinyin = "hóngbāo", defs = "red packet" } } })
+eq(Model.xrefLines(lishi[1])[1], "红包 hóngbāo: red packet", "a chain: the pinyin too")
+local jun = Model.cleanRows("俊", { { simp = "俊", trad = "㑺", pinyin = "jùn", syllables = "jùn",
+    defs = "old variant of 俊 jùn", xref = { simp = "俊", trad = "俊", pinyin = "jùn", defs = "handsome" } },
+    { simp = "俊", trad = "俊", pinyin = "jùn", syllables = "jùn", defs = "handsome" } })
+eq(#jun, 1); eq(jun[1].xrefs, nil, "a variant of the word itself: no target")
+eq(#Model.xrefLines({ senses = { "x" } }), 0)
+local xm = { { word = "贤惠", start = 0, len = 2, entries = xo } }
+eq(table.concat(Model.blocks(xm, "贤", true)[1].lines, "\n"), "variant of 賢慧|贤慧 xiánhuì\n贤慧: wise and kind; see also 賢人|贤人 xiánrén")
+
 ------------------------------------------------------------------------
 -- Citation tones for ties the traditional form can't break (#52)
 ------------------------------------------------------------------------
