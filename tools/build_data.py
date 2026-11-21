@@ -62,6 +62,10 @@ What the wider coverage adds, for common characters only:
     pypinyin writes the spoken tone changes (一定 yí, 不是 bú), CC-CEDICT and
     this plugin do not.
 
+data/neutral_tone_overrides.tsv lists words CC-CEDICT gives full tones that
+Standard Mandarin reads with a neutral syllable (喷嚏 pen1 ti5); load_cedict
+puts those neutral tones into CC-CEDICT's line, so the rule above draws them.
+
 data/overrides.tsv holds hand-checked readings that win over both sources:
 one character replaces its default reading, 2-4 characters add or replace a word
 (or remove it, with the reading "-").
@@ -87,14 +91,15 @@ from importlib.metadata import version
 from pypinyin.phrases_dict import phrases_dict
 from pypinyin.pinyin_dict import pinyin_dict
 
-from pinyin_util import (is_erhua, is_han, is_neutral, is_toneless, numbered_to_marked,
-                         only_neutral_differs, strip_tone)
+from pinyin_util import (is_erhua, is_han, is_neutral, is_toneless, load_neutral_overrides,
+                         neutral_override, numbered_to_marked, only_neutral_differs, strip_tone)
 
 # Characters ranked at or above this are never annotated by any menu setting
 # (they are still in the data, for the tap popup).
 MIN_ANNOTATABLE_RANK = 1000
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD_DATA = os.path.join(ROOT, "build", "data")
+NEUTRAL_OVERRIDES = os.path.join(ROOT, "data", "neutral_tone_overrides.tsv")
 
 # pypinyin writes 一 and 不 with their spoken tone changes; CC-CEDICT and the
 # plugin use the dictionary tones.
@@ -134,8 +139,12 @@ def cedict_header(path):
     return header
 
 
-def load_cedict(path):
+def load_cedict(path, neutral_path=NEUTRAL_OVERRIDES):
+    """(trad, simp, syllables, defs) per CC-CEDICT line, with the neutral tones
+    of data/neutral_tone_overrides.tsv put in (喷嚏 pen1 ti5). Fails when an
+    override matches no line."""
     opener = gzip.open if path.endswith(".gz") else open
+    neutral, used = load_neutral_overrides(neutral_path), set()
     entries = []
     with opener(path, "rt", encoding="utf-8") as f:
         for line in f:
@@ -145,10 +154,13 @@ def load_cedict(path):
             if not m:
                 continue
             trad, simp, py, defs = m.groups()
-            syls = py.split()
+            syls = neutral_override(simp, py, neutral, used).split()
             if len(syls) != len(simp) or len(trad) != len(simp):
                 continue
             entries.append((trad, simp, syls, defs))  # original case: capitals mark names
+    if set(neutral) - used:
+        raise SystemExit(f"{neutral_path}: no CC-CEDICT line with the same syllables for "
+                         + ", ".join(sorted(set(neutral) - used)))
     return entries
 
 

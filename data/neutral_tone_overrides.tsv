@@ -1,0 +1,12 @@
+# Words CC-CEDICT gives full tones that Standard Mandarin (mainland) reads with
+# a neutral syllable. tools/build_data.py and tools/build_db.py put the neutral
+# tone into the matching CC-CEDICT line as they read it, so it is drawn above
+# the page (where the character gets pinyin) and shown in the popup's word line.
+#
+#   simplified word <TAB> numbered pinyin, one syllable per character (5 = neutral) <TAB> note
+#
+# The traditional form follows from CC-CEDICT. Only the tones may differ from
+# the CC-CEDICT line (the syllables must be the same), and a syllable after the
+# first must be 5. Single characters keep their own reading (嚏 stays tì).
+喷嚏	pen1 ti5	sneeze; 现代汉语词典 pēn·tì, spoken pēnti (#60)
+打喷嚏	da3 pen1 ti5	to sneeze (#60)

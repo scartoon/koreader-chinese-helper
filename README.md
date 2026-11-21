@@ -666,6 +666,15 @@ not 發 *fā*), else the word's citation tone from a short hand-checked list (�
 *chù*; 应 in 答应 *dāying*: *yìng*), else the character's default. Where CC-CEDICT lists the word both ways (大爷 *dàyé*
 "idler" / *dàye* "uncle"), the toned reading is drawn and the popup marks the neutral one.
 
+CC-CEDICT keeps full tones for words Standard Mandarin usually reads with a neutral syllable
+(喷嚏 *pen1 ti4*, said *pēnti*). Those are listed in
+[`data/neutral_tone_overrides.tsv`](data/neutral_tone_overrides.tsv), which the build puts into
+CC-CEDICT's line as it reads it: the pinyin drawn (嚏 *ti*) and the popup's word line (*pēnti*)
+both follow, and the character's own entry stays *tì*. To add a word, add a line with the
+simplified word, a tab, its numbered pinyin with 5 for the neutral syllable (`pen1 ti5`), a
+tab and a short note; only the tones may differ from CC-CEDICT's line. Then rebuild the database
+([Building the database](#building-the-database)).
+
 What is drawn on a page:
 
 - A character that gets pinyin gets it at every occurrence on the page, each in the reading it

@@ -8,6 +8,7 @@ committed so that a rebuild needs no dataset downloads beyond CC-CEDICT:
 | File | Made by | |
 |---|---|---|
 | `overrides.tsv` | hand | Checked readings that win over every source: a character's default reading (or a default and the runner-up shown when nothing decides, `得 de/děi`), or a word's reading (or `-` to remove a word). Each line says why. |
+| `neutral_tone_overrides.tsv` | hand | Words CC-CEDICT gives full tones that Standard Mandarin reads with a neutral syllable: simplified word, numbered pinyin with 5 for the neutral one (`喷嚏 pen1 ti5`), note. Put into CC-CEDICT's matching line as the build reads it, so the drawn pinyin and the popup's word line both show it. |
 | `special_curated.tsv` | hand | Unusual readings of common characters in names and historical terms (单于 *chán yú*), with a short note. Always included. |
 | `rules.tsv` | `tools/learn_from_cpp.py` | Context rules: char, L or R, the neighbouring character, the reading, the number of training examples (each: at least 5, at least 95% agreeing). |
 | `rules_exclude.tsv` | hand | Learned rules `learn_from_cpp.py` must leave out (char, L or R, the neighbour, why): it generates `rules.tsv`, so a bad rule is excluded here rather than deleted there. |
