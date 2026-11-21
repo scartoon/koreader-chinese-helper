@@ -31,7 +31,10 @@ raw answers cached in build/neutral/baidu/<word>.json. Baidu gives several
 pinyin lines per word; the 现代汉语词典 ones keep its dot (蹊跷 qī·qiao,
 进去 jìn·qù). Verdict per word (baidu_verdict()): "neutral" when a line has
 the dot before every neutral syllable (or a definition notes 轻声); "not
-neutral" when the word is there with a full tone and no dot; "no evidence"
+neutral" when the word is there with a full tone and no dot; "both readings"
+when a dotted line sits next to a full-tone line with 现汉-style wording, i.e. a
+separate full-tone sense (大大 dà dà "greatly" / dà·da "uncle"), not approved;
+"no evidence"
 when the word is missing or only a toneless line without the dot (Baidu's
 non-现汉 lines: 男人 nán ren, 劳动 láo dong) speaks for it; "fetch failed".
 Results go to the same lookups cache with "method": "baidu".
@@ -64,7 +67,7 @@ BAIDU_API = "https://hanyu.baidu.com/hanyu/ajax/search_list?"
 BAIDU_PAGE = "https://dict.baidu.com/s?wd="
 BAIDU_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
-BAIDU_PAUSE = 2.0   # seconds between requests
+BAIDU_PAUSE = float(os.environ.get("BAIDU_PAUSE", "2.0"))   # seconds between requests
 
 MODEL = "claude-sonnet-5-5"
 MAX_SEARCHES = 3
@@ -194,6 +197,10 @@ def lookup(client, row):
             "answer": answer, "usage": usage, "time": time.strftime("%Y-%m-%dT%H:%M:%S")}
 
 
+class BaiduBlocked(Exception):
+    pass
+
+
 def baidu_fetch(word):
     """Baidu Hanyu's JSON for word: cached in build/neutral/baidu/, else one
     request followed by a pause. None when the request fails."""
@@ -211,6 +218,10 @@ def baidu_fetch(word):
         return None
     finally:
         time.sleep(BAIDU_PAUSE)
+    if "tri_cap" in data or "svcp_url" in data:
+        # Baidu's captcha ({"tri_reason": ..., "svcp_url": seccaptcha...}): it came
+        # after about 20 requests 2 s apart on 2026-11-21. Never cached.
+        raise BaiduBlocked(word)
     os.makedirs(BAIDU_RAW, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
@@ -220,6 +231,12 @@ def baidu_fetch(word):
 def baidu_syllables(pinyin):
     """'jìn·qù' -> [('jìn', False), ('qù', True)]: (syllable, dot before it)."""
     return [(m.group(2), m.group(1) == "·") for m in re.finditer(r"(·?)\s*([^\s·]+)", pinyin.replace("•", "·"))]
+
+
+def xiandai_style(definition):
+    """A definition worded like 现代汉语词典's (an example after ～, no （名）/（动）
+    tag and no ［近］ synonyms, which Baidu's other source adds)."""
+    return "～" in definition and not definition.startswith("（") and "［" not in definition
 
 
 def baidu_verdict(row, data):
@@ -234,7 +251,7 @@ def baidu_verdict(row, data):
     if not entries:
         return dict(out, note="word not in Baidu Hanyu")
     letters = [strip_tone(numbered_to_marked(row["proposed"].split()[k])) for k in ks]
-    lines, full, toneless = [], [], []
+    lines, full, toneless, dotted, full_xh = [], [], [], [], []
     for e in entries:
         for m in e.get("mean_list") or []:
             for py in m.get("pinyin") or []:
@@ -246,12 +263,20 @@ def baidu_verdict(row, data):
         if len(syls) != len(word) or any(strip_tone(syls[k][0].lower()) != letters[i] for i, k in enumerate(ks)):
             continue   # erhua, a different syllable count or another reading
         if all(syls[k][1] for k in ks):
-            return dict(out, verdict="neutral", snippet=py,
-                        note="现代汉语词典 dot: " + (defs[0][:60] if defs else ""))
-        if all(syls[k][1] or is_toneless(syls[k][0]) for k in ks):
+            dotted.append((py, defs))
+        elif all(is_toneless(syls[k][0]) for k in ks):
             toneless.append(py)
         else:
             full.append(py)
+            full_xh += [(py, d) for d in defs if xiandai_style(d)]
+    if dotted:
+        py, defs = dotted[0]
+        if full_xh:   # 大大: dà dà 表示数量大…：费用～超过了预算 next to dà·da 〈口〉伯父
+            fpy, fd = full_xh[0]
+            return dict(out, verdict="both readings", snippet=f"{py} / {fpy} {fd[:40]}",
+                        note="现汉 also has a full-tone sense: not approved")
+        return dict(out, verdict="neutral", snippet=py,
+                    note="现代汉语词典 dot: " + (defs[0][:60] if defs else ""))
     for py, defs in lines:
         for d in defs:
             if "轻声" in d:
@@ -273,7 +298,13 @@ def run_baidu(rows, cache, limit):
     log(f"baidu start: {len(todo)} words")
     counts = {}
     for row in todo:
-        ans = baidu_verdict(row, baidu_fetch(row["word"]))
+        try:
+            data = baidu_fetch(row["word"])
+        except BaiduBlocked:
+            log(f"{row['word']}: Baidu answered with its captcha; stopping")
+            counts["blocked at"] = row["word"]
+            break
+        ans = baidu_verdict(row, data)
         if ans["verdict"] == "fetch failed":   # not cached: retried next run (or the Haiku fallback)
             counts["fetch failed"] = counts.get("fetch failed", 0) + 1
             continue
@@ -295,7 +326,7 @@ def cost(usage):
 
 def write_outputs(rows, cache):
     """Evidence TSV for every candidate, and approved words into the override file."""
-    approved, counts = [], {"list": 0, "lookup": 0, "no evidence": 0, "not neutral": 0, "not looked up": 0}
+    approved, counts = [], {"list": 0, "lookup": 0, "no evidence": 0, "not neutral": 0, "both readings": 0, "not looked up": 0}
     with open(EVIDENCE, "w", encoding="utf-8") as f:
         f.write("word\tverdict\tsyllable\turl\tsnippet\tsource_a\n")
         for row in rows:
