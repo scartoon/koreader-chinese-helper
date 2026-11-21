@@ -42,6 +42,10 @@ Results go to the same lookups cache with "method": "baidu".
     tools/verify_neutral_tones.py --baidu --limit 10  # a pilot
     tools/verify_neutral_tones.py --baidu             # every main-reading candidate not cached
 
+--haiku-search (#64): the default web-search lookup with Claude Haiku 5.5, for
+the main-reading candidates Baidu could not answer (its captcha); any mainland
+source, same check().
+
 --haiku (#64): the same Baidu JSON and the same baidu_verdict(), but fetched
 through Claude Haiku 5.5's server-side web fetch tool, because Baidu shows its
 captcha to direct scripted requests after about 20. The model only triggers
@@ -170,7 +174,7 @@ def check(row, answer):
     return "no evidence"
 
 
-def lookup(client, row):
+def lookup(client, row, model=MODEL):
     k = neutral_positions(row)[0]
     proposed_m, cedict_m = marked(row["proposed"]), marked(row["cedict"])
     syls = proposed_m.split()
@@ -180,12 +184,19 @@ def lookup(client, row):
     messages = [{"role": "user", "content": prompt}]
     usage = {"input": 0, "output": 0, "searches": 0}
     for _ in range(4):   # pause_turn: resend to let the server continue
-        msg = client.beta.messages.create(
-            model=MODEL, max_tokens=16000, messages=messages,
-            tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": MAX_SEARCHES}],
-            output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}},
-            betas=["server-side-fallback-2026-07-01"], fallbacks="default",
-        )
+        if model == HAIKU:   # basic search tool; Haiku has no server-side fallback
+            msg = client.messages.create(
+                model=model, max_tokens=16000, messages=messages,
+                tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": MAX_SEARCHES}],
+                output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}},
+            )
+        else:
+            msg = client.beta.messages.create(
+                model=model, max_tokens=16000, messages=messages,
+                tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": MAX_SEARCHES}],
+                output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}},
+                betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+            )
         usage["input"] += msg.usage.input_tokens + (msg.usage.cache_read_input_tokens or 0) + \
             (msg.usage.cache_creation_input_tokens or 0)
         usage["output"] += msg.usage.output_tokens
@@ -203,7 +214,8 @@ def lookup(client, row):
             answer = json.loads(text[text.index("{"):text.rindex("}") + 1])
         except ValueError:
             answer = {"verdict": "no evidence", "syllable": "", "url": "", "snippet": "", "note": "unparsable: " + text[:200]}
-    return {"word": row["word"], "cedict": row["cedict"], "proposed": row["proposed"], "model": MODEL,
+    return {"word": row["word"], "cedict": row["cedict"], "proposed": row["proposed"], "model": model,
+            "method": "search",
             "answer": answer, "usage": usage, "time": time.strftime("%Y-%m-%dT%H:%M:%S")}
 
 
@@ -426,7 +438,9 @@ def run_baidu(rows, cache, limit):
     print(f"baidu: {len(todo)} words, {counts}; log {LOG}")
 
 
-def cost(usage):
+def cost(usage, model=MODEL):
+    if model == HAIKU:
+        return usage["input"] * HAIKU_PRICE_IN + usage["output"] * HAIKU_PRICE_OUT + usage["searches"] * PRICE_SEARCH
     return usage["input"] * PRICE_IN + usage["output"] * PRICE_OUT + usage["searches"] * PRICE_SEARCH
 
 
@@ -483,6 +497,9 @@ def main():
                     help="look up the main-reading candidates in Baidu Hanyu (#64): no model, no API key")
     ap.add_argument("--haiku", action="store_true",
                     help="as --baidu, but fetched through Claude Haiku's web fetch tool (#64)")
+    ap.add_argument("--haiku-search", action="store_true",
+                    help="Haiku 5.5 + web search (any mainland source) for main-reading candidates "
+                         "Baidu could not answer (#64)")
     args = ap.parse_args()
 
     rows = read_candidates()
@@ -513,22 +530,26 @@ def main():
         sys.exit("ANTHROPIC_API_KEY is not set for this process")
     import anthropic
     client = anthropic.Anthropic(max_retries=4)
+    model = MODEL
+    if args.haiku_search:
+        model = HAIKU
+        todo = [r for r in todo if r["wikt_reading"] == "main"]
     if args.limit:
         todo = todo[:args.limit]
     spent = [0.0]
 
     def one(row):
         try:
-            res = lookup(client, row)
+            res = lookup(client, row, model)
         except Exception as e:   # noqa: BLE001  logged, retried on the next run
             log(f"{row['word']}: error {type(e).__name__}: {e}")
             return
         with lock:
             with open(CACHE, "a", encoding="utf-8") as f:
                 f.write(json.dumps(res, ensure_ascii=False) + "\n")
-            spent[0] += cost(res["usage"])
+            spent[0] += cost(res["usage"], model)
         log(f"{row['word']}: {res['answer'].get('verdict')} -> {check(row, res['answer'])} "
-            f"(${cost(res['usage']):.3f}, total ${spent[0]:.2f})")
+            f"(${cost(res['usage'], model):.3f}, total ${spent[0]:.2f})")
 
     log(f"start: {len(todo)} lookups")
     with ThreadPoolExecutor(args.workers) as pool:

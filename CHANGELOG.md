@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.19.1 (2026-11-21)
+
+Neutral tones checked against Baidu Hanyu, and ü in cross-references (#63, #64)
+- 外面 wàimian, 进去 jìnqu, 摇晃 yáohuang, 风水 fēngshui and 狗狗 gǒugou now take the neutral
+  tone, where CC-CEDICT gave a full tone. The first four have the 现代汉语词典 dot in Baidu Hanyu,
+  and 狗狗 has a written 轻声 note. Words that have the dot in only one of their senses keep
+  CC-CEDICT's reading: 大大 "greatly" / dà·da "uncle", 过年, 憋屈, 隔断 and 小月. No character's
+  default reading changes.
+- The other 224 main-reading candidates were looked up too, through Baidu Hanyu's JSON or,
+  after Baidu's captcha, Claude Haiku with web search. They had no evidence or a full tone,
+  so they keep CC-CEDICT's reading. The evidence is in docs/neutral-tone-evidence.tsv.
+- Some CC-CEDICT references spell ü as "u : ". They now show it correctly: "see 吕梁市
+  Lǚliáng Shì" instead of "Lu:'liáng Shì", and the same in 律所, 功放, 女孩儿 and about 45
+  other entries.
+
 ## 2.19.0 (2026-11-21)
 
 Tap a cross-reference to open its word (#62)

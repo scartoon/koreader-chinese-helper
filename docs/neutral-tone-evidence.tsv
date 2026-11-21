@@ -350,7 +350,7 @@ word	verdict	syllable	url	snippet	source_a
 冷清	not looked up				n
 怒气	not looked up				n
 木匠	neutral (must-read list)				y
-身份证	not looked up				n
+身份证	no evidence	fen			n
 收成	neutral (must-read list)				y
 玉米	not looked up				n
 系数	not looked up				n
@@ -378,7 +378,7 @@ word	verdict	syllable	url	snippet	source_a
 合计	no evidence	ji	https://dict.baidu.com/s?wd=%E5%90%88%E8%AE%A1	hé ji / hé jì	n
 揣摩	not looked up				n
 斯文	not looked up				n
-老实说	not looked up				n
+老实说	no evidence	shi			n
 乐器	not looked up				n
 证人	not looked up				n
 财主	neutral (must-read list)				y
@@ -416,7 +416,7 @@ word	verdict	syllable	url	snippet	source_a
 便当	no evidence	dang	https://dict.baidu.com/s?wd=%E4%BE%BF%E5%BD%93	biàn dang	n
 红火	neutral (must-read list)				y
 合算	not looked up				n
-休息室	not looked up				n
+休息室	no evidence	xi	https://zh.wiktionary.org/wiki/%E4%BC%91%E6%81%AF%E5%AE%A4	(現代標準漢語)^+ · 拼音：xiūxishì · 注音：ㄒㄧㄡ ˙ㄒㄧ ㄕˋ	n
 体谅	not looked up				n
 固执	no evidence	zhi	https://dict.baidu.com/s?wd=%E5%9B%BA%E6%89%A7	gù zhi / gù zhí	n
 幼稚	not looked up				n
@@ -482,12 +482,12 @@ word	verdict	syllable	url	snippet	source_a
 社会关系	not looked up				n
 白净	neutral (must-read list)				y
 勤快	neutral (must-read list)				y
-硕士生	not looked up				n
+硕士生	no evidence	shi			n
 冒昧	not looked up				n
 南瓜	not looked up				n
 发牢骚	not looked up				n
 磕磕	not looked up				n
-拉关系	not looked up				n
+拉关系	no evidence	xi			n
 矿物	not looked up				n
 翻腾	not looked up				n
 道行	not looked up				n
@@ -669,12 +669,12 @@ word	verdict	syllable	url	snippet	source_a
 作践	no evidence	jian	https://dict.baidu.com/s?wd=%E4%BD%9C%E8%B7%B5	zuó jian / zuò jian	n
 娇气	not looked up				n
 戾气	not neutral	qi	https://dict.baidu.com/s?wd=%E6%88%BE%E6%B0%94	lì qì	n
-扑克牌	not looked up				n
+扑克牌	no evidence	ke			n
 扫把	not looked up				n
 生意兴隆	not neutral	yi	https://dict.baidu.com/s?wd=%E7%94%9F%E6%84%8F%E5%85%B4%E9%9A%86	shēng yì xìng lóng	n
 磕磕巴巴	not neutral	ke	https://dict.baidu.com/s?wd=%E7%A3%95%E7%A3%95%E5%B7%B4%E5%B7%B4	kē kē bā bā	n
 过家家	not looked up				n
-假正经	not looked up				n
+假正经	no evidence	jīng	https://baike.baidu.com/item/%E6%AD%A3%E7%BB%8F/32924	指态度庄重、正派。如：假正经。	n
 克星	not looked up				n
 少东家	no evidence	jia	https://dict.baidu.com/s?wd=%E5%B0%91%E4%B8%9C%E5%AE%B6	shào dōng jia	n
 袼褙	no evidence				n
@@ -735,11 +735,11 @@ word	verdict	syllable	url	snippet	source_a
 护师	not looked up				n
 棒槌	neutral (must-read list)				y
 魔怔	no evidence	zheng	https://zdic.net/hans/%E9%AD%94%E6%80%94	拼音 mó zhēng	n
-麻婆豆腐	not looked up				n
+麻婆豆腐	no evidence	fu	https://zh.wiktionary.org/wiki/%E9%BA%BB%E5%A9%86%E8%B1%86%E8%85%90		n
 黄花闺女	not neutral	nü	https://dict.baidu.com/s?wd=%E9%BB%84%E8%8A%B1%E9%97%BA%E5%A5%B3	huáng huā guī nǚ	n
 冰激凌	not neutral	ji	https://dict.baidu.com/s?wd=%E5%86%B0%E6%BF%80%E5%87%8C	bīng jī líng	n
 凤凰木	not neutral	huang	https://dict.baidu.com/s?wd=%E5%87%A4%E5%87%B0%E6%9C%A8	fèng huáng mù	n
-扑克脸	not looked up				n
+扑克脸	no evidence	ke			n
 挂碍	not looked up				n
 混混儿	no evidence	hun	https://dict.baidu.com/s?wd=%E6%B7%B7%E6%B7%B7%E5%84%BF	hùn hunr	n
 这阵儿	not looked up				n
@@ -760,81 +760,81 @@ word	verdict	syllable	url	snippet	source_a
 耳塞	no evidence	sai	https://dict.baidu.com/s?wd=%E8%80%B3%E5%A1%9E	ěr sai / ěr sāi	n
 节肢动物	not looked up				n
 债务人	not neutral	wu	https://dict.baidu.com/s?wd=%E5%80%BA%E5%8A%A1%E4%BA%BA	zhài wù rén	n
-哈喽	not looked up				n
+哈喽	no evidence	lou	https://zhidao.baidu.com/question/306564741411580244.html	哈ha第一声 喽lou轻声	n
 坷垃	not looked up				n
 扳指儿	no evidence	zhi	https://dict.baidu.com/s?wd=%E6%89%B3%E6%8C%87%E5%84%BF	bān zhir	n
 数理逻辑	not looked up				n
 罗锅	no evidence	guo	https://dict.baidu.com/s?wd=%E7%BD%97%E9%94%85	luó guo / luó guō	n
-幼稚园	not looked up				n
+幼稚园	no evidence	zhi	https://zh.wiktionary.org/wiki/%E5%B9%BC%E7%A8%9A%E5%9C%92		n
 灯笼裤	no evidence	long	https://dict.baidu.com/s?wd=%E7%81%AF%E7%AC%BC%E8%A3%A4	dēng long kù	n
 犁头	not looked up				n
 独个	not looked up				n
 起司	no evidence	si	https://dict.baidu.com/s?wd=%E8%B5%B7%E5%8F%B8		n
 香椿	no evidence	chun	https://zdic.net/hans/%E9%A6%99%E6%A4%BF	拼音xiāng chūn	n
-孙媳妇	not looked up				n
+孙媳妇	no evidence	fu			n
 挤对	not looked up				n
-棉花糖	not looked up				n
+棉花糖	no evidence	hua	https://zh.m.wiktionary.org/zh-hans/%E6%A3%89%E8%8A%B1%E7%B3%96	拼音：miánhuātáng → miánhua táng （轻声异读）	n
 盘费	not looked up				n
 细粉	not looked up				n
 初等教育	not looked up				n
-忙乎	not looked up				n
+忙乎	no evidence	hu	https://hanyu.baidu.com/zici/s?anchor=sentence&from=aladdin&query=%E5%BF%99%E4%B9%8E&smpid=&source_tag=2&srcid=51368&wd=%E5%BF%99%E4%B9%8E	忙乎 [ máng hu ]	n
 思想意识	not looked up				n
-意识流	not looked up				n
-扫把星	not looked up				n
-王八羔子	not looked up				n
+意识流	no evidence	shi	https://www.zidian.com.cn/ci/u610fu8bc6u6d41	拼音：yì shí liú	n
+扫把星	no evidence	ba	https://zh.wiktionary.org/zh-hant/%E6%8E%83%E6%8A%8A%E6%98%9F	拼音: sàobǎxīng → sàoba xīng（輕聲異讀）	n
+王八羔子	no evidence	ba			n
 畜类	not looked up				n
-翻跟斗	not looked up				n
-坦克车	not looked up				n
-机灵鬼	not looked up				n
-狗狗	not looked up				n
+翻跟斗	no evidence	dou	https://cidian.bmcx.com/fangendou__cidianchaxun/	注音 ㄈㄢ ㄍㄣ ˙ㄉㄡ	n
+坦克车	not neutral	kè	http://www.jiaodui.com/bbs/read.php?tid=32293	【坦克车】tǎnkèchē[名] 坦克。	n
+机灵鬼	no evidence	líng	https://www.zdic.net/hans/%E6%9C%BA%E7%81%B5%E9%AC%BC	机灵鬼（機靈鬼） 拼音 jī líng guǐ	n
+狗狗	neutral	gou	https://www.zhihu.com/question/459708210	按标准普通话读法，「狗狗」应该读作 gǒu gou 。此处的轻声 gou 的实际发音，应是轻读的 gōu 。	n
 盆友	not looked up				n
-知识论	not looked up				n
+知识论	no evidence	shi			n
 茶房	not looked up				n
-莲蓬头	not looked up				n
+莲蓬头	no evidence	peng	https://www.zdic.net/hans/%E8%93%AE%E8%93%AC%E9%A0%AD	拼音 lián peng tóu	n
 跳蚤市场	no evidence	zao	https://cidian.gei6.com/tiaozaoshichang__d8un67u2.html	拼音 tiào zao shì chǎng	n
 鸡鸡	not looked up				n
-坏家伙	not looked up				n
+坏家伙	no evidence	huo	https://www.zdic.net/hans/%E5%AE%B6%E4%BC%99	ㄐㄧㄚ ˙ㄏㄨㄛ	n
 忘性	not looked up				n
 念力	not looked up				n
 打呵欠	not looked up				n
-玻璃纤维	not looked up				n
-茴香豆	not looked up				n
-萨其马	not looked up				n
+玻璃纤维	no evidence	li	https://chinese.my/wd/index.php?stype=Word&sword=%E7%8E%BB%E7%92%83&detail=y	玻璃纤维 （玻璃纖維） bō·li xiānwéi	n
+茴香豆	no evidence	xiang	https://en.wiktionary.org/wiki/%E8%8C%B4%E9%A6%99%E8%B1%86	Hanyu Pinyin: huíxiāngdòu → huíxiang dòu (toneless variant)	n
+萨其马	no evidence	qi	https://blog.sina.com.cn/s/blog_53a7ac51010005bk.html	普通话里的“萨其马”和北京话的差距则体现在轻声上	n
 严紧	not looked up				n
-侄媳妇	not looked up				n
-哈巴狗	not looked up				n
-富贵病	not looked up				n
+侄媳妇	no evidence	fu	https://www.zdic.net/hans/%E4%BE%84%E5%AA%B3%E5%A6%87	◎ **侄媳妇** zhíxífu	n
+哈巴狗	no evidence	ba	http://dict.cucldk.com/?w=%E5%93%88%E5%B7%B4%E7%8B%97	【哈巴狗】hǎ•bɑɡǒu（～儿）〈名〉	n
+富贵病	no evidence	guì	https://zdic.net/hans/%E5%AF%8C%E8%B4%B5%E7%97%85	富贵病（富貴病） 拼音fù guì bìng	n
 小老鼠	not looked up				n
-悖晦	not looked up				n
-波波头	not looked up				n
+悖晦	not neutral	hui	https://zd.hwxnet.com/search/hwxE6hwx82hwx96.html	◎ 常用词组 悖晦 bèihuì 〈方〉∶糊涂;昏聩	n
+波波头	no evidence	bo			n
 爬犁	not looked up				n
 田鸡	not looked up				n
 肥实	not looked up				n
 背包袱	not looked up				n
-胭脂虫	not looked up				n
-这咱	not looked up				n
-骨力	not looked up				n
+胭脂虫	no evidence	zhi	http://paper.people.com.cn/rmrbhwb/html/2024-07/06/content_26067784.htm	例如“胭脂”的“脂”不读一声，读轻声。	n
+这咱	no evidence	zan	https://zd.hwxnet.com/search/hwxE5hwx92hwxB1.html	用于:“这咱”,“那咱”,“多咱”	n
+骨力	not neutral	lì	https://www.ziqqq.com/cidian/MjI0OTg4.html	【拼音】gǔ lì	n
 鹦哥	not looked up				n
 上年纪	not looked up				n
-劳资关系	not looked up				n
-哩哩啦啦	not looked up				n
+劳资关系	no evidence	xi			n
+哩哩啦啦	no evidence	li			n
 囡囡	no evidence	nan	https://m.ximalaya.com/ask/q10798161	囡囡 nānnan 〈方〉∶亲昵地称小孩子	n
 填房	not looked up				n
-大拇哥	not looked up				n
+大拇哥	no evidence	mu	https://m.guoxuedashi.net/hydcd/113681a.html	大拇哥 dà mǔ gē	n
 小鸡鸡	not looked up				n
-屎壳郎	not looked up				n
-布拉吉	not looked up				n
-支吾其词	not looked up				n
-断线风筝	not looked up				n
-玻璃体	not looked up				n
+屎壳郎	no evidence	ke	http://www.jiaodui.com/bbs/read.php?tid=16480	《现代汉语词典》第6、7版： 【屎壳郎】shǐ•keláng (口语里多读 shǐ•kelàng)〈方〉\[名\] 蜣螂。	n
+布拉吉	no evidence	ji	https://www.zidian.com.cn/ci/u5e03u62c9u5409	拼音：bù lā ji	n
+支吾其词	no evidence	wu	https://www.zdic.net/hant/%E6%94%AF%E5%90%BE%E5%85%B6%E8%AF%8D	拼音 zhī wū qí cí	n
+断线风筝	no evidence	zheng	https://zh.wiktionary.org/zh-hans/%E6%96%AD%E7%BA%BF%E9%A3%8E%E7%AD%9D	拼音: duànxiàn fēngzheng	n
+玻璃体	no evidence	lí	https://chinese.my/wd/index.php?stype=Word&sword=%E7%8E%BB%E7%92%83&detail=y	bō·litǐ〈名〉眼球内充满在晶状体和视网膜之间的无色透明的胶状物质	n
 痘痘	not looked up				n
-皮包骨头	not looked up				n
-碰碰车	not looked up				n
-耍脾气	not looked up				n
-芥子气	not looked up				n
+皮包骨头	no evidence	tou	https://cidian.911cha.com/MjBmOHU=.html	注音ㄆ一ˊ ㄅㄠ ㄍㄨˊ ˙ㄊㄡ	n
+碰碰车	no evidence	peng	https://www.zdic.net/hans/碰碰车	拼音 pèng pèng chē	n
+耍脾气	no evidence	qi	https://www.zidian.com.cn/ci/u800du813eu6c14	### 耍脾气\[ shuǎ pí qi \]	n
+芥子气	no evidence	zi	https://www.zdic.net/hans/%E8%8A%A5%E5%AD%90%E6%B0%94	拼音 jiè zǐ qì 注音 ㄐㄧㄝ ˋ ㄗˇ ㄑㄧˋ	n
 荸荠	neutral	qi	https://www.163.com/dy/article/KQ1K169C0556BQW0.html	荠（qi），读轻声，不是qí	n
-落花生	not looked up				n
+落花生	no evidence	huā	https://www.zidian.com.cn/ci/u843du82b1u751f	拼音：luò huā shēng	n
 蝲蝲蛄	not neutral	la	http://dict.cucldk.com/?w=%E8%9D%BC%E8%9B%84	也叫蝲蝲蛄（làlàɡǔ）	n
-西番莲	not looked up				n
+西番莲	no evidence	fan	https://www.zidian.com.cn/ci/u897fu756au83b2	xī fān lián	n
 闲家	not looked up				n
 顶针	not looked up				n
