@@ -224,6 +224,13 @@ function Popup:build()
     self.has_context = line ~= nil
 end
 
+-- The colour of the popup's small secondary text (source labels, 字频,
+-- spoken here, [Tap to show more]): grey by day, the normal text colour in
+-- night mode (#57; Model.secondaryGrey).
+function Popup:secondaryColor()
+    return Model.secondaryGrey(Screen.night_mode) and Blitbuffer.COLOR_GRAY_5 or Blitbuffer.COLOR_BLACK
+end
+
 --[[--
 Draws a ButtonTable's grey separator lines (the row lines and the lines
 between buttons in a row) in `shade` (Model.separatorShade). Black lines and
@@ -610,7 +617,7 @@ function Popup:body(text_w, max_h, full)
                     if #list > n then
                         local marker = TextWidget:new{
                             text = b.expanded and Popup.SHOW_LESS or Popup.SHOW_MORE, face = label_face,
-                            fgcolor = Blitbuffer.COLOR_GRAY_5,
+                            fgcolor = self:secondaryColor(),
                         }
                         local tbw, line
                         if b.expanded then
@@ -651,7 +658,7 @@ function Popup:body(text_w, max_h, full)
             if label then
                 add(TextWidget:new{
                     text = label, face = label_face,
-                    fgcolor = Blitbuffer.COLOR_GRAY_5, max_width = width,
+                    fgcolor = self:secondaryColor(), max_width = width,
                 })
             end
             if b.head then
@@ -663,7 +670,7 @@ function Popup:body(text_w, max_h, full)
                 if self:labelled(b.note) then
                     add(TextWidget:new{
                         text = (self.labels or {})[b.note.source] or b.note.source, face = label_face,
-                        fgcolor = Blitbuffer.COLOR_GRAY_5, max_width = width,
+                        fgcolor = self:secondaryColor(), max_width = width,
                     })
                 end
                 local face = Model.LARGE_SOURCES[b.note.source] and self.chinese_face or self.face
