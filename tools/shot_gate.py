@@ -214,18 +214,18 @@ local function present(g, char, cands, rows, matches, annotated)
     for _, c in ipairs(Model.chuchu(matches)) do buttons[#buttons + 1] = c.text .. "(" .. c.word .. ")" end
     local first = matches[1]
     local own = (first and first.len == 1) and 2 or 1
-    if g.classical then   -- Classical mode (#53): right under the character's own entry
-        local cl = Model.classicalBlocks(g.main:classical(char), char, Model.tradPick(cands, rows), "**", "**",
-            g.settings:tradHeadsEnabled())
-        for k, b in ipairs(cl) do table.insert(blocks, own + k - 1, b) end
-    end
     local block = comp and Components.block(comp.c, "**", "**", comp.via, comp.changes)
-    if block then   -- below the character's own entry, its Classical and its MOE Always entry
+    if block then   -- below the character's own entry and its MOE Always entry
         local at = own
         if at == 2 then
-            while blocks[at] and (blocks[at].classical or blocks[at].always) do at = at + 1 end
+            while blocks[at] and blocks[at].always do at = at + 1 end
         end
         table.insert(blocks, at, block)
+    end
+    if g.classical then   -- Classical mode (#53, #56): first, above everything
+        local cl = Model.classicalBlocks(g.main:classical(char), char, Model.tradPick(cands, rows), "**", "**",
+            g.settings:tradHeadsEnabled())
+        for k, b in ipairs(cl) do table.insert(blocks, k, b) end
     end
     Model.chineseLast(blocks)
     local label_mode = g.settings:labelMode()

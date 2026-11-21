@@ -193,8 +193,8 @@ SHOTS = {
     # character, then after the 80 commonest readings on the page are known.
     "learner": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[], frames=[(0, (440, 995))]),
     "learner-known": dict(page="aq59", threshold=0, known=LEARNER_KNOWN, taps=[], frames=[(0, (440, 995))]),
-    # Classical mode (#53): 之 in 窦武、陈蕃谋诛之 ("plotted to kill them"), its 文言
-    # block under CC-CEDICT's entry and the 文言 ✓ button in the title bar.
+    # Classical mode (#53, #56): 之 in 窦武、陈蕃谋诛之 ("plotted to kill them"), its 文言
+    # block first and in full, and the 文言 Mode ✓ button in the title bar.
     "classical": dict(page="sg1", classical=True, taps=[("之", 3, (1330, 1085), [
         "**之**  zhī", "[文言]", "him; her; it; them (object pronoun in non-subject position)"])],
         frames=[(1, (95, 1191))]),
