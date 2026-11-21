@@ -68,7 +68,7 @@ from collections import Counter
 from importlib.metadata import version
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from pinyin_util import numbered_to_marked  # noqa: E402
+from pinyin_util import load_neutral_overrides, neutral_override, numbered_to_marked  # noqa: E402
 import fallback_sources  # noqa: E402
 import components  # noqa: E402
 import wikipedia_dump  # noqa: E402
@@ -161,6 +161,7 @@ def read_cedict(path):
     originals[i] the defs of entries[i] as CC-CEDICT writes them (the
     database's `defs`)."""
     header, entries, originals = {}, [], []
+    neutral = load_neutral_overrides(os.path.join(ROOT, "data", "neutral_tone_overrides.tsv"))
     with opener(path) as f:
         for line in f:
             if line.startswith("#"):
@@ -172,6 +173,7 @@ def read_cedict(path):
             if not m:
                 continue
             trad, simp, py, defs = m.groups()
+            py = neutral_override(simp, py, neutral)  # 喷嚏 pēnti (see build_data.load_cedict)
             parts = [s for s in defs.split("/") if s.strip()]
             entries.append((simp, trad, joined_pinyin(py), syllable_pinyin(py),
                             "/".join(clean_sense(s) for s in parts)))

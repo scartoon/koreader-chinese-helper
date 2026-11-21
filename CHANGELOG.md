@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.17.1 (2026-11-21)
+
+Neutral tones CC-CEDICT writes as full tones (#60)
+- 喷嚏 and 打喷嚏 now read *pēnti* / *dǎpēnti*, as they are said in Standard Mandarin: the
+  pinyin drawn above 嚏 is *ti* (it was *tì*), and the popup's word line reads *pēnti*. 嚏's own
+  entry stays *tì*.
+- New hand-edited list, `data/neutral_tone_overrides.tsv`, for words CC-CEDICT gives full tones
+  that are usually read with a neutral syllable. The build puts the neutral tone into CC-CEDICT's
+  line, so the existing neutral-tone rule draws it. The README says how to add a word. More words
+  will follow.
+
 ## 2.17.0 (2026-11-20)
 
 Popup labels: the source label on its own row, CC-CEDICT always labelled (#59)
