@@ -22,6 +22,22 @@ docs/neutral-tone-lookups.jsonl, so a rerun never repeats a lookup.
     tools/verify_neutral_tones.py --write             # evidence TSV + override file, no requests
 
 Progress goes to build/neutral/verify.log.
+
+--baidu (#64): no model and no web search. For each candidate whose main
+Wiktionary reading has the neutral syllable, fetch Baidu Hanyu's JSON
+(hanyu.baidu.com/hanyu/ajax/search_list, the data behind dict.baidu.com; the
+page itself is rendered by JavaScript), one request at a time with a pause,
+raw answers cached in build/neutral/baidu/<word>.json. Baidu gives several
+pinyin lines per word; the 现代汉语词典 ones keep its dot (蹊跷 qī·qiao,
+进去 jìn·qù). Verdict per word (baidu_verdict()): "neutral" when a line has
+the dot before every neutral syllable (or a definition notes 轻声); "not
+neutral" when the word is there with a full tone and no dot; "no evidence"
+when the word is missing or only a toneless line without the dot (Baidu's
+non-现汉 lines: 男人 nán ren, 劳动 láo dong) speaks for it; "fetch failed".
+Results go to the same lookups cache with "method": "baidu".
+
+    tools/verify_neutral_tones.py --baidu --limit 10  # a pilot
+    tools/verify_neutral_tones.py --baidu             # every main-reading candidate not cached
 """
 import argparse
 import json
@@ -30,10 +46,12 @@ import re
 import sys
 import threading
 import time
+import urllib.parse
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from pinyin_util import numbered_to_marked, strip_tone  # noqa: E402
+from pinyin_util import is_toneless, numbered_to_marked, strip_tone  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CANDIDATES = os.path.join(ROOT, "docs", "neutral-tone-candidates.tsv")
@@ -41,6 +59,12 @@ CACHE = os.path.join(ROOT, "docs", "neutral-tone-lookups.jsonl")
 EVIDENCE = os.path.join(ROOT, "docs", "neutral-tone-evidence.tsv")
 OVERRIDES = os.path.join(ROOT, "data", "neutral_tone_overrides.tsv")
 LOG = os.path.join(ROOT, "build", "neutral", "verify.log")
+BAIDU_RAW = os.path.join(ROOT, "build", "neutral", "baidu")
+BAIDU_API = "https://hanyu.baidu.com/hanyu/ajax/search_list?"
+BAIDU_PAGE = "https://dict.baidu.com/s?wd="
+BAIDU_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
+BAIDU_PAUSE = 2.0   # seconds between requests
 
 MODEL = "claude-sonnet-5-5"
 MAX_SEARCHES = 3
@@ -170,6 +194,101 @@ def lookup(client, row):
             "answer": answer, "usage": usage, "time": time.strftime("%Y-%m-%dT%H:%M:%S")}
 
 
+def baidu_fetch(word):
+    """Baidu Hanyu's JSON for word: cached in build/neutral/baidu/, else one
+    request followed by a pause. None when the request fails."""
+    path = os.path.join(BAIDU_RAW, word + ".json")
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    url = BAIDU_API + urllib.parse.urlencode({"wd": word, "from": "poem", "pn": 1})
+    req = urllib.request.Request(url, headers={"User-Agent": BAIDU_UA, "Referer": "https://hanyu.baidu.com/"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = json.loads(r.read().decode("utf-8"))
+    except Exception as e:   # noqa: BLE001  recorded as "fetch failed"
+        log(f"{word}: baidu fetch failed: {type(e).__name__}: {e}")
+        return None
+    finally:
+        time.sleep(BAIDU_PAUSE)
+    os.makedirs(BAIDU_RAW, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    return data
+
+
+def baidu_syllables(pinyin):
+    """'jìn·qù' -> [('jìn', False), ('qù', True)]: (syllable, dot before it)."""
+    return [(m.group(2), m.group(1) == "·") for m in re.finditer(r"(·?)\s*([^\s·]+)", pinyin.replace("•", "·"))]
+
+
+def baidu_verdict(row, data):
+    """{verdict, syllable, url, snippet, note} from Baidu's JSON (module doc)."""
+    word, ks = row["word"], neutral_positions(row)
+    syl = " ".join(strip_tone(numbered_to_marked(row["proposed"].split()[k])) for k in ks)
+    out = {"verdict": "no evidence", "syllable": syl, "url": BAIDU_PAGE + urllib.parse.quote(word),
+           "snippet": "", "note": ""}
+    if data is None:
+        return dict(out, verdict="fetch failed", note="request failed")
+    entries = [e for e in (data.get("ret_array") or []) if (e.get("name") or [""])[0] == word]
+    if not entries:
+        return dict(out, note="word not in Baidu Hanyu")
+    letters = [strip_tone(numbered_to_marked(row["proposed"].split()[k])) for k in ks]
+    lines, full, toneless = [], [], []
+    for e in entries:
+        for m in e.get("mean_list") or []:
+            for py in m.get("pinyin") or []:
+                lines.append((py, m.get("definition") or []))
+        for py in e.get("pinyin") or []:
+            lines.append((py, []))
+    for py, defs in lines:
+        syls = baidu_syllables(py)
+        if len(syls) != len(word) or any(strip_tone(syls[k][0].lower()) != letters[i] for i, k in enumerate(ks)):
+            continue   # erhua, a different syllable count or another reading
+        if all(syls[k][1] for k in ks):
+            return dict(out, verdict="neutral", snippet=py,
+                        note="现代汉语词典 dot: " + (defs[0][:60] if defs else ""))
+        if all(syls[k][1] or is_toneless(syls[k][0]) for k in ks):
+            toneless.append(py)
+        else:
+            full.append(py)
+    for py, defs in lines:
+        for d in defs:
+            if "轻声" in d:
+                return dict(out, verdict="neutral", snippet=d[:120], note=f"轻声 note under {py}")
+    if toneless:
+        return dict(out, snippet=" / ".join(dict.fromkeys(toneless + full)),
+                    note="toneless without the 现汉 dot only")
+    if full:
+        return dict(out, verdict="not neutral", snippet=" / ".join(dict.fromkeys(full)), note="full tone, no dot")
+    return dict(out, snippet=" / ".join(dict.fromkeys(py for py, _ in lines))[:120],
+                note="no line with this reading's syllables")
+
+
+def run_baidu(rows, cache, limit):
+    todo = [r for r in rows if r["wikt_reading"] == "main" and "A" not in r["sources"].split(",")
+            and r["word"] not in cache]
+    if limit:
+        todo = todo[:limit]
+    log(f"baidu start: {len(todo)} words")
+    counts = {}
+    for row in todo:
+        ans = baidu_verdict(row, baidu_fetch(row["word"]))
+        if ans["verdict"] == "fetch failed":   # not cached: retried next run (or the Haiku fallback)
+            counts["fetch failed"] = counts.get("fetch failed", 0) + 1
+            continue
+        res = {"word": row["word"], "cedict": row["cedict"], "proposed": row["proposed"], "method": "baidu",
+               "model": None, "answer": ans, "usage": {"input": 0, "output": 0, "searches": 0},
+               "time": time.strftime("%Y-%m-%dT%H:%M:%S")}
+        with open(CACHE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(res, ensure_ascii=False) + "\n")
+        v = check(row, ans)
+        counts[v] = counts.get(v, 0) + 1
+        log(f"{row['word']}: baidu {ans['verdict']} -> {v} {ans['snippet']!r}")
+    log(f"baidu done: {counts}")
+    print(f"baidu: {len(todo)} words, {counts}; log {LOG}")
+
+
 def cost(usage):
     return usage["input"] * PRICE_IN + usage["output"] * PRICE_OUT + usage["searches"] * PRICE_SEARCH
 
@@ -219,6 +338,8 @@ def main():
                     help="only candidates whose neutral syllable gets pinyin at the default level "
                          "(the scope Simon chose for the first run)")
     ap.add_argument("--write", action="store_true", help="write the evidence TSV and override file only")
+    ap.add_argument("--baidu", action="store_true",
+                    help="look up the main-reading candidates in Baidu Hanyu (#64): no model, no API key")
     args = ap.parse_args()
 
     rows = read_candidates()
@@ -233,6 +354,9 @@ def main():
           f"{len(cache)} looked up already, {len(todo)} to look up; "
           f"${per:.3f} per lookup ({'measured over ' + str(len(measured)) if measured else 'guessed'}), "
           f"estimate ${per * len(todo):.2f}")
+    if args.baidu:
+        run_baidu(rows, cache, args.limit)
+        return
     if args.write:
         counts, _ = write_outputs(rows, cache)
         print(counts)
