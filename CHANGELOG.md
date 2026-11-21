@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.19.2 (2026-11-21)
+
+狗狗 is gǒugōu again (#64)
+- 2.19.1 changed 狗狗 to gǒugou on a single Zhihu note. It now reads gǒugōu again, as in
+  CC-CEDICT, and the lookup script won't approve it again.
+
 ## 2.19.1 (2026-11-21)
 
 Neutral tones checked against Baidu Hanyu, and ü in cross-references (#63, #64)
