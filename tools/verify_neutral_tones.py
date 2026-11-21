@@ -354,6 +354,12 @@ SENSE_SPLIT = {
 }
 
 
+# Simon's decisions against a lookup that passed check(): never approved.
+REJECTED = {
+    "狗狗": "keep CC-CEDICT gǒugōu (Simon, 2026-11-21; the only evidence was a Zhihu note)",
+}
+
+
 def baidu_verdict(row, data):
     """{verdict, syllable, url, snippet, note} from Baidu's JSON (module doc)."""
     word, ks = row["word"], neutral_positions(row)
@@ -461,6 +467,8 @@ def write_outputs(rows, cache):
                     with open(raw, encoding="utf-8") as rf:   # re-judged with the current rules
                         ans = baidu_verdict(row, json.load(rf))
                 verdict = check(row, ans)
+                if row["word"] in REJECTED:
+                    verdict = "rejected: " + REJECTED[row["word"]]
                 syl, url, snippet = ans.get("syllable", ""), ans.get("url", ""), ans.get("snippet", "")
                 counts["lookup" if verdict == "neutral" else verdict if verdict in counts else "no evidence"] += 1
             else:
