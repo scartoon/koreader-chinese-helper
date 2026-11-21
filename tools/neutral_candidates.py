@@ -89,7 +89,8 @@ def split_like(text, cedict_syls):
     """Split a source's pinyin ("pēnti") at CC-CEDICT's syllable boundaries,
     when the letters agree; else None."""
     text = unicodedata.normalize("NFC", re.sub(r"[\s'’-]", "", text))
-    if strip_tone(text).lower() != plain(cedict_syls):
+    # sources often write nüè as nuè: compare with ü as u (the lengths match)
+    if strip_tone(text).lower().replace("ü", "u") != plain(cedict_syls).replace("ü", "u"):
         return None
     out, i = [], 0
     for s in cedict_syls:

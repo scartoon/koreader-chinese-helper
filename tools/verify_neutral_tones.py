@@ -215,11 +215,16 @@ def main():
     ap.add_argument("--estimate", action="store_true", help="counts and estimated cost only")
     ap.add_argument("--limit", type=int, help="look up at most this many words")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--ruby-only", action="store_true",
+                    help="only candidates whose neutral syllable gets pinyin at the default level "
+                         "(the scope Simon chose for the first run)")
     ap.add_argument("--write", action="store_true", help="write the evidence TSV and override file only")
     args = ap.parse_args()
 
     rows = read_candidates()
     cache = read_cache()
+    if args.ruby_only:
+        rows = [r for r in rows if r["affects_ruby"] == "y"]
     todo = [r for r in rows if "A" not in r["sources"].split(",") and r["word"] not in cache]
     measured = [c["usage"] for c in cache.values()]
     per = (sum(cost(u) for u in measured) / len(measured)) if measured else \
