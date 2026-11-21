@@ -17,7 +17,7 @@ word	verdict	syllable	url	snippet	source_a
 非常	not looked up				n
 发现	not looked up				n
 似乎	not looked up				n
-不得	not looked up				n
+不得	no evidence	de	https://dict.baidu.com/s?wd=%E4%B8%8D%E5%BE%97	bu de / bù dé	n
 里面	not looked up				n
 问道	not looked up				n
 得到	not looked up				n
@@ -43,7 +43,7 @@ word	verdict	syllable	url	snippet	source_a
 安排	not looked up				n
 组织	not looked up				n
 目的	not looked up				n
-外面	not looked up				n
+外面	neutral	mian	https://dict.baidu.com/s?wd=%E5%A4%96%E9%9D%A2	wài·miàn	n
 反应	not looked up				n
 留下	not looked up				n
 实际上	not looked up				n
@@ -65,10 +65,10 @@ word	verdict	syllable	url	snippet	source_a
 父亲	not looked up				n
 作用	not looked up				n
 利用	not looked up				n
-进去	not looked up				n
+进去	neutral	qu	https://dict.baidu.com/s?wd=%E8%BF%9B%E5%8E%BB	jìn·qù	n
 院士	not looked up				n
 干部	not looked up				n
-男人	not looked up				n
+男人	no evidence	ren	https://dict.baidu.com/s?wd=%E7%94%B7%E4%BA%BA	nán ren / nán rén	n
 手段	not looked up				n
 头上	not looked up				n
 分钟	not looked up				n
@@ -87,18 +87,18 @@ word	verdict	syllable	url	snippet	source_a
 事实上	not looked up				n
 左右	not looked up				n
 数量	not looked up				n
-反正	not looked up				n
+反正	no evidence	zheng	https://dict.baidu.com/s?wd=%E5%8F%8D%E6%AD%A3	fǎn zheng / fǎn zhèng	n
 估计	not looked up				n
 分析	not looked up				n
-看起来	not looked up				n
+看起来	not neutral	qi	https://dict.baidu.com/s?wd=%E7%9C%8B%E8%B5%B7%E6%9D%A5	kàn qǐ lái	n
 队伍	neutral (must-read list)				y
 秘书	not looked up				n
 恢复	not looked up				n
 犹豫	not looked up				n
 分之	not looked up				n
 方便	not looked up				n
-劳动	not looked up				n
-接下来	not looked up				n
+劳动	no evidence	dong	https://dict.baidu.com/s?wd=%E5%8A%B3%E5%8A%A8	láo dong / láo dòng	n
+接下来	not neutral	lai	https://dict.baidu.com/s?wd=%E6%8E%A5%E4%B8%8B%E6%9D%A5	jiē xià lái	n
 将军	not looked up				n
 老婆	neutral (must-read list)				y
 帮助	not looked up				n
@@ -111,25 +111,25 @@ word	verdict	syllable	url	snippet	source_a
 看出	not looked up				n
 质量	not looked up				n
 哈哈	not looked up				n
-到时候	not looked up				n
+到时候	no evidence	hou	https://dict.baidu.com/s?wd=%E5%88%B0%E6%97%B6%E5%80%99		n
 干净	not looked up				n
-大大	not looked up				n
+大大	both readings	da	https://dict.baidu.com/s?wd=%E5%A4%A7%E5%A4%A7	dà·da / dà dà 表示数量大或程度深：费用～超过了预算。房间安装了通风装置，温度～降低了。	n
 工艺	not looked up				n
 运动	not looked up				n
 进士	not looked up				n
-配合	not looked up				n
+配合	no evidence	he	https://dict.baidu.com/s?wd=%E9%85%8D%E5%90%88	pèi he / pèi hé	n
 气氛	not looked up				n
 错误	not looked up				n
 昨天	not looked up				n
 母亲	not looked up				n
 得意	not looked up				n
 神经	not looked up				n
-下头	not looked up				n
+下头	no evidence	tou	https://dict.baidu.com/s?wd=%E4%B8%8B%E5%A4%B4	xià tou	n
 下午	not looked up				n
 完整	not looked up				n
 重视	not looked up				n
 开封	not looked up				n
-图书馆	not looked up				n
+图书馆	not neutral	shu	https://dict.baidu.com/s?wd=%E5%9B%BE%E4%B9%A6%E9%A6%86	tú shū guǎn	n
 丰富	not looked up				n
 天上	not looked up				n
 指望	not looked up				n
@@ -149,8 +149,8 @@ word	verdict	syllable	url	snippet	source_a
 性命	not looked up				n
 动静	neutral (must-read list)				y
 交代	not looked up				n
-艺术	not looked up				n
-师爷	not looked up				n
+艺术	not neutral	shu	https://dict.baidu.com/s?wd=%E8%89%BA%E6%9C%AF	yì shù	n
+师爷	no evidence	ye	https://dict.baidu.com/s?wd=%E5%B8%88%E7%88%B7	shī ye / shī yé	n
 智慧	not looked up				n
 费用	not looked up				n
 新鲜	not looked up				n
@@ -165,12 +165,12 @@ word	verdict	syllable	url	snippet	source_a
 举动	not looked up				n
 圣人	not looked up				n
 祖宗	neutral (must-read list)				y
-赶到	not looked up				n
+赶到	not neutral	dao	https://dict.baidu.com/s?wd=%E8%B5%B6%E5%88%B0	gǎn dào	n
 参谋	not looked up				n
 上午	not looked up				n
 纵然	not looked up				n
 批评	not looked up				n
-大气	not looked up				n
+大气	no evidence	qi	https://dict.baidu.com/s?wd=%E5%A4%A7%E6%B0%94	dà qi / dà qì	n
 重量	not looked up				n
 个头	not looked up				n
 正经	not looked up				n
@@ -179,10 +179,10 @@ word	verdict	syllable	url	snippet	source_a
 座位	not looked up				n
 人性	not looked up				n
 来往	not looked up				n
-花费	not looked up				n
+花费	no evidence	fei	https://dict.baidu.com/s?wd=%E8%8A%B1%E8%B4%B9	huā fei / huā fèi	n
 衙役	not looked up				n
 徒弟	not looked up				n
-试探	not looked up				n
+试探	no evidence	tan	https://dict.baidu.com/s?wd=%E8%AF%95%E6%8E%A2	shì tan / shì tàn	n
 拿来	not looked up				n
 户口	not looked up				n
 毛病	not looked up				n
@@ -190,12 +190,12 @@ word	verdict	syllable	url	snippet	source_a
 体面	not looked up				n
 口袋	neutral (must-read list)				y
 痛快	not looked up				n
-拉开	not looked up				n
+拉开	not neutral	kai	https://dict.baidu.com/s?wd=%E6%8B%89%E5%BC%80	lā kāi / lá kāi	n
 气质	not looked up				n
 江湖	not looked up				n
 数目	not looked up				n
 植物	not looked up				n
-做生意	not looked up				n
+做生意	no evidence	yi	https://dict.baidu.com/s?wd=%E5%81%9A%E7%94%9F%E6%84%8F	zuò shēng yi	n
 故障	not looked up				n
 管家	not looked up				n
 提拔	not looked up				n
@@ -203,16 +203,16 @@ word	verdict	syllable	url	snippet	source_a
 额头	not looked up				n
 风气	not looked up				n
 感激	not looked up				n
-早晨	not looked up				n
+早晨	no evidence	chen	https://dict.baidu.com/s?wd=%E6%97%A9%E6%99%A8	zǎo chen	n
 夏天	not looked up				n
 春天	not looked up				n
 包裹	not looked up				n
 体育	not looked up				n
 跟上	not looked up				n
-过年	not looked up				n
+过年	both readings	nian	https://dict.baidu.com/s?wd=%E8%BF%87%E5%B9%B4	guò·nián / guò nián 时间词。明年：这孩子～该上学了。	n
 手艺	not looked up				n
 凤凰	not looked up				n
-火烧	not looked up				n
+火烧	no evidence	shao	https://dict.baidu.com/s?wd=%E7%81%AB%E7%83%A7	huǒ shao / huǒ shāo	n
 逐步	not looked up				n
 风景	not looked up				n
 算盘	not looked up				n
@@ -239,13 +239,13 @@ word	verdict	syllable	url	snippet	source_a
 答复	not looked up				n
 道士	neutral (must-read list)				y
 密度	not looked up				n
-摇晃	not looked up				n
+摇晃	neutral	huang	https://dict.baidu.com/s?wd=%E6%91%87%E6%99%83	yáo·huàng	n
 折磨	not looked up				n
 台风	not looked up				n
 娘家	neutral (must-read list)				y
 岁月	not looked up				n
-服务员	not looked up				n
-老人家	not looked up				n
+服务员	not neutral	wu	https://dict.baidu.com/s?wd=%E6%9C%8D%E5%8A%A1%E5%91%98	fú wù yuán	n
+老人家	no evidence	ren jia	https://dict.baidu.com/s?wd=%E8%80%81%E4%BA%BA%E5%AE%B6	lǎo ren jia	n
 利息	not looked up				n
 随从	not looked up				n
 从容	not looked up				n
@@ -253,10 +253,10 @@ word	verdict	syllable	url	snippet	source_a
 昨日	not looked up				n
 姿势	not looked up				n
 爱情	not looked up				n
-接手	not looked up				n
-无线电	not looked up				n
+接手	not neutral	shou	https://dict.baidu.com/s?wd=%E6%8E%A5%E6%89%8B	jiē shǒu	n
+无线电	not neutral	xian	https://dict.baidu.com/s?wd=%E6%97%A0%E7%BA%BF%E7%94%B5	wú xiàn diàn	n
 会计	not looked up				n
-惊醒	not looked up				n
+惊醒	no evidence	xing	https://dict.baidu.com/s?wd=%E6%83%8A%E9%86%92	jīng xing / jīng xǐng	n
 客套	not looked up				n
 坦然	not looked up				n
 快乐	not looked up				n
@@ -268,7 +268,7 @@ word	verdict	syllable	url	snippet	source_a
 宝贝	not looked up				n
 灯笼	neutral (must-read list)				y
 把头	not looked up				n
-干嘛	not looked up				n
+干嘛	not neutral	ma	https://dict.baidu.com/s?wd=%E5%B9%B2%E5%98%9B	gàn má	n
 欲望	not looked up				n
 贿赂	not looked up				n
 埋伏	not looked up				n
@@ -279,49 +279,49 @@ word	verdict	syllable	url	snippet	source_a
 出产	not looked up				n
 状元	neutral (must-read list)				y
 套路	not looked up				n
-目的地	not looked up				n
+目的地	not neutral	di	https://dict.baidu.com/s?wd=%E7%9B%AE%E7%9A%84%E5%9C%B0	mù dì dì	n
 炫耀	not looked up				n
 考上	not looked up				n
-风水	not looked up				n
-发送	not looked up				n
+风水	neutral	shui	https://dict.baidu.com/s?wd=%E9%A3%8E%E6%B0%B4	fēng·shuǐ	n
+发送	no evidence	song	https://dict.baidu.com/s?wd=%E5%8F%91%E9%80%81	fā song / fā sòng	n
 府上	not looked up				n
 干粮	not looked up				n
 住处	not looked up				n
 拉拢	not looked up				n
 神仙	not looked up				n
-风光	not looked up				n
-风头	not looked up				n
+风光	no evidence	guang	https://dict.baidu.com/s?wd=%E9%A3%8E%E5%85%89	fēng guang / fēng guāng	n
+风头	no evidence	tou	https://dict.baidu.com/s?wd=%E9%A3%8E%E5%A4%B4	fēng tou / fēng tóu	n
 大学生	not looked up				n
-气派	not looked up				n
+气派	not neutral	pai	https://dict.baidu.com/s?wd=%E6%B0%94%E6%B4%BE	qì pài	n
 损耗	not looked up				n
 生日	not looked up				n
-寻思	not looked up				n
-废物	not looked up				n
+寻思	no evidence	si	https://dict.baidu.com/s?wd=%E5%AF%BB%E6%80%9D	xún si / xín si	n
+废物	no evidence	wu	https://dict.baidu.com/s?wd=%E5%BA%9F%E7%89%A9	fèi wu / fèi wù	n
 碰上	not looked up				n
 召唤	not looked up				n
 次要	not looked up				n
-相看	not looked up				n
+相看	not neutral	kan	https://dict.baidu.com/s?wd=%E7%9B%B8%E7%9C%8B	xiāng kàn	n
 菩萨	not looked up				n
-亏空	not looked up				n
+亏空	no evidence	kong	https://dict.baidu.com/s?wd=%E4%BA%8F%E7%A9%BA	kuī kong	n
 才干	not looked up				n
 段落	not looked up				n
 恍惚	no evidence	hu	https://www.hanyuguoxue.com/cidian/ci-151c9303fa	恍惚 · huǎng hū	n
 牢骚	not looked up				n
 器械	not looked up				n
 靠山	not looked up				n
-起火	not looked up				n
+起火	no evidence	huo	https://dict.baidu.com/s?wd=%E8%B5%B7%E7%81%AB		n
 力度	not looked up				n
-咧咧	not looked up				n
+咧咧	no evidence	lie	https://dict.baidu.com/s?wd=%E5%92%A7%E5%92%A7	liē lie / liē liē	n
 舒展	not looked up				n
 工钱	not looked up				n
 大将军	not looked up				n
-老娘	not looked up				n
+老娘	no evidence	niang	https://dict.baidu.com/s?wd=%E8%80%81%E5%A8%98	lǎo niang / lǎo niáng	n
 荒唐	not looked up				n
 秋天	not looked up				n
 栅栏	neutral (must-read list)				y
 有意识	not looked up				n
-恶心	not looked up				n
-白话	not looked up				n
+恶心	no evidence	xin	https://dict.baidu.com/s?wd=%E6%81%B6%E5%BF%83	ě xin	n
+白话	no evidence	hua	https://dict.baidu.com/s?wd=%E7%99%BD%E8%AF%9D	bái hua / bái huà	n
 文凭	not looked up				n
 活计	not looked up				n
 罪人	not looked up				n
@@ -331,17 +331,17 @@ word	verdict	syllable	url	snippet	source_a
 西边	not looked up				n
 账目	not looked up				n
 郁闷	not looked up				n
-考究	not looked up				n
+考究	no evidence	jiu	https://dict.baidu.com/s?wd=%E8%80%83%E7%A9%B6	kǎo jiu	n
 祸害	not looked up				n
 债务	not looked up				n
 地质	not looked up				n
 庄家	not looked up				n
-章程	not looked up				n
+章程	no evidence	cheng	https://dict.baidu.com/s?wd=%E7%AB%A0%E7%A8%8B		n
 吉利	not looked up				n
 势头	not looked up				n
-索性	not looked up				n
-多多少少	not looked up				n
-来头	not looked up				n
+索性	not neutral	xing	https://dict.baidu.com/s?wd=%E7%B4%A2%E6%80%A7	suǒ xìng	n
+多多少少	not neutral	duo	https://dict.baidu.com/s?wd=%E5%A4%9A%E5%A4%9A%E5%B0%91%E5%B0%91	duō duō shǎo shǎo	n
+来头	no evidence	tou	https://dict.baidu.com/s?wd=%E6%9D%A5%E5%A4%B4	lái tou	n
 陈设	not looked up				n
 过节	not looked up				n
 烟囱	no evidence	cong	https://zh.wiktionary.org/wiki/%E7%85%99%E5%9B%AA	yāncōng → yāncong(輕尾聲異讀)	n
@@ -355,27 +355,27 @@ word	verdict	syllable	url	snippet	source_a
 玉米	not looked up				n
 系数	not looked up				n
 滑稽	not looked up				n
-意识形态	not looked up				n
+意识形态	not neutral	shi	https://dict.baidu.com/s?wd=%E6%84%8F%E8%AF%86%E5%BD%A2%E6%80%81	yì shí xíng tài	n
 外甥	no evidence	sheng			n
 首饰	neutral (must-read list)				y
 着落	not looked up				n
 摆弄	not looked up				n
 阵势	not looked up				n
-激灵	not looked up				n
+激灵	no evidence	ling	https://dict.baidu.com/s?wd=%E6%BF%80%E7%81%B5	jī ling	n
 蹊跷	neutral	qiao	https://dict.baidu.com/s?wd=%E8%B9%8A%E8%B7%B7&cf=hot&ptype=zici	[ qī·qiao ]: 奇怪；可疑：这件事来得有点儿～。也说跷蹊。	n
 衡量	not looked up				n
-阿哥	not looked up				n
+阿哥	no evidence	ge	https://dict.baidu.com/s?wd=%E9%98%BF%E5%93%A5	à ge / ā gē	n
 义气	not looked up				n
 来路	not looked up				n
 气力	not looked up				n
 茉莉	not looked up				n
-过得去	not looked up				n
-干吗	not looked up				n
-秘书长	not looked up				n
+过得去	no evidence	de	https://dict.baidu.com/s?wd=%E8%BF%87%E5%BE%97%E5%8E%BB	guò de qù	n
+干吗	not neutral	ma	https://dict.baidu.com/s?wd=%E5%B9%B2%E5%90%97	gàn má	n
+秘书长	no evidence	shu	https://dict.baidu.com/s?wd=%E7%A7%98%E4%B9%A6%E9%95%BF		n
 辜负	not looked up				n
 周到	not looked up				n
 蜘蛛	not looked up				n
-合计	not looked up				n
+合计	no evidence	ji	https://dict.baidu.com/s?wd=%E5%90%88%E8%AE%A1	hé ji / hé jì	n
 揣摩	not looked up				n
 斯文	not looked up				n
 老实说	not looked up				n
@@ -384,101 +384,101 @@ word	verdict	syllable	url	snippet	source_a
 财主	neutral (must-read list)				y
 世面	not looked up				n
 伎俩	not looked up				n
-大体上	not looked up				n
+大体上	no evidence	shang	https://dict.baidu.com/s?wd=%E5%A4%A7%E4%BD%93%E4%B8%8A		n
 枪手	not looked up				n
 乡亲	not looked up				n
 掀开	not looked up				n
 滴水	not looked up				n
 执着	not looked up				n
 纹路	not looked up				n
-大大咧咧	not looked up				n
+大大咧咧	no evidence	da	https://dict.baidu.com/s?wd=%E5%A4%A7%E5%A4%A7%E5%92%A7%E5%92%A7	dà da liē liē	n
 饥荒	not looked up				n
 反叛	not looked up				n
-花销	not looked up				n
-霸道	not looked up				n
-上分	not looked up				n
+花销	no evidence	xiao	https://dict.baidu.com/s?wd=%E8%8A%B1%E9%94%80	huā xiao	n
+霸道	no evidence	dao	https://dict.baidu.com/s?wd=%E9%9C%B8%E9%81%93	bà dao / bà dào	n
+上分	no evidence	fen	https://dict.baidu.com/s?wd=%E4%B8%8A%E5%88%86	shàng fen	n
 胡同	not looked up				n
 白菜	not looked up				n
 缰绳	not looked up				n
-都督	not looked up				n
-上水	not looked up				n
+都督	no evidence	du	https://dict.baidu.com/s?wd=%E9%83%BD%E7%9D%A3	dū du	n
+上水	no evidence	shui	https://dict.baidu.com/s?wd=%E4%B8%8A%E6%B0%B4	shàng shui / shàng shuǐ	n
 行家	not looked up				n
 惦记	not looked up				n
 火气	not looked up				n
 疟疾	neutral (must-read list)				y
 无意识	not looked up				n
 神气	not looked up				n
-小老婆	not looked up				n
+小老婆	no evidence	po	https://dict.baidu.com/s?wd=%E5%B0%8F%E8%80%81%E5%A9%86	xiǎo lǎo po	n
 挪动	not looked up				n
 点缀	not looked up				n
 热度	not looked up				n
 饭店	not looked up				n
-便当	not looked up				n
+便当	no evidence	dang	https://dict.baidu.com/s?wd=%E4%BE%BF%E5%BD%93	biàn dang	n
 红火	neutral (must-read list)				y
 合算	not looked up				n
 休息室	not looked up				n
 体谅	not looked up				n
-固执	not looked up				n
+固执	no evidence	zhi	https://dict.baidu.com/s?wd=%E5%9B%BA%E6%89%A7	gù zhi / gù zhí	n
 幼稚	not looked up				n
-消停	not looked up				n
-金字塔	not looked up				n
-佣人	not looked up				n
+消停	no evidence	ting	https://dict.baidu.com/s?wd=%E6%B6%88%E5%81%9C	xiāo ting	n
+金字塔	not neutral	zi	https://dict.baidu.com/s?wd=%E9%87%91%E5%AD%97%E5%A1%94	jīn zì tǎ	n
+佣人	not neutral	ren	https://dict.baidu.com/s?wd=%E4%BD%A3%E4%BA%BA	yōng rén	n
 祖上	not looked up				n
 祷告	not looked up				n
 薪水	not looked up				n
-当口	not looked up				n
+当口	not neutral	kou	https://dict.baidu.com/s?wd=%E5%BD%93%E5%8F%A3	dāng kǒu	n
 实惠	not looked up				n
 说得过去	not looked up				n
 糟蹋	no evidence	ta	https://www.chagushici.com/zidian/%E7%B3%9F%E8%B9%8B	zāo 糟 · tà 蹋	n
 西瓜	not looked up				n
 霸王	not looked up				n
-怎么着	not looked up				n
+怎么着	no evidence	zhao	https://dict.baidu.com/s?wd=%E6%80%8E%E4%B9%88%E7%9D%80	zěn me zhe	n
 小气	neutral (must-read list)				y
-演义	not looked up				n
+演义	not neutral	yi	https://dict.baidu.com/s?wd=%E6%BC%94%E4%B9%89	yǎn yì	n
 喜气	not looked up				n
 眼力	not looked up				n
 荔枝	not looked up				n
 骨肉	not looked up				n
-严严实实	not looked up				n
-结结巴巴	not looked up				n
+严严实实	not neutral	yan	https://dict.baidu.com/s?wd=%E4%B8%A5%E4%B8%A5%E5%AE%9E%E5%AE%9E	yán yán shí shí	n
+结结巴巴	not neutral	jie	https://dict.baidu.com/s?wd=%E7%BB%93%E7%BB%93%E5%B7%B4%E5%B7%B4	jiē jiē bā bā	n
 孝顺	not looked up				n
 天道	not looked up				n
 安生	not looked up				n
 躺下	not looked up				n
-参与者	not looked up				n
+参与者	no evidence	yu	https://dict.baidu.com/s?wd=%E5%8F%82%E4%B8%8E%E8%80%85		n
 应承	not looked up				n
 矛头	not looked up				n
-偷偷摸摸	not looked up				n
+偷偷摸摸	not neutral	tou	https://dict.baidu.com/s?wd=%E5%81%B7%E5%81%B7%E6%91%B8%E6%91%B8	tōu tōu mō mō	n
 报应	not looked up				n
 脑壳	not looked up				n
 长处	not looked up				n
-回回	not looked up				n
+回回	no evidence	hui	https://dict.baidu.com/s?wd=%E5%9B%9E%E5%9B%9E	huí hui / huí huí	n
 私家	not looked up				n
 儿媳妇	not looked up				n
 烈士	not looked up				n
 潜意识	not looked up				n
 见不得	not looked up				n
 拿捏	not looked up				n
-眨眼睛	not looked up				n
+眨眼睛	no evidence	jing	https://dict.baidu.com/s?wd=%E7%9C%A8%E7%9C%BC%E7%9D%9B		n
 仗义	not looked up				n
 牌坊	not looked up				n
-憋屈	not looked up				n
-日头	not looked up				n
+憋屈	both readings	qu	https://dict.baidu.com/s?wd=%E6%86%8B%E5%B1%88	biē·qū / biē qū  （口）（形）心中委屈，不畅快：这事想起来就觉得～。	n
+日头	no evidence	tou	https://dict.baidu.com/s?wd=%E6%97%A5%E5%A4%B4	rì tou / rì tóu	n
 高粱	neutral (must-read list)				y
 保人	not looked up				n
 围裙	not looked up				n
 悟性	not looked up				n
 婆家	neutral (must-read list)				y
 霸气	not looked up				n
-瓜子	not looked up				n
+瓜子	not neutral	zi	https://dict.baidu.com/s?wd=%E7%93%9C%E5%AD%90	guā zǐ	n
 网吧	not looked up				n
-刑法	not looked up				n
+刑法	no evidence	fa	https://dict.baidu.com/s?wd=%E5%88%91%E6%B3%95	xíng fa / xíng fǎ	n
 煎饼	not looked up				n
-躲开	not looked up				n
-玫瑰	not looked up				n
+躲开	not neutral	kai	https://dict.baidu.com/s?wd=%E8%BA%B2%E5%BC%80	duǒ kāi	n
+玫瑰	no evidence	gui	https://dict.baidu.com/s?wd=%E7%8E%AB%E7%91%B0	méi gui	n
 丈人	neutral (must-read list)				y
 教务	not looked up				n
-乡下人	not looked up				n
+乡下人	not neutral	xia	https://dict.baidu.com/s?wd=%E4%B9%A1%E4%B8%8B%E4%BA%BA	xiāng xià rén	n
 社会关系	not looked up				n
 白净	neutral (must-read list)				y
 勤快	neutral (must-read list)				y
@@ -491,36 +491,36 @@ word	verdict	syllable	url	snippet	source_a
 矿物	not looked up				n
 翻腾	not looked up				n
 道行	not looked up				n
-露水	not looked up				n
+露水	no evidence	shui	https://dict.baidu.com/s?wd=%E9%9C%B2%E6%B0%B4	lù shui / lū shuǐ	n
 顺应	not looked up				n
 滋润	not looked up				n
 街坊	neutral (must-read list)				y
 针线	not looked up				n
 晒太阳	not looked up				n
-大大方方	not looked up				n
-势利	not looked up				n
-组成部分	not looked up				n
+大大方方	not neutral	da	https://dict.baidu.com/s?wd=%E5%A4%A7%E5%A4%A7%E6%96%B9%E6%96%B9	dà dà fāng fāng	n
+势利	no evidence	li	https://dict.baidu.com/s?wd=%E5%8A%BF%E5%88%A9	shì li	n
+组成部分	no evidence	fen	https://dict.baidu.com/s?wd=%E7%BB%84%E6%88%90%E9%83%A8%E5%88%86		n
 鼻涕	no evidence	ti			n
-发脾气	not looked up				n
+发脾气	no evidence	qi	https://dict.baidu.com/s?wd=%E5%8F%91%E8%84%BE%E6%B0%94	fā pí qi	n
 缘分	not looked up				n
 斧头	not looked up				n
 暗处	not looked up				n
 如意算盘	not looked up				n
 出毛病	not looked up				n
 开化	not looked up				n
-王八蛋	not looked up				n
+王八蛋	not neutral	ba	https://dict.baidu.com/s?wd=%E7%8E%8B%E5%85%AB%E8%9B%8B	wáng bā dàn	n
 喷嚏	no evidence	ti			n
 触手	not looked up				n
 随和	not looked up				n
 饰物	not looked up				n
 副作用	not looked up				n
-精神病	not looked up				n
+精神病	not neutral	shen	https://dict.baidu.com/s?wd=%E7%B2%BE%E7%A5%9E%E7%97%85	jīng shén bìng	n
 鸳鸯	no evidence	yang	https://zh.wiktionary.org/wiki/%E9%B8%B3%E9%B8%AF	拼音:yuānyāng → yuānyang (輕尾聲異讀)	n
-作派	not looked up				n
-太阳穴	not looked up				n
+作派	not neutral	pai	https://dict.baidu.com/s?wd=%E4%BD%9C%E6%B4%BE	zuò pài	n
+太阳穴	not neutral	yang	https://dict.baidu.com/s?wd=%E5%A4%AA%E9%98%B3%E7%A9%B4	tài yáng xué	n
 定规	not looked up				n
-怕老婆	not looked up				n
-噱头	not looked up				n
+怕老婆	no evidence	po	https://dict.baidu.com/s?wd=%E6%80%95%E8%80%81%E5%A9%86		n
+噱头	not neutral	tou	https://dict.baidu.com/s?wd=%E5%99%B1%E5%A4%B4	xué tóu	n
 有学问	not looked up				n
 实诚	not looked up				n
 牢靠	not looked up				n
@@ -529,15 +529,15 @@ word	verdict	syllable	url	snippet	source_a
 扳手	not looked up				n
 马蜂	not looked up				n
 哎哟	not looked up				n
-踏踏实实	not looked up				n
+踏踏实实	not neutral	ta	https://dict.baidu.com/s?wd=%E8%B8%8F%E8%B8%8F%E5%AE%9E%E5%AE%9E	tā tā shi shí	n
 作法	not looked up				n
-心里有数	not looked up				n
+心里有数	not neutral	li	https://dict.baidu.com/s?wd=%E5%BF%83%E9%87%8C%E6%9C%89%E6%95%B0	xīn lǐ yǒu shù	n
 饭食	not looked up				n
 志气	not looked up				n
 乒乓	not looked up				n
-滴答	not looked up				n
+滴答	no evidence	da	https://dict.baidu.com/s?wd=%E6%BB%B4%E7%AD%94	dī da / dī dā	n
 做学问	not looked up				n
-裹脚	not looked up				n
+裹脚	no evidence	jiao	https://dict.baidu.com/s?wd=%E8%A3%B9%E8%84%9A	guǒ jiao / guǒ jiǎo	n
 拨弄	neutral (must-read list)				y
 说合	not looked up				n
 荷包	not looked up				n
@@ -547,55 +547,55 @@ word	verdict	syllable	url	snippet	source_a
 财神	not looked up				n
 效用	not looked up				n
 旋风	not looked up				n
-老江湖	not looked up				n
+老江湖	not neutral	hu	https://dict.baidu.com/s?wd=%E8%80%81%E6%B1%9F%E6%B9%96	lǎo jiāng hú	n
 黄瓜	not looked up				n
 骨气	not looked up				n
-感应器	not looked up				n
+感应器	no evidence	ying	https://dict.baidu.com/s?wd=%E6%84%9F%E5%BA%94%E5%99%A8		n
 戏码	not looked up				n
 物色	not looked up				n
 动量	not looked up				n
-巧克力	not looked up				n
+巧克力	not neutral	ke	https://dict.baidu.com/s?wd=%E5%B7%A7%E5%85%8B%E5%8A%9B	qiǎo kè lì	n
 挖苦	neutral (must-read list)				y
-数据流	not looked up				n
+数据流	no evidence	ju	https://dict.baidu.com/s?wd=%E6%95%B0%E6%8D%AE%E6%B5%81		n
 喜庆	not looked up				n
 扑克	not looked up				n
 景致	not looked up				n
-造作	not looked up				n
+造作	no evidence	zuo	https://dict.baidu.com/s?wd=%E9%80%A0%E4%BD%9C	zào zuo	n
 才气	not looked up				n
 满世界	not looked up				n
-硬气	not looked up				n
-隔断	not looked up				n
+硬气	no evidence	qi	https://dict.baidu.com/s?wd=%E7%A1%AC%E6%B0%94	yìng qi	n
+隔断	both readings	duan	https://dict.baidu.com/s?wd=%E9%9A%94%E6%96%AD	gé duàn 阻绝；使隔开 (verb) / gé·duàn partition (noun)	n
 别致	not looked up				n
 石匠	neutral (must-read list)				y
 近视	not looked up				n
 剂量	not looked up				n
 自我意识	not looked up				n
 二月份	not looked up				n
-含含糊糊	not looked up				n
-硬朗	not looked up				n
+含含糊糊	not neutral	han	https://dict.baidu.com/s?wd=%E5%90%AB%E5%90%AB%E7%B3%8A%E7%B3%8A	hán hán hu hū	n
+硬朗	no evidence	lang	https://dict.baidu.com/s?wd=%E7%A1%AC%E6%9C%97	yìng lang	n
 褒贬	not looked up				n
-小算盘	not looked up				n
+小算盘	no evidence	pan	https://dict.baidu.com/s?wd=%E5%B0%8F%E7%AE%97%E7%9B%98	xiǎo suàn pan	n
 月经	not looked up				n
 点拨	not looked up				n
 米汤	not looked up				n
-会计师	not looked up				n
-小月	not looked up				n
+会计师	not neutral	ji	https://dict.baidu.com/s?wd=%E4%BC%9A%E8%AE%A1%E5%B8%88	kuài jì shī	n
+小月	both readings	yue	https://dict.baidu.com/s?wd=%E5%B0%8F%E6%9C%88	xiǎo yuè short month / xiǎo·yuè 〈口〉miscarriage	n
 胭脂	neutral (must-read list)				y
-抽打	not looked up				n
+抽打	no evidence	da	https://dict.baidu.com/s?wd=%E6%8A%BD%E6%89%93	chōu da / chōu dǎ	n
 八月份	not looked up				n
 生养	not looked up				n
 稚气	not looked up				n
-蒙蒙亮	not looked up				n
+蒙蒙亮	not neutral	meng	https://dict.baidu.com/s?wd=%E8%92%99%E8%92%99%E4%BA%AE	mēng mēng liàng	n
 人口密度	not looked up				n
-小朋友	not looked up				n
+小朋友	not neutral	you	https://dict.baidu.com/s?wd=%E5%B0%8F%E6%9C%8B%E5%8F%8B	xiǎo péng yǒu	n
 撇开	not looked up				n
 文气	not looked up				n
 臭虫	not looked up				n
 闪开	not looked up				n
 东东	not looked up				n
 丈母	not looked up				n
-丈母娘	not looked up				n
-串串	not looked up				n
+丈母娘	no evidence	mu	https://dict.baidu.com/s?wd=%E4%B8%88%E6%AF%8D%E5%A8%98	zhàng mu niáng	n
+串串	no evidence	chuan	https://dict.baidu.com/s?wd=%E4%B8%B2%E4%B8%B2		n
 妖怪	not looked up				n
 寒战	not looked up				n
 彩头	not looked up				n
@@ -608,168 +608,168 @@ word	verdict	syllable	url	snippet	source_a
 三月份	not looked up				n
 主粮	not looked up				n
 六月份	not looked up				n
-地质学	not looked up				n
-意思意思	not looked up				n
+地质学	not neutral	zhi	https://dict.baidu.com/s?wd=%E5%9C%B0%E8%B4%A8%E5%AD%A6	dì zhì xué	n
+意思意思	not neutral	si yi si	https://dict.baidu.com/s?wd=%E6%84%8F%E6%80%9D%E6%84%8F%E6%80%9D	yì sī yì sī	n
 百灵	not looked up				n
 亮堂	not looked up				n
-婆婆妈妈	not looked up				n
+婆婆妈妈	not neutral	ma	https://dict.baidu.com/s?wd=%E5%A9%86%E5%A9%86%E5%A6%88%E5%A6%88	pó po mā mā	n
 伸开	not looked up				n
 冬瓜	not looked up				n
-扳指	not looked up				n
+扳指	not neutral	zhi	https://dict.baidu.com/s?wd=%E6%89%B3%E6%8C%87	bān zhǐ	n
 饭量	not looked up				n
-冰淇淋	not looked up				n
+冰淇淋	not neutral	qi	https://dict.baidu.com/s?wd=%E5%86%B0%E6%B7%87%E6%B7%8B	bīng qí lín	n
 出挑	not looked up				n
 卖相	not looked up				n
 四月份	not looked up				n
 报户口	not looked up				n
-短处	not looked up				n
+短处	no evidence	chu	https://dict.baidu.com/s?wd=%E7%9F%AD%E5%A4%84	duǎn chu	n
 十月份	not looked up				n
-和和气气	not looked up				n
+和和气气	not neutral	he qi qi	https://dict.baidu.com/s?wd=%E5%92%8C%E5%92%8C%E6%B0%94%E6%B0%94	hé hé qì qì	n
 排骨	not looked up				n
 故去	not looked up				n
 砚台	not looked up				n
 贤惠	not looked up				n
-走江湖	not looked up				n
-蘑菇云	not looked up				n
-虾米	not looked up				n
+走江湖	not neutral	hu	https://dict.baidu.com/s?wd=%E8%B5%B0%E6%B1%9F%E6%B9%96	zǒu jiāng hú	n
+蘑菇云	no evidence	gu	https://dict.baidu.com/s?wd=%E8%98%91%E8%8F%87%E4%BA%91	mó gu yún	n
+虾米	no evidence	mi	https://dict.baidu.com/s?wd=%E8%99%BE%E7%B1%B3	xiā mi	n
 密实	not looked up				n
-点补	not looked up				n
-犄角	not looked up				n
+点补	no evidence	bu	https://dict.baidu.com/s?wd=%E7%82%B9%E8%A1%A5	diǎn bu	n
+犄角	no evidence	jiao	https://dict.baidu.com/s?wd=%E7%8A%84%E8%A7%92	jī jiao / jī jiǎo	n
 蚕宝宝	not looked up				n
-财神爷	not looked up				n
+财神爷	not neutral	shen	https://dict.baidu.com/s?wd=%E8%B4%A2%E7%A5%9E%E7%88%B7	cái shén yé	n
 五月份	not looked up				n
 俗气	not looked up				n
-动物园	not looked up				n
-唾沫星子	not looked up				n
+动物园	not neutral	wu	https://dict.baidu.com/s?wd=%E5%8A%A8%E7%89%A9%E5%9B%AD	dòng wù yuán	n
+唾沫星子	no evidence	mo	https://dict.baidu.com/s?wd=%E5%94%BE%E6%B2%AB%E6%98%9F%E5%AD%90		n
 回娘家	not looked up				n
 樱桃	not looked up				n
 行市	not looked up				n
 出落	not looked up				n
-属相	not looked up				n
+属相	no evidence	xiang	https://dict.baidu.com/s?wd=%E5%B1%9E%E7%9B%B8	shǔ xiang	n
 烧纸	not looked up				n
 老毛病	not looked up				n
-忽闪	not looked up				n
-玫瑰花	not looked up				n
+忽闪	no evidence	shan	https://dict.baidu.com/s?wd=%E5%BF%BD%E9%97%AA	hū shan / hū shǎn	n
+玫瑰花	no evidence	gui	https://dict.baidu.com/s?wd=%E7%8E%AB%E7%91%B0%E8%8A%B1		n
 蛋蛋	not looked up				n
-黄鼠狼	not looked up				n
-主人翁	not looked up				n
-晚上好	not looked up				n
+黄鼠狼	not neutral	shu	https://dict.baidu.com/s?wd=%E9%BB%84%E9%BC%A0%E7%8B%BC	huáng shǔ láng	n
+主人翁	not neutral	ren	https://dict.baidu.com/s?wd=%E4%B8%BB%E4%BA%BA%E7%BF%81	zhǔ rén wēng	n
+晚上好	no evidence	shang	https://dict.baidu.com/s?wd=%E6%99%9A%E4%B8%8A%E5%A5%BD		n
 簸箕	neutral (must-read list)				y
 一月份	not looked up				n
 寿星	not looked up				n
 斑鸠	not looked up				n
-时令	not looked up				n
+时令	no evidence	ling	https://dict.baidu.com/s?wd=%E6%97%B6%E4%BB%A4	shí ling / shí lìng	n
 利钱	not looked up				n
 月饼	neutral (must-read list)				y
 灵便	not looked up				n
 矿物质	not looked up				n
-来不得	not looked up				n
+来不得	no evidence	de	https://dict.baidu.com/s?wd=%E6%9D%A5%E4%B8%8D%E5%BE%97	lái bu de	n
 腌臜	neutral	za	https://baike.baidu.com/item/%E8%85%8C%E8%87%9C	拼音为ā·za	n
-逗弄	not looked up				n
-作践	not looked up				n
+逗弄	no evidence	nong	https://dict.baidu.com/s?wd=%E9%80%97%E5%BC%84	dòu nong	n
+作践	no evidence	jian	https://dict.baidu.com/s?wd=%E4%BD%9C%E8%B7%B5	zuó jian / zuò jian	n
 娇气	not looked up				n
-戾气	not looked up				n
+戾气	not neutral	qi	https://dict.baidu.com/s?wd=%E6%88%BE%E6%B0%94	lì qì	n
 扑克牌	not looked up				n
 扫把	not looked up				n
-生意兴隆	not looked up				n
-磕磕巴巴	not looked up				n
+生意兴隆	not neutral	yi	https://dict.baidu.com/s?wd=%E7%94%9F%E6%84%8F%E5%85%B4%E9%9A%86	shēng yì xìng lóng	n
+磕磕巴巴	not neutral	ke	https://dict.baidu.com/s?wd=%E7%A3%95%E7%A3%95%E5%B7%B4%E5%B7%B4	kē kē bā bā	n
 过家家	not looked up				n
 假正经	not looked up				n
 克星	not looked up				n
-少东家	not looked up				n
+少东家	no evidence	jia	https://dict.baidu.com/s?wd=%E5%B0%91%E4%B8%9C%E5%AE%B6	shào dōng jia	n
 袼褙	no evidence				n
-门市部	not looked up				n
+门市部	not neutral	shi	https://dict.baidu.com/s?wd=%E9%97%A8%E5%B8%82%E9%83%A8	mén shì bù	n
 傻气	not looked up				n
 吉他	not looked up				n
 奴性	not looked up				n
 抱抱	not looked up				n
-脚后跟	not looked up				n
-近视眼	not looked up				n
+脚后跟	not neutral	hou	https://dict.baidu.com/s?wd=%E8%84%9A%E5%90%8E%E8%B7%9F	jiǎo hòu gen	n
+近视眼	not neutral	shi	https://dict.baidu.com/s?wd=%E8%BF%91%E8%A7%86%E7%9C%BC	jìn shì yǎn	n
 鹌鹑	neutral	chun	https://m.ximalaya.com/ask/q4406224	鹌鹑作为词语，鹑读轻声	n
-一个劲儿	not looked up				n
+一个劲儿	no evidence	ge	https://dict.baidu.com/s?wd=%E4%B8%80%E4%B8%AA%E5%8A%B2%E5%84%BF	yī ge jìnr	n
 九月份	not looked up				n
-吃官司	not looked up				n
+吃官司	no evidence	si	https://dict.baidu.com/s?wd=%E5%90%83%E5%AE%98%E5%8F%B8	chī guān si	n
 榔槺	no evidence	kang	https://cd.hwxnet.com/view/lcjcbechhldfgifd.html	榔槺láng kāng	n
-玄乎	not looked up				n
-老大爷	not looked up				n
+玄乎	no evidence	hu	https://dict.baidu.com/s?wd=%E7%8E%84%E4%B9%8E	xuán hu	n
+老大爷	no evidence	ye	https://dict.baidu.com/s?wd=%E8%80%81%E5%A4%A7%E7%88%B7	lǎo dà ye / lǎo dà yé	n
 运数	not looked up				n
-太极拳	not looked up				n
-扑打	not looked up				n
+太极拳	not neutral	ji	https://dict.baidu.com/s?wd=%E5%A4%AA%E6%9E%81%E6%8B%B3	tài jí quán	n
+扑打	no evidence	da	https://dict.baidu.com/s?wd=%E6%89%91%E6%89%93	pū da / pū dǎ	n
 月季	not looked up				n
-舅爷	not looked up				n
+舅爷	not neutral	ye	https://dict.baidu.com/s?wd=%E8%88%85%E7%88%B7	jiù yé	n
 蜜蜡	not looked up				n
 七月份	not looked up				n
 十二月份	not looked up				n
-嚼舌头	not looked up				n
-大老婆	not looked up				n
+嚼舌头	no evidence	tou	https://dict.baidu.com/s?wd=%E5%9A%BC%E8%88%8C%E5%A4%B4	jiáo shé tou	n
+大老婆	no evidence	po	https://dict.baidu.com/s?wd=%E5%A4%A7%E8%80%81%E5%A9%86		n
 蛤蜊	no evidence	li	https://m.sohu.com/a/879554365_121949194/?pvid=000115_3w_a	“蛤蜊”在普通话中的标准发音为“gé lí”	n
 唢呐	not looked up				n
 撑门面	not looked up				n
 支使	not looked up				n
-盖头	not looked up				n
-莲蓬	not looked up				n
+盖头	no evidence	tou	https://dict.baidu.com/s?wd=%E7%9B%96%E5%A4%B4	gài tou	n
+莲蓬	no evidence	peng	https://dict.baidu.com/s?wd=%E8%8E%B2%E8%93%AC	lián peng	n
 蜈蚣	no evidence	gong			n
-不识抬举	not looked up				n
+不识抬举	no evidence	ju	https://dict.baidu.com/s?wd=%E4%B8%8D%E8%AF%86%E6%8A%AC%E4%B8%BE	bù shí tái ju	n
 十一月份	not looked up				n
 归拢	not looked up				n
 水灵	not looked up				n
 活菩萨	not looked up				n
 画眉	not looked up				n
-芍药	not looked up				n
+芍药	no evidence	yao	https://dict.baidu.com/s?wd=%E8%8A%8D%E8%8D%AF	sháo yao	n
 茴香	not looked up				n
 近便	not looked up				n
-教育学	not looked up				n
+教育学	not neutral	yu	https://dict.baidu.com/s?wd=%E6%95%99%E8%82%B2%E5%AD%A6	jiào yù xué	n
 歇菜	not looked up				n
 铺排	not looked up				n
-陪送	not looked up				n
-土里土气	not looked up				n
+陪送	no evidence	song	https://dict.baidu.com/s?wd=%E9%99%AA%E9%80%81	péi song / péi sòng	n
+土里土气	not neutral	li	https://dict.baidu.com/s?wd=%E5%9C%9F%E9%87%8C%E5%9C%9F%E6%B0%94	tǔ lǐ tǔ qì	n
 夜叉	not looked up				n
 手气	not looked up				n
 泔水	not looked up				n
 紫菜	not looked up				n
 拆洗	not looked up				n
-畜牲	not looked up				n
-花花肠子	not looked up				n
+畜牲	no evidence	sheng	https://dict.baidu.com/s?wd=%E7%95%9C%E7%89%B2	chù sheng	n
+花花肠子	no evidence	hua	https://dict.baidu.com/s?wd=%E8%8A%B1%E8%8A%B1%E8%82%A0%E5%AD%90	huā hua cháng zi	n
 阿妈	not looked up				n
 做掉	not looked up				n
 护师	not looked up				n
 棒槌	neutral (must-read list)				y
 魔怔	no evidence	zheng	https://zdic.net/hans/%E9%AD%94%E6%80%94	拼音 mó zhēng	n
 麻婆豆腐	not looked up				n
-黄花闺女	not looked up				n
-冰激凌	not looked up				n
-凤凰木	not looked up				n
+黄花闺女	not neutral	nü	https://dict.baidu.com/s?wd=%E9%BB%84%E8%8A%B1%E9%97%BA%E5%A5%B3	huáng huā guī nǚ	n
+冰激凌	not neutral	ji	https://dict.baidu.com/s?wd=%E5%86%B0%E6%BF%80%E5%87%8C	bīng jī líng	n
+凤凰木	not neutral	huang	https://dict.baidu.com/s?wd=%E5%87%A4%E5%87%B0%E6%9C%A8	fèng huáng mù	n
 扑克脸	not looked up				n
 挂碍	not looked up				n
-混混儿	not looked up				n
+混混儿	no evidence	hun	https://dict.baidu.com/s?wd=%E6%B7%B7%E6%B7%B7%E5%84%BF	hùn hunr	n
 这阵儿	not looked up				n
 酌量	not looked up				n
-公共关系	not looked up				n
+公共关系	not neutral	xi	https://dict.baidu.com/s?wd=%E5%85%AC%E5%85%B1%E5%85%B3%E7%B3%BB	gōng gòng guān xì	n
 呵欠	not looked up				n
 痔疮	not looked up				n
-筋斗	not looked up				n
+筋斗	not neutral	dou	https://dict.baidu.com/s?wd=%E7%AD%8B%E6%96%97	jīn dǒu	n
 舅母	not looked up				n
 茶钱	not looked up				n
-凤凰男	not looked up				n
-向日葵	not looked up				n
+凤凰男	not neutral	huang	https://dict.baidu.com/s?wd=%E5%87%A4%E5%87%B0%E7%94%B7	fèng huáng nán	n
+向日葵	not neutral	ri	https://dict.baidu.com/s?wd=%E5%90%91%E6%97%A5%E8%91%B5	xiàng rì kuí	n
 喜鹊	neutral	que	http://www.jiaodui.com/bbs/read.php?tid=32707&ds=1	《现代汉语词典》第5、6、7版:【喜鹊】xǐ•què[名]	n
-抢风头	not looked up				n
-活便	not looked up				n
+抢风头	no evidence	tou	https://dict.baidu.com/s?wd=%E6%8A%A2%E9%A3%8E%E5%A4%B4		n
+活便	no evidence	bian	https://dict.baidu.com/s?wd=%E6%B4%BB%E4%BE%BF	huó bian	n
 狒狒	no evidence	fei	https://zdic.net/hant/%E7%8B%92%E7%8B%92		n
 精神分析	not looked up				n
-耳塞	not looked up				n
+耳塞	no evidence	sai	https://dict.baidu.com/s?wd=%E8%80%B3%E5%A1%9E	ěr sai / ěr sāi	n
 节肢动物	not looked up				n
-债务人	not looked up				n
+债务人	not neutral	wu	https://dict.baidu.com/s?wd=%E5%80%BA%E5%8A%A1%E4%BA%BA	zhài wù rén	n
 哈喽	not looked up				n
 坷垃	not looked up				n
-扳指儿	not looked up				n
+扳指儿	no evidence	zhi	https://dict.baidu.com/s?wd=%E6%89%B3%E6%8C%87%E5%84%BF	bān zhir	n
 数理逻辑	not looked up				n
-罗锅	not looked up				n
+罗锅	no evidence	guo	https://dict.baidu.com/s?wd=%E7%BD%97%E9%94%85	luó guo / luó guō	n
 幼稚园	not looked up				n
-灯笼裤	not looked up				n
+灯笼裤	no evidence	long	https://dict.baidu.com/s?wd=%E7%81%AF%E7%AC%BC%E8%A3%A4	dēng long kù	n
 犁头	not looked up				n
 独个	not looked up				n
-起司	not looked up				n
+起司	no evidence	si	https://dict.baidu.com/s?wd=%E8%B5%B7%E5%8F%B8		n
 香椿	no evidence	chun	https://zdic.net/hans/%E9%A6%99%E6%A4%BF	拼音xiāng chūn	n
 孙媳妇	not looked up				n
 挤对	not looked up				n
