@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.19.0 (2026-11-21)
+
+Tap a cross-reference to open its word (#62)
+- In CC-CEDICT's text, a word given with its pinyin can now be tapped: the 贤慧 in "variant of
+  賢慧|贤慧 xiánhuì", 东西 in "see 东西 dōngxi", 家伙 in "used in 傢伙|家伙 jiāhuo", 个 in "CL: 個|个
+  gè", 惠顾 in "(as in 惠顧|惠顾 huìgù)", and the word leading a variant's definition line ("贤慧:
+  ..."). One tap, on any of its characters, either form of a traditional|simplified pair, or its
+  pinyin, opens a popup for the whole word, titled with it, with its entry first and the reading
+  the reference gives first.
+- Taps anywhere else in CC-CEDICT's text still do nothing, and the Chinese dictionaries' text
+  works as before.
+
 ## 2.18.0 (2026-11-21)
 
 Cross-reference-only CC-CEDICT entries show their target's definitions (#61)

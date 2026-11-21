@@ -652,6 +652,43 @@ eq(#Model.xrefLines({ senses = { "x" } }), 0)
 local xm = { { word = "贤惠", start = 0, len = 2, entries = xo } }
 eq(table.concat(Model.blocks(xm, "贤", true)[1].lines, "\n"), "variant of 賢慧|贤慧 xiánhuì\n贤慧: wise and kind; see also 賢人|贤人 xiánrén")
 
+-- #62: cross-reference spans in CC-CEDICT lines, and the tapped one first.
+local function spanList(lines)
+    local out = {}
+    for _, sp in ipairs(Model.xrefSpans(lines)) do
+        local cs = chars(table.concat(lines, "\n"))
+        out[#out + 1] = table.concat(cs, "", sp.from, sp.to) .. "=" .. sp.word .. "/" .. (sp.alt or "") .. "/" .. sp.pinyin
+    end
+    return table.concat(out, " ; ")
+end
+eq(spanList({ "variant of 賢慧|贤慧 xiánhuì" }), "賢慧|贤慧 xiánhuì=贤慧/賢慧/xiánhuì")
+eq(spanList({ "variant of 贤慧 xiánhuì" }), "贤慧 xiánhuì=贤慧//xiánhuì")
+eq(spanList({ "see 河北省 Héběi Shěng" }), "河北省 Héběi=河北省//Héběi Shěng")
+eq(spanList({ "CL: 個|个 gè, 隻|只 zhī" }), "個|个 gè=个/個/gè ; 隻|只 zhī=只/隻/zhī")
+eq(spanList({ "(bound form) kind (as in 惠顧|惠顾 huìgù)" }), "惠顧|惠顾 huìgù=惠顾/惠顧/huìgù")
+eq(spanList({ "Hebei Province, capital 石家莊市|石家庄市 Shíjiāzhuāng Shì (short name 冀 Jì)" }),
+   "石家莊市|石家庄市 Shíjiāzhuāng=石家庄市/石家莊市/Shíjiāzhuāng Shì ; 冀 Jì=冀//Jì")
+eq(spanList({ "variant of 賢慧|贤慧 xiánhuì", "贤慧: wise and kind" }),
+   "賢慧|贤慧 xiánhuì=贤慧/賢慧/xiánhuì ; 贤慧=贤慧//", "a lead-in line")
+eq(spanList({ "branch of Xianbei 鮮卑|鲜卑", "Huì: surname Hui" }), "", "no pinyin, no lead-in: none")
+eq(spanList({ "a 人: b" }), "", "a colon not at the line's start")
+local sp = Model.xrefSpans({ "variant of 賢慧|贤慧 xiánhuì" })[1]
+eq(Model.spanOffset(sp, 12), 1); eq(Model.spanOffset(sp, 13), 2); eq(Model.spanOffset(sp, 15), 1)
+eq(Model.spanOffset(sp, 16), 2); eq(Model.spanOffset(sp, 19), 1, "on the pinyin")
+local function mm()
+    return { { word = "合", len = 1, entries = { { pinyin = "hé" }, { pinyin = "gě" } } },
+             { word = "合格", len = 2, entries = { { pinyin = "hégé" } } } }
+end
+local sf = Model.spanFirst(mm(), { word = "合", pinyin = "gě" })
+eq(sf[1].word, "合"); eq(sf[1].entries[1].pinyin, "gě")
+sf = Model.spanFirst(mm(), { word = "合格", alt = "閤格", pinyin = "hégé" })
+eq(sf[1].word, "合格"); eq(sf[2].word, "合")
+sf = Model.spanFirst({ { word = "河", entries = {} }, { word = "河北省", entries = { { pinyin = "x" }, { pinyin = "Héběi Shěng" } } } },
+    { word = "河北省", pinyin = "Héběi Shěng" })
+eq(sf[1].word, "河北省"); eq(sf[1].entries[1].pinyin, "Héběi Shěng")
+sf = Model.spanFirst(mm(), { word = "茄萣", pinyin = "Qiédìng" })
+eq(sf[1].word, "合", "not there: unchanged")
+
 ------------------------------------------------------------------------
 -- Citation tones for ties the traditional form can't break (#52)
 ------------------------------------------------------------------------

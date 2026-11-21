@@ -133,3 +133,22 @@ do
     eq(Glyphs.cut(chars, 7, 11, 5, measure), 6, "none fit: an empty line")
     eq(Glyphs.cut(chars, 1, 6, 100, measure), 5, "a trailing newline dropped")
 end
+
+-- #62: a box with cross-reference spans takes taps only on them (the
+-- pinyin's letters included); elsewhere it is as if it were not there.
+do
+    local Model = require("ch_popup_model")
+    local lines = { "variant of 賢慧|贤慧 xiánhuì" }
+    local spans = Model.xrefSpans(lines)
+    local b = box(table.concat(lines, "\n"), 0, 0, 20, 1000)
+    b.spans = Glyphs.spanIndex(spans)
+    -- "variant of " is 11 half-width characters (10 px each): 賢 at 110-130.
+    eq(tap({ b }, 115, 10), "賢", "on the traditional form")
+    eq(tap({ b }, 175, 10), "贤", "on the simplified form")
+    eq(select(3, tap({ b }, 225, 10)) ~= nil, true, "on the pinyin")
+    eq(tap({ b }, 15, 10), nil, "on 'variant': nothing")
+    -- A Chinese box below still gets a tap near the CEDICT text's letters.
+    local zh = box("歡笑", 0, 40, 20, 1000)
+    eq(tap({ b, zh }, 15, 45), "歡", "the span box doesn't take it")
+    eq(tap({ b, zh }, 15, 36), "歡", "within reach of 歡, not on a span")
+end

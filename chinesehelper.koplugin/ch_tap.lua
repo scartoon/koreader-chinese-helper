@@ -442,6 +442,9 @@ its own popup on top, looked up like a tap in the book (the character and
 every word around it that contains it, in that text), with that text's
 sentence (Sentence.inText) as its context line, and no Translate button
 (only the popup from the page has one). The character is underlined in `layer` while the new popup is shown.
+A tap on a CC-CEDICT cross-reference (hit.span, #62: "variant of 賢慧|贤慧
+xiánhuì") looks up the word it names instead, its entry first, with the
+reading the reference gives first.
 ]]
 function Tap:openNested(layer, hit)
     if #self:stack() >= Tap.MAX_DEPTH then
@@ -454,23 +457,39 @@ function Tap:openNested(layer, hit)
     local t0 = time.monotonic()
     local Sentence = require("ch_sentence")
     local chars, i = hit.chars, hit.index
+    local char = hit.char
     local left = Text.hanSuffix(table.concat(chars, "", 1, i - 1))
     local right = Text.hanPrefix(table.concat(chars, "", i + 1))
-    local sentence = Sentence.inText(chars, i) or { text = hit.char, from = i, to = i }
+    local span = hit.span
+    if span then
+        -- A cross-reference (#62): the word it names, whichever of its forms
+        -- or its pinyin was tapped; only that word and the words inside it.
+        local word = Text.chars(span.word)
+        local at = Model.spanOffset(span, i)
+        char = word[at]
+        left, right = {}, {}
+        for k = 1, at - 1 do left[#left + 1] = word[k] end
+        for k = at + 1, #word do right[#right + 1] = word[k] end
+    end
+    local sentence = Sentence.inText(chars, i) or { text = char, from = i, to = i }
     local context
     if self.plugin.settings:contextEnabled() then
         context = { chars = Snippet.chars(sentence.text, "\n"), index = i - sentence.from + 1 }
     end
-    local found = self:lookup(db, hit.char, left, right, function() return self:resolveRun(left, hit.char, right) end)
+    local found = self:lookup(db, char, left, right, function() return self:resolveRun(left, char, right) end)
+    if span then Model.spanFirst(found.matches, span) end
     -- (Also kept while KOReader's dictionary popup is shown instead: its
     -- close takes it away, Tap:present.)
     layer:setMark(hit)
     self:present{
-        db = db, char = hit.char, box = hit.rect, cands = found.cands, rows = found.rows, matches = found.matches,
+        db = db, char = char, box = hit.rect, cands = found.cands, rows = found.rows, matches = found.matches,
         annotated = false, context = context, parent = layer,
+        -- The word's popup: titled with it, and nothing of the character's
+        -- own (components, rank, Classical entries) above its entry.
+        word = span and #left + #right > 0 and span.word or nil,
     }
     logger.dbg(string.format("chinesehelper: nested %s [%s|%s] depth %d, sentence %q, %d matches in %.1f ms",
-        hit.char, table.concat(left, ""), table.concat(right, ""), #self:stack(), sentence.text,
+        char, table.concat(left, ""), table.concat(right, ""), #self:stack(), sentence.text,
         #found.matches, time.to_ms(time.monotonic() - t0)))
 end
 
@@ -609,11 +628,13 @@ Show the popup. Returns it, or nil (straight to KOReader's dictionaries).
   args.parent                       the popup whose text was tapped, or nil (the page)
   args.reading                      { chosen=, rank=, unusual= } at the tapped position, for
                                     the reading-mark buttons (page taps only), or nil
+  args.word                         a cross-reference's word (#62): the popup's title, and no
+                                    components, rank or Classical entries for args.char
   args.spoken                       the spoken tone drawn above 一 or 不 when it is not the
                                     dictionary's (#37), or nil
 ]]
 function Tap:present(args)
-    local comp = self:components(args.db, args.char, args.cands, args.rows)
+    local comp = not args.word and self:components(args.db, args.char, args.cands, args.rows) or nil
     local parent = args.parent
     local popup
     -- KOReader's dictionary popup, opened from this tap: keeps the underline
@@ -632,7 +653,7 @@ function Tap:present(args)
     if #args.matches == 0 and not comp then
         -- No dictionary (CC-CEDICT or a fallback dictionary) has the
         -- character or any word around it: straight to KOReader's dictionaries.
-        lookup(args.char)
+        lookup(args.word or args.char)
         return nil
     end
     local Popup = require("ch_popup")
@@ -643,7 +664,7 @@ function Tap:present(args)
     local settings = self.plugin.settings
     -- The tapped character's frequency rank, on its own entry (#17).
     local rank_text
-    if settings:charRankEnabled() then
+    if settings:charRankEnabled() and not args.word then
         local data = self.plugin:readings()
         if data then rank_text = Model.rankText(data:rankInfo(args.char)) end
     end
@@ -666,7 +687,7 @@ function Tap:present(args)
             end
             table.insert(blocks, at, block)
         end
-        if has_classical and settings:classicalEnabled() then
+        if has_classical and settings:classicalEnabled() and not args.word then
             -- Classical mode (#53, #56): the Classical entries first, in full,
             -- above everything else; the rank moves up onto the first of them.
             local cl = Model.classicalBlocks(args.db:classical(args.char), args.char,
@@ -733,7 +754,7 @@ function Tap:present(args)
     end
     local font_size = self:textHeight()
     popup = Popup:new{
-        title = args.char,
+        title = args.word or args.char,
         blocks = blocks,
         labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
         context = args.context,

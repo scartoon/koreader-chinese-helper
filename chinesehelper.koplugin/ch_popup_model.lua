@@ -12,6 +12,7 @@
 --     lacks it (a pypinyin phrase, or a special word with a note such as 冒顿).
 
 local Pinyin = require("ch_pinyin")
+local Text = require("ch_text")
 
 local Model = {}
 
@@ -875,6 +876,115 @@ function Model.xrefLines(e)
         end
     end
     return out
+end
+
+--[[--
+The cross-references in a CC-CEDICT block's lines (#62), for taps: each
+form or form pair followed by pinyin, as tools/build_db.py clean_sense
+writes them ("variant of 賢慧|贤慧 xiánhuì", "see 河北省 Héběi Shěng", "CL: 个
+gè", "(as in 惠顧|惠顾 huìgù)"), and a line led by a cross-reference's target
+("贤慧: ...", Model.xrefLines). Character indices are those of
+Text.chars(table.concat(lines, "\n")), which is what the popup draws.
+Returns { {from=, to=, word=, alt=, pinyin=, forms={ {from=, to=}, ... }}, ... }:
+from..to the characters a tap opens it from (the forms, and the pinyin's
+first word); word the form to look up (the simplified one of a pair), alt
+the other; pinyin the reading given (up to , ; ( ) or the line's end; ""
+for a lead-in); forms the forms' own ranges.
+]]
+local SPAN_STOP = { [","] = true, [";"] = true, ["("] = true, [")"] = true, ["\n"] = true, ["，"] = true }
+
+local function latinStart(c)
+    if not c then return false end
+    if c:match("^%a$") then return true end
+    local cp = Text.codepoint(c)
+    return cp ~= nil and cp >= 0xC0 and cp <= 0x24F and cp ~= 0xD7 and cp ~= 0xF7
+end
+
+function Model.xrefSpans(lines)
+    local cs = Text.chars(table.concat(lines or {}, "\n"))
+    local n = #cs
+    local spans = {}
+    local function hanEnd(j)
+        while j <= n and Text.isHan(cs[j]) do j = j + 1 end
+        return j - 1
+    end
+    local i, line_start = 1, true
+    while i <= n do
+        if Text.isHan(cs[i]) then
+            local e1 = hanEnd(i)
+            local forms = { { from = i, to = e1 } }
+            local last = e1
+            if cs[e1 + 1] == "|" and cs[e1 + 2] and Text.isHan(cs[e1 + 2]) then
+                last = hanEnd(e1 + 2)
+                forms[2] = { from = e1 + 2, to = last }
+            end
+            local function form(k) return table.concat(cs, "", forms[k].from, forms[k].to) end
+            local word = form(#forms)
+            local alt = #forms == 2 and form(1) or nil
+            local span
+            if cs[last + 1] == " " and latinStart(cs[last + 2]) then
+                local k = last + 2
+                while k <= n and not SPAN_STOP[cs[k]] do k = k + 1 end
+                local w = last + 2
+                while w <= n and cs[w] ~= " " and not SPAN_STOP[cs[w]] do w = w + 1 end
+                local pinyin = table.concat(cs, "", last + 2, k - 1):gsub("%s+$", "")
+                span = { from = i, to = w - 1, word = word, alt = alt, pinyin = pinyin, forms = forms }
+            elseif line_start and cs[last + 1] == ":" then
+                span = { from = i, to = last, word = word, alt = alt, pinyin = "", forms = forms }
+            end
+            if span then spans[#spans + 1] = span end
+            i = (span and span.to or last) + 1
+            line_start = false
+        else
+            line_start = cs[i] == "\n"
+            i = i + 1
+        end
+    end
+    return spans
+end
+
+-- The character of span.word a tap on character index i of the span stands
+-- for: its index in the word (a tap on the other form of a pair, the same
+-- place in it; on the pinyin, the first character).
+function Model.spanOffset(span, i)
+    for _, f in ipairs(span.forms or {}) do
+        if i >= f.from and i <= f.to then
+            local n = #Text.chars(span.word)
+            return math.max(1, math.min(n, i - f.from + 1))
+        end
+    end
+    return 1
+end
+
+local function plainPinyin(s)
+    return (Pinyin.lower(s or ""):gsub("[%s'’·%-]", ""))
+end
+
+--[[--
+A cross-reference tapped (#62): the match for its word (either form) moved
+first, and in it the entry whose pinyin the reference gives (the longest
+that the reference's pinyin starts with: "Héběi Shěng" is 河北省's) first.
+Changes `matches` in place and returns it.
+]]
+function Model.spanFirst(matches, span)
+    for k, m in ipairs(matches) do
+        if m.word == span.word or (span.alt and m.word == span.alt) then
+            table.remove(matches, k)
+            table.insert(matches, 1, m)
+            local want = plainPinyin(span.pinyin)
+            local best, best_n
+            for j, e in ipairs(m.entries) do
+                local p = plainPinyin(e.pinyin)
+                if p ~= "" and want:sub(1, #p) == p and (not best_n or #p > best_n) then best, best_n = j, #p end
+            end
+            if best and best > 1 then
+                local e = table.remove(m.entries, best)
+                table.insert(m.entries, 1, e)
+            end
+            break
+        end
+    end
+    return matches
 end
 
 --[[--

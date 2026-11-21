@@ -581,11 +581,16 @@ function Popup:body(text_w, max_h, full)
         self.tap_boxes = {}
         self.toggles = {}
         local group = VerticalGroup:new{ align = "left" }
-        -- A text box; `tappable` ones (Model.tappable) are kept for charAt.
-        local function box(text, face, width, tappable)
+        -- A text box; `tappable` ones (Model.tappable) are kept for charAt,
+        -- and so are boxes with cross-reference `spans` (Model.xrefSpans,
+        -- #62), where only the spans take taps.
+        local function box(text, face, width, tappable, spans)
             local tbw = TextBoxWidget:new{ text = text, face = face, width = width }
             if tappable then
                 self.tap_boxes[#self.tap_boxes + 1] = { widget = tbw, chars = Glyphs.chars(text) }
+            elseif spans and #spans > 0 then
+                self.tap_boxes[#self.tap_boxes + 1] = { widget = tbw, chars = Glyphs.chars(text),
+                                                        spans = Glyphs.spanIndex(spans) }
             end
             return tbw
         end
@@ -648,7 +653,9 @@ function Popup:body(text_w, max_h, full)
                         probe:free()
                     end
                 end
-                lines_box = lines_box or box(text, face, width, tappable)
+                -- CC-CEDICT's cross-references open their word (#62).
+                local spans = not tappable and (b.source == "cedict") and Model.xrefSpans(b.lines) or nil
+                lines_box = lines_box or box(text, face, width, tappable, spans)
             end
             -- On the tapped character's own entry, its frequency rank (and
             -- spoken mark); then the source label on a row of its own.
@@ -705,20 +712,23 @@ function Popup:layouts()
     for k, reg in ipairs(self.tap_boxes or {}) do
         out[k] = Glyphs.layout(reg.widget, reg.chars, clip)
             or { x = 0, y = 0, line_h = 1, lines = {}, chars = reg.chars, clip = clip }
+        out[k].spans = reg.spans
     end
     return out
 end
 
 --[[--
 The Han character of the body at screen position `pos`, or nil:
-{ box=, index=, char=, chars= (the box's text), rect= (its screen box) }.
+{ box=, index=, char=, chars= (the box's text), rect= (its screen box),
+span= (the cross-reference tapped, #62: Model.xrefSpans) }.
 ]]
 function Popup:charAt(pos)
     local boxes = self:layouts()
     local k, i, rect = Glyphs.find(boxes, pos.x, pos.y)
     if not k then return nil end
-    local chars = self.tap_boxes[k].chars
-    return { box = k, index = i, char = chars[i], chars = chars, rect = rect }
+    local reg = self.tap_boxes[k]
+    local chars = reg.chars
+    return { box = k, index = i, char = chars[i], chars = chars, rect = rect, span = reg.spans and reg.spans[i] }
 end
 
 -- Underline a character of the body (a hit from charAt) while a popup opened
