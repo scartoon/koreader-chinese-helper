@@ -63,7 +63,7 @@ Settings.DEFAULTS = {
     moe_chars = "fallback",
     moe_words = "fallback",
     collapse_lines = 2,       -- "Collapse long entries": 1, 2 or 3 lines, 0 = never
-    labels = "fallback",      -- source labels: "all", "fallback" (entries not from CC-CEDICT), "none"
+    labels = "all",           -- source labels: "all" or "none" (an old "fallback" reads as "all")
     edge_mm = 5,              -- "Edge pass-through width": 0 (off), 2.5, 5, 7.5 or 10 mm
     popup_text_pct = 60,      -- 38 px on a Boox Go 7 with 64 px book text (the old popups used 43 px)
     chinese_text_pct = 130,   -- "Chinese text size": MOE, 成語典, Xinhua and Moegirlpedia text, and the Origin & Usage view
@@ -178,7 +178,7 @@ function Settings:setFallbackOrder(list)
     self:set("fallback_order", table.concat(list, ","))
 end
 
-Settings.LABEL_MODES = { "all", "fallback", "none" }
+Settings.LABEL_MODES = { "all", "none" }
 
 function Settings:labelMode()
     local mode = self:get("labels")

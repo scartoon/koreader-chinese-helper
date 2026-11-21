@@ -283,7 +283,7 @@ def settings_variant(original, pinyin=True, threshold=None, classical=False):
             "chinesehelper_popup_enabled": "true", "chinesehelper_popup_text_pct": 60,
             "chinesehelper_chinese_text_pct": 130, "chinesehelper_char_rank": "true",
             "chinesehelper_rank_source": '"bundled"',   # the gate's ranks, whatever the reader picked
-            "chinesehelper_labels": '"fallback"', "chinesehelper_moe_chars": f'"{SHOT_MOE}"', "chinesehelper_moe_words": f'"{SHOT_MOE}"',
+            "chinesehelper_labels": '"all"', "chinesehelper_moe_chars": f'"{SHOT_MOE}"', "chinesehelper_moe_words": f'"{SHOT_MOE}"',
             "chinesehelper_uncertain": '"both"',
             "chinesehelper_components": "true", "chinesehelper_popup_context": "true",
             "chinesehelper_page_underline": "true",

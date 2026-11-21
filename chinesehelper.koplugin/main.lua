@@ -820,22 +820,18 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Dictionaries"),
-                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be set to Always (its MOE for single characters and MOE for words items): under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
+                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be set to Always (its MOE for single characters and MOE for words items): under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Every entry carries a small grey label naming its dictionary (CC-CEDICT's as CEDICT), unless Source labels is set to None. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
                 sub_item_table = plugin:fallbackItems(apply, {
                     {
                         text_func = function()
-                            local names = { all = _("all entries"), fallback = _("other dictionaries only"),
-                                            none = _("none") }
+                            local names = { all = _("all entries"), none = _("none") }
                             return T(_("Source labels: %1"), names[settings:labelMode()])
                         end,
-                        help_text = _("A small grey line above an entry naming its dictionary: CEDICT, Wikt (Wiktionary), CBDB, MOE, WP (Wikipedia titles) or Moegirl (Moegirlpedia)."),
+                        help_text = _("A small grey line above each entry naming its dictionary: CEDICT (CC-CEDICT), 文言 (the Classical dictionary), Wikt (Wiktionary), CBDB, 國語辭典 (MOE), 成语典, 新华, WP (Wikipedia titles) or Moegirl (Moegirlpedia). It sits on a row of its own, below the 字频 line of the tapped character's entry. None hides them all."),
                         sub_item_table = {
                             { text = _("All entries"), radio = true, keep_menu_open = true,
                               checked_func = function() return settings:labelMode() == "all" end,
                               callback = function() settings:set("labels", "all") end },
-                            { text = _("Other dictionaries only (not CC-CEDICT)"), radio = true, keep_menu_open = true,
-                              checked_func = function() return settings:labelMode() == "fallback" end,
-                              callback = function() settings:set("labels", "fallback") end },
                             { text = _("None"), radio = true, keep_menu_open = true,
                               checked_func = function() return settings:labelMode() == "none" end,
                               callback = function() settings:set("labels", "none") end },

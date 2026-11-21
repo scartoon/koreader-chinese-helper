@@ -70,10 +70,12 @@ s:set("threshold", 1500); eq(s:threshold(), 1500)
 s:set("threshold", 1234); eq(s:threshold(), 3500, "not one of THRESHOLDS: the default")
 s:set("threshold", "2500"); eq(s:threshold(), 2500)
 s:set("threshold", 1500)
--- Source labels: default "fallback"; anything else unknown falls back to it.
-eq(Settings.new(store()):labelMode(), "fallback")
-eq(Settings.new(store{ chinesehelper_labels = "all" }):labelMode(), "all")
-eq(Settings.new(store{ chinesehelper_labels = "x" }):labelMode(), "fallback")
+-- Source labels (#59): "all" (default) or "none"; the old "fallback" and
+-- anything else unknown read as "all".
+eq(Settings.new(store()):labelMode(), "all")
+eq(Settings.new(store{ chinesehelper_labels = "none" }):labelMode(), "none")
+eq(Settings.new(store{ chinesehelper_labels = "fallback" }):labelMode(), "all", "old stored fallback")
+eq(Settings.new(store{ chinesehelper_labels = "x" }):labelMode(), "all")
 eq(Settings.new(store()):fallbackEnabled("wikt"), true); eq(Settings.new(store()):fallbackEnabled("moe"), true)
 for _, src in ipairs({ "wp", "cbdb", "moegirl", "idioms", "xinhua" }) do eq(Settings.new(store()):fallbackEnabled(src), true) end
 -- The fallback priority: the default, a setting naming some (the rest

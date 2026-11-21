@@ -139,8 +139,8 @@ do
     local matches = { { len = 1 }, { len = 2 } }
     Model.markRank(blocks, matches, "字频 5")
     eq(Model.markSpoken(blocks, matches, "bú"), true)
-    eq(Model.labelText(blocks[1], false), "字频 5 · spoken here: bú")
-    eq(Model.labelText(blocks[2], false), nil)
+    eq(table.concat(Model.labelLines(blocks[1], false), " / "), "字频 5 · spoken here: bú")
+    eq(#Model.labelLines(blocks[2], false), 0)
     blocks = { { lines = {} } }
     eq(Model.markSpoken(blocks, matches, nil), false)
     eq(blocks[1].spoken, nil)

@@ -230,7 +230,7 @@ local function present(g, char, cands, rows, matches, annotated)
     Model.chineseLast(blocks)
     local label_mode = g.settings:labelMode()
     local function label(source)
-        if label_mode == "none" or (label_mode == "fallback" and source == "cedict") then return false end
+        if label_mode == "none" then return false end
         return Model.SOURCE_LABELS[source] or source
     end
     local out = {}

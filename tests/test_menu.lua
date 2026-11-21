@@ -79,7 +79,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 20 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 14 + 3 + 1, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels, order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
+eq(count, 20 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 13 + 3 + 1, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels (2), order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
@@ -318,14 +318,16 @@ end
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
 local fb_item = entry.sub_item_table[19]
 eq(fb_item.text, "Dictionaries")
--- Source labels: default "other dictionaries only".
+-- Source labels (#59): All entries (default) or None.
 local labels_item = fb_item.sub_item_table[1]
-eq(labels_item.text_func(), "Source labels: other dictionaries only")
-assert(labels_item.sub_item_table[2].checked_func())
-labels_item.sub_item_table[1].callback(); eq(plugin.settings:labelMode(), "all")
-labels_item.sub_item_table[3].callback(); eq(plugin.settings:labelMode(), "none")
+eq(labels_item.text_func(), "Source labels: all entries")
+eq(#labels_item.sub_item_table, 2)
+eq(labels_item.sub_item_table[1].text, "All entries"); eq(labels_item.sub_item_table[2].text, "None")
+assert(labels_item.sub_item_table[1].checked_func())
+labels_item.sub_item_table[2].callback(); eq(plugin.settings:labelMode(), "none")
 eq(labels_item.text_func(), "Source labels: none")
-labels_item.sub_item_table[2].callback()
+assert(labels_item.help_text:find("CEDICT", 1, true), labels_item.help_text)
+labels_item.sub_item_table[1].callback(); eq(plugin.settings:labelMode(), "all")
 -- Dictionary text (#48): Original by default, or Simplified.
 local text_item = fb_item.sub_item_table[2]
 eq(text_item.text_func(), "Dictionary text: original")

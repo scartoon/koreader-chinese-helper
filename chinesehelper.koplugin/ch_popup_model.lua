@@ -1003,16 +1003,17 @@ function Model.rankText(rank, source, exact)
     return text
 end
 
--- The small grey line above a block: its source label (when `labelled`) and
--- the rank (block.rank, the tapped character's own entry only), on one line
--- ("CEDICT · 字频 4,270"); nil when there is neither.
-function Model.labelText(block, labelled, labels)
-    local parts = {}
-    if labelled then parts[#parts + 1] = (labels or {})[block.source] or block.source end
+-- The small grey lines above a block, top to bottom (#59): the rank
+-- (block.rank, the tapped character's own entry only) and the spoken mark on
+-- one line ("字频 4,270 · spoken here: bú"), then the source label (when
+-- `labelled`) on a row of its own. A label and the rank never share a line.
+function Model.labelLines(block, labelled, labels)
+    local lines, parts = {}, {}
     if block.rank then parts[#parts + 1] = block.rank end
     if block.spoken then parts[#parts + 1] = block.spoken end
-    if #parts == 0 then return nil end
-    return table.concat(parts, " · ")
+    if #parts > 0 then lines[#lines + 1] = table.concat(parts, " · ") end
+    if labelled then lines[#lines + 1] = (labels or {})[block.source] or block.source end
+    return lines
 end
 
 -- Put `rank_text` on the tapped character's own block: blocks[1] when the
