@@ -150,21 +150,21 @@ SHOTS = {
         frames=[(1, (95, 1191))]),
     "context": dict(page="kyj14", taps=[("间", 1, (773, 500), [
         "**间** 間  jiàn · likely here", "**间或** 間或  jiànhuò · decides 间's reading"])],
-        frames=[(1, (172, 1090))]),
+        frames=[(1, (137, 1126))]),
     "components": dict(page="kyj13", taps=[("茴", 1, (988, 790), [
         "**茴**  huí", "**艹** cǎo  grass; plant (草字头)  → meaning",
         "**回** huí  to go back; to return  → sound (same sound)", "**茴香豆**  huíxiāngdòu"])],
-        frames=[(1, (163, 1100))]),
+        frames=[(1, (120, 1143))]),
     "traditional": dict(page="aq59", taps=[("观", 1, (170, 965), [
         "**观** 觀  guān · likely here", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
         "simplified: 雚 → 又", "**观音** 觀音  Guānyīn · decides 观's reading"])],
-        frames=[(1, (138, 1124))]),
+        frames=[(1, (103, 1160))]),
     "chengyu": dict(page="kyj13", taps=[("也", 3, (170, 590), [
-        "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 890), [])],
-        frames=[(1, (105, 1158)), (2, (20, 700))]),
+        "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 955), [])],
+        frames=[(1, (57, 1206)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
         "**秋** 秋/鞦  qiū", "[MMAH]", "  [國語辭典]\n  **秋月春风**", "**秋月春风** 秋月春風  qiū yuè chūn fēng", MOE_QUOTE, "[Wikt]", "**秋月**  qiūyuè"])],
-        frames=[(1, (83, 1179))]),
+        frames=[(1, (66, 1198))]),
     # A character of the popup's own text: 歡, inside MOE's quotation of 〈琵琶行〉
     # (MOE's own characters, #48), opens its popup on top; the context line is
     # the quotation (the device's log must give it as the sentence), the 歡
@@ -172,7 +172,7 @@ SHOTS = {
     "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["  [國語辭典]\n  **秋月春风** 秋月春風  qiū yuè chūn fēng",
                                                             MOE_QUOTE]),
                                      (MOE_QUOTE[3], "nested", (1322, 772), [MOE_QUOTE])],
-                   frames=[(2, (83, 1179))]),
+                   frames=[(2, (66, 1198))]),
     "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃** 竊  qiè"])],
         frames=[(1, (15, 1166))]),
     # The same popup, then its Translate & Analyze button (at `koassistant`):
@@ -200,7 +200,7 @@ SHOTS = {
         frames=[(1, (95, 1191))]),
     # The popup's title-bar button, on 盘 in that paragraph.
     "mark-button": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[("盘", 1, (260, 565), ["**盘** 盤  pán"])],
-                        frames=[(1, (188, 561))]),
+                        frames=[(1, (169, 542))]),
 }
 
 
