@@ -49,7 +49,8 @@ defs, short and view, and the simplified text, where it differs, in
 defs_simp, short_simp and view_simp. With `simplified`, those replace the
 originals; either way the *_simp fields are dropped. Rows from files built
 before 2.13.0 have no simplified copy and keep their one text. Changes the
-rows in place and returns them.
+rows in place and returns them. A CC-CEDICT row's xref (#61) is CC-CEDICT
+text too: the same choice.
 ]]
 function Model.chooseText(rows, simplified)
     for _, row in ipairs(rows or {}) do
@@ -57,8 +58,10 @@ function Model.chooseText(rows, simplified)
             if row.defs_simp then row.defs = row.defs_simp end
             if row.short_simp then row.short = row.short_simp end
             if row.view_simp then row.view = row.view_simp end
+            if row.xref and row.xref.defs_simp then row.xref.defs = row.xref.defs_simp end
         end
         row.defs_simp, row.short_simp, row.view_simp = nil, nil, nil
+        if row.xref then row.xref.defs_simp = nil end
     end
     return rows
 end
@@ -69,22 +72,31 @@ dropped (and rows left with none), rows with the same pinyin merged (歷 and
 曆 are both lì), ordinary readings before capitalised ones (surnames, place
 names), CC-CEDICT's order otherwise.
 Returns { {pinyin=, syllables=, senses={...}, proper=bool, trads={...}, simps={...},
-selfsimp=bool}, ... }
+selfsimp=bool, xrefs={...}}, ... }
 (trads: the traditional forms of the rows whose simplified form is `word`;
 simps: the simplified forms of the rows matched by `word` as their
 traditional form, where they differ from it and have its length (#50);
-selfsimp: some row has `word` as its simplified form).
+selfsimp: some row has `word` as its simplified form; xrefs: for rows whose
+only senses are cross-references (#61; row.xref from DB:lookup), the words
+they lead to, { {word=, pinyin=, senses={...}}, ... }: word the target's
+traditional form when the row was matched by its traditional form, else its
+simplified form; nil when there are none).
 ]]
 function Model.cleanRows(word, rows)
     local kept, by_pinyin = {}, {}
     for _, row in ipairs(rows) do
-        local senses = {}
+        local senses, xref = {}, nil
         for sense in (row.defs or ""):gmatch("[^/]+") do
             if not selfVariant(sense, word) then senses[#senses + 1] = sense end
         end
         if #senses > 0 then
             local pinyin = row.pinyin or ""
             local entry = by_pinyin[pinyin]
+            if row.xref and (row.xref.defs or "") ~= "" then
+                -- Kept only while the row's own reference is: a row dropped
+                -- as a variant of the word itself shows no target either.
+                xref = row.xref
+            end
             if entry then
                 for _, s in ipairs(senses) do
                     if not entry.seen[s] then
@@ -100,6 +112,21 @@ function Model.cleanRows(word, rows)
                           source = row.source or "cedict", trads = {}, simps = {} }
                 by_pinyin[pinyin] = entry
                 kept[#kept + 1] = entry
+            end
+            if xref then
+                local form = (row.trad == word and row.simp ~= word and (xref.trad or "") ~= "") and xref.trad
+                    or xref.simp or ""
+                local list = entry.xrefs or {}
+                entry.xrefs = list
+                local have = false
+                for _, x in ipairs(list) do
+                    if x.word == form and x.pinyin == xref.pinyin then have = true end
+                end
+                if not have and form ~= word then
+                    local xs = {}
+                    for s in xref.defs:gmatch("[^/]+") do xs[#xs + 1] = s end
+                    list[#list + 1] = { word = form, pinyin = xref.pinyin or "", senses = xs }
+                end
             end
             -- The traditional form of a row keyed by the word as simplified
             -- (#47); a row matched by its traditional form (a traditional
@@ -831,6 +858,26 @@ function Model.chuchu(matches)
 end
 
 --[[--
+The lines for an entry's cross-reference targets (#61), each under the
+entry's own line: "贤慧: (of a wife) wise and kind; perfect in her
+traditional roles", the target word leading, with its pinyin when it differs
+from the entry's (a chain: 利是 lìshì → "红包 hóngbāo: ...").
+]]
+function Model.xrefLines(e)
+    local out = {}
+    for _, x in ipairs(e.xrefs or {}) do
+        if #x.senses > 0 then
+            local lead = x.word
+            if x.pinyin ~= "" and Pinyin.lower(x.pinyin) ~= Pinyin.lower(e.pinyin or "") then
+                lead = lead .. " " .. x.pinyin
+            end
+            out[#out + 1] = lead .. ": " .. table.concat(x.senses, "; ")
+        end
+    end
+    return out
+end
+
+--[[--
 The popup's content as blocks, one per match:
   { head = "**宛**  yuān · likely here" (the word, its first reading, markers),
     source = "cedict" / "wikt" / "wp" / "cbdb" / "moe" / "moegirl" (whose entry it is),
@@ -899,6 +946,7 @@ function Model.blocks(matches, char, annotated, b0, b1, trad)
             else
                 block.lines[#block.lines + 1] = e.pinyin ~= "" and (e.pinyin .. marked .. ": " .. senses) or senses
             end
+            for _, line in ipairs(Model.xrefLines(e)) do block.lines[#block.lines + 1] = line end
         end
         return block
     end
