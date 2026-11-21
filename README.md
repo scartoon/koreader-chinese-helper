@@ -377,7 +377,9 @@ The popup is the full width of the screen (minus a small margin) and as tall as 
 to the full screen height, scrolling beyond that. A short popup goes in the half of the screen
 away from the tapped character, so the text stays visible; a taller one is centred. While it is
 open, the tapped character is **underlined on the page**, so you can see which one the tap hit;
-the underline goes when the popup closes.
+the underline goes when the popup closes. In KOReader's night mode, the small grey lines (source labels,
+字频, **spoken here**, [Tap to show more]) are drawn in the normal text colour instead, as grey
+is hard to read on black e-ink.
 
 **Chinese text in the popup is in the book's font** (**Try to match the book's font**, on by
 default): every Chinese character in it, from the line at the top, the character and the
