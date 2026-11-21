@@ -103,6 +103,9 @@ def marked_syllable(syl):
 
 def joined_pinyin(numbered):
     """'shen2 me5' -> 'shénme', 'Xi1 an1' -> "Xī'ān" (apostrophe before a, o, e)."""
+    # "Lu : 3" in some references (#63); a colon not after u is punctuation
+    # (毛泽东：鲜为人知的故事 [Mao2 Ze2 dong1 : Xian1 ...]) and stays.
+    numbered = re.sub(r"([uU]) *: *", r"\1:", numbered)
     if "·" in numbered:  # names: 喬治·奧威爾|乔治·奥威尔[Qiao2 zhi4 · Ao4 wei1 er3]
         return "·".join(joined_pinyin(part) for part in numbered.split("·"))
     out = []

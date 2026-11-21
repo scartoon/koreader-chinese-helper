@@ -672,6 +672,7 @@ eq(spanList({ "variant of 賢慧|贤慧 xiánhuì", "贤慧: wise and kind" }),
    "賢慧|贤慧 xiánhuì=贤慧/賢慧/xiánhuì ; 贤慧=贤慧//", "a lead-in line")
 eq(spanList({ "branch of Xianbei 鮮卑|鲜卑", "Huì: surname Hui" }), "", "no pinyin, no lead-in: none")
 eq(spanList({ "a 人: b" }), "", "a colon not at the line's start")
+eq(spanList({ "see 吕梁市 Lǚliáng Shì" }), "吕梁市 Lǚliáng=吕梁市//Lǚliáng Shì", "ü after the #63 fix")
 local sp = Model.xrefSpans({ "variant of 賢慧|贤慧 xiánhuì" })[1]
 eq(Model.spanOffset(sp, 12), 1); eq(Model.spanOffset(sp, 13), 2); eq(Model.spanOffset(sp, 15), 1)
 eq(Model.spanOffset(sp, 16), 2); eq(Model.spanOffset(sp, 19), 1, "on the pinyin")
