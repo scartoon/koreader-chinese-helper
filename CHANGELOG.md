@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.17.2 (2026-11-21)
+
+Neutral tones: the 普通话水平测试 must-read list (#60)
+- 42 more words now read with their standard neutral syllable, on the page and in the popup's
+  word line: 37 from the 普通话水平测试 must-read neutral-tone list where CC-CEDICT had a full
+  tone (灯笼 *dēnglong*, 队伍 *duìwu*, 打算 *dǎsuan*, 老婆 *lǎopo*, 疟疾 *nüèji*, ...), and 5 rare-
+  character words with dictionary evidence found by web lookup (喜鹊 *xǐque*, 鹌鹑 *ānchun*, 荸荠
+  *bíqi*, 蹊跷 *qīqiao*, 腌臜 *āza*). The other 503 words on the list already read correctly.
+- A character's own default reading is unchanged (笼 stays *lóng*).
+- `docs/neutral-tone-candidates.tsv` and `docs/neutral-tone-evidence.tsv` list every candidate
+  and the evidence; the scripts that build them are in `tools/`.
+
 ## 2.17.1 (2026-11-21)
 
 Neutral tones CC-CEDICT writes as full tones (#60)

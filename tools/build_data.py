@@ -139,10 +139,11 @@ def cedict_header(path):
     return header
 
 
-def load_cedict(path, neutral_path=NEUTRAL_OVERRIDES):
+def load_cedict(path, neutral_path=NEUTRAL_OVERRIDES, originals=None):
     """(trad, simp, syllables, defs) per CC-CEDICT line, with the neutral tones
     of data/neutral_tone_overrides.tsv put in (喷嚏 pen1 ti5). Fails when an
-    override matches no line."""
+    override matches no line. originals (a dict), when given, gets entry
+    index -> CC-CEDICT's own syllables for each line an override changed."""
     opener = gzip.open if path.endswith(".gz") else open
     neutral, used = load_neutral_overrides(neutral_path), set()
     entries = []
@@ -157,6 +158,8 @@ def load_cedict(path, neutral_path=NEUTRAL_OVERRIDES):
             syls = neutral_override(simp, py, neutral, used).split()
             if len(syls) != len(simp) or len(trad) != len(simp):
                 continue
+            if originals is not None and syls != py.split():
+                originals[len(entries)] = py.split()
             entries.append((trad, simp, syls, defs))  # original case: capitals mark names
     if set(neutral) - used:
         raise SystemExit(f"{neutral_path}: no CC-CEDICT line with the same syllables for "
@@ -253,7 +256,8 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
                 char_freq[ch] += f
     simp_rank = {ch: i + 1 for i, (ch, _) in enumerate(char_freq.most_common())}
 
-    entries = load_cedict(args.cedict)
+    cedict_tones = {}   # entry index -> CC-CEDICT's syllables, where an override made one neutral
+    entries = load_cedict(args.cedict, originals=cedict_tones)
     header = cedict_header(args.cedict)
     # Record this in data/README.md when the data is rebuilt.
     print(f"CC-CEDICT {header.get('date', '(no date in header)')}, {header.get('entries', '?')} entries; "
@@ -299,9 +303,12 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
     script_weights = {"simp": defaultdict(Counter), "trad": defaultdict(Counter)}
     neutral = defaultdict(Counter)
     single_entry_reading = {}
-    for trad, simp, syls, _ in entries:
+    # A neutral-tone override (灯笼 dēng long) changes how the word is drawn,
+    # not how often the character has the toned reading: these weights use
+    # CC-CEDICT's own tones (笼 stays lóng by default).
+    for i, (trad, simp, syls, _) in enumerate(entries):
         wf = freq.get(simp, 0.0) + 1e-9
-        syls = [s.lower() for s in syls]
+        syls = [s.lower() for s in cedict_tones.get(i, syls)]
         for script, form in (("simp", simp), ("trad", trad)):
             for ch, syl in zip(form, syls):
                 if is_han(ch) and not is_neutral(syl):
