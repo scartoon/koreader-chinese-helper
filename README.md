@@ -85,9 +85,9 @@ default, because the AI's answer differs from run to run.
   everywhere, in every book ([Known and remind-me readings](#known-and-remind-me-readings)).
 - **The sentence on one line** at the top of every popup, the character marked, and the
   character underlined on the page while the popup is open ([The popup](#the-popup)).
-- **Classical Chinese**: the popup's 文言 button adds a Classical dictionary's senses. On 128
+- **Classical Chinese**: the popup's 文言 Mode button adds a Classical dictionary's senses. On 128
   words from classical texts, CC-CEDICT alone had the needed sense 84% of the time; with the
-  Classical dictionary under it, 95% ([Classical mode](#classical-mode)).
+  Classical dictionary added, 95% ([Classical mode](#classical-mode)).
 - **Chinese definitions you can read**: tap any character in MOE's or an idiom dictionary's
   text and it opens its own popup on top
   ([Tapping a character in the popup](#tapping-a-character-in-the-popup)).
@@ -182,7 +182,7 @@ The **Dictionaries** submenu:
 |---|---|
 | Source labels | All entries / other dictionaries only (default) / none |
 | Dictionary text | Original (default) / simplified. See [Dictionary text](#dictionary-text) |
-| Classical mode | Off (default) / on; the same as the popup's 文言 button. See [Classical mode](#classical-mode) |
+| Classical mode | Off (default) / on; the same as the popup's 文言 Mode button. See [Classical mode](#classical-mode) |
 | Order | The order of the dictionaries after CC-CEDICT |
 | Collapse long entries | 1 / 2 (default) / 3 lines / never |
 | Each dictionary | On / off, listed in that order (default: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang). See [Fallback dictionaries](#fallback-dictionaries) |
@@ -521,25 +521,26 @@ no entry even with the MOE dictionary, such as 精兵强将, 受制于人, 由�
 ### Classical mode
 
 Classical mode adds one more dictionary to the popup, for reading classical Chinese (文言) and the
-classical passages modern books quote. Turn it on with the **文言** button at the top right of the
+classical passages modern books quote. Turn it on with the **文言 Mode** button at the top right of the
 popup, left of the reading-mark button, or with **Classical mode** in the Dictionaries menu: both
 switch the same setting. It is off until you turn it on.
 
 **What it adds.** With the mode on, every popup shows one extra entry for the tapped character,
-labelled 文言, from the bundled **Classical dictionary**. It sits right under the character's
-CC-CEDICT entry and gives up to five senses, in English, that classical texts use and modern
-Chinese mostly doesn't: 是 *this*, 之 *him; her; it; them*, 说 (說) *yuè: to be delighted*. Long
-entries are cut to two lines with [Tap to show more], like [MOE Always](#moe-always).
+labelled 文言, from the bundled **Classical dictionary**. It comes first in the popup, above the
+character's CC-CEDICT entry, and is shown in full: up to five senses, in English, that classical
+texts use and modern Chinese mostly doesn't: 是 *this*, 之 *him; her; it; them*, 说 (說) *yuè: to
+be delighted*.
 
 **What it doesn't change.** It only adds that one entry, and only for the tapped single character,
 never for words. Pinyin on the page, the reading the popup picks, the words listed and Translate &
-analyze all stay the same, and every other entry is still there, in the same order. A character
-with no classical senses (吗, say) gets nothing extra: its popup looks the same with the mode on or
-off.
+analyze all stay the same, and every other entry is still there, below it, in the same order. A
+character with no classical senses (吗, say) gets nothing extra: its popup looks the same with the
+mode on or off.
 
-**On and off.** The button reads **文言 ✓** while the mode is on. The setting is global: it stays
-on for every popup, in every book and after a restart, until you tap the button again or untick
-the menu item. Popups opened from a popup's text follow it but have no button of their own.
+**On and off.** The button reads **文言 Mode ✓** while the mode is on and **文言 Mode** while it's off.
+The setting is global: it stays on for every popup, in every book and after a restart, until you tap
+the button again or untick the menu item. Popups opened from a popup's text follow it but have no
+button of their own.
 
 **Where the senses come from.** The Classical dictionary was built once, from the senses three
 open dictionaries mark as classical, literary or archaic: Chinese Notes, English Wiktionary and
