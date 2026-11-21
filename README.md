@@ -180,7 +180,7 @@ The **Dictionaries** submenu:
 
 | Menu item | |
 |---|---|
-| Source labels | All entries / other dictionaries only (default) / none |
+| Source labels | All entries (default) / none |
 | Dictionary text | Original (default) / simplified. See [Dictionary text](#dictionary-text) |
 | Classical mode | Off (default) / on; the same as the popup's 文言 Mode button. See [Classical mode](#classical-mode) |
 | Order | The order of the dictionaries after CC-CEDICT |
@@ -340,8 +340,8 @@ where the words break.
 - **Its frequency rank**, in small grey above its own entry: **字频 4,270** is its rank among
   characters in modern written Chinese (wordfreq; 1 is the most common, and pinyin is drawn past
   3,500 by default). Past 7,000 it shows **7,000+**, as the data is too thin there for an exact
-  rank, and **unranked** for a character not in the list. It shares the line with the source
-  label when that is shown (`CEDICT · 字频 4,270`). Words around the character never show one.
+  rank, and **unranked** for a character not in the list. The source label (`CEDICT`) sits on a
+  row of its own just below it. Words around the character never show one.
   With [your own frequency ranks](#your-own-frequency-ranks) on, it shows your rank, or the
   bundled one marked **(bundled)** for a character not in your books.
 - **The traditional form** beside each entry's headword, smaller, when it is not the
@@ -782,9 +782,10 @@ For words CC-CEDICT does not have, the popup also looks in the fallback dictiona
   so it comes after the real dictionaries; Moegirlpedia is only for words nothing else has.)
   **Order** in the **Dictionaries** menu changes it: tap a dictionary, move it with the arrows,
   then ✓. CC-CEDICT always stays first.
-- **Labels.** A small grey line above an entry names its dictionary (the table's labels). By
-  default only fallback entries are labelled; **Source labels** can label every entry or none.
-  The menu calls this default "other dictionaries only".
+- **Labels.** A small grey line above an entry names its dictionary (the table's labels):
+  every entry is labelled, CC-CEDICT's as **CEDICT**, so in [Classical mode](#classical-mode) the
+  文言 entry and CC-CEDICT's stand apart. On the tapped character's entry the label is on its own
+  row below the 字频 line. **Source labels** can turn them all off (None).
 - **Readings.** A fallback entry shows its dictionary's own reading (the MOE dictionary's are
   Taiwan standard; CBDB's have no tone marks) and is never marked *likely here*:
   that marker comes from the reading resolver, so the popup and the pinyin always agree.
