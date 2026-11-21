@@ -64,6 +64,15 @@ local function eachGlyph(box, f)
     end
 end
 
+-- { [character index] = span } for spans {from=, to=, ...} (Model.xrefSpans).
+function Glyphs.spanIndex(spans)
+    local out = {}
+    for _, sp in ipairs(spans or {}) do
+        for i = sp.from, sp.to do out[i] = sp end
+    end
+    return out
+end
+
 --[[--
 The Han character tapped at (px, py) among `boxes`: box index, character
 index, and its screen rectangle {x, y, w, h} (the line's full height); nil
@@ -72,6 +81,9 @@ REACH of its width of one (beside it, above or below it, between lines),
 takes the nearest: on the tapped line if one is in reach there, else on
 the nearer line; a tap right on a letter or digit takes nothing; taps
 outside a box's clip, or on lines scrolled out of it, take nothing in it.
+A box with `spans` (Glyphs.spanIndex: CC-CEDICT's cross-references, #62)
+takes taps only on its spans' characters, the pinyin's letters included;
+the rest of it is as if it were not there.
 ]]
 function Glyphs.find(boxes, px, py, reach)
     reach = reach or Glyphs.REACH
@@ -79,14 +91,20 @@ function Glyphs.find(boxes, px, py, reach)
     for k, box in ipairs(boxes) do
         if not box.clip or inside(box.clip, px, py) then
             eachGlyph(box, function(g, x0, x1, y0, y1)
+                if box.spans and not box.spans[g.i] then return end
                 local dx = math.max(0, x0 - px, px - x1 + 1)
                 local dy = math.max(0, y0 - py, py - y1 + 1)
                 local c = box.chars[g.i]
+                if box.spans and (dx == 0 and dy == 0) then
+                    best_k, best_g, best_d = k, g, -2   -- right on a cross-reference
+                    best_r = { x = x0, y = y0, w = x1 - x0, h = y1 - y0 }
+                    return true
+                end
                 if dx == 0 and dy == 0 and isWordChar(c) then
                     best_k, best_g, best_d = nil, nil, -1   -- right on a letter: nothing
                     return true
                 end
-                if Text.isHan(c) then
+                if Text.isHan(c) or (box.spans and isWordChar(c)) then
                     local limit = (x1 - x0) * reach
                     if dx <= limit and dy <= limit then
                         -- The tapped line first (dy 0), then the nearer line.
@@ -99,6 +117,7 @@ function Glyphs.find(boxes, px, py, reach)
                 end
             end)
             if best_d == -1 then return nil end
+            if best_d == -2 then return best_k, best_g.i, best_r end
         end
     end
     if not best_k then return nil end
