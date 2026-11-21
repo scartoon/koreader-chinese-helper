@@ -520,22 +520,39 @@ no entry even with the MOE dictionary, such as 精兵强将, 受制于人, 由�
 
 ### Classical mode
 
-For classical Chinese (文言), and the classical passages modern books quote: the **文言** button at
-the top right of the popup, left of the reading-mark button, turns Classical mode on. Every popup
-then shows the **Classical dictionary**'s entry for the tapped character right under its CC-CEDICT
-entry, labelled 文言: up to five senses that classical texts use and modern Chinese mostly
-doesn't, cut to two lines with [Tap to show more] like [MOE Always](#moe-always). The button reads
-**文言 ✓** while the mode is on; it stays on for later popups, in every book and after a restart,
-until you tap it again (or switch **Classical mode** in the Dictionaries menu). Popups opened from
-a popup's text follow it but have no button. A character with no entry adds nothing.
+Classical mode adds one more dictionary to the popup, for reading classical Chinese (文言) and the
+classical passages modern books quote. Turn it on with the **文言** button at the top right of the
+popup, left of the reading-mark button, or with **Classical mode** in the Dictionaries menu: both
+switch the same setting. It is off until you turn it on.
+
+**What it adds.** With the mode on, every popup shows one extra entry for the tapped character,
+labelled 文言, from the bundled **Classical dictionary**. It sits right under the character's
+CC-CEDICT entry and gives up to five senses, in English, that classical texts use and modern
+Chinese mostly doesn't: 是 *this*, 之 *him; her; it; them*, 说 (說) *yuè: to be delighted*. Long
+entries are cut to two lines with [Tap to show more], like [MOE Always](#moe-always).
+
+**What it doesn't change.** It only adds that one entry, and only for the tapped single character,
+never for words. Pinyin on the page, the reading the popup picks, the words listed and Translate &
+analyze all stay the same, and every other entry is still there, in the same order. A character
+with no classical senses (吗, say) gets nothing extra: its popup looks the same with the mode on or
+off.
+
+**On and off.** The button reads **文言 ✓** while the mode is on. The setting is global: it stays
+on for every popup, in every book and after a restart, until you tap the button again or untick
+the menu item. Popups opened from a popup's text follow it but have no button of their own.
+
+**Where the senses come from.** The Classical dictionary was built once, from the senses three
+open dictionaries mark as classical, literary or archaic: Chinese Notes, English Wiktionary and
+Unihan. An AI model (Claude Haiku) then condensed each character's senses to at most five. Every
+sense has to cite the source lines it came from, and the build drops any that cite nothing. In
+checks, where the sources had the sense a classical passage needed, the condensed entry kept it 95
+times out of 96, and no sense was found that the sources lacked. It is still machine-condensed,
+so if a sense looks odd, check it against CC-CEDICT or MOE. The details are below.
 
 <img src="docs/classical.png" alt="Popup for 之 in 三国演义's 窦武、陈蕃谋诛之: the line 时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不密，反为所害，中涓自此愈横。 with 之 marked; the title bar, 之 on the left and the buttons 文言 ✓ and Remind me: zhī on the right; 字频 69, 之 zhī (possessive particle, literary equivalent of 的 de); him; her; it; then the block labelled 文言: 之, him; her; it; them (object pronoun in non-subject position), genitive or attributive marker (possession or modification) [Tap to show more]; then its parts, labelled Wikt">
 
 <details>
 <summary>How the Classical dictionary was built, and how well it does</summary>
-
-A simplified character that stands for several traditional ones shows the one its word uses (发 in
-头发: 髮 *hair*), otherwise each; a variant form (説) shows its standard form's entry (說).
 
 The dictionary covers 21,292 characters (and 184 variant forms). It was built
 once by `tools/build_classical.py` from the senses three open dictionaries mark as classical,
@@ -548,6 +565,9 @@ of the time, and with the Classical dictionary under it 95%
 ([research note](docs/research/classical-dictionary.md)). MOE's classical senses are not in it
 (its licence does not allow it); with the MOE file installed, [MOE Always](#moe-always) shows
 them.
+
+A simplified character that stands for several traditional ones shows the one its word uses (发 in
+头发: 髮 *hair*), otherwise each; a variant form (説) shows its standard form's entry (說).
 
 </details>
 
