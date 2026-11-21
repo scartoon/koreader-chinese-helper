@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.16.0 (2026-11-20)
+
+Classical mode: the Classical entry first, in full (#56)
+- With Classical mode on, the tapped character's 文言 entry is now the first entry in the popup,
+  above its CC-CEDICT entry, and shown in full: every sense, no [Tap to show more]. The 字频 rank
+  moves up with it, onto its label line. Everything else follows below, in the same order as with
+  the mode off. A simplified character with two Classical entries (发: 發, 髮) shows both on top.
+  Popups opened from a popup's text do the same.
+- The title-bar button now reads **文言 Mode** (on: **文言 Mode ✓**). The entry's own source label
+  stays 文言.
+- With the mode off, or for a character with no Classical entry (吗), the popup is unchanged.
+- README text, menu help and screenshots updated for the new order and label.
+
+Night mode: no grey text in the popup (#57)
+- In KOReader's night mode, the popup's small grey text (source labels, 字频, spoken here, note
+  labels, [Tap to show more]/[Tap to show less]) is drawn in the normal text colour, in every
+  popup and in Origin & Usage: inverted grey was hard to read on the Boox's e-ink. Day mode and
+  the button separators are unchanged.
+
 ## 2.15.0 (2026-11-20)
 
 Classical mode (#53) and the Classical dictionary (#55)
