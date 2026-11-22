@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.23.0 (2026-11-22)
+
+Words first: the words around the tapped character come above the character's own entry (#71, #68)
+- A new popup setting, **Words first**, on by default: the words around the tapped character,
+  longest first, now come first; the character's own entry, its MOE entry and its components
+  follow them, together. Tap 发 in 头发 and 头发 is at the top.
+- The 字频 rank and the spoken-tone note stay on the character's own entry. 文言 Mode's entries
+  stay at the top, and the Chinese-language dictionaries' entries last. The buttons are unchanged.
+- Turn it off in the popup settings (after **Show character components**) to have the character
+  first, as before. It applies to popups opened from a popup too.
+- Suggested by Generalhooha in #68.
+
 ## 2.22.0 (2026-11-22)
 
 文言 Mode: evidence, not an AI's judgement, decides which senses are classical (#69)
