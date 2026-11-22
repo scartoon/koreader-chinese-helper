@@ -232,3 +232,79 @@ p = popup("", "一", "毛不拔")
 local idiom = block(p, function(b) return b.note ~= nil end)
 assert(idiom, "an idiom's short line: " .. shape(p))
 print("MOE Always: ok")
+
+-- Words first (#71): the words' blocks, then the character's group (its
+-- CC-CEDICT entry with the rank, its MOE Always entry, the components), then
+-- the Chinese-text dictionaries' blocks. Off: as before.
+do
+    local function groups(p)
+        local char, words, chinese = {}, {}, {}
+        for k, b in ipairs(p.blocks) do
+            local tag = b.components and "components" or ((b.source or "?") .. (b.always and "*" or ""))
+            tag = tag .. ":" .. (b.head or "") .. (b.rank and "+rank" or "") .. (b.spoken and "+spoken" or "")
+            if Model.LARGE_SOURCES[b.source] and not b.always then chinese[#chinese + 1] = tag
+            elseif b.components or (b.head and b.head:find("^" .. p.char_tapped .. " ")) then char[#char + 1] = tag
+            else words[#words + 1] = tag end
+        end
+        return char, words, chinese
+    end
+    local function tagged(p)
+        local out = {}
+        for _, b in ipairs(p.blocks) do
+            local tag = b.components and "components" or ((b.source or "?") .. (b.always and "*" or ""))
+            out[#out + 1] = tag .. ":" .. (b.head or "") .. (b.rank and "+rank" or "") .. (b.spoken and "+spoken" or "")
+        end
+        return table.concat(out, " | ")
+    end
+    local function both(left, char, right, spoken)
+        local function one()
+            local found = tap:lookup(plugin:db(), char, Text.chars(left), Text.chars(right), resolve)
+            local p = tap:present{ db = plugin:db(), char = char, cands = found.cands, rows = found.rows,
+                                   matches = found.matches, annotated = false, spoken = spoken }
+            p.char_tapped = char
+            return p
+        end
+        set("words_first", false)
+        local off = one()
+        set("words_first", nil)   -- the default: on
+        assert(plugin.settings:wordsFirst(), "on by default")
+        local on = one()
+        return off, on
+    end
+    local function check(left, char, right, spoken, what)
+        local off, on = both(left, char, right, spoken)
+        local c, w, z = groups(off)
+        local want = {}
+        for _, t in ipairs(w) do want[#want + 1] = t end
+        for _, t in ipairs(c) do want[#want + 1] = t end
+        for _, t in ipairs(z) do want[#want + 1] = t end
+        eq(tagged(on, char), table.concat(want, " | "), what)
+        return off, on
+    end
+    for _, mode in ipairs({ "fallback", "always" }) do
+        set("moe_chars", mode); set("moe_words", mode)
+        for _, comp in ipairs({ true, false }) do
+            set("components", comp)
+            local off, on = check("", "涓", "涓细流", nil, "涓 " .. mode .. tostring(comp))
+            assert(tagged(off, "涓"):find("^cedict:涓  juān%+rank"), "off: as before " .. tagged(off, "涓"))
+            assert(not tagged(on, "涓"):find("^cedict:涓 "), "on: a word first " .. tagged(on, "涓"))
+            local _, n = tagged(on, "涓"):gsub("rank", "")
+            eq(n, 1, "one rank, on 涓's own entry: " .. tagged(on, "涓"))
+            if mode == "always" then
+                assert(tagged(on, "涓"):find("cedict:涓  juān%+rank | moe%*:涓  juān"), tagged(on, "涓"))
+            end
+            if comp then assert(tagged(on, "涓"):find(" | components:$"), "components last: " .. tagged(on, "涓")) end
+            check("", "和", "平", nil, "和 " .. mode)
+            -- No words around it: nothing changes.
+            local alone_off, alone_on = both("", "涓", "")
+            eq(tagged(alone_on, "涓"), tagged(alone_off, "涓"), "涓 alone " .. mode)
+        end
+    end
+    set("moe_chars", nil); set("moe_words", nil); set("components", true)
+    -- The spoken note (#37) stays on the character's own entry, with the rank.
+    local off, on = check("", "不", "是", "bú", "不是")
+    assert(tagged(on, "不"):find("cedict:不  bù%+rank%+spoken"), tagged(on, "不"))
+    assert(not tagged(on, "不"):find("^cedict:不 "), tagged(on, "不"))
+    set("words_first", nil)
+end
+print("words first: ok")

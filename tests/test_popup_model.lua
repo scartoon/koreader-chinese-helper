@@ -408,6 +408,20 @@ eq(join(blocks, "head", ""), "acgbdef", "Chinese dictionaries last")
 eq(join(Model.chineseLast({ { source = "cedict", head = "a" } }), "head", ""), "a", "none")
 assert(Model.LARGE_SOURCES.moe and Model.LARGE_SOURCES.idioms and Model.LARGE_SOURCES.xinhua)
 assert(Model.LARGE_SOURCES.moegirl)
+
+-- Words first (#71): the character's group (the first n blocks) below the
+-- rest, in its own order; the rank goes with its block.
+local function wf(n)
+    local bl = { { head = "c", rank = "字频 9" }, { head = "m", always = true }, { head = "k", components = true },
+                 { head = "w1" }, { head = "W1", always = true }, { head = "w2" } }
+    return Model.wordsFirst(bl, n)
+end
+eq(join(wf(3), "head", ","), "w1,W1,w2,c,m,k", "the group below the words")
+eq(wf(3)[4].rank, "字频 9", "the rank on the character's block")
+eq(join(wf(1), "head", ","), "m,k,w1,W1,w2,c", "a group of one")
+eq(join(wf(0), "head", ","), "c,m,k,w1,W1,w2", "no group: unchanged")
+eq(join(wf(6), "head", ","), "c,m,k,w1,W1,w2", "no words: unchanged")
+eq(#Model.wordsFirst({}, 0), 0)
 assert(not Model.LARGE_SOURCES.cedict and not Model.LARGE_SOURCES.wikt and not Model.LARGE_SOURCES.wp
        and not Model.LARGE_SOURCES.cbdb)
 
