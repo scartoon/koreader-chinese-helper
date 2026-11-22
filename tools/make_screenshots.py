@@ -15,7 +15,7 @@ must still land: the device log is checked as usual), SHOT_MATCH_FONT=false
 turns "Try to match the book's font" off, SHOT_TRAD=false turns "Show
 traditional in headwords" off, SHOT_TEXT=simplified sets "Dictionary text" to
 Simplified, SHOT_MOE=always shows MOE Always for characters and words,
-SHOT_WORDS_FIRST=true takes them with Words first on (the default since 2.23.0),
+SHOT_WORDS_FIRST=false takes them with Words first off (it is on by default since 2.23.0),
 SHOT_NIGHT=true takes the shots in night mode, and SHOT_OUT=dir saves there
 instead of docs/.
 
@@ -69,9 +69,8 @@ THRESHOLD = 3500
 # Settings for checks (see above); the gate takes the same.
 SHOT_TEXT = "simplified" if os.environ.get("SHOT_TEXT") == "simplified" else "original"
 SHOT_MOE = "always" if os.environ.get("SHOT_MOE") == "always" else "fallback"
-# Words first (#71, on by default since 2.23.0): the README shots were taken
-# with the character first, so they keep it until they are retaken.
-SHOT_WORDS_FIRST = os.environ.get("SHOT_WORDS_FIRST") == "true"
+# Words first (#71, on by default since 2.23.0; the shots use it since #72).
+SHOT_WORDS_FIRST = os.environ.get("SHOT_WORDS_FIRST") != "false"
 # MOE's text in the shots, as the Dictionary text setting gives it (#48).
 MOE_QUOTE = "「今年歡笑復明年，秋月春風等閒度。」" if SHOT_TEXT == "original" else "「今年欢笑复明年，秋月春风等闲度。」"
 
@@ -121,7 +120,7 @@ AQ59_ALL = (
     "志=zhì 也=yě 相=xiāng 约=yuē 去=qù 革=gé 命=mìng 他=tā 们=men 想=xiǎng 而=ér 又=yòu 想=xiǎng 才=cái "
     "想=xiǎng 出=chū 静=jìng 修=xiū 庵=ān 里=lǐ 有=yǒu 一=yí 块=kuài 皇=huáng 帝=dì 万=wàn 岁=suì 万=wàn "
     "万=wàn 岁=suì 的=de 龙=lóng 牌=pái 是=shì 应=yīng 该=gāi 赶=gǎn 紧=jǐn 革=gé 掉=diào 的=de 于=yú 是=shì "
-    "又=yòu 立=lì 刻=kè 同=tóng 到=dào 庵=ān 里=lǐ 去=qù 革=gé 命=mìng 因=yīn 为=wèi 老=lǎo 尼=ní 姑=gū "
+    "又=yòu 立=lì 刻=kè 同=tóng 到=dào 庵=ān 里=lǐ 去=qù 革=gé 命=mìng 因=yīn 为=wei 老=lǎo 尼=ní 姑=gū "
     "来=lái 阻=zǔ 挡=dǎng 说=shuō 了=le 三=sān 句=jù 话=huà 他=tā 们=men 便=biàn 将=jiāng 伊=yī 当=dàng "
     "作=zuò 满=mǎn 政=zhèng 府=fǔ 在=zài 头=tóu 上=shàng 很=hěn 给=gěi 了=le 不=bù 少=shǎo 的=de 棍=gùn "
     "子=zi 和=hé 栗=lì 凿=záo 尼=ní 姑=gū 待=dài 他=tā 们=men 走=zǒu 后=hòu 定=dìng 了=le 神=shén 来=lái "
@@ -200,8 +199,8 @@ SHOTS = {
     # Classical mode (#53, #56): 之 in 窦武、陈蕃谋诛之 ("plotted to kill them"), its 文言
     # block first and in full, and the 文言 Mode ✓ button in the title bar.
     "classical": dict(page="sg1", classical=True, taps=[("之", 3, (1330, 1085), [
-        "**之**  zhī", "[文言]", "him; her; them; it (object pronoun)"])],
-        frames=[(1, (95, 1191))]),
+        "[文言]", "1. him; her; them; that", "2. it (object pronoun)", "**之**  zhī"])],
+        frames=[(1, (22, 1242))]),
     # The popup's title-bar button, on 盘 in that paragraph.
     "mark-button": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[("盘", 1, (260, 565), ["**盘** • 盤  pán"])],
                         frames=[(1, (169, 542))]),
