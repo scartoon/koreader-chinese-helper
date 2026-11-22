@@ -247,9 +247,7 @@ local function present(g, char, cands, rows, matches, annotated)
     end
     local out = {}
     for _, b in ipairs(blocks) do
-        -- A traditional form (#47) as the popup draws it: after the word.
         local head = b.head or false
-        if b.trad then head = "**" .. b.word .. "** " .. b.trad .. b.rest end
         out[#out + 1] = { label = label(b.source), head = head, lines = b.lines,
                           always = b.always and true or false,
                           note = b.note and { label = label(b.note.source), text = b.note.text } or false }

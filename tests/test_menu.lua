@@ -120,7 +120,7 @@ assert(plugin.settings:charRankEnabled())
 
 -- Traditional forms on the head lines (#47): on by default, a toggle, right after the rank.
 local trad_item = entry.sub_item_table[16]
-eq(trad_item.text, "Show traditional forms")
+eq(trad_item.text, "Show traditional in headwords")
 assert(plugin.settings:tradHeadsEnabled() and trad_item.checked_func())
 trad_item.callback()
 assert(not plugin.settings:tradHeadsEnabled() and not trad_item.checked_func())

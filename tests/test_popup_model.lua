@@ -489,10 +489,20 @@ local function tradOf(left, char, right, rows, k, extra)
 end
 eq(tradOf("", "观", "", { row("观", "觀", "guān", "to look at") }), "觀")
 local tb = Model.blocks(matches("", "观", "", { row("观", "觀", "guān", "to look at") }), "观", false, "<", ">", true)[1]
-eq(tb.head, "<观>  guān", "head unchanged")
+eq(tb.head, "<观> • 觀  guān", "same size, after a bullet (#73)")
 eq(tb.word, "观"); eq(tb.rest, "  guān")
 eq(Model.render(matches("", "观", "", { row("观", "觀", "guān", "to look at") }), "观", false, nil, nil, true),
-   "观 觀  guān\nto look at")
+   "观 • 觀  guān\nto look at")
+-- #73's cases: a word shows its one form; the same form (人, 大人) adds nothing.
+local XX = { row("学", "學", "xué", "to learn"), row("学习", "學習", "xuéxí", "to study") }
+eq(Model.blocks(matches("", "学", "习", XX), "学", false, "**", "**", true)[2].head, "**学习** • 學習  xuéxí")
+eq(Model.blocks(matches("", "学", "习", XX), "学", false, "**", "**", true)[1].head, "**学** • 學  xué")
+eq(Model.blocks(matches("", "学", "习", XX), "学", false, "**", "**")[2].head, "**学习**  xuéxí", "off: simplified only")
+local DR = { row("大", "大", "dà", "big"), row("大人", "大人", "dàrén", "adult") }
+for _, b in ipairs(Model.blocks(matches("", "大", "人", DR), "大", false, "**", "**", true)) do
+    eq(b.head:find("•", 1, true), nil, "the same form: no bullet"); eq(b.trad, nil)
+end
+eq(Model.blocks(matches("", "大", "人", DR), "大", false, "**", "**", true)[2].head, "**大人**  dàrén")
 local TF = { FA[1], FA[2], row("头发", "頭髮", "tóufa", "hair (on the head)"),
              row("发现", "發現", "fāxiàn", "to find") }
 eq(tradOf("头", "发", "", TF, 2), "頭髮", "the whole word")
@@ -505,10 +515,11 @@ eq(tradOf("", "人", "民", { row("人", "人", "rén", "person"), row("人民",
 eq(tradOf("", "人", "民", { row("人", "人", "rén", "person"), row("人民", "人民", "rénmín", "the people") }, 2), nil,
    "the same: nothing")
 eq(tradOf("中", "国", "", { row("国", "國", "guó", "country"), row("中国", "中國", "Zhōngguó", "China") }, 2), "中國")
--- A character that is one of its own traditional forms: listed with them.
+-- A character that is one of its own traditional forms: not listed (#73).
 eq(tradOf("", "干", "", { row("干", "乾", "gān", "dry"), row("干", "幹", "gàn", "to do"),
-                          row("干", "干", "gān", "shield") }, 1), "乾/干/幹",
-   "the head reading gān's forms first")
+                          row("干", "干", "gān", "shield"), row("干", "榦", "gàn", "trunk") }, 1), "乾/幹/榦",
+   "the head reading gān's forms first, 干 itself left out")
+eq(tradOf("", "干", "", { row("干", "干", "gān", "shield") }, 1), nil, "its own only form: nothing")
 -- A traditional text: the smaller form is the word as tapped, after its
 -- simplified form (#50; nothing was added before 2.14.0).
 eq(tradOf("頭", "髮", "", { row("发", "髮", "fà", "hair"), row("头发", "頭髮", "tóufa", "hair") }, 1), "髮")
@@ -571,10 +582,13 @@ eq(headOf("頭", "髮", "花白", TT, 1), "发 髮")
 eq(headOf("", "發", "現", TT, 1), "发 發")
 eq(headOf("", "發", "現", TT, 2), "发现 發現")
 local _, hb = headOf("", "頭", "髮花白", TT, 2, nil, "<", ">")
-eq(hb.head, "<头发> 頭髮  tóufa", "the plain head line leads with both forms")
+eq(hb.head, "<头发> • 頭髮  tóufa", "the head line leads with the simplified form (#73)")
 eq(hb.word, "头发"); eq(hb.trad, "頭髮"); eq(hb.rest, "  tóufa")
 eq(Model.render(matches("", "頭", "髮", TT), "頭", false, nil, nil, true),
-   "头 頭  tóu\nhead\ntou: suffix for nouns\n\n头发 頭髮  tóufa\nhair (on the head)")
+   "头 • 頭  tóu\nhead\ntou: suffix for nouns\n\n头发 • 頭髮  tóufa\nhair (on the head)")
+-- The setting off (#73): a traditional tap's head lines are simplified only.
+eq(Model.render(matches("", "頭", "髮", TT), "頭", false),
+   "头  tóu\nhead\ntou: suffix for nouns\n\n头发  tóufa\nhair (on the head)")
 -- 乾: 干 in 乾淨, itself in 乾隆 (a row keyed by 乾 as simplified).
 local QIAN = { row("乾", "乾", "qián", "one of the Eight Trigrams"), row("干", "乾", "gān", "dry"),
                row("干净", "乾淨", "gānjìng", "clean"), row("乾隆", "乾隆", "Qiánlóng", "the Qianlong era") }
@@ -601,13 +615,13 @@ eq(headOf("", "輔", "助", { frow("辅助", "輔助", "fǔ zhù", "to assist", 
 local tam = matches("", "頭", "髮", TT, { always = { frow("头发", "頭髮", "tóu fǎ", "人的頭上所生的毛。", "moe") } })
 local tab = Model.blocks(tam, "頭", false, nil, nil, true)
 eq(tab[3].always, true); eq(tab[3].word, "头发"); eq(tab[3].trad, "頭髮")
--- The setting off: the head line exactly as before.
+-- The setting off: simplified headwords only (#73), no traditional form.
 for _, b in ipairs(Model.blocks(tam, "頭", false, "<", ">")) do
     eq(b.trad, nil, "off"); eq(b.word, nil, "off")
 end
-eq(Model.blocks(tam, "頭", false, "<", ">")[2].head, "<頭髮>  tóufa")
-eq(Model.render(tam, "頭", false), "頭  tóu\nhead\ntou: suffix for nouns\n\n頭髮  tóufa\nhair (on the head)"
-   .. "\n\n頭髮  tóu fǎ · not in CC-CEDICT\n人的頭上所生的毛。")
+eq(Model.blocks(tam, "頭", false, "<", ">")[2].head, "<头发>  tóufa")
+eq(Model.render(tam, "頭", false), "头  tóu\nhead\ntou: suffix for nouns\n\n头发  tóufa\nhair (on the head)"
+   .. "\n\n头发  tóu fǎ · not in CC-CEDICT\n人的頭上所生的毛。")
 -- Simplified taps unchanged.
 eq(headOf("头", "发", "", TT, 1), "发 髮/發")
 eq(headOf("头", "发", "", TT, 2), "头发 頭髮")
@@ -727,16 +741,16 @@ local fa = {
 }
 local cb = Model.classicalBlocks(fa, "发", "髮", "**", "**", true)
 eq(#cb, 1, "the word's form only (头发 → 髮)")
-eq(cb[1].head, "**发** 髮"); eq(cb[1].word, "发"); eq(cb[1].trad, "髮"); eq(cb[1].source, "classical")
+eq(cb[1].head, "**发** • 髮"); eq(cb[1].word, "发"); eq(cb[1].trad, "髮"); eq(cb[1].source, "classical")
 assert(cb[1].classical and not cb[1].collapse, "never collapsed (#56)")
 eq(table.concat(cb[1].lines, " | "), "hair of the head")
 cb = Model.classicalBlocks(fa, "发", nil, "**", "**", true)
 eq(#cb, 2, "no word decides: each form")
 eq(table.concat(cb[1].lines, " | "), "1. fā: to shoot (an arrow) | 2. fā: to open; to uncover", "numbered when several (#67)")
 cb = Model.classicalBlocks(fa, "發", nil, "**", "**", true)
-eq(#cb, 1, "tapped in traditional: its own entry"); eq(cb[1].head, "**发** 發")
+eq(#cb, 1, "tapped in traditional: its own entry"); eq(cb[1].head, "**发** • 發")
 cb = Model.classicalBlocks(fa, "髮", nil, "**", "**", false)
-eq(cb[1].head, "**发**", "Show traditional forms off: the word alone"); eq(cb[1].trad, nil)
+eq(cb[1].head, "**发**", "Show traditional in headwords off: the word alone"); eq(cb[1].trad, nil)
 local zhi = Model.classicalBlocks({ { trad = "之", simp = "之", senses = "\thim; her; it\tCN,Wikt" } }, "之", nil, "", "", true)
 eq(zhi[1].head, "之"); eq(zhi[1].trad, nil, "the same form: nothing beside it")
 eq(#Model.classicalBlocks({}, "的", nil), 0, "no entry: nothing")
@@ -751,7 +765,7 @@ local wrows = {
 local wm = { { word = "贱人", len = 2 }, { word = "人", len = 1 }, { word = "所以", len = 2 }, { word = "賤人", len = 2 } }
 local wb = Model.classicalWordBlocks(wrows, wm, "**", "**", true)
 eq(#wb, 2, "one block per word with an entry, each once")
-eq(wb[1].head, "**贱人** 賤人", "in the order of the matches"); eq(wb[1].source, "classical")
+eq(wb[1].head, "**贱人** • 賤人", "in the order of the matches"); eq(wb[1].source, "classical")
 eq(table.concat(wb[1].lines, " | "), "a lowly person", "one sense: no number")
 eq(table.concat(wb[2].lines, " | "), "1. that by which | 2. the reason why")
 eq(#Model.classicalWordBlocks({}, wm), 0, "no entries: nothing")

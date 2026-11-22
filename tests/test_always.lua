@@ -136,7 +136,7 @@ eq(block(p, function(b) return b.head and b.head:find("台風") end), nil, "word
 set("moe_words", "always")
 p = popup("台", "風", "")
 local w = block(p, function(b) return b.head and b.head:find("台風") end)
-eq(w and w.head, "台風  tái fēng"); eq(w.source, "moe"); eq(w.always, nil)
+eq(w and w.head, "台風 • 颱風  tái fēng", "with its traditional form (#73)"); eq(w.source, "moe"); eq(w.always, nil)
 set("moe_words", nil)
 
 -- Everything but the Always blocks is what MOE on Fallback gives, which is
