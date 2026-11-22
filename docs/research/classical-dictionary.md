@@ -585,3 +585,64 @@ added senses were found. The database is 52.5 MB (+6.1 MB on 2.20.0).
 **Display.** Senses are numbered when there are several. With everything shown, the 文言 entry of
 the commonest function characters fills the visible popup (之 18 senses, 將 33), and the rest of the
 popup is below it.
+
+## 12. Evidence instead of an AI's sense of period (#69)
+
+Simon's decisions (Nov 22): option B. Senses a dictionary tags classical stay as they are. A
+sense citing only CC-CEDICT's untagged lines (a *candidate*) stays only if MOE gives the same sense
+with a quotation from a classical-register work written up to 1911. No AI decides what counts as
+classical. The v5b replies are reused (no new condensing run), Haiku's `classical` mark is ignored,
+and `data/classical_modern.tsv` (the Sonnet check of §11) is gone.
+
+**Quote classifier** (`tools/moe_evidence.py`). Of MOE's 144,297 quotations, 95,008 qualify.
+Left out: novels 32,086 (any work MOE ever cites by 第…回, 180 titles), other vernacular titles
+8,947 (三言二拍 and other 話本 collections, titles with 演義/平話/通俗/諸宮調), drama 6,925 (any
+work cited by 第…折/齣 or 楔子, 375 titles), 散曲 549, undated non-commentary quotes 167, 民國 32,
+and 《清史稿》 583 (compiled 1914–27; it would have backed only 7 senses, mostly modern, such as
+報章 *newspapers*). Hand check of 50 random qualifying quotes: 49 classical; the miss, 《劉知遠諸宮調》,
+led to the 諸宮調 rule.
+
+**Matching** (`tools/moe_match.py`). One Haiku request per headword with candidates and at least
+one qualifying MOE definition. Haiku sees *all* the headword's MOE definitions, not only the
+qualifying ones, so a near miss isn't forced onto the nearest qualifying one. The build keeps a
+sense only if its matched definition has a qualifying quote. `build/classical/moe_matches.tsv`
+(git-ignored, since it quotes MOE) records the decision, definition and quote for each candidate.
+Prototype on the 150 characters and the #67 words: 123 requests, $0.008, and 48 of 50 kept matches
+right (wrong: 戲 *trick* → 開玩笑, 卒 *pawn in Chinese chess* → 士兵). Full run: 6,033 requests,
+**$0.18** at batch price.
+
+| 18,612 candidate senses | |
+|---|---|
+| kept: matched a definition with a qualifying quote | 4,798 |
+| headword has no qualifying MOE definition | 6,831 |
+| no MOE definition with the same meaning | 3,338 |
+| matched a definition without a qualifying quote | 3,645 (2,818 with no quote at all, 827 vernacular only) |
+
+**What MOE evidence can't do.** MOE quotes classical texts for classical and specialised senses,
+but for a character's plainest sense it usually gives only a modern example (如：…). So senses
+classical and modern share lose their evidence: 一 *one*, 有 *to have*, 人 *person*, 不 *not*, 是
+*to be*, 金 *gold*, 牛 *ox*. Counting definitions with no quote doesn't help: the same group holds 就
+*then*, 的 *of*, 要 *need to*, 了 and 那 *then*. Simon chose to accept the loss (option 1). Those
+senses are in the CC-CEDICT entry right below the 文言 entry. The rejected alternatives were sentence
+evidence from a classical corpus, and a narrow keep-rule. Song 詞 count as classical, so 了 gains
+*completed action marker* from 蘇軾's 「小喬初嫁了」.
+
+**Results** against 2.21.0 (`classical-data/compare69.py`):
+- 邦交, 外侮 and 先行 are back. 花甲 is not: MOE quotes it only from 《西遊記》.
+- 就 *then*, 要 *need to* and 的 *of* stay out.
+- Entries: characters 20,620 → 21,394, words 26,093 → 28,933. Senses: 95,615 → 95,820, with 6,709
+  only in the new build and 6,368 only in 2.21.0.
+- More entries because tagged senses Haiku had marked modern now stay.
+- The database is 53.0 MB (+0.5 MB).
+
+| On the 128 judged senses | 2.21.0 | 2.22.0 |
+|---|---|---|
+| in the 文言 entry | 121 (95%) | 117 (91%) |
+| in its first two senses | 93 (73%) | 94 (73%) |
+| first | 78 (61%) | 83 (65%) |
+| whole popup | 122 (95%) | 122 (95%) |
+
+The judged senses 2.21.0 had and 2.22.0 lacks are all shared senses with no classical quote in MOE:
+信 *to believe*, 太 *greatest*, 有 *to have*, 金 *gold*, 入 *to enter*, 一 *one*, 辭 *to decline*, 牛
+*ox* and 楚 *Chu*. Their entries got shorter, so other senses moved up, and *first* rose from 61% to
+65%.
