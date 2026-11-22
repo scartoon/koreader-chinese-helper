@@ -155,7 +155,7 @@ def load_cedict(path, neutral_path=NEUTRAL_OVERRIDES, originals=None):
             if not m:
                 continue
             trad, simp, py, defs = m.groups()
-            syls = neutral_override(simp, py, neutral, used).split()
+            syls = neutral_override(simp, py, neutral, used, trad).split()
             if len(syls) != len(simp) or len(trad) != len(simp):
                 continue
             if originals is not None and syls != py.split():
