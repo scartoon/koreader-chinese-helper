@@ -1074,14 +1074,40 @@ function Model.blocks(matches, char, annotated, b0, b1, trad)
     return blocks
 end
 
+-- One Classical block from a classical table row: head line the headword
+-- (bold, with its traditional form beside it when `trad` and it differs),
+-- then one sense per line, numbered when there are several (#67), as
+-- "reading: gloss" when the sense gives a reading. nil when no senses.
+local function classicalBlock(r, b0, b1, trad)
+    local senses = {}
+    for line in (r.senses or ""):gmatch("[^\n]+") do
+        local reading, gloss = line:match("^([^\t]*)\t([^\t]*)")
+        if gloss and gloss ~= "" then
+            senses[#senses + 1] = (reading ~= "" and (reading .. ": ") or "") .. gloss
+        end
+    end
+    if #senses == 0 then return nil end
+    local block = { lines = {}, source = "classical", classical = true }
+    for k, sense in ipairs(senses) do
+        block.lines[k] = #senses > 1 and (k .. ". " .. sense) or sense
+    end
+    local word = (r.simp ~= "" and r.simp) or r.trad
+    block.head = b0 .. word .. b1
+    if trad then
+        local form = r.trad ~= word and r.trad or nil
+        block.word, block.trad, block.rest = word, form, ""
+        if form then block.head = b0 .. word .. b1 .. " " .. form end
+    end
+    return block
+end
+
 --[[--
 The Classical dictionary's blocks for the tapped character (#53): `rows`
 from DB:classical. A simplified character standing for several traditional
 ones (发: 發, 髮) shows the one the word around it uses (`trad_pick`,
 Model.tradPick), else each in turn. One block per entry, never collapsed
-(#56: shown in full, first in the popup): head line the character (with its traditional form beside it
-when `trad` and it differs), then one sense per line, "reading: gloss" when
-the sense gives a reading. Empty when there is no entry: nothing is added.
+(#56, #67: shown in full, first in the popup), as classicalBlock draws it.
+Empty when there is no entry: nothing is added.
 ]]
 function Model.classicalBlocks(rows, char, trad_pick, b0, b1, trad)
     b0, b1 = b0 or "", b1 or ""
@@ -1097,22 +1123,30 @@ function Model.classicalBlocks(rows, char, trad_pick, b0, b1, trad)
     if #picked == 0 then picked = rows or {} end
     local blocks = {}
     for _, r in ipairs(picked) do
-        local block = { lines = {}, source = "classical", classical = true }
-        for line in (r.senses or ""):gmatch("[^\n]+") do
-            local reading, gloss = line:match("^([^\t]*)\t([^\t]*)")
-            if gloss and gloss ~= "" then
-                block.lines[#block.lines + 1] = (reading ~= "" and (reading .. ": ") or "") .. gloss
+        blocks[#blocks + 1] = classicalBlock(r, b0, b1, trad)
+    end
+    return blocks
+end
+
+--[[--
+The Classical dictionary's blocks for the words around the tapped character
+(#67): `rows` from DB:classicalWords, `matches` the popup's words
+(Model.matches). One block per word that has an entry, in the order of
+`matches`, for words of two or more characters; a word matched in both
+forms appears once. They go right below the character's own Classical
+blocks.
+]]
+function Model.classicalWordBlocks(rows, matches, b0, b1, trad)
+    b0, b1 = b0 or "", b1 or ""
+    local blocks, seen = {}, {}
+    for _, m in ipairs(matches or {}) do
+        if m.len and m.len > 1 then
+            for _, r in ipairs(rows or {}) do
+                if (r.simp == m.word or r.trad == m.word) and not seen[r.trad] then
+                    seen[r.trad] = true
+                    blocks[#blocks + 1] = classicalBlock(r, b0, b1, trad)
+                end
             end
-        end
-        if #block.lines > 0 then
-            local word = (r.simp ~= "" and r.simp) or r.trad
-            block.head = b0 .. word .. b1
-            if trad then
-                local form = r.trad ~= word and r.trad or nil
-                block.word, block.trad, block.rest = word, form, ""
-                if form then block.head = b0 .. word .. b1 .. " " .. form end
-            end
-            blocks[#blocks + 1] = block
         end
     end
     return blocks
