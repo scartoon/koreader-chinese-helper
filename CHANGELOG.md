@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.24.0 (2026-11-22)
+
+Headwords: simplified • traditional, at the same size (#73)
+- Each entry's headword shows its traditional form after the simplified one, at the same size
+  and separated by a dot: **头发** • 頭髮, **门** • 門. The simplified form is bold. Nothing is
+  added when the two are the same (人, 大人).
+- A single character lists only its other forms, not itself: 干 • 乾/幹/榦 (it used to list
+  乾/干/幹). In a word, the form the word uses comes first: 发 • 髮/發 in 头发.
+- Tapped in traditional characters, the simplified form still comes first: 頭髮 shows
+  **头发** • 頭髮.
+- The setting is renamed **Show traditional in headwords** (still on by default). Off, every
+  headword is simplified only, including traditional taps.
+- The head line is now a single line of text, so in night mode the traditional form uses the
+  normal text colour.
+
 ## 2.23.0 (2026-11-22)
 
 Words first: the words around the tapped character come above the character's own entry (#71, #68)
