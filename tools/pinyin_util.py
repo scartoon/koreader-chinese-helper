@@ -104,13 +104,19 @@ def load_neutral_overrides(path):
     return out
 
 
-def neutral_override(simp, numbered, table, used=None):
+# CC-CEDICT lines whose simplified form has an override but which are another
+# word with a full tone: 下麵 xià miàn "to boil noodles" next to 下面 "below".
+NEUTRAL_OVERRIDE_SKIP_TRAD = {"下麵"}
+
+
+def neutral_override(simp, numbered, table, used=None, trad=None):
     """CC-CEDICT pinyin `numbered` ("pen1 ti4") with the table's neutral
     syllables put in, when `simp` is in the table and the line has the same
     syllables apart from the tones the table makes neutral; else unchanged.
-    Capitals (names) are kept. `used` (a set) collects the words applied."""
+    Capitals (names) are kept. `used` (a set) collects the words applied.
+    Lines whose `trad` is in NEUTRAL_OVERRIDE_SKIP_TRAD are left alone."""
     want = table.get(simp)
-    if not want:
+    if not want or trad in NEUTRAL_OVERRIDE_SKIP_TRAD:
         return numbered
     syls = numbered.split()
     if len(syls) != len(want):

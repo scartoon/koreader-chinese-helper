@@ -291,12 +291,12 @@ def haiku_fetch(client, word):
     return data, usage
 
 
-def run_haiku(rows, cache, limit, workers):
+def run_haiku(rows, cache, limit, workers, readings=("main",)):
     if not os.environ.get("ANTHROPIC_API_KEY"):
         sys.exit("ANTHROPIC_API_KEY is not set for this process")
     import anthropic
     client = anthropic.Anthropic(max_retries=4)
-    todo = [r for r in rows if r["wikt_reading"] == "main" and "A" not in r["sources"].split(",")
+    todo = [r for r in rows if r["wikt_reading"] in readings and "A" not in r["sources"].split(",")
             and r["word"] not in cache]
     if limit:
         todo = todo[:limit]
@@ -357,6 +357,18 @@ SENSE_SPLIT = {
 # Simon's decisions against a lookup that passed check(): never approved.
 REJECTED = {
     "狗狗": "keep CC-CEDICT gǒugōu (Simon, 2026-11-21; the only evidence was a Zhihu note)",
+}
+# Read through by hand after the variant-reading run: a lookup that passed
+# check() but is a separate full-tone sense, or rests only on a non-dictionary page.
+HELD = {
+    "来往": "sense split: lái wǎng come and go / lái·wang social contact",
+    "编辑": "sense split: biān jí to edit / biān·ji editor",
+    "枪手": "sense split: qiāng shǒu gunman / qiāng·shǒu exam stand-in",
+    "烧纸": "sense split: shāo zhǐ to burn paper (CC-CEDICT's sense) / shāo·zhǐ paper money",
+    "父亲": "only a Q&A-site note (iask), no dictionary page",
+    "道行": "only Baidu Baike",
+    "做学问": "only Baidu Baike",
+    "出落": "only a blog list of 轻声 words",
 }
 
 
@@ -469,6 +481,8 @@ def write_outputs(rows, cache):
                 verdict = check(row, ans)
                 if row["word"] in REJECTED:
                     verdict = "rejected: " + REJECTED[row["word"]]
+                elif row["word"] in HELD and verdict == "neutral":
+                    verdict = "held: " + HELD[row["word"]]
                 syl, url, snippet = ans.get("syllable", ""), ans.get("url", ""), ans.get("snippet", "")
                 counts["lookup" if verdict == "neutral" else verdict if verdict in counts else "no evidence"] += 1
             else:
@@ -508,7 +522,11 @@ def main():
     ap.add_argument("--haiku-search", action="store_true",
                     help="Haiku 5.5 + web search (any mainland source) for main-reading candidates "
                          "Baidu could not answer (#64)")
+    ap.add_argument("--variant-readings", action="store_true",
+                    help="with --haiku/--haiku-search: also the candidates whose neutral reading is a "
+                         "Wiktionary variant, not its main one")
     args = ap.parse_args()
+    readings = ("main", "variant") if args.variant_readings else ("main",)
 
     rows = read_candidates()
     cache = read_cache()
@@ -523,7 +541,7 @@ def main():
           f"${per:.3f} per lookup ({'measured over ' + str(len(measured)) if measured else 'guessed'}), "
           f"estimate ${per * len(todo):.2f}")
     if args.haiku:
-        run_haiku(rows, cache, args.limit, args.workers)
+        run_haiku(rows, cache, args.limit, args.workers, readings)
         return
     if args.baidu:
         run_baidu(rows, cache, args.limit)
@@ -541,7 +559,7 @@ def main():
     model = MODEL
     if args.haiku_search:
         model = HAIKU
-        todo = [r for r in todo if r["wikt_reading"] == "main"]
+        todo = [r for r in todo if r["wikt_reading"] in readings]
     if args.limit:
         todo = todo[:args.limit]
     spent = [0.0]

@@ -184,7 +184,7 @@ def read_cedict(path, raw=None):
             if not m:
                 continue
             trad, simp, py, defs = m.groups()
-            py = neutral_override(simp, py, neutral)  # 喷嚏 pēnti (see build_data.load_cedict)
+            py = neutral_override(simp, py, neutral, trad=trad)  # 喷嚏 pēnti (see build_data.load_cedict)
             parts = [s for s in defs.split("/") if s.strip()]
             if raw is not None:
                 raw.append((trad, simp, py, parts))
