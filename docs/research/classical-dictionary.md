@@ -519,3 +519,69 @@ in 文言 Mode, no API cost, size negligible. Or leave C out: it covers about 1%
 **Proposal.** Build A (with B folded in) and, if you want it, C3. Measured cost so far: $1.10
 of API calls (the corpus judgments). Building would cost about $0.30 more and add about 1 MB to
 the database.
+
+## 11. Complete, purely classical entries for characters and words (#67)
+
+Simon's decisions (Nov 21): in 文言 Mode the 文言 entry is the **complete** set of classical senses
+of the character or word, **purely classical** (no modern-only sense), always shown in full, and the
+same for words. MOE stays out. This replaces the caps of §9 and the supplement options of §10.
+
+**Prompt v5** (`tools/condense_classical_prompt.txt`; v4 kept as
+[`classical-data/prompt_v4.txt`](classical-data/prompt_v4.txt)): give every distinct sense, merging
+only true duplicates; mark each `"classical": true/false`; order by frequency in classical texts. The
+build drops senses marked false. The first try (v5a) counted CC-CEDICT's "(bound form)" as modern
+and dropped 事 *matter*, 將 *will* and *a general*, and 民 *the people*. v5b says a bound form is
+classical, that only plainly modern senses are false, and to keep a sense when unsure. It also says
+the order of the input lines means nothing, and that a function word's grammatical uses come first.
+
+**Words.** Headwords of two or more characters with a Chinese Notes *Literary Chinese* sense, a
+Wiktionary literary/Classical/archaic sense or a labelled CC-CEDICT sense, plus all their CC-CEDICT
+senses as candidates: 28,995 inputs. In 文言 Mode, the words' entries follow the character's, at
+the top of the popup, in the popup's word order (`Model.classicalWordBlocks`).
+
+**Purity check.** The 50 commonest characters still had modern senses after Haiku: 的 *of; 's*, 就
+*then* (first!) and its 就…也 / 不…就 patterns, 來 *in order to*, 時 *fashionable*, 麼 *interrogative
+particle*, 要 *need to*. That is about 11 of 50, over the issue's stop line. Those senses all came
+only from CC-CEDICT's unlabelled lines (14,055 senses in the data). A dedicated check
+(`tools/classical_purity.py`: one question per sense, "classical, or only vernacular/modern?"):
+
+| Checker, on the 119 such senses of the 50 commonest characters | Catches the leaks above | Wrong the other way | Cost |
+|---|---|---|---|
+| Haiku 5.5, medium effort | few (keeps 就 *then*, 和 *and*, 對 *towards*) | — | $0.01 |
+| Sonnet 5.5, medium | all | 一 *as soon as* (classical, 一鼓作氣) | $0.12 |
+| Sonnet 5.5, low, 15 entries per request | same verdicts as medium on all 119 | same | $0.03 |
+
+The full check covered characters ranked ≤ 3,000 and words: 5,957 entries, 9,927 senses, Batch API
+**$1.43**. 3,103 senses were judged modern-only (`data/classical_modern.tsv`, applied by the build).
+In 40 random *modern* verdicts, about 33 are right (要 *need to*, 賺 *to earn*, 念 *to read*, 幹 *to
+work*, 毛病 *ailment*) and about 7 debatable or wrong (花甲, 邦交, 外侮, 先行 are attested
+classically). In 30 random *classical* verdicts, about 1 is doubtful (對 *right; correct*). Purity
+costs some real senses, roughly 1 drop in 6. The rarer characters' CC-CEDICT-only senses (4,128)
+weren't rechecked: they are mostly science terms, which Haiku already drops (氦, 氟).
+
+**Results.** Full run 51,803 requests (cached system prompt, Batch API): **$1.80**. Prototypes
+$0.21, purity pilot and run $1.60, so #67's API total is about $3.60.
+
+| On the 128 judged senses | v4b (2.20.0) | v5b, after the purity check |
+|---|---|---|
+| in the 文言 entry | 119 (93%) | **121 (95%)** |
+| in its first two senses | 99 (77%) | 93 (73%) |
+| first | 84 (66%) | 78 (61%) |
+| whole popup | 122 (95%) | 122 (95%) |
+
+No needed sense v4b had is lost; 將 *a general* is now in (23rd of 33). The purity check changed
+one judged position: 還 *to return* moved from 4th to 2nd once *still; yet* went. Complete lists
+cost some order: the first-two measure drops from 77% to 73%.
+
+| | Entries | Senses (median, p90, max) | Characters (median, p90) | Longest |
+|---|---|---|---|---|
+| Characters | 20,620 | 2, 5, 36 | 39, 112 | 道 36, 將 33, 方 33, 著 28 |
+| Words | 26,093 | 1, 3, 12 | 31, 81 | 北京 8 |
+
+Hand review: every sense of the 50 commonest characters after the check, and 50 random words. The
+words read as classical in 48 of 50; 日語 *Spanish language* is a late-Qing Wiktionary sense. No
+added senses were found. The database is 52.5 MB (+6.1 MB on 2.20.0).
+
+**Display.** Senses are numbered when there are several. With everything shown, the 文言 entry of
+the commonest function characters fills the visible popup (之 18 senses, 將 33), and the rest of the
+popup is below it.

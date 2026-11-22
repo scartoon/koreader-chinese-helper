@@ -484,6 +484,17 @@ do
     assert(fa.blocks[1].rank and not fa.blocks[2].rank and not fa.blocks[3].rank, shape(fa))
     assert(fa.blocks[3].source ~= "classical", shape(fa))
     fa.on_outside()
+    -- #67: the words' Classical entries follow the character's, all above the rest.
+    local jian = root("相如素", "贱", "人")
+    eq(jian.blocks[1].source, "classical", shape(jian))
+    local at
+    for k, b in ipairs(jian.blocks) do
+        if b.classical and tostring(b.head):find("贱人", 1, true) then at = k break end
+    end
+    assert(at and at > 1, "贱人's Classical entry after 贱's: " .. shape(jian))
+    for k = 1, at do eq(jian.blocks[k].source, "classical", "all Classical blocks first: " .. shape(jian)) end
+    assert(table.concat(jian.blocks[at].lines, " "):find("lowly", 1, true), table.concat(jian.blocks[at].lines, " | "))
+    jian.on_outside()
     -- 吗 has no Classical entry: the same popup on and off.
     local ma_on = root("好", "吗", "")
     local s_on, w_on = shape(ma_on), without(ma_on, "none")

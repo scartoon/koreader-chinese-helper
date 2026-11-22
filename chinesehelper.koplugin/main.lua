@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.20.0"
+ChineseHelper.VERSION = "2.21.0"
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
@@ -924,7 +924,7 @@ function ChineseHelper:classicalItem()
     local plugin, settings = self, self.settings
     return {
         text = _("Classical mode"),
-        help_text = _("For reading classical Chinese (文言). Every popup shows the Classical dictionary's entry for the tapped character first, in full: the senses classical texts use most, commonest first (up to eight for the commonest characters). Everything else follows below it, in the same order as without the mode. A character with no entry adds nothing. The 文言 Mode button at the top of each popup turns this on (文言 Mode ✓) and off. The Classical dictionary is condensed from Chinese Notes, English Wiktionary, Unihan and CC-CEDICT."),
+        help_text = _("For reading classical Chinese (文言). Every popup shows the Classical dictionary's entries first, in full: the tapped character's, then those of the words around it. Each lists every classical sense of the character or word, commonest first, numbered, and no modern-only senses. Everything else follows below, in the same order as without the mode. A character or word with no classical senses adds nothing. The 文言 Mode button at the top of each popup turns this on (文言 Mode ✓) and off. The Classical dictionary is condensed from Chinese Notes, English Wiktionary, Unihan and CC-CEDICT."),
         enabled_func = function()
             local db = plugin:db()
             return db ~= nil and db:hasClassical()

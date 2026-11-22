@@ -60,6 +60,9 @@ import condense_classical as condense  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "build", "classical")
 DATA = os.path.join(ROOT, "data", "classical.tsv.gz")
+# #67: senses a second check (tools/classical_purity.py, Claude Sonnet) found
+# modern-only: headword<TAB>gloss. They are left out of the entries.
+MODERN = os.path.join(ROOT, "data", "classical_modern.tsv")
 VARIANT = "bundled"
 # #67: no cap (every classical sense); this only guards against a runaway reply.
 MAX_SENSES = 60
@@ -457,6 +460,11 @@ def main():
         run_sync(jobs, prompt)
     elif args.run:
         run_batches(jobs, prompt, args.max_usd)
+    modern = set()
+    if os.path.exists(MODERN):
+        for line in open(MODERN):
+            if not line.startswith("#") and "\t" in line:
+                modern.add(tuple(line.rstrip("\n").split("\t")[:2]))
     entries, flags, missing, unparsed = {}, [], 0, []
     for ch, text, key in jobs:
         path = condense.cache_path(key)
@@ -471,6 +479,8 @@ def main():
             continue
         senses, fl = validate(rec)
         flags += [(ch, kind, detail) for kind, detail in fl]
+        flags += [(ch, "modern-check", s["gloss"]) for s in senses if (ch, s["gloss"]) in modern]
+        senses = [s for s in senses if (ch, s["gloss"]) not in modern]
         if senses:
             entries[ch] = {"simp": by[ch][0]["simp"], "senses": senses,
                            "raw": "\n".join(text.split("\n")[1:])}
@@ -479,8 +489,9 @@ def main():
     # popup prefers the tapped character's own entry, so this thin copy
     # would hide the traditional one: drop it, and the simp lookup finds 託.
     simps = {e["simp"] for t, e in entries.items() if e["simp"] != t}
+    # #67: CC-CEDICT's "variant of 託" counts as thin too (讬).
     thin = [t for t, e in entries.items() if t in simps and e["simp"] == t
-            and all(s["sources"] == ["Unihan"] for s in e["senses"])]
+            and all(s["sources"] == ["Unihan"] or s["gloss"].startswith("variant of") for s in e["senses"])]
     for t in thin:
         del entries[t]
     var = {v: t for v, t in variants(entries).items() if v not in simps}
