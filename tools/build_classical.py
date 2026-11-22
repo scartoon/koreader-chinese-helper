@@ -61,13 +61,46 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "build", "classical")
 DATA = os.path.join(ROOT, "data", "classical.tsv.gz")
 VARIANT = "bundled"
-MAX_SENSES = 5
+MAX_SENSES = 5          # the cap for rarer characters
+# #65: higher caps for common characters, by rank: (highest rank, cap).
+CAPS = ((500, 8), (3000, 6))
+# The input lists the classical sources first and CC-CEDICT last, so the
+# order of the lines doesn't push its modern senses to the top.
+condense.ORDER = ["wikt", "cn", "unihan", "cedict"]
 BATCH_FILE = os.path.join(OUT, "batches.json")
 csv.field_size_limit(10 ** 8)
 
 
+# CC-CEDICT senses that are not senses of the character in a text: names,
+# pronunciation notes, classifiers, pointers and colloquial or dialect use.
+CEDICT_SKIP = re.compile(r"^(surname |Taiwan pr\.|also pr\.|CL:|used in |see |\((dialect|Tw|slang|coll\.|Cantonese|Internet slang)\))")
+
+
+def cedict_rows(trads):
+    """#65: every CC-CEDICT sense of these characters (single-character
+    entries), as collated rows. Labelled senses keep their label in the
+    text ("(literary) to command"); tag is the label or "candidate"."""
+    out = []
+    for simp, trad, pinyin, defs in sqlite3.connect(collate.DB).execute(
+            "SELECT simp, trad, pinyin, defs FROM entries WHERE length(simp) = 1 ORDER BY rowid"):
+        if trad not in trads:
+            continue
+        for sense in defs.split("/"):
+            sense = sense.strip()
+            if not sense or CEDICT_SKIP.match(sense):
+                continue
+            m = collate.CEDICT_TAG.search(sense)
+            out.append(dict(trad=trad, simp=simp, source="cedict", reading=pinyin, sense=sense,
+                            tag=(m.group(1) or m.group(2)) if m else "candidate"))
+    return out
+
+
 def collated_rows():
-    """{trad: [row]} from the bundled sources, cached in build/classical/collated-bundled.tsv."""
+    """{trad: [row]} from the bundled sources. Wiktionary, Chinese Notes and
+    rare-character Unihan are cached in build/classical/collated-bundled.tsv;
+    CC-CEDICT's senses (#65) are added for every character that has a
+    classical sense from one of those or a labelled classical CC-CEDICT
+    sense, so a character with only modern CC-CEDICT senses gets no entry."""
     path = os.path.join(OUT, "collated-bundled.tsv")
     if not os.path.exists(path):
         rank = dict(sqlite3.connect(collate.DB).execute("SELECT ch, rank FROM chars"))
@@ -82,14 +115,35 @@ def collated_rows():
     for r in csv.DictReader(open(path), delimiter="\t"):
         if r["sense"].strip():
             by[r["trad"]].append(r)
+    trads = set(by) | {r["trad"] for r in collate.extract_cedict()}
+    for r in cedict_rows(trads):
+        by[r["trad"]].append(r)
     return by
 
 
-def jobs_for(by, prompt):
+def rank_of(ch, simp):
+    return RANKS.get(simp) or RANKS.get(ch) or 0
+
+
+def cap_for(ch, simp):
+    r = rank_of(ch, simp)
+    return next((cap for top, cap in CAPS if 0 < r <= top), MAX_SENSES)
+
+
+RANKS = {}
+
+
+def jobs_for(by, prompt, chars=None):
+    if not RANKS:
+        RANKS.update(sqlite3.connect(collate.DB).execute("SELECT ch, rank FROM chars"))
     jobs = []
-    for ch in sorted(by):
+    for ch in sorted(chars if chars is not None else by):
+        if ch not in by:
+            continue
         text = condense.input_text(ch, by[ch], VARIANT)
         if text:
+            head, rest = text.split("\n", 1)
+            text = f"{head}. Senses allowed: {cap_for(ch, by[ch][0]['simp'])}\n{rest}"
             key = hashlib.sha256(json.dumps([condense.MODEL, prompt, VARIANT, text]).encode()).hexdigest()[:24]
             jobs.append((ch, text, key))
     return jobs
@@ -99,6 +153,8 @@ def senses_from(reply, text):
     """The reply's senses, or None. A reply that corrects itself ("Wait,
     ... The correct reply is: {...}") counts by its last JSON line."""
     tries = [reply] + [ln for ln in reversed(reply.split("\n")) if ln.startswith('{"senses"')]
+    # One brace off at the end (就, 方 in #65): '..."lines": [9]}}]}' or '..."lines": [20]}}'.
+    tries += [re.sub(r"\}\}\]\}\s*$", "}]}", reply), re.sub(r"\}\}\s*$", "}]}", reply)]
     for t in tries:
         try:
             return condense.add_sources(json.loads(t)["senses"], text)
@@ -174,6 +230,26 @@ def run_batches(jobs, prompt, max_usd):
               f"${(used_in / 1e6 * condense.PRICE_IN + used_out / 1e6 * condense.PRICE_OUT) / 2:.2f} (batch price)")
 
 
+def run_sync(jobs, prompt):
+    """Prototype runs: send the uncached inputs one by one (standard price)."""
+    import anthropic
+    client = anthropic.Anthropic()          # the key comes from ANTHROPIC_API_KEY only
+    os.makedirs(os.path.join(OUT, "condense_cache"), exist_ok=True)
+    used_in = used_out = 0
+    for ch, text, key in jobs:
+        if os.path.exists(condense.cache_path(key)):
+            continue
+        msg = client.messages.create(model=condense.MODEL, max_tokens=2000, system=prompt,
+                                     thinking={"type": "disabled"},
+                                     messages=[{"role": "user", "content": text}])
+        rec = parse_reply(ch, text, msg.content, msg.stop_reason, msg.usage)
+        json.dump(rec, open(condense.cache_path(key), "w"), ensure_ascii=False)
+        used_in += msg.usage.input_tokens
+        used_out += msg.usage.output_tokens
+    print(f"this run: {used_in:,} input + {used_out:,} output tokens, "
+          f"${used_in / 1e6 * condense.PRICE_IN + used_out / 1e6 * condense.PRICE_OUT:.3f}")
+
+
 WORD = re.compile(r"[a-z]+")
 STOP = set("a an the of to in on or and as for by with from at be is it its one sth sb someone something "
            "used also eg ie etc kind type form".split())
@@ -207,7 +283,7 @@ NO_SENSE = re.compile(r"no (classical |further )?(sense|gloss)|no meaning (given
 
 def validate(rec):
     """(senses kept, flags): drop senses citing no existing line, cut to
-    MAX_SENSES, flag English senses sharing under half their words with the
+    the character's cap (its input's first line), flag English senses sharing under half their words with the
     cited lines."""
     lines = {}
     for line in rec["input"].split("\n")[1:]:
@@ -230,9 +306,17 @@ def validate(rec):
         if words and len(missing) * 2 > len(words):
             flags.append(("few-words", gloss + "  <=  " + " | ".join(lines[n] for n in cited)))
         kept.append({"gloss": gloss, "reading": s.get("reading") or "", "sources": s["sources"]})
-    if len(kept) > MAX_SENSES:
+    # The popup shows "reading: gloss" only to tell readings apart (#53):
+    # an entry whose senses all share one reading shows none (v4 replies
+    # often give the reading on every sense).
+    if len({s["reading"] for s in kept if s["reading"]}) <= 1:
+        for s in kept:
+            s["reading"] = ""
+    m = re.search(r"Senses allowed: (\d+)", rec["input"].split("\n")[0])
+    cap = int(m.group(1)) if m else MAX_SENSES
+    if len(kept) > cap:
         flags.append(("over-cap", str(len(kept))))
-        kept = kept[:MAX_SENSES]
+        kept = kept[:cap]
     return kept, flags
 
 
@@ -328,12 +412,17 @@ def main():
     ap.add_argument("--estimate", action="store_true", help="collate and print the cost; call nothing")
     ap.add_argument("--run", action="store_true", help="send the uncached inputs through the Batch API")
     ap.add_argument("--max-usd", type=float, default=5.0)
+    ap.add_argument("--chars-file", help="prototype: only these characters, sent one by one (not batched)")
+    ap.add_argument("--out", default=DATA, help="where to write the data file (default data/classical.tsv.gz)")
     args = ap.parse_args()
     if args.into:
         return into(args.into)
     prompt = open(condense.PROMPT).read()
     by = collated_rows()
-    jobs = jobs_for(by, prompt)
+    chars = None
+    if args.chars_file:
+        chars = list(dict.fromkeys(c for c in open(args.chars_file).read() if not c.isspace()))
+    jobs = jobs_for(by, prompt, chars)
     cached = sum(os.path.exists(condense.cache_path(k)) for *_, k in jobs)
     est_in = sum(condense.estimate_tokens(prompt) + condense.estimate_tokens(t) for _, t, _ in jobs)
     est_out = 150 * (len(jobs) - cached)
@@ -344,7 +433,9 @@ def main():
           f"to send: ~${usd:.2f} at batch price")
     if args.estimate:
         return
-    if args.run:
+    if args.run and chars is not None:
+        run_sync(jobs, prompt)
+    elif args.run:
         run_batches(jobs, prompt, args.max_usd)
     entries, flags, missing, unparsed = {}, [], 0, []
     for ch, text, key in jobs:
@@ -373,21 +464,22 @@ def main():
     for t in thin:
         del entries[t]
     var = {v: t for v, t in variants(entries).items() if v not in simps}
-    os.makedirs(os.path.dirname(DATA), exist_ok=True)
-    with gzip.open(DATA, "wt", encoding="utf-8", newline="", compresslevel=9) as f:
-        f.write("# Classical dictionary (tools/build_classical.py, #55). CC BY-SA 4.0: condensed by Claude Haiku\n"
-                "# from Chinese Notes (CC BY-SA 3.0), English Wiktionary (CC BY-SA 4.0) and Unihan (Unicode License v3).\n")
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    with gzip.open(args.out, "wt", encoding="utf-8", newline="", compresslevel=9) as f:
+        f.write("# Classical dictionary (tools/build_classical.py, #55, #65). CC BY-SA 4.0: condensed by Claude Haiku\n"
+                "# from CC-CEDICT (CC BY-SA 4.0), Chinese Notes (CC BY-SA 3.0), English Wiktionary (CC BY-SA 4.0)\n"
+                "# and Unihan (Unicode License v3).\n")
         w = csv.writer(f, delimiter="\t", lineterminator="\n", quoting=csv.QUOTE_MINIMAL)
         for ch in sorted(entries):
             e = entries[ch]
             w.writerow(["entry", ch, e["simp"], json.dumps(e["senses"], ensure_ascii=False), e["raw"]])
         for ch in sorted(var):
             w.writerow(["variant", ch, var[ch], "", ""])
-    with open(os.path.join(OUT, "flags.tsv"), "w") as f:
+    with open(os.path.join(OUT, "flags.tsv" if chars is None else "flags-proto.tsv"), "w") as f:
         for row in flags:
             f.write("\t".join(row) + "\n")
     kinds = collections.Counter(k for _, k, _ in flags)
-    print(f"wrote {DATA}: {len(entries)} entries, {len(var)} variants; "
+    print(f"wrote {args.out}: {len(entries)} entries, {len(var)} variants; "
           f"{len(thin)} Unihan-only simplified copies dropped; {missing} not condensed yet, {len(unparsed)} unparsed {''.join(unparsed[:20])}; flags {dict(kinds)}")
 
 

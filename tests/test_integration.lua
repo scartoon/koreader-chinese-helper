@@ -459,7 +459,10 @@ local function classical(text, char)
 end
 local cb = classical("學而時習之", "之")
 eq(#cb, 1); eq(cb[1].head, "**之**"); eq(cb[1].source, "classical")
-assert(#cb[1].lines >= 3 and #cb[1].lines <= 5, table.concat(cb[1].lines, " | "))
+-- #65: up to 8 senses for the 500 commonest characters, commonest classical use first.
+assert(#cb[1].lines >= 3 and #cb[1].lines <= 8, table.concat(cb[1].lines, " | "))
+assert(cb[1].lines[1]:find("him", 1, true) and not cb[1].lines[1]:find(":", 1, true),
+       "之: the object pronoun first, no reading (one reading only): " .. cb[1].lines[1])
 cb = classical("不亦說乎", "說")
 eq(#cb, 1); eq(cb[1].head, "**说** 說", "tapped in traditional: the simplified form leads")
 assert(table.concat(cb[1].lines, "|"):find("yuè: ", 1, true), "說 = 悅: " .. table.concat(cb[1].lines, " | "))

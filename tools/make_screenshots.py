@@ -196,7 +196,7 @@ SHOTS = {
     # Classical mode (#53, #56): 之 in 窦武、陈蕃谋诛之 ("plotted to kill them"), its 文言
     # block first and in full, and the 文言 Mode ✓ button in the title bar.
     "classical": dict(page="sg1", classical=True, taps=[("之", 3, (1330, 1085), [
-        "**之**  zhī", "[文言]", "him; her; it; them (object pronoun in non-subject position)"])],
+        "**之**  zhī", "[文言]", "him; her; them; it (object pronoun)"])],
         frames=[(1, (95, 1191))]),
     # The popup's title-bar button, on 盘 in that paragraph.
     "mark-button": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[("盘", 1, (260, 565), ["**盘** 盤  pán"])],
