@@ -200,7 +200,7 @@ SHOTS = {
     # block first and in full, and the 文言 Mode ✓ button in the title bar.
     "classical": dict(page="sg1", classical=True, taps=[("之", 3, (1330, 1085), [
         "[文言]", "1. him; her; them; that", "2. it (object pronoun)", "**之**  zhī"])],
-        frames=[(1, (95, 1191))]),
+        frames=[(1, (22, 1242))]),
     # The popup's title-bar button, on 盘 in that paragraph.
     "mark-button": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[("盘", 1, (260, 565), ["**盘** • 盤  pán"])],
                         frames=[(1, (169, 542))]),
