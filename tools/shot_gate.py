@@ -222,6 +222,12 @@ local function present(g, char, cands, rows, matches, annotated)
         end
         table.insert(blocks, at, block)
     end
+    if g.settings:wordsFirst() then   -- Words first (#71): the character's group below the words
+        local n = own == 2 and 1 or 0
+        while n > 0 and blocks[n + 1] and blocks[n + 1].always do n = n + 1 end
+        if block then n = n + 1 end
+        Model.wordsFirst(blocks, n)
+    end
     if g.classical then   -- Classical mode (#53, #56): first, above everything
         local cl = Model.classicalBlocks(g.main:classical(char), char, Model.tradPick(cands, rows), "**", "**",
             g.settings:tradHeadsEnabled())

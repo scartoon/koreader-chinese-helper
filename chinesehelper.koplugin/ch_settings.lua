@@ -68,6 +68,7 @@ Settings.DEFAULTS = {
     popup_text_pct = 60,      -- 38 px on a Boox Go 7 with 64 px book text (the old popups used 43 px)
     chinese_text_pct = 130,   -- "Chinese text size": MOE, 成語典, Xinhua and Moegirlpedia text, and the Origin & Usage view
     components = true,        -- "Show character components" in single-character popups
+    words_first = true,       -- "Words first" (#71): the words' entries above the tapped character's
     char_rank = true,         -- "Show character frequency rank": 字频 N on the tapped character's entry
     trad_heads = true,        -- "Show traditional forms": 头发 頭髮 on the popup's head lines (#47)
     dict_text = "original",   -- "Dictionary text": "original" (as each source writes it) or "simplified" (#48)
@@ -102,6 +103,7 @@ function Settings:pinyinEnabled() return self:get("pinyin_enabled") == true end
 function Settings:popupEnabled() return self:get("popup_enabled") == true end
 function Settings:specialEnabled() return self:get("special") == true end
 function Settings:componentsEnabled() return self:get("components") == true end
+function Settings:wordsFirst() return self:get("words_first") == true end
 function Settings:charRankEnabled() return self:get("char_rank") == true end
 function Settings:tradHeadsEnabled() return self:get("trad_heads") == true end
 function Settings:classicalEnabled() return self:get("classical_mode") == true end

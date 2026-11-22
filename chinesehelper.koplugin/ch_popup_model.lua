@@ -1210,7 +1210,8 @@ end
 
 -- Put `rank_text` on the tapped character's own block: blocks[1] when the
 -- first match is the character itself (Model.matches lists it first), before
--- any reordering. Returns true when it was placed.
+-- any reordering (Words first, Model.chineseLast: the block keeps it as it
+-- moves). Returns true when it was placed.
 function Model.markRank(blocks, matches, rank_text)
     local first = matches and matches[1]
     if rank_text and first and first.len == 1 and blocks[1] then
@@ -1232,6 +1233,19 @@ function Model.markSpoken(blocks, matches, spoken)
         return true
     end
     return false
+end
+
+-- Words first (#71): the tapped character's group (the first `n` blocks: its
+-- own entry, its MOE Always entry and the components block) moves below the
+-- words' blocks, keeping its order. `blocks` is reordered in place. The rank
+-- and spoken note are on the character's block, so they move with it.
+function Model.wordsFirst(blocks, n)
+    if n <= 0 or n >= #blocks then return blocks end
+    local group = {}
+    for k = 1, n do group[k] = blocks[k] end
+    for k = n + 1, #blocks do blocks[k - n] = blocks[k] end
+    for k, b in ipairs(group) do blocks[#blocks - n + k] = b end
+    return blocks
 end
 
 function Model.chineseLast(blocks)

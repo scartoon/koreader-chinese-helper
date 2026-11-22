@@ -50,7 +50,9 @@ stub("datastorage", { getDataDir = function() return TEST_KOREADER_DIR end, getS
 stub("libs/libkoreader-lfs", { attributes = function() return nil end })
 stub("ui/network/manager", { isWifiOn = function() return true end, isConnected = function() return true end,
                              runWhenConnected = function(_, f) f() end })
-local settings = {}
+-- Words first (#71) is on by default; these tests check the character-first
+-- order (as before 2.23.0) unless they switch it on.
+local settings = { chinesehelper_words_first = false }
 G_reader_settings = {
     readSetting = function(_, k) return settings[k] end,
     saveSetting = function(_, k, v) settings[k] = v end,

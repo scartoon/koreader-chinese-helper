@@ -678,22 +678,26 @@ function Tap:present(args)
         Model.markSpoken(blocks, args.matches, args.spoken)
         local first = args.matches[1]
         local own = (first and first.len == 1) and 2 or 1
-        if block then
-            -- Below the character's own entry (when it has one) and its MOE
-            -- Always entry.
-            local at = own
-            if at == 2 then
-                while blocks[at] and blocks[at].always do at = at + 1 end
-            end
-            table.insert(blocks, at, block)
+        local own_block = own == 2 and blocks[1] or nil
+        -- The character's group: its own entry and its MOE Always entry ...
+        local at = own
+        if at == 2 then
+            while blocks[at] and blocks[at].always do at = at + 1 end
         end
+        if block then
+            -- ... then the components block, below them.
+            table.insert(blocks, at, block)
+            at = at + 1
+        end
+        -- Words first (#71): the group goes below the words' entries.
+        if settings:wordsFirst() then Model.wordsFirst(blocks, at - 1) end
         if has_classical and settings:classicalEnabled() and not args.word then
             -- Classical mode (#53, #56): the Classical entries first, in full,
             -- above everything else; the rank moves up onto the first of them.
             local cl = Model.classicalBlocks(args.db:classical(args.char), args.char,
                 Model.tradPick(args.cands, args.rows), b0, b1, trad)
             if #cl > 0 then
-                if rank_placed then blocks[1].rank = nil end
+                if rank_placed then own_block.rank = nil end
                 rank_placed = false
             end
             -- #67: then the Classical entries of the words around it.

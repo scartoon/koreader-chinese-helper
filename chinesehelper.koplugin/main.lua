@@ -789,6 +789,12 @@ function ChineseHelper:addToMainMenu(menu_items)
                 callback = function() settings:set("components", not settings:componentsEnabled()) end,
             },
             {
+                text = _("Words first"),
+                help_text = _("Show the entries of the words around the tapped character above the character's own entry (with its MOE entry and components). Off: the character first. The buttons keep their order either way."),
+                checked_func = function() return settings:wordsFirst() end,
+                callback = function() settings:set("words_first", not settings:wordsFirst()) end,
+            },
+            {
                 text = _("Show character frequency rank"),
                 help_text = _("A small grey 字频 line on the tapped character's own entry: its rank among characters in modern written Chinese, from wordfreq (1 is the most common; the default pinyin threshold is 3,500). Past 7,000 it shows 7,000+, since the data is too thin there for an exact rank; unranked means the character is not in the list. With Frequency ranks from your books, it shows your rank, with N+ past your file's exact ranks, or the bundled rank marked (bundled) for a character not in your books."),
                 checked_func = function() return settings:charRankEnabled() end,
