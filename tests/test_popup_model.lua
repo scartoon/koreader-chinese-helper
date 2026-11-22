@@ -122,19 +122,43 @@ m = matches("", "乐", "", yue, { chosen = "yào" })
 eq(m[1].entries[1].pinyin, "yào"); assert(m[1].entries[1].missing and m[1].entries[1].marked)
 assert(Model.render(m, "乐", true):find("yào\nno separate CC-CEDICT entry for this reading", 1, true))
 
--- Words: the resolver's reading of the word is marked when there is a choice.
+-- Words: the resolver's reading of the word the character belongs to (the
+-- segmentation's path word, #75) is marked when there is a choice.
 local dongxi = {
     row("东", "東", "dōng", "east"),
     row("东西", "東西", "dōngxī", "east and west", "dōng xī"),
     row("东西", "東西", "dōngxi", "thing/stuff", "dōng xi"),
 }
-m = matches("", "东", "西", dongxi, { chosen = "dōng", wordReading = function(w) return w == "东西" and "dōng xi" or nil end })
+local dongxi_path = { word = "东西", start = 0, len = 2 }
+m = matches("", "东", "西", dongxi, { chosen = "dōng", path = dongxi_path,
+    wordReading = function(w) return w == "东西" and "dōng xi" or nil end })
 eq(join(m[2].entries, "pinyin"), "dōngxi,dōngxī", "the word's chosen reading first")
 assert(m[2].entries[1].marked and not m[2].entries[2].marked)
 eq(Model.render(m, "东", false), "东  dōng\neast\n\n东西  dōngxi · likely here\nthing; stuff\ndōngxī: east and west")
 -- Without a word reading, CC-CEDICT's order, nothing marked.
-m = matches("", "东", "西", dongxi, { chosen = "dōng" })
+m = matches("", "东", "西", dongxi, { chosen = "dōng", path = dongxi_path })
 eq(join(m[2].entries, "pinyin"), "dōngxī,dōngxi"); assert(not m[2].entries[1].marked)
+-- A word the character is not in here (not the path's): nothing marked.
+m = matches("", "东", "西", dongxi, { chosen = "dōng", wordReading = function() return "dōng xi" end })
+eq(join(m[2].entries, "pinyin"), "dōngxī,dōngxi"); assert(not m[2].entries[1].marked and not m[2].entries[2].marked)
+
+-- The path word first (#75): 自 in 尽尽自己, where 尽自 (two readings) would
+-- come first by position. Only 自己 is in the character's place; 尽自 is
+-- listed below it, with no reading marked.
+local jinzi = {
+    row("自", "自", "zì", "self"),
+    row("尽自", "儘自", "jǐnzì", "always", "jǐn zì"),
+    row("尽自", "儘自", "jìnzì", "other", "jìn zì"),
+    row("自己", "自己", "zìjǐ", "oneself", "zì jǐ"),
+}
+m = matches("尽尽", "自", "己的心思", jinzi, { chosen = "zì", path = { word = "自己", start = 0, len = 2 },
+    wordReading = function(w) return w == "尽自" and "jǐn zì" or nil end })
+eq(join(m, "word"), "自,自己,尽自", "path word first, then the rest by length and position")
+for _, e in ipairs(m[3].entries) do assert(not e.marked, "尽自 unmarked") end
+assert(not Model.render(m, "自", false):find("likely", 1, true), Model.render(m, "自", false))
+-- Without a path (an older caller): length, then position.
+m = matches("尽尽", "自", "己的心思", jinzi, { chosen = "zì" })
+eq(join(m, "word"), "自,尽自,自己")
 
 ------------------------------------------------------------------------
 -- The deciding word
@@ -245,7 +269,8 @@ eq(m[2].entries[1].source, "moe"); eq(m[2].entries[1].pinyin, "shàng shū shěn
 -- resolver reading for the word; CC-CEDICT's markers are unchanged.
 m = matches("", "鞑", "子", { row("鞑", "韃", "dá", "Tartar"), row("鞑", "韃", "tà", "whip"),
     frow("鞑子", "韃子", "dázi", "Tartar (derogatory)", "wikt"), frow("鞑子", "韃子", "dázǐ", "other", "wikt") },
-    { chosen = "dá", annotated = true, wordReading = function() return "dá zǐ" end })
+    { chosen = "dá", annotated = true, path = { word = "鞑子", start = 0, len = 2 },
+      wordReading = function() return "dá zǐ" end })
 assert(m[1].entries[1].marked, "CC-CEDICT anchor still marked")
 for _, e in ipairs(m[2].entries) do assert(not e.marked, "fallback entry unmarked") end
 eq(join(m[2].entries, "pinyin"), "dázi,dázǐ", "the source's order, nothing moved")
@@ -396,7 +421,8 @@ end
 -- reading is still "likely here".
 m = matches("", "东", "西", { row("东", "東", "dōng", "east"), row("东西", "東西", "dōngxi", "thing", "dōng xi"),
     row("东西", "東西", "dōngxī", "east and west", "dōng xī") },
-    { chosen = "dōng/dòng", unsure = true, wordReading = function() return "dōng xi" end })
+    { chosen = "dōng/dòng", unsure = true, path = { word = "东西", start = 0, len = 2 },
+      wordReading = function() return "dōng xi" end })
 assert(Model.render(m, "东", false):find("东西  dōngxi · likely here", 1, true))
 
 -- The Chinese dictionaries' entries (MOE, 成語典, Xinhua, Moegirlpedia) go

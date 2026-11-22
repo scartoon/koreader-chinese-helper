@@ -10,6 +10,9 @@ end
 for _, n in ipairs({ 1, 9 }) do
     eq(DB.wordsSql(n), PY_WORDS_SQL(n), "words SQL for " .. n)
 end
+for _, n in ipairs({ 1, 64 }) do
+    eq(DB.segSql(n), PY_SEG_SQL(n), "seg SQL for " .. n)
+end
 
 local db = H.db()
 local rows = db:lookup({ "东西", "東西" })

@@ -200,6 +200,7 @@ def main():
         g.PY_SQLITE = SQLiteBridge(lua)
         g.PY_ENTRIES_SQL = build_db.entries_sql
         g.PY_WORDS_SQL = build_db.words_sql
+        g.PY_SEG_SQL = build_db.seg_sql
         g.PY_FALLBACK_SQL = build_db.fallback_sources.fallback_sql
         g.PY_FALLBACK_ALL_SQL = build_db.fallback_sources.fallback_all_sql
         g.PY_IDIOMS_SQL = chengyu.idioms_sql

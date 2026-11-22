@@ -554,6 +554,11 @@ The popup's matches.
                       syllables= (the resolver's reading of the word), note= }
   args.wordReading  function(word) -> the resolver's reading of a word ("dōng xi")
                     or nil
+  args.path         the word the segmentation puts the tapped character in
+                    (#75; Resolve.forPopup's last value), or nil:
+                    { word=, start= (relative), len= }. The deciding word, or
+                    failing one this word, is listed first among the words,
+                    and only that word has a reading marked.
 
 Returns { {word=, start=, len=, entries={...}, always=, decided=bool, note=, mark=}, ... }
 (mark: Model.MARK_UNSURE on the tapped character's own match when its
@@ -636,6 +641,7 @@ function Model.matches(args)
             m.entries = entries
         end
         local is_decided = decided ~= nil and c.text == decided.word and c.start == decided.start
+        if args.path and c.text == args.path.word and c.start == args.path.start then m.path = true end
         if is_decided then
             m.decided, m.note = true, decided.note
             have_decided = true
@@ -661,6 +667,20 @@ function Model.matches(args)
         if a.len ~= b.len then return a.len > b.len end
         return a.start < b.start
     end)
+    -- The word the character belongs to here (#75): the deciding word, or
+    -- the segmentation's word when nothing decided (自己 in 尽尽自己), first.
+    -- Overlapping words (尽自) stay listed below it, in the order above.
+    local lead
+    for k, m in ipairs(words) do
+        if m.decided then lead = k break end
+    end
+    if not lead then
+        for k, m in ipairs(words) do
+            if m.path then lead = k break end
+        end
+    end
+    if lead and lead > 1 then table.insert(words, 1, table.remove(words, lead)) end
+    local lead_match = lead and words[1] or nil
 
     -- A word whose entries are CC-CEDICT's (the resolver's own reading lines
     -- count as CC-CEDICT's side), not a fallback dictionary's.
@@ -709,9 +729,10 @@ function Model.matches(args)
         local evidence = args.source == nil or Model.EVIDENCE[args.source]
         if (args.unsure or not evidence) and not args.annotated then anchor.mark = Model.MARK_UNSURE end
     end
-    -- Each word: mark the resolver's reading when there is a choice.
+    -- The leading word: mark the resolver's reading when there is a choice.
+    -- No other word is "likely here" (#75: 尽自 is not, beside 自己).
     for _, m in ipairs(words) do
-        if fromCedict(m) and (distinctReadings(m.entries) > 1 or (toneless and m.decided)) then
+        if m == lead_match and fromCedict(m) and (distinctReadings(m.entries) > 1 or (toneless and m.decided)) then
             local chosen = (m.decided and decided.syllables)
                 or (args.wordReading and args.wordReading(m.word))
             if chosen and markMatching(m.entries, chosen, true) then

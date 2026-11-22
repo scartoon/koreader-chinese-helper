@@ -20,6 +20,12 @@ Outputs (tab-separated UTF-8 text, in build/data/ by default; git-ignored):
               annotatable character a neutral tone that is not its default
               (鼓捣 gǔ dao). Words come from CC-CEDICT and from pypinyin's
               phrase list.
+  seg.tsv     word <TAB> frequency (occurrences per billion words, at least 1)
+              Every CC-CEDICT form of 1-4 characters (simplified and
+              traditional; traditional forms take their simplified form's
+              frequency) and every word of words.tsv: the word frequencies the
+              plugin segments a run of text with (#75, Resolve.segment). A
+              word wordfreq does not know gets 1, not 0.
   word_marks.tsv   word <TAB> the reading the tap popup marks, space-separated
               Only where it differs from words.tsv and words.tsv's reading is
               another of the word's CC-CEDICT readings: where CC-CEDICT lists a
@@ -697,6 +703,19 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
     with open(os.path.join(args.out, "words.tsv"), "w", encoding="utf-8") as f:
         for form, reading, wf in word_rows:
             f.write(f"{form}\t{reading}\t{wf}\n")
+    # 9. Word frequencies for segmentation (#75): every CC-CEDICT form of
+    #    1-4 characters and every word above, at least 1 per billion.
+    seg = {}
+    for trad, simp, _, _ in entries:
+        if len(simp) <= 4:
+            for form in (simp, trad):
+                if all(is_han(ch) for ch in form):
+                    seg[form] = max(seg.get(form, 0), word_freq(form, simp), 1)
+    for form, _, wf in word_rows:
+        seg[form] = max(seg.get(form, 0), wf, 1)
+    with open(os.path.join(args.out, "seg.tsv"), "w", encoding="utf-8") as f:
+        for form in sorted(seg):
+            f.write(f"{form}\t{seg[form]}\n")
     with open(os.path.join(args.out, "neutral.tsv"), "w", encoding="utf-8") as f:
         for ch in sorted(neutral_listed):
             f.write(f"{ch}\t{' '.join(sorted(neutral_listed[ch]))}\n")
@@ -717,6 +736,8 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
     for key in sorted(stats):
         print(f"  {key}: {stats[key]}")
     print(f"  neutral tones replaced for {len(neutral_fixed)} annotatable characters")
+    print(f"seg.tsv: {len(seg)} words for segmentation "
+          f"({sum(1 for v in seg.values() if v > 1)} with a frequency above the floor)")
     print(f"word_marks.tsv: {len(word_marks)} words whose popup reading is not the one drawn")
     print(f"neutral_kept.tsv: {len(neutral_kept)} neutral tones drawn as CC-CEDICT gives them, "
           f"{len(neutral_added)} words added for them")

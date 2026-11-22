@@ -53,7 +53,7 @@ local function popup(text, char, opts)
             if a.index == i then drawn = a.reading end
         end
     end
-    local chosen, decided, unsure, source = Resolve.forPopup(data, items, i, mode, special, drawn)
+    local chosen, decided, unsure, source, _, _, path = Resolve.forPopup(data, items, i, mode, special, drawn)
     local cands, texts = Text.candidates(left, char, right)
     data:prefetch(texts)
     local rows = db:lookup(texts)
@@ -62,10 +62,10 @@ local function popup(text, char, opts)
     end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = drawn ~= nil, decided = decided,
-        unsure = unsure, source = source, default = select(2, data:char(char)),
+        unsure = unsure, source = source, default = select(2, data:char(char)), path = path,
         wordReading = function(w) return Resolve.wordReading(data, w) end,
     }
-    return { chosen = chosen, decided = decided, unsure = unsure, source = source, matches = matches, drawn = drawn,
+    return { chosen = chosen, decided = decided, path = path, unsure = unsure, source = source, matches = matches, drawn = drawn,
              text = Model.render(matches, char, drawn ~= nil),
              -- With "Show traditional in headwords" on (#47, #50, #73).
              ttext = Model.render(matches, char, drawn ~= nil, nil, nil, true) }
@@ -110,7 +110,7 @@ p = popup("去买东西。", "东")
 eq(p.chosen, "dōng")
 eq(marked(p, "东西"), "dōngxi")
 assert(p.text:find("东西  dōngxi · likely here\nthing; stuff", 1, true), "no 'decides' tag: 东 has one reading\n" .. p.text)
-eq(words(p), "东,买东西,东西")
+eq(words(p), "东,东西,买东西", "东西, the word 东 is in here (#75), first")
 assert(p.text:find("dōngxī: east and west", 1, true), p.text)
 -- 西 in 东西 is neutral: its own entry xī stands for it (one reading: no marker).
 p = popup("去买东西。", "西")
@@ -237,7 +237,41 @@ p = popup("很大宛如雷鸣", "宛", { threshold = 2500 })
 eq(p.drawn, "wǎn"); eq(p.chosen, "wǎn"); eq(p.decided.word, "宛如")
 assert(p.text:find("宛  wǎn\n", 1, true), "one reading in CC-CEDICT (with the surname): no marker\n" .. p.text)
 assert(p.text:find("宛如  wǎnrú\n", 1, true), "no tag: CC-CEDICT gives 宛 one reading\n" .. p.text)
-eq(words(p), "宛,大宛,宛如", "both words listed, the decided one tagged")
+eq(words(p), "宛,宛如,大宛", "both words listed, the decided one first (#75) and tagged")
+
+-- The word a character belongs to comes from segmenting its run (#75):
+-- 尽尽 + 自己的心思. 尽自 (jǐnzi, a word only because 尽 is polyphonic) used
+-- to win as the leftmost two-character word, leaving 己 on its own.
+local jin = "能做的，只能是为她办一个盛大的葬礼，尽尽自己的心思。"
+p = popup(jin, "自")
+eq(p.path.word, "自己"); eq(p.path.start, 0)
+eq(p.decided, nil, "自己 has no reading to give: it decides nothing")
+eq(words(p):match("^自,自己,"), "自,自己,", "自己 first among the words: " .. words(p))
+assert(words(p):find("尽自", 1, true), "尽自 still listed: " .. words(p))
+assert(not p.text:find("尽自[^\n]*likely here"), p.text)
+assert(not p.text:find("decides", 1, true), p.text)
+assert(not p.text:find("likely here", 1, true), "自 has one reading; no word is likely here\n" .. p.text)
+-- The second 尽: alone on the path, so 尽自 (jǐn) does not decide it. No
+-- word or rule does, so it is the uncertainty pair, jìn first (jìn alone
+-- in "best" mode), where it used to be jǐn, decided by 尽自.
+p = popup(jin, "尽", { nth = 2 })
+eq(p.chosen, "jìn/jǐn"); assert(p.unsure); eq(p.decided, nil); eq(p.path, nil)
+eq(marked(p, "尽"), "jìn,jǐn", "jìn first")
+assert(not p.text:find("尽自[^\n]*likely here"), p.text)
+assert(not p.text:find("decides", 1, true), p.text)
+p = popup(jin, "尽", { nth = 2, mode = "best" })
+eq(p.chosen, "jìn"); eq(marked(p, "尽"), "jìn")
+-- The page draws the same (尽 ranks below 1,000: learner threshold).
+local items = H.items(jin)
+local seen = 0
+for _, a in ipairs(Resolve.annotate(data, items, 0, "best", special)) do
+    if items[a.index].text == "尽" then
+        seen = seen + 1
+        eq(a.reading, "jìn", "尽 #" .. seen .. " drawn jìn")
+        assert(not (a.match and a.match.word == "尽自"), "尽自 decides nothing")
+    end
+end
+eq(seen, 2)
 -- 大宛 alone: yuān.
 p = popup("西域有大宛国。", "宛", { threshold = 2500 })
 eq(p.drawn, "yuān"); eq(p.decided.word, "大宛")
