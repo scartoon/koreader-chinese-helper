@@ -50,7 +50,9 @@ def main():
         ch = samp[j["id"]]["char"]
         og, ng = entry_for(ch, old, ov), entry_for(ch, new, nv)
         kw = re.compile(j["keywords"], re.I)
-        pos = fix.get(j["id"], next((i for i, g in enumerate(og, 1) if kw.search(g)), 0))
+        pos = next((i for i, g in enumerate(og, 1) if kw.search(g)), 0)
+        if fix.get(j["id"]) is not None and fix[j["id"]] <= len(og):
+            pos = fix[j["id"]]
         if not pos:
             continue
         had += 1
