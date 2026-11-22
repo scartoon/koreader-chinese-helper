@@ -22,11 +22,18 @@ Steps:
      model, prompt and input (tools/condense_classical.py's key), so a rerun
      only sends new or changed inputs. --run stops before sending if the
      estimate is over --max-usd.
-  3. Validate each entry mechanically: senses citing no existing line are
+  3. Keep the senses with evidence (#69): a sense citing a line a
+     dictionary tags classical (Chinese Notes Literary Chinese, Wiktionary
+     literary/Classical/archaic/obsolete/historical, CC-CEDICT's
+     (literary)/(classical)/(archaic)/(old)/(obsolete), rare-character
+     Unihan) stays; one citing only untagged CC-CEDICT lines stays only if
+     MOE quotes the same sense from a classical-register work up to 1911
+     (tools/moe_match.py, build/classical/moe_matches.tsv).
+  4. Validate each entry mechanically: senses citing no existing line are
      dropped, entries are cut to five senses, and senses sharing few words
      with their cited lines are flagged (build/classical/flags.tsv) for
      review.
-  4. Variant characters with no entry of their own (説 → 說, 衞 → 衛) map to
+  5. Variant characters with no entry of their own (説 → 說, 衞 → 衛) map to
      one that has an entry, through Unihan's kZVariant and kSemanticVariant.
 
 Output, data/classical.tsv.gz: one row per character, keyed by its
@@ -60,9 +67,6 @@ import condense_classical as condense  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "build", "classical")
 DATA = os.path.join(ROOT, "data", "classical.tsv.gz")
-# #67: senses a second check (tools/classical_purity.py, Claude Sonnet) found
-# modern-only: headword<TAB>gloss. They are left out of the entries.
-MODERN = os.path.join(ROOT, "data", "classical_modern.tsv")
 VARIANT = "bundled"
 # #67: no cap (every classical sense); this only guards against a runaway reply.
 MAX_SENSES = 60
@@ -301,9 +305,10 @@ NO_SENSE = re.compile(r"no (classical |further )?(sense|gloss)|no meaning (given
 
 
 def validate(rec):
-    """(senses kept, flags): drop senses citing no existing line and (#67)
-    senses the reply marks modern-only ("classical": false), flag English
-    senses sharing under half their words with the cited lines."""
+    """(senses kept, flags): drop senses citing no existing line, flag
+    English senses sharing under half their words with the cited lines.
+    The reply's own "classical" mark is not used (#69): which senses stay is
+    decided before this, by the dictionaries' tags and MOE evidence."""
     lines = {}
     for line in rec["input"].split("\n")[1:]:
         num, rest = line.split(". ", 1)
@@ -317,9 +322,6 @@ def validate(rec):
             continue
         if NO_SENSE.search(gloss) or all(reading_only(lines[n]) for n in cited):
             flags.append(("no-sense", gloss + "  <=  " + " | ".join(lines[n] for n in cited)))
-            continue
-        if s.get("classical") is False:
-            flags.append(("modern", gloss + "  <=  " + " | ".join(lines[n] for n in cited)))
             continue
         words = content_words(gloss)
         src = set().union(*(content_words(lines[n]) for n in cited))
@@ -460,11 +462,10 @@ def main():
         run_sync(jobs, prompt)
     elif args.run:
         run_batches(jobs, prompt, args.max_usd)
-    modern = set()
-    if os.path.exists(MODERN):
-        for line in open(MODERN):
-            if not line.startswith("#") and "\t" in line:
-                modern.add(tuple(line.rstrip("\n").split("\t")[:2]))
+    import moe_match   # imports this module, so not at the top
+    moe = moe_match.read_matches()
+    if not moe:
+        sys.exit(f"{moe_match.MATCHES} is missing: run tools/moe_match.py first")
     entries, flags, missing, unparsed = {}, [], 0, []
     for ch, text, key in jobs:
         path = condense.cache_path(key)
@@ -477,10 +478,17 @@ def main():
         if rec["senses"] is None:
             unparsed.append(ch)
             continue
+        # #69: a sense citing a dictionary-tagged classical line stays; one
+        # citing only untagged CC-CEDICT lines stays only with MOE evidence.
+        keep = []
+        for s, kind in moe_match.split_senses(rec, text):
+            if kind == "candidate" and moe.get((ch, (s.get("gloss") or "").strip())) != "kept":
+                flags.append((ch, "no-moe-evidence", (s.get("gloss") or "").strip()))
+            else:
+                keep.append(s)
+        rec["senses"] = keep
         senses, fl = validate(rec)
         flags += [(ch, kind, detail) for kind, detail in fl]
-        flags += [(ch, "modern-check", s["gloss"]) for s in senses if (ch, s["gloss"]) in modern]
-        senses = [s for s in senses if (ch, s["gloss"]) not in modern]
         if senses:
             entries[ch] = {"simp": by[ch][0]["simp"], "senses": senses,
                            "raw": "\n".join(text.split("\n")[1:])}
