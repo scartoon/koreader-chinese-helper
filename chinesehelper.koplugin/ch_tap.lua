@@ -246,9 +246,9 @@ function Tap:resolve(hit, left, right)
         return self:resolveRun(left, hit.char, right)
     end
     local drawn = items[i].ws and self.plugin.annotator:drawnAt(i)
-    local reading, decided, unsure, source, rank, unusual = Resolve.forPopup(data, items, i,
+    local reading, decided, unsure, source, rank, unusual, path = Resolve.forPopup(data, items, i,
         settings:uncertainMode(), special, drawn and (drawn.dict or drawn.text))
-    return reading, decided, drawn ~= nil, unsure, source, rank, unusual, drawn and drawn.dict and drawn.text
+    return reading, decided, drawn ~= nil, unsure, source, rank, unusual, drawn and drawn.dict and drawn.text, path
 end
 
 -- Tap:resolve on the Han run left .. char .. right alone (a character not on
@@ -261,9 +261,9 @@ function Tap:resolveRun(left, char, right)
     items[#items + 1] = { text = char, joined = #items > 0 }
     local i = #items
     for _, c in ipairs(right) do items[#items + 1] = { text = c, joined = true } end
-    local reading, decided, unsure, source, rank, unusual = Resolve.forPopup(data, items, i,
+    local reading, decided, unsure, source, rank, unusual, path = Resolve.forPopup(data, items, i,
         self.plugin.settings:uncertainMode(), self.plugin:special(), nil)
-    return reading, decided, false, unsure, source, rank, unusual
+    return reading, decided, false, unsure, source, rank, unusual, nil, path
 end
 
 -- Rows from the fallback dictionaries for the candidate words CC-CEDICT has
@@ -402,12 +402,12 @@ function Tap:lookup(db, char, left, right, resolve)
     local simplified = self.plugin.settings:dictText() == "simplified"
     Model.chooseText(rows, simplified)
     Model.chooseText(always, simplified)
-    local chosen, decided, annotated, unsure, source, rank, unusual, spoken = resolve()
+    local chosen, decided, annotated, unsure, source, rank, unusual, spoken, path = resolve()
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = annotated, decided = decided,
-        unsure = unsure, source = source, order = self.plugin.settings:fallbackOrder(), always = always,
+        unsure = unsure, source = source, order = self.plugin.settings:fallbackOrder(), always = always, path = path,
         default = data and select(2, data:char(char)) or nil,
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }

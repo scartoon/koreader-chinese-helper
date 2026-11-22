@@ -7,6 +7,7 @@
 --                         per entry; indexes on simp and trad (the popup's lookup)
 --   chars(ch, rank, reading)                       the resolver's tables
 --   words(word, syllables, freq, rare)             (see ch_readings.lua);
+--   seg(word, freq)                                (word frequencies for segmentation, #75);
 --   word_marks(word, syllables)                    chars, word_marks, rules and
 --   rules(ch, side, neighbour, reading, n)         uncertain are read into
 --   uncertain(ch, confidence, first, second)       memory once, words are
@@ -121,6 +122,11 @@ end
 -- The resolver's word readings for n words.
 function DB.wordsSql(n)
     return "SELECT word, syllables, freq FROM words WHERE word IN (" .. marks(n) .. ")"
+end
+
+-- Word frequencies for segmenting text (#75), for n words.
+function DB.segSql(n)
+    return "SELECT word, freq FROM seg WHERE word IN (" .. marks(n) .. ")"
 end
 
 -- Run a prepared statement (cached by its SQL) with `args`, calling fn(row)
@@ -369,12 +375,25 @@ function DB:words(list)
     return out
 end
 
+-- { [word] = freq } for the words of `list` in the seg table; empty from a
+-- database without it (built before #75).
+function DB:seg(list)
+    local out = {}
+    if #list == 0 then return out end
+    local args, n = padded_args(list, 1)
+    pcall(self.each, self, DB.segSql(n), args, function(row)
+        out[row[1]] = tonumber(row[2]) or 1
+    end)
+    return out
+end
+
 -- The resolver's tables: chars, rules, uncertain and the words containing a
 -- rare character in memory (everything a page's annotations need), the
 -- other words looked up here on demand.
 function DB:readings()
     local db = self
-    local data = Readings.new{ word_lookup = function(list) return db:words(list) end }
+    local data = Readings.new{ word_lookup = function(list) return db:words(list) end,
+                               seg_lookup = function(list) return db:seg(list) end }
     self:each("SELECT ch, rank, reading FROM chars", nil, function(row)
         data:addChar(row[1], tonumber(row[2]), row[3])
     end)

@@ -9,6 +9,10 @@
 --              character words containing a polyphonic character, with
 --              several dictionary readings, or giving a rare character a
 --              neutral tone that is not its default (鼓捣 gǔ dao).
+--   seg        word -> frequency (per billion words, at least 1): every
+--              CC-CEDICT word of 1-4 characters, for segmenting a run of
+--              text (#75, Resolve.segment). Looked up on demand, in batches,
+--              and cached (or all in memory, from the TSV files).
 --   word_marks word -> the reading the tap popup marks, where it is not the
 --              one in words: where CC-CEDICT lists a word both with and
 --              without a neutral tone, words give a rare character the toned
@@ -40,11 +44,14 @@ Readings.CACHE_LIMIT = 20000   -- cached word lookups kept before the cache is r
 -- for words not held in memory (nil: words come only from addWord). With a
 -- lookup, the words in memory are taken to be every word that contains a
 -- rare character: such a word that is not there does not exist.
+-- opts.seg_lookup: function(list of words) -> { [word] = freq } from the seg
+-- table (nil: seg frequencies come only from addSeg).
 function Readings.new(opts)
     opts = opts or {}
     return setmetatable({
         chars = {}, rules = {}, uncertain = {}, words = {}, word_freq = {}, word_marks = {},
         lookup = opts.word_lookup, cache = {}, cached = 0,
+        seg = {}, seg_lookup = opts.seg_lookup, seg_cache = {}, seg_cached = 0,
         max_word_len = Readings.MAX_WORD_LEN,
     }, Readings)
 end
@@ -76,6 +83,49 @@ function Readings:addWord(word, syllables, freq)
     self.words[word] = syllables
     local f = tonumber(freq)
     if f and f > 0 then self.word_freq[word] = f end
+end
+
+function Readings:addSeg(word, freq)
+    self.seg[word] = tonumber(freq) or 1
+end
+
+-- Look up the seg frequency of every word in `list` not yet known, in one
+-- call to seg_lookup.
+function Readings:prefetchSeg(list)
+    if not self.seg_lookup then return end
+    local missing, seen = {}, {}
+    for _, w in ipairs(list) do
+        if not self.seg[w] and self.seg_cache[w] == nil and not seen[w] then
+            seen[w] = true
+            missing[#missing + 1] = w
+        end
+    end
+    if #missing == 0 then return end
+    if self.seg_cached + #missing > Readings.CACHE_LIMIT then
+        self.seg_cache, self.seg_cached = {}, 0
+    end
+    local found = self.seg_lookup(missing) or {}
+    for _, w in ipairs(missing) do
+        self.seg_cache[w] = found[w] or false
+        self.seg_cached = self.seg_cached + 1
+    end
+end
+
+-- Frequency of `word` for segmentation (per billion words, at least 1), or
+-- nil when it is not a dictionary word. A word of the words table held in
+-- memory counts with its own frequency when the seg table does not have it
+-- (hand-made test data, a database built before #75). Never the words
+-- looked up on demand: the path must not depend on what was looked up before.
+function Readings:segFreq(word)
+    local f = self.seg and self.seg[word]
+    if f then return f end
+    if self.seg_lookup then
+        if self.seg_cache[word] == nil then self:prefetchSeg({ word }) end
+        f = self.seg_cache[word]
+        if f then return f end
+    end
+    if self.words[word] then return math.max(self.word_freq[word] or 0, 1) end
+    return nil
 end
 
 function Readings:addWordMark(word, syllables)
@@ -378,7 +428,7 @@ local function read_lines(path, fn)
     return true
 end
 
--- paths: { chars=, words=, word_marks=, rules=, uncertain= }; only chars is required.
+-- paths: { chars=, words=, seg=, word_marks=, rules=, uncertain= }; only chars is required.
 function Readings.fromTsv(paths)
     local self = Readings.new()
     local ok = read_lines(paths.chars, function(line)
@@ -389,6 +439,10 @@ function Readings.fromTsv(paths)
     read_lines(paths.words, function(line)
         local word, readings, freq = line:match("^([^\t]+)\t([^\t\r]+)\t?(%d*)")
         if word then self:addWord(word, readings, freq) end
+    end)
+    read_lines(paths.seg, function(line)
+        local word, freq = line:match("^([^\t]+)\t(%d+)")
+        if word then self:addSeg(word, freq) end
     end)
     read_lines(paths.word_marks, function(line)
         local word, syllables = line:match("^([^\t]+)\t([^\t\r]+)")

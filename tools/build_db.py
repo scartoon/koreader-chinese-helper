@@ -44,6 +44,8 @@ Schema:
                    NULL otherwise
     chars(ch, rank, reading)  words(word, syllables, freq, rare)
         rare       1 when the word contains a character that can be annotated
+    seg(word, freq)           word frequencies for segmenting a run of text (#75):
+                              every CC-CEDICT form of 1-4 characters (build_data.py, seg.tsv)
     word_marks(word, syllables)   the reading the popup marks where it is not
                               the one drawn (see build_data.py, word_marks.tsv)
     rules(ch, side, neighbour, reading, n)  uncertain(ch, confidence, first, second)
@@ -292,6 +294,7 @@ SCHEMA = """
     CREATE TABLE words (word TEXT PRIMARY KEY, syllables TEXT NOT NULL, freq INTEGER NOT NULL,
                         rare INTEGER NOT NULL) WITHOUT ROWID;
     CREATE TABLE word_marks (word TEXT PRIMARY KEY, syllables TEXT NOT NULL) WITHOUT ROWID;
+    CREATE TABLE seg (word TEXT PRIMARY KEY, freq INTEGER NOT NULL) WITHOUT ROWID;
     CREATE TABLE rules (ch TEXT NOT NULL, side TEXT NOT NULL, neighbour TEXT NOT NULL,
                         reading TEXT NOT NULL, n INTEGER NOT NULL);
     CREATE TABLE uncertain (ch TEXT PRIMARY KEY, confidence REAL NOT NULL, first TEXT NOT NULL,
@@ -424,6 +427,7 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, orig
         never queries the database."""
         return int(any(rank.get(ch, 0) == 0 or rank.get(ch, 0) > RARE_RANK for ch in word))
     words = [(w, syl, int_or_zero(freq), rare(w)) for w, syl, freq in tsv(os.path.join(BUILD_DATA, "words.tsv"), 3)]
+    seg = [(w, int(f)) for w, f in tsv(os.path.join(BUILD_DATA, "seg.tsv"), 2)]
     word_marks = [(w, syl) for w, syl in tsv(os.path.join(BUILD_DATA, "word_marks.tsv"), 2, required=False)]
     rules = [(ch, side, nb, r, int_or_zero(n)) for ch, side, nb, r, n in tsv(os.path.join(DATA_DIR, "rules.tsv"), 5)]
     uncertain = [(ch, float(c), a, b) for ch, c, a, b in tsv(os.path.join(DATA_DIR, "uncertain.tsv"), 4)]
@@ -433,6 +437,7 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, orig
     con.executemany("INSERT INTO chars VALUES (?, ?, ?)", chars)
     con.executemany("INSERT INTO words VALUES (?, ?, ?, ?)", words)
     con.executemany("INSERT INTO word_marks VALUES (?, ?)", word_marks)
+    con.executemany("INSERT INTO seg VALUES (?, ?)", seg)
     con.executemany("INSERT INTO rules VALUES (?, ?, ?, ?, ?)", rules)
     con.executemany("INSERT INTO uncertain VALUES (?, ?, ?, ?)", uncertain)
     con.executemany("INSERT INTO special VALUES (?, ?, ?, ?, ?)", special)
@@ -456,8 +461,8 @@ def build(cedict_entries, header, sha, out, wikt=None, wp=None, comps=None, orig
         "chars": str(len(chars)), "words": str(len(words)), "rare_words": str(sum(w[3] for w in words)), "rules": str(len(rules)),
         "uncertain": str(len(uncertain)), "special": str(len(special)), "special_guard": str(len(guard)),
         "license": "CC BY-SA 4.0 (CC-CEDICT, wordfreq, Wiktionary, Wikipedia; see README)",
-        "word_marks": str(len(word_marks)),
-        "resolver_sha256": resolver_digest(chars, words, rules, uncertain, special, guard, word_marks),
+        "word_marks": str(len(word_marks)), "seg": str(len(seg)),
+        "resolver_sha256": resolver_digest(chars, words, rules, uncertain, special, guard, word_marks, seg),
         "fallback_sources": ",".join(name for name, part in (("wikt", wikt), ("wp", wp)) if part),
     }
     if wikt:
@@ -500,6 +505,11 @@ def words_sql(n):
     return f"SELECT word, syllables, freq FROM words WHERE word IN ({','.join('?' * n)})"
 
 
+# Keep in step with DB.segSql in ch_db.lua.
+def seg_sql(n):
+    return f"SELECT word, freq FROM seg WHERE word IN ({','.join('?' * n)})"
+
+
 # Keep in step with DB.componentsSql and DB.notesSql in ch_db.lua.
 COMPONENTS_SQL = "SELECT ch, body FROM components WHERE ch IN (?, ?)"
 NOTES_SQL = "SELECT ch, text FROM component_notes WHERE ch IN (?, ?) ORDER BY rowid"
@@ -515,6 +525,7 @@ def check_query_plans(path):
         (entries_sql(36), 72, ("USING INDEX entries_simp", "USING INDEX entries_trad")),
         (words_sql(1), 1, ("USING PRIMARY KEY",)),
         (words_sql(9), 9, ("USING PRIMARY KEY",)),
+        (seg_sql(64), 64, ("USING PRIMARY KEY",)),
         (fallback_sources.fallback_sql(1, simp=True), 2, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
         (fallback_sources.fallback_sql(36, simp=True), 72, ("USING INDEX fallback_simp", "USING INDEX fallback_trad")),
         (COMPONENTS_SQL, 2, ("USING PRIMARY KEY",)),
@@ -523,7 +534,7 @@ def check_query_plans(path):
     try:
         for sql, nargs, wanted in checks:
             plan = "\n".join(row[3] for row in con.execute("EXPLAIN QUERY PLAN " + sql, ["x"] * nargs))
-            if any(w not in plan for w in wanted) or re.search(r"\bSCAN (entries|words|fallback|components|component_notes)\b", plan):
+            if any(w not in plan for w in wanted) or re.search(r"\bSCAN (entries|words|seg|fallback|components|component_notes)\b", plan):
                 sys.exit(f"Query does not use its index:\n{sql}\n{plan}")
             print(f"Query plan ok: {sql[:60]}...\n    " + plan.replace("\n", "\n    "))
     finally:
@@ -601,7 +612,7 @@ def main():
     size = os.path.getsize(args.out)
     print(f"CC-CEDICT {header.get('date', '(no date)')}: {len(entries)} entries, SHA-256 {sha}")
     print("Tables: " + ", ".join(f"{k} {meta[k]}" for k in
-                                 ("chars", "words", "word_marks", "rules", "uncertain", "special",
+                                 ("chars", "words", "seg", "word_marks", "rules", "uncertain", "special",
                                   "special_guard")))
     print(f"Resolver tables SHA-256 {meta['resolver_sha256']}")
     print_xref_stats(xref_stats)

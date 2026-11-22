@@ -143,8 +143,10 @@ assert(not got:find("单=", 1, true), got)
 -- Remind: a common reading drawn at every occurrence below the threshold.
 got = annotate("这是书，他是人，也是笔。", 3500, marks_with{ { "是", "shì", "remind" } })
 eq(got, "是=shì! 是=shì! 是=shì!", "every occurrence")
--- 那是 is nà shi: that 是 has a reading the mark is not on, so it stays bare.
-eq(annotate("这是书，那是笔。", 3500, marks_with{ { "是", "shì", "remind" } }), "是=shì!")
+-- 还是 is hái shi: that 是 has a reading the mark is not on, so it stays bare.
+-- (This used 那是 nà shi before #75; the segmentation now reads 那是笔 as
+-- 那 + 是 shì, "that is a pen".)
+eq(annotate("这是书，还是笔。", 3500, marks_with{ { "是", "shì", "remind" } }), "是=shì!")
 -- The prompting case (#28): 后 hòu remind with 即位后 then 皇太后 three times.
 got = annotate("即位后，尊皇太后，皇太后曰，皇太后。", 3500, marks_with{ { "后", "hòu", "remind" } })
 eq(got, "后=hòu! 后=hòu! 后=hòu! 后=hòu!", "后 at all four")

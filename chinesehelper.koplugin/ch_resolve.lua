@@ -22,10 +22,13 @@
 --       on_page = true,       -- false for context items before/after the page
 --   }
 --
--- Readings: each character has a default (its most frequent reading). When the
--- character sits inside a dictionary word of 2-4 characters, that word's
--- reading wins, longest word first. This is what turns 侥 into jiǎo in 侥幸
--- but yáo in 僬侥.
+-- Readings: each character has a default (its most frequent reading). Which
+-- word a character belongs to comes from segmenting its run of text (#75):
+-- the most probable split into dictionary words by word frequency, as jieba
+-- does (Resolve.segment). When the word the path puts the character in has a
+-- reading in the words table, that reading wins. This is what turns 侥 into
+-- jiǎo in 侥幸 but yáo in 僬侥, and keeps 尽自 out of 尽尽自己 (自己 is the
+-- path's word: it has no reading to give, but rules 尽自 out).
 
 local Sandhi = require("ch_sandhi")
 
@@ -60,19 +63,14 @@ local function contiguous(items, a, b)
     return true
 end
 
--- Reading of items[i] taken from the longest dictionary word around it, or
--- nil. Also returns the word, the index of its first item, and the other
--- words of the same length that also cover items[i] (for the tap popup's
--- "also possible"), as { {word=, start=}, ... }.
--- When several words of that length cover it (大宛 and 宛如 in 很大宛如), the
--- more frequent word wins; the leftmost one on a tie.
 local function text_of(items, start, stop)
     local parts = {}
     for k = start, stop do parts[#parts + 1] = items[k].text end
     return table.concat(parts)
 end
 
--- Add every word word_reading may look up for items[i] to `list`.
+-- Add every word of 2-4 characters around items[i] to `list` (the fallback
+-- dictionaries' candidates).
 local function candidate_words(data, items, i, list)
     local max_len = math.min(data.max_word_len or 4, 4)
     for len = max_len, 2, -1 do
@@ -83,34 +81,184 @@ local function candidate_words(data, items, i, list)
     return list
 end
 
-function Resolve.word_reading(data, items, i)
-    local max_len = math.min(data.max_word_len or 4, 4)
-    if data.prefetch then
-        -- Every candidate word in one lookup (a database query in the plugin;
-        -- nothing when Resolve.annotate has fetched the page's already).
-        local list = candidate_words(data, items, i, {})
-        if #list > 0 then data:prefetch(list) end
+------------------------------------------------------------------------
+-- Segmentation (#75): which word each character of a run belongs to.
+------------------------------------------------------------------------
+
+-- Is this item one Han character (CJK ideographs, their extensions and
+-- compatibility forms, and 〇)? Punctuation and other symbols end a run.
+local function is_han(text)
+    if not single_char(text) then return false end
+    local b1, b2, b3, b4 = text:byte(1, 4)
+    local cp
+    if #text == 3 then
+        cp = (b1 % 16) * 4096 + (b2 % 64) * 64 + (b3 % 64)
+    else
+        cp = (b1 % 8) * 262144 + (b2 % 64) * 4096 + (b3 % 64) * 64 + (b4 % 64)
     end
-    for len = max_len, 2, -1 do
-        local best, best_freq, best_word, best_start
-        local others = {}
-        for start = i - len + 1, i do
-            local stop = start + len - 1
-            if contiguous(items, start, stop) then
-                local word = text_of(items, start, stop)
-                local syllables, freq = data:word(word)
-                freq = freq or 0
-                if syllables and #syllables == len then
-                    if not best or freq > best_freq then
-                        if best then others[#others + 1] = { word = best_word, start = best_start } end
-                        best, best_freq, best_word, best_start = syllables[i - start + 1], freq, word, start
-                    else
-                        others[#others + 1] = { word = word, start = start }
-                    end
-                end
+    return (cp >= 0x4E00 and cp <= 0x9FFF) or (cp >= 0x3400 and cp <= 0x4DBF)
+        or (cp >= 0xF900 and cp <= 0xFAFF) or cp >= 0x20000 or cp == 0x3007
+end
+Resolve.is_han = is_han
+
+-- First and last index of the run of joined Han items holding items[i], or
+-- nil when items[i] is not a Han character.
+local function run_bounds(items, i)
+    if not items[i] or not is_han(items[i].text) then return nil end
+    local a, b = i, i
+    while a > 1 and items[a].joined and is_han(items[a - 1].text) do a = a - 1 end
+    while items[b + 1] and items[b + 1].joined and is_han(items[b + 1].text) do b = b + 1 end
+    return a, b
+end
+
+-- Word frequencies are per billion words (wordfreq's), so log(f / 1e9) is a
+-- word's log probability. A character no dictionary lists as a word of its
+-- own counts with the floor frequency, 1, below every dictionary word (the
+-- seg table gives a word wordfreq does not list wordfreq's lowest, 10).
+Resolve.SEG_FLOOR = 1
+local LOG_TOTAL = math.log(1e9)
+local function log_p(freq) return math.log(freq) - LOG_TOTAL end
+
+local function seg_max_len(data) return math.min(data.max_word_len or 4, 4) end
+
+-- Every substring of items[a..b] the segmentation looks up, added to `list`.
+local function run_words(data, items, a, b, list)
+    local max_len = seg_max_len(data)
+    for s = a, b do
+        local text = ""
+        for e = s, math.min(s + max_len - 1, b) do
+            text = text .. items[e].text
+            list[#list + 1] = text
+        end
+    end
+    return list
+end
+
+--[[--
+The most probable segmentation of the run items[a..b] (dynamic programming
+over the sum of the words' log probabilities, words of 1-4 characters;
+on a tie, the longer last word). Returns
+  { a=, b=, at = { [k] = { start=, len= } for items[a + k - 1] } }
+]]
+function Resolve.segment(data, items, a, b)
+    local max_len = seg_max_len(data)
+    local n = b - a + 1
+    local scores = {}   -- scores[s][len]: log probability of the word at s of that length, or nil
+    for s = 1, n do
+        local row, text = {}, ""
+        for len = 1, math.min(max_len, n - s + 1) do
+            text = text .. items[a + s + len - 2].text
+            local f = data.segFreq and data:segFreq(text)
+            if f then
+                row[len] = log_p(math.max(f, Resolve.SEG_FLOOR))
+            elseif len == 1 then
+                row[len] = log_p(Resolve.SEG_FLOOR)
             end
         end
-        if best then return best, best_word, best_start, others end
+        scores[s] = row
+    end
+    local fwd, back = { [0] = 0 }, {}
+    for k = 1, n do
+        local best, best_len
+        for len = math.min(max_len, k), 1, -1 do
+            local w = scores[k - len + 1][len]
+            if w then
+                local score = fwd[k - len] + w
+                if not best or score > best + 1e-9 then best, best_len = score, len end
+            end
+        end
+        fwd[k], back[k] = best, best_len
+    end
+    local at, k = {}, n
+    while k > 0 do
+        local len = back[k]
+        local word = { start = a + k - len, len = len }
+        for j = k - len + 1, k do at[j] = word end
+        k = k - len
+    end
+    return { a = a, b = b, at = at }
+end
+
+-- Segmented runs, per data object and items list: { [first index] = run }.
+-- The popup and the annotations work on the same page items, so a run is
+-- segmented once and both read the same path.
+local seg_cache = setmetatable({}, { __mode = "k" })
+
+local function runs_of(data, items)
+    local by_items = seg_cache[data]
+    if not by_items then
+        by_items = setmetatable({}, { __mode = "k" })
+        seg_cache[data] = by_items
+    end
+    local runs = by_items[items]
+    if not runs then
+        runs = {}
+        by_items[items] = runs
+    end
+    return runs
+end
+
+-- Fetch the word frequencies of every run holding one of items[i] for i in
+-- `list` that is not segmented yet, in one lookup.
+function Resolve.prefetchRuns(data, items, list)
+    if not data.prefetchSeg then return end
+    local runs, words, seen = runs_of(data, items), {}, {}
+    for _, i in ipairs(list) do
+        local a, b = run_bounds(items, i)
+        if a and not runs[a] and not seen[a] then
+            seen[a] = true
+            run_words(data, items, a, b, words)
+        end
+    end
+    if #words > 0 then data:prefetchSeg(words) end
+end
+
+-- The segmented run holding items[i], or nil (not a Han character).
+function Resolve.runAt(data, items, i)
+    local a, b = run_bounds(items, i)
+    if not a then return nil end
+    local runs = runs_of(data, items)
+    local run = runs[a]
+    if not run then
+        if data.prefetchSeg then data:prefetchSeg(run_words(data, items, a, b, {})) end
+        run = Resolve.segment(data, items, a, b)
+        runs[a] = run
+    end
+    return run
+end
+
+-- The path's word holding items[i]: { word=, start= (item index), len= },
+-- or nil (not a Han character).
+function Resolve.pathWord(data, items, i)
+    local run = Resolve.runAt(data, items, i)
+    if not run then return nil end
+    local w = run.at[i - run.a + 1]
+    if not w.word then w.word = text_of(items, w.start, w.start + w.len - 1) end
+    return w
+end
+
+-- Is the word at items[start..stop] made of whole path words, splitting
+-- none (a fallback dictionary's word: 累世 over the path's 累 + 世, never a
+-- word that would cut 自己 in two)? Fallback words have no frequencies, and
+-- with the floor one they would rarely beat two characters (累世 does not).
+function Resolve.fits(data, items, start, stop)
+    local run = Resolve.runAt(data, items, start)
+    if not run or stop > run.b then return false end
+    local first, last = run.at[start - run.a + 1], run.at[stop - run.a + 1]
+    return first.start == start and last.start + last.len - 1 == stop
+end
+
+-- Reading of items[i] from the word the segmentation puts it in, or nil:
+-- nil when that word is the character alone, or has no reading in the words
+-- table (自己: it decides nothing, and no other word does either). Also
+-- returns the word, the index of its first item and an empty list (where
+-- the other words of the same length were returned before #75).
+function Resolve.word_reading(data, items, i)
+    local w = Resolve.pathWord(data, items, i)
+    if not w or w.len < 2 then return nil end
+    local syllables = data:word(w.word)
+    if syllables and #syllables == w.len then
+        return syllables[i - w.start + 1], w.word, w.start, {}
     end
     return nil
 end
@@ -122,7 +270,8 @@ end
 -- entry ({ source=, syllables= }). Only words that give the character one
 -- reading count. When two words of the longest such length give it
 -- different readings, nothing is decided (fallback words have no
--- frequencies to choose by), and shorter words are not consulted.
+-- frequencies to choose by), and shorter words are not consulted. A word
+-- counts only if it splits no word of the segmentation's path (Resolve.fits).
 function Resolve.fallback_reading(data, items, i)
     if not data.fallbackWord or not data.fallback then return nil end
     data:prefetchFallback(candidate_words(data, items, i, {}))
@@ -135,6 +284,7 @@ function Resolve.fallback_reading(data, items, i)
                 local word = text_of(items, start, stop)
                 local entry = data:fallbackWord(word)
                 local reading = entry and entry.readings[i - start + 1]
+                if reading and not Resolve.fits(data, items, start, stop) then reading = nil end
                 if reading then
                     if not best then
                         best, best_word, best_start, best_entry = reading, word, start, entry
@@ -247,8 +397,9 @@ end
 -- sp: the special word covering items[i] when the caller has already looked
 -- it up (false for none); nil to look it up here.
 --
--- In order: a special word (when `special` is given); the longest dictionary
--- word around it (CC-CEDICT and pypinyin); a context rule for the character
+-- In order: a special word (when `special` is given); the word the
+-- segmentation puts it in, when that word has a reading (CC-CEDICT and
+-- pypinyin; Resolve.word_reading); a context rule for the character
 -- right before or after it; its default reading. For a character whose
 -- default is known to be unreliable (data:uncertainty), the longest
 -- fallback-dictionary word around it picks one of the two most likely
@@ -327,9 +478,10 @@ reading (see Resolve.reading), or nil.
 ]]
 function Resolve.annotate(data, items, threshold, uncertain, special, marks, spoken)
     -- Rarity first: only a rare character, one with an unusual reading in a
-    -- special word, or one with a remind mark, is worth resolving. Their
-    -- candidate words are then fetched in one lookup for the whole page.
-    local wanted, words = {}, {}
+    -- special word, or one with a remind mark, is worth resolving. The word
+    -- frequencies of their runs are then fetched in one lookup for the whole
+    -- page, and the words the segmentation puts them in in one more.
+    local wanted, around = {}, {}
     for i, item in ipairs(items) do
         if item.on_page ~= false and single_char(item.text) then
             local sp = special and Resolve.special_at(special, items, i) or false
@@ -337,17 +489,21 @@ function Resolve.annotate(data, items, threshold, uncertain, special, marks, spo
             if (sp and sp.entry.marks[sp.pos]) or rank == 0 or (rank and rank > threshold)
                     or (marks and marks:mayRemind(item.text)) then
                 wanted[#wanted + 1] = { i, sp }
-                if data.prefetch then
-                    candidate_words(data, items, i, words)
-                    -- The next syllable decides a spoken tone.
-                    if spoken and Sandhi.SPOKEN[item.text] and items[i + 1] then
-                        candidate_words(data, items, i + 1, words)
-                    end
-                end
+                if not sp then around[#around + 1] = i end
+                -- The next syllable decides a spoken tone.
+                if spoken and Sandhi.SPOKEN[item.text] and items[i + 1] then around[#around + 1] = i + 1 end
             end
         end
     end
-    if #words > 0 then data:prefetch(words) end
+    Resolve.prefetchRuns(data, items, around)
+    if data.prefetch then
+        local words = {}
+        for _, i in ipairs(around) do
+            local w = Resolve.pathWord(data, items, i)
+            if w and w.len > 1 then words[#words + 1] = w.word end
+        end
+        if #words > 0 then data:prefetch(words) end
+    end
     -- Then, in one more lookup, the fallback dictionaries' words around the
     -- characters that would otherwise get the uncertainty pair.
     if data.fallback then
@@ -415,7 +571,9 @@ so the popup does not call either reading likely, and source: what decided
 the reading (Resolve.reading's fifth value; nil when there is no reading),
 then the character's rank and whether the reading is an unusual one from a
 special word (Resolve.reading's second and fourth values), for the mark
-buttons (#26).
+buttons (#26), and the word the segmentation puts the character in when it
+is longer than the character: { word=, start= relative to items[i], len= }
+(#75: the popup lists it first), or nil.
 ]]
 function Resolve.forPopup(data, items, i, uncertain, special, drawn)
     if uncertain == Resolve.UNCERTAIN_SKIP then uncertain = Resolve.UNCERTAIN_BOTH end
@@ -431,7 +589,9 @@ function Resolve.forPopup(data, items, i, uncertain, special, drawn)
         }
     end
     local unsure = not drawn and reading ~= nil and reading:find("/", 1, true) ~= nil
-    return reading, decided, unsure, source, rank, unusual
+    local w = Resolve.pathWord(data, items, i)
+    local path = w and w.len > 1 and { word = w.word, start = w.start - i, len = w.len } or nil
+    return reading, decided, unsure, source, rank, unusual, path
 end
 
 return Resolve

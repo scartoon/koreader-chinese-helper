@@ -280,7 +280,7 @@ function G.popup(g, text, threshold, mode, char, nth)
     for _, a in ipairs(Resolve.annotate(g.data, items, threshold, mode, g.special, nil, threshold == 0)) do
         if a.index == i then drawn = a.dict or a.reading end
     end
-    local chosen, decided, unsure = Resolve.forPopup(g.data, items, i, mode, g.special, drawn)
+    local chosen, decided, unsure, source, _, _, path = Resolve.forPopup(g.data, items, i, mode, g.special, drawn)
     local cands, texts = Text.candidates(left, char, right)
     local rows = g.main:lookup(texts)
     local fallback, always = g.lookup(Model.uncovered(texts, rows), nil, g.always_texts(texts))
@@ -292,7 +292,7 @@ function G.popup(g, text, threshold, mode, char, nth)
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = drawn ~= nil, decided = decided,
         unsure = unsure, order = g.settings:fallbackOrder(), always = always,
-        default = select(2, g.data:char(char)),
+        default = select(2, g.data:char(char)), path = path,
         wordReading = function(w) return Resolve.wordReading(g.data, w) end,
     }
     local p = present(g, char, cands, rows, matches, drawn ~= nil)

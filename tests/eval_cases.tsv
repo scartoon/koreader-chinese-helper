@@ -97,7 +97,10 @@
 这回可是全是之乎者也。	这=zhè	0
 你读过书么？	么=me	0
 你怎的连半个秀才也捞不到呢？	呢=ne	0
-有一个人。	个=gè	0
+有三个人。	个=gè	0
+# ge after 一 is the word 一个 (data/overrides.tsv); before #75 the longer
+# 一个人 decided gè here.
+有一个人。	个=ge	0
 自个儿去。	个=gě	0
 众人也都哄笑起来。	都=dōu	0
 首都很大。	都=dū	0
