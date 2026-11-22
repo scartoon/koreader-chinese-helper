@@ -113,8 +113,8 @@ end
 
 -- Word frequencies are per billion words (wordfreq's), so log(f / 1e9) is a
 -- word's log probability. A character no dictionary lists as a word of its
--- own counts with the floor frequency, as a dictionary word wordfreq does
--- not know does.
+-- own counts with the floor frequency, 1, below every dictionary word (the
+-- seg table gives a word wordfreq does not list wordfreq's lowest, 10).
 Resolve.SEG_FLOOR = 1
 local LOG_TOTAL = math.log(1e9)
 local function log_p(freq) return math.log(freq) - LOG_TOTAL end
