@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.22.0 (2026-11-22)
+
+文言 Mode: evidence, not an AI's judgement, decides which senses are classical (#69)
+- A sense stays in the 文言 entry if a dictionary marks it classical (Chinese Notes, Wiktionary,
+  CC-CEDICT's own labels), or if MOE (重編國語辭典) gives the same sense with a quotation from a
+  classical work written up to 1911. Vernacular novels, drama and anything after the Qing don't
+  count. This replaces 2.21.0's AI check, which wrongly left out about 1 in 6 of the senses it
+  removed.
+- Back in: 邦交 *diplomatic relations* (《周禮》), 外侮 *foreign aggression* (《左傳》), 先行 *to
+  proceed in advance* (《漢書》), and about 6,700 other senses. Still out: 就 *then*, 要 *need
+  to*, 的 *of*.
+- Left to the CC-CEDICT entry below: shared senses MOE quotes no classical text for, often a
+  character's plainest one (一 *one*, 人 *person*, 有 *to have*, 是 *to be*). About 6,400 senses
+  leave the 文言 entry.
+- On 128 judged words from classical texts, the 文言 entry has the needed sense 91% of the time
+  (95% in 2.21.0), first 65% (61%), in its first two 73% (73%); the whole popup still 95%.
+- MOE's text is not bundled: only the yes/no decision is. The database grows by 0.5 MB, to 53.0 MB.
+
 ## 2.21.0 (2026-11-21)
 
 文言 Mode: complete, purely classical entries, for characters and words (#67)

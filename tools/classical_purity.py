@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""#67: a second check on the senses of the Classical dictionary that come
+"""No longer used (#69): kept as the record of 2.21.0's check. Since 2.22.0
+MOE evidence (tools/moe_match.py) decides these senses instead.
+
+#67: a second check on the senses of the Classical dictionary that come
 only from CC-CEDICT's unlabelled lines (where modern-only senses slip
 through). One request per entry lists those senses; the model answers, for
 each, whether it is used in classical texts. Replies cached in
