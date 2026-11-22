@@ -79,7 +79,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 20 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 13 + 3 + 1, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels (2), order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
+eq(count, 21 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 13 + 3 + 1, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels (2), order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
@@ -99,8 +99,18 @@ assert(not plugin.settings:componentsEnabled() and not comp_item.checked_func())
 comp_item.callback()
 assert(plugin.settings:componentsEnabled())
 
--- The tapped character's frequency rank (#17): on by default, a toggle, right after components.
-local rank_item = entry.sub_item_table[14]
+-- Words first (#71): on by default, a toggle, right after components.
+local wf_item = entry.sub_item_table[14]
+eq(wf_item.text, "Words first")
+assert(wf_item.help_text:find("above the character's own entry", 1, true), wf_item.help_text)
+assert(plugin.settings:wordsFirst() and wf_item.checked_func())
+wf_item.callback()
+assert(not plugin.settings:wordsFirst() and not wf_item.checked_func())
+wf_item.callback()
+assert(plugin.settings:wordsFirst())
+
+-- The tapped character's frequency rank (#17): on by default, a toggle, right after Words first.
+local rank_item = entry.sub_item_table[15]
 eq(rank_item.text, "Show character frequency rank")
 assert(plugin.settings:charRankEnabled() and rank_item.checked_func())
 rank_item.callback()
@@ -109,7 +119,7 @@ rank_item.callback()
 assert(plugin.settings:charRankEnabled())
 
 -- Traditional forms on the head lines (#47): on by default, a toggle, right after the rank.
-local trad_item = entry.sub_item_table[15]
+local trad_item = entry.sub_item_table[16]
 eq(trad_item.text, "Show traditional forms")
 assert(plugin.settings:tradHeadsEnabled() and trad_item.checked_func())
 trad_item.callback()
@@ -118,7 +128,7 @@ trad_item.callback()
 assert(plugin.settings:tradHeadsEnabled())
 
 -- The context line and the page underline: on by default, each its own toggle.
-local ctx_item, ul_item = entry.sub_item_table[16], entry.sub_item_table[17]
+local ctx_item, ul_item = entry.sub_item_table[17], entry.sub_item_table[18]
 eq(ctx_item.text, "Show the text around the character in the popup")
 eq(ul_item.text, "Underline the tapped character on the page")
 assert(plugin.settings:contextEnabled() and ctx_item.checked_func())
@@ -131,7 +141,7 @@ ctx_item.callback(); ul_item.callback()
 assert(plugin.settings:contextEnabled() and plugin.settings:underlineEnabled())
 
 -- "Try to match the book's font": on by default, a toggle, with help text.
-local font_item = entry.sub_item_table[18]
+local font_item = entry.sub_item_table[19]
 eq(font_item.text, "Try to match the book's font")
 assert(font_item.help_text:find("font menu", 1, true), font_item.help_text)
 assert(plugin.settings:matchBookFont() and font_item.checked_func())
@@ -316,7 +326,7 @@ local function names(list)
     return table.concat(out, ",")
 end
 eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
-local fb_item = entry.sub_item_table[19]
+local fb_item = entry.sub_item_table[20]
 eq(fb_item.text, "Dictionaries")
 -- Source labels (#59): All entries (default) or None.
 local labels_item = fb_item.sub_item_table[1]
@@ -472,7 +482,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[19].sub_item_table[6].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[20].sub_item_table[6].text_func(), "MOE 重編國語辭典 (your own file)",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
@@ -484,7 +494,7 @@ local sort_args
 package.loaded["ui/widget/sortwidget"] = { new = function(_, a) sort_args = a; return a end }
 local items4 = {}
 plugin:addToMainMenu(items4)
-local dict_menu = items4.chinesehelper.sub_item_table[19].sub_item_table
+local dict_menu = items4.chinesehelper.sub_item_table[20].sub_item_table
 local updated = 0
 dict_menu[4].callback({ updateItems = function() updated = updated + 1 end })
 eq(#sort_args.item_table, 7); eq(sort_args.item_table[1].text, "Wiktionary")
@@ -565,7 +575,7 @@ local items2 = {}
 plugin2:addToMainMenu(items2)
 local dict_items = {}
 local moe_modes2 = {}
-for k, it in ipairs(items2.chinesehelper.sub_item_table[19].sub_item_table) do
+for k, it in ipairs(items2.chinesehelper.sub_item_table[20].sub_item_table) do
     if k > 5 then
         if it.sub_item_table then moe_modes2[#moe_modes2 + 1] = it else dict_items[#dict_items + 1] = it end
     end

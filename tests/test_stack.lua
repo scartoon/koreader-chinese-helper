@@ -50,7 +50,9 @@ stub("datastorage", { getDataDir = function() return TEST_KOREADER_DIR end, getS
 stub("libs/libkoreader-lfs", { attributes = function() return nil end })
 stub("ui/network/manager", { isWifiOn = function() return true end, isConnected = function() return true end,
                              runWhenConnected = function(_, f) f() end })
-local settings = {}
+-- Words first (#71) is on by default; these tests check the character-first
+-- order (as before 2.23.0) unless they switch it on.
+local settings = { chinesehelper_words_first = false }
 G_reader_settings = {
     readSetting = function(_, k) return settings[k] end,
     saveSetting = function(_, k, v) settings[k] = v end,
@@ -505,6 +507,52 @@ do
     ma_off.on_outside()
 end
 print("classical first: ok")
+
+-- Words first (#71) with Classical mode on: the Classical entries stay first
+-- (the character's, then its words'), with the rank; below them the words'
+-- entries, then the character's CC-CEDICT entry and its components.
+do
+    plugin.settings:set("words_first", true)
+    plugin.settings:set("classical_mode", true)
+    local p = root("相如素", "贱", "人")
+    local tags = {}
+    for k, b in ipairs(p.blocks) do
+        tags[k] = tostring(b.source) .. (b.components and "+comp" or "") .. (b.rank and "+rank" or "")
+            .. ":" .. tostring(b.head)
+    end
+    local s = table.concat(tags, " | ")
+    eq(p.blocks[1].source, "classical", s); assert(p.blocks[1].rank, s)
+    local last_cl, own, word
+    for k, b in ipairs(p.blocks) do
+        if b.source == "classical" then last_cl = k end
+        if b.source == "cedict" and tostring(b.head):find("^贱 ") then own = own or k end
+        if b.source == "cedict" and tostring(b.head):find("^贱人") then word = word or k end
+    end
+    assert(last_cl and word and own and last_cl < word and word < own, s)
+    for k = 1, last_cl do eq(p.blocks[k].source, "classical", s) end
+    eq(p.blocks[own].rank, nil, "the rank on the Classical entry only: " .. s)
+    if p.blocks[own + 1] then assert(p.blocks[own + 1].components, "components below 贱: " .. s) end
+    p.on_outside()
+    -- 发 in 头发, 文言 Mode off: 头发 first, then 发 with its rank and components.
+    plugin.settings:set("classical_mode", false)
+    p = root("头", "发", "")
+    eq(tostring(p.blocks[1].head):find("^头发") ~= nil, true, tostring(p.blocks[1].head))
+    local fa
+    for k, b in ipairs(p.blocks) do if tostring(b.head):find("^发 ") then fa = k break end end
+    assert(fa and fa > 1 and p.blocks[fa].rank, "发 below 头发, with its rank")
+    p.on_outside()
+    -- A nested popup follows the setting too.
+    local cands, words = Text.candidates({ "头" }, "发", {})
+    local rows = plugin:db():lookup(words)
+    local tou = root("", "头", "")
+    local nested = tap:present{ db = plugin:db(), char = "发", cands = cands, rows = rows,
+        matches = Model.matches{ cands = cands, rows = rows, order = plugin.settings:fallbackOrder() },
+        annotated = false, parent = tou }
+    eq(tostring(nested.blocks[1].head):find("^头发") ~= nil, true, "nested: " .. tostring(nested.blocks[1].head))
+    tou.on_outside()
+    plugin.settings:set("words_first", false)
+end
+print("words first with Classical mode: ok")
 
 -- The grey lines above each block (#59): 字频 first, the source label on a
 -- row of its own below it; CC-CEDICT labelled CEDICT in both modes.

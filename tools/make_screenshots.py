@@ -15,6 +15,7 @@ must still land: the device log is checked as usual), SHOT_MATCH_FONT=false
 turns "Try to match the book's font" off, SHOT_TRAD=false turns "Show
 traditional forms" off, SHOT_TEXT=simplified sets "Dictionary text" to
 Simplified, SHOT_MOE=always shows MOE Always for characters and words,
+SHOT_WORDS_FIRST=true takes them with Words first on (the default since 2.23.0),
 SHOT_NIGHT=true takes the shots in night mode, and SHOT_OUT=dir saves there
 instead of docs/.
 
@@ -68,6 +69,9 @@ THRESHOLD = 3500
 # Settings for checks (see above); the gate takes the same.
 SHOT_TEXT = "simplified" if os.environ.get("SHOT_TEXT") == "simplified" else "original"
 SHOT_MOE = "always" if os.environ.get("SHOT_MOE") == "always" else "fallback"
+# Words first (#71, on by default since 2.23.0): the README shots were taken
+# with the character first, so they keep it until they are retaken.
+SHOT_WORDS_FIRST = os.environ.get("SHOT_WORDS_FIRST") == "true"
 # MOE's text in the shots, as the Dictionary text setting gives it (#48).
 MOE_QUOTE = "「今年歡笑復明年，秋月春風等閒度。」" if SHOT_TEXT == "original" else "「今年欢笑复明年，秋月春风等闲度。」"
 
@@ -286,6 +290,7 @@ def settings_variant(original, pinyin=True, threshold=None, classical=False):
             "chinesehelper_labels": '"all"', "chinesehelper_moe_chars": f'"{SHOT_MOE}"', "chinesehelper_moe_words": f'"{SHOT_MOE}"',
             "chinesehelper_uncertain": '"both"',
             "chinesehelper_components": "true", "chinesehelper_popup_context": "true",
+            "chinesehelper_words_first": "true" if SHOT_WORDS_FIRST else "false",   # #71
             "chinesehelper_page_underline": "true",
             "chinesehelper_match_book_font": "false" if os.environ.get("SHOT_MATCH_FONT") == "false" else "true",
             "chinesehelper_trad_heads": "false" if os.environ.get("SHOT_TRAD") == "false" else "true",
@@ -537,6 +542,7 @@ def main():
     gate = Gate()
     defaults = gate.lua.eval('require("ch_settings").DEFAULTS')   # what the gate's settings read
     defaults["dict_text"], defaults["moe_chars"], defaults["moe_words"] = SHOT_TEXT, SHOT_MOE, SHOT_MOE
+    defaults["words_first"] = SHOT_WORDS_FIRST
     print(f"gate sources: {gate.sources}")
     for name in wanted:   # the whole gate first: no device work if any shot fails it
         gate_shot(gate, name, SHOTS[name])

@@ -172,6 +172,7 @@ Tools menu). Settings apply to all books.
 | Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
 | Chinese text size | 100 / 115 / 130 (default) / 150 / 175% of the popup text size, for the Chinese dictionaries' text (MOE, 成語典, Xinhua, Moegirlpedia) and the line of text at the top of the popup. See [Tapping a character in the popup](#tapping-a-character-in-the-popup) |
 | Show character components | On (default) / off. See [Character components](#character-components) |
+| Words first | On (default) / off: the entries of the words around the tapped character above its own entry (with its MOE entry and components); off, the character first. See [The popup](#the-popup) |
 | Show character frequency rank | On (default) / off. The small grey 字频 line on the tapped character's entry |
 | Show traditional forms | On (default) / off. A word's traditional form beside it on each head line, when it differs: **头发** 頭髮; tapped in traditional characters, the simplified form first: **头** 頭 |
 | Show the text around the character in the popup | On (default) / off; drawn at the Chinese text size. See [The popup](#the-popup) |
@@ -316,7 +317,7 @@ tighter lines, because the plugin replaces the book's line height rather than ad
 
 ### The popup
 
-Every popup shows the sentence around the character, then the character with all its readings (the one it has here first), its frequency rank, traditional form and components, then every dictionary word around it, longest first. Nothing guesses where the words break.
+Every popup shows the sentence around the character, then every dictionary word around it, longest first, then the character with all its readings (the one it has here first), its frequency rank, traditional form and components. Nothing guesses where the words break. With **Words first** off, the character comes first and the words follow it (as in the screenshots).
 
 <details>
 <summary>Everything in the popup, in order</summary>
@@ -325,6 +326,12 @@ The plugin reads up to 7 Chinese characters before and after the tapped one (sto
 punctuation, a paragraph break or any non-Chinese character) and looks up every 1–8 character
 stretch containing the tapped character, in simplified and traditional forms. Nothing guesses
 where the words break.
+
+The list below is the order with **Words first** off. With it on (the default), the words come
+first, longest first, each with its own MOE Always entry; then the character's own entry, its
+MOE Always entry and its components, together; then the Chinese-language dictionaries' entries,
+last as always. The rank and the spoken-tone note stay on the character's own entry, and 文言 Mode's
+entries stay at the top. The buttons keep their order either way.
 
 - **The text around the character**, on one line at the top: as much of its sentence as fits,
   at the Chinese text size (130% of the popup's by default), the character in bold and underlined. It grows outwards from the
@@ -856,7 +863,7 @@ popup then shows both:
    (or the space after it) to show the rest in place; **[Tap to show less]** at the end cuts it
    again. Characters in the visible lines can
    be tapped as usual; those hidden by the cut can't;
-3. the components, then the words.
+3. the components, then the words (with **Words first** on, the default, the words come above 1).
 
 MOE's readings come in the order of CC-CEDICT's (the likely one first), then those CC-CEDICT
 doesn't list for the character, each marked **· not in CC-CEDICT**: about 1 in 7 characters have

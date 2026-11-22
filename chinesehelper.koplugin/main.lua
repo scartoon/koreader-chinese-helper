@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.22.0"
+ChineseHelper.VERSION = "2.23.0"
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
@@ -787,6 +787,12 @@ function ChineseHelper:addToMainMenu(menu_items)
                 help_text = _("Below the tapped character's entry, one line per part: its form, reading, a short gloss, and whether it gives the meaning or the sound (same sound, same ending, or loose). A simplified character whose simplification hid a part shows its traditional form's parts. Sources: English Wiktionary, then Make Me a Hanzi, then yi-bai/ids (structure only)."),
                 checked_func = function() return settings:componentsEnabled() end,
                 callback = function() settings:set("components", not settings:componentsEnabled()) end,
+            },
+            {
+                text = _("Words first"),
+                help_text = _("Show the entries of the words around the tapped character above the character's own entry (with its MOE entry and components). Off: the character first. The buttons keep their order either way."),
+                checked_func = function() return settings:wordsFirst() end,
+                callback = function() settings:set("words_first", not settings:wordsFirst()) end,
             },
             {
                 text = _("Show character frequency rank"),
