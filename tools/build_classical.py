@@ -153,6 +153,8 @@ def senses_from(reply, text):
     """The reply's senses, or None. A reply that corrects itself ("Wait,
     ... The correct reply is: {...}") counts by its last JSON line."""
     tries = [reply] + [ln for ln in reversed(reply.split("\n")) if ln.startswith('{"senses"')]
+    # One brace off at the end (就, 方 in #65): '..."lines": [9]}}]}' or '..."lines": [20]}}'.
+    tries += [re.sub(r"\}\}\]\}\s*$", "}]}", reply), re.sub(r"\}\}\s*$", "}]}", reply)]
     for t in tries:
         try:
             return condense.add_sources(json.loads(t)["senses"], text)
@@ -304,6 +306,12 @@ def validate(rec):
         if words and len(missing) * 2 > len(words):
             flags.append(("few-words", gloss + "  <=  " + " | ".join(lines[n] for n in cited)))
         kept.append({"gloss": gloss, "reading": s.get("reading") or "", "sources": s["sources"]})
+    # The popup shows "reading: gloss" only to tell readings apart (#53):
+    # an entry whose senses all share one reading shows none (v4 replies
+    # often give the reading on every sense).
+    if len({s["reading"] for s in kept if s["reading"]}) <= 1:
+        for s in kept:
+            s["reading"] = ""
     m = re.search(r"Senses allowed: (\d+)", rec["input"].split("\n")[0])
     cap = int(m.group(1)) if m else MAX_SENSES
     if len(kept) > cap:

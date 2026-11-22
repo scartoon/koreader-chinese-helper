@@ -297,3 +297,121 @@ keys on the input).
    21,800 senses) and Wiktionary to the same table, shown in the word blocks. Measure first how
    often the words around a tapped character in the test set have such an entry and CC-CEDICT
    doesn't.
+
+## 9. Rebuild for the top of the popup (#65)
+
+Since #56 the 文言 entry comes first in the popup and is shown in full, so what matters is whether
+the needed sense is *near the top* of that entry, not just somewhere in the popup. #65 rebuilt the
+dictionary for that role. Scripts: [`classical-data/eval_top.py`](classical-data/eval_top.py)
+(position of the needed sense, with the hand check in `fix_v3.json`, `fix_v4.json` and `fix_v4b.json`)
+and [`classical-data/compare_proto.py`](classical-data/compare_proto.py).
+
+**Hand check.** For each of the 128 judged senses, the judgment's keyword pattern finds the first
+matching sense. I then read every row. Where the keyword hit a different sense (之 *genitive* for
+the subject–predicate particle, 將 *to command* for *a general*, 知 *to cause to know* for *to
+know*) or missed the right one, I set the position by hand. I applied the same reading to every
+version.
+
+### Baseline: the 2.19.3 entries (prompt v3)
+
+| Band | n | In the entry | In the first two | First |
+|---|---|---|---|---|
+| over-sampled | 55 | 44 (80%) | 29 (53%) | 25 (45%) |
+| rank ≤ 500 | 29 | 14 (48%) | 11 (38%) | 7 (24%) |
+| rank 500–3,000 | 28 | 22 (79%) | 20 (71%) | 12 (43%) |
+| rarer | 16 | 14 (88%) | 13 (81%) | 11 (69%) |
+| **all** | **128** | **94 (73%)** | **73 (57%)** | **55 (43%)** |
+
+The whole popup (the entry or CC-CEDICT) has it 122 times (95%). Positions when present: 1st 55,
+2nd 18, 3rd 12, 4th 1, 5th 8. The weak band is the commonest characters, as expected from a
+supplement that left out every sense CC-CEDICT has: 而 *and*, 有 *to have*, 天 *heaven*, 事
+*affair* and 知 *to know* were missing from their entries.
+
+### Changes
+
+- **Collation.** CC-CEDICT's senses of the character are added as `[CEDICT]` lines: its labelled
+  ones keep their label in the text (`(literary) to command; to lead`), its others are candidates.
+  Surnames, "Taiwan pr.", "also pr.", classifiers, "used in", "see" and colloquial, dialect and
+  slang senses are left out. Only characters that already have a classical line (Wiktionary,
+  Chinese Notes, rare-character Unihan, or a labelled CC-CEDICT sense) get CC-CEDICT lines, so a
+  character with only modern senses still gets no entry (吗, 氟). The #55 fixes stay.
+- **Prompt v4** (`tools/condense_classical_prompt.txt`; v3 is kept as
+  [`classical-data/prompt_v3.txt`](classical-data/prompt_v3.txt)). It says the reader has
+  switched the mode on for classical text and the entry is shown first, and asks Haiku to order
+  senses by how common they are in classical texts, to include a shared sense (而 *and; but*)
+  when it is among the commonest, and to leave out modern-only senses. The citation rule stays:
+  every gloss is built from the words of the lines it cites, and Haiku's own knowledge decides
+  only the order and the choice. The cap now comes with the input ("Senses allowed: 8").
+- **Caps and input order.** The cap is 8 senses for rank ≤ 500, 6 for rank ≤ 3,000 and 5 for
+  the rest. The input lists Wiktionary, Chinese Notes and Unihan first and CC-CEDICT last.
+
+### Prototype: v3 against v4 (150-character set, 128 judged senses)
+
+| Version | In the entry | First two | First | Whole popup | v3 senses lost |
+|---|---|---|---|---|---|
+| v3 (2.19.3) | 94 (73%) | 73 (57%) | 55 (43%) | 122 (95%) | — |
+| v4a: CEDICT lines first, cap 8 for rank ≤ 500, else 5 | 120 (94%) | 99 (77%) | 82 (64%) | 121 (95%) | 藝 *to plant* |
+| **v4b: CEDICT lines last, caps 8 / 6 / 5** | **119 (93%)** | **99 (77%)** | **84 (66%)** | **122 (95%)** | none |
+
+v4a showed two problems. With CC-CEDICT's lines first, Haiku tended to keep their order: 乎 put
+four preposition senses before *question particle*. And at five senses 藝 kept *a bound; a limit*
+over *to plant*. v4b fixes both: 乎 opens with the question particle, and 藝 *to plant* is back,
+6th. 
+
+By band (v4b): over-sampled 40/55 in the first two (73%), rank ≤ 500 22/29 (76%), 500–3,000
+24/28 (86%), rarer 13/16 (81%). Positions: 1st 84, 2nd 15, 3rd 4, 4th 4, 5th 8, 6th 3, 7th 1.
+
+Some senses moved down in v4b, though none was lost. 之's subject–predicate particle went from
+3rd to 5th: 之 now leads with *him; her; them; it*, *genitive marker*, *to go*, *this*. Also
+from 1st to 2nd: 若 *like*, 相 *chancellor*, 卒 *to die* (behind *soldier*) and 莫 *none*. And 說
+*to be delighted* went from 1st to 4th, behind *to speak*, *to persuade* and *to explain*. These
+are Haiku's frequency judgments, and on the whole they're defensible. The ones the sample needed
+and v4b doesn't have are 將 *a general*, 夫子, 坐 *idly*, 小 *humble*, 宋/衞 as states and 昬 = 婚.
+None of them is in the sources (as in §5) except 將, whose entry has *to command; to lead* 8th.
+
+**Cap.** For the commonest characters the needed sense sits 5th to 7th in 9 cases (於 *by* in the
+passive 6th, 大 *greatly* 6th, 之 5th, 也 5th…), so a cap of 5 would have cut them. Eight is
+also where the longest entries still fit (below). For ranks 500–3,000 the cap of 6 keeps 藝
+*to plant*, which five didn't.
+
+**Added senses.** The mechanical screen (a gloss sharing under half its content words with the
+cited lines) flagged 16 senses on the prototype. I read every one, and every bundled sense of
+the 47 characters ranked ≤ 500 next to its cited lines. Not one sense is missing from its
+sources. Some glosses carry an explanatory word that isn't in the line: 師 *master (one skilled
+in an art, or a respected elder)* from "master", 前 *front; before (in space)*. 彊 spells out
+`variant of 強` as *variant of 強: strong; powerful*. Those are wording, not new senses.
+
+**Modern-only senses in the top two.** None among the characters ranked ≤ 500. Lower in the
+list, CC-CEDICT brings in a few modern senses that the cap leaves room for: 前 *future*, 天
+*day*, 事 *accident; item*, 得 *to catch (a disease)*, 死 *extremely*. Since 文言 Mode is only on
+for classical text, they cost a line each and don't mislead at the top.
+
+**Length** (characters of an entry, its senses joined with " / "):
+
+| | Median | p90 | Longest |
+|---|---|---|---|
+| v3, prototype set | 92 | 160 | 也 282 |
+| v4b, prototype set | 118 | 204 | 也 365 |
+| v4b, every entry | 40 | 110 | 秦 511 (6 senses, its states and dynasties), 商 389, 也 365, 與 362 |
+
+Each sense is a line in the popup. On the Boox Go 7 in landscape (the `docs/classical.png`
+geometry: a line about 34 px, a 1,035 px popup), 也's eight one-line senses plus the head and
+labels take about 380 px, about 37% of the popup. 秦's longest sense wraps to a second line. Still
+to confirm on the device.
+
+### Full run
+
+22,956 requests through the Batch API, 25.4 M input and 2.1 M output tokens, **$1.78**; the
+prototype runs cost $0.06. Two replies (就, 方) had one brace too many at the end; the build now
+mends that. The result has 21,191 entries and 184 variants (21,292 before). The 221 characters
+that lost their entry had only modern senses (乒 *ping*, 氟 *fluorine*, 傣 *Dai*); 120 gained
+one (听, 离, 座 …). Screen flags: few-words 620, no-sense 151, over-cap 8, no-line 3. The
+release database grows by 1.8 MB, to 46.4 MB.
+
+On the judged sample the full build gives the same numbers as the v4b prototype (the cache is
+shared). With 文言 Mode on, the needed sense is in the 文言 entry's first two senses 77% of the
+time, up from 57%, and in the whole popup 95% of the time, as before.
+
+**Readings.** v4 replies often give the reading on every sense. The popup only shows a reading
+to tell readings apart, so the build drops them when all of an entry's senses share one. 1,432
+entries keep readings, and the reading display is unchanged.
