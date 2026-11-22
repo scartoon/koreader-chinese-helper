@@ -7,7 +7,9 @@ of the Qing (1911).
     .venv/bin/python tools/moe_evidence.py --word 花甲     # one headword's qualifying definitions
 
 A quote qualifies (classical_quote) unless:
-  - its dynasty is 民國, 近代 or 現代, or it is undated and not a classic
+  - it was written after 1911: its dynasty is 民國, 近代 or 現代, or it is
+    《清史稿》 (compiled 1914-1927);
+  - it is undated and not a classic
     (《…》), a commentary (注, 疏, 集解, 索隱…) or a 詩序/章句 note;
   - it is from a vernacular novel or story collection: a work MOE ever cites
     by chapter (第…回), the 三言二拍 and other 話本 collections, or a title
@@ -41,6 +43,8 @@ STORIES = {"醒世恆言", "喻世明言", "警世通言", "古今小說", "初�
            "豆棚閒話", "豆棚閑話", "無聲戲", "照世杯", "十二樓", "醉醒石", "五代史平話", "三國志平話",
            "大唐三藏取經詩話", "宣和遺事", "雨窗欹枕集", "樂府群珠", "元曲選", "全元散曲", "雍熙樂府",
            "太和正音譜", "盛世新聲", "詞林摘豔", "陽春白雪", "太平樂府"}
+# Classical-register works written after 1911 (清史稿 was compiled 1914-1927).
+AFTER_1911 = {"清史稿"}
 VERNACULAR_WORD = re.compile(r"演義|平話|話本|通俗|雜劇|元曲|散曲|諸宮調|傳奇三集")
 # Undated quotes that are still classical: commentaries and notes on the classics.
 COMMENTARY = re.compile(r"^(\S{0,8}(注|疏|集解|索隱|正義|箋|傳)(引|曰|云|：)|根據〈詩序〉|[首本次卒]章\S{1,3}句為|"
@@ -86,6 +90,8 @@ def classify(q, vern):
     if re.search(r"〉\S{0,3}曲|曲》|套．", head):
         return False, "song"
     titles = TITLE.findall(head)
+    if any(t in AFTER_1911 for t in titles):
+        return False, "after-1911"
     if any(t in vern or VERNACULAR_WORD.search(t) for t in titles):
         return False, "vernacular-title"
     if VERNACULAR_WORD.search(head):
@@ -93,6 +99,28 @@ def classify(q, vern):
     if not dyn and not q.startswith(("《", "〈")) and not COMMENTARY.match(q):
         return False, "undated"
     return True, "classical"
+
+
+def all_definitions(entry, vern):
+    """[(pinyin, def number, definition, first qualifying quote or None)]
+    for one MOE entry, numbered in order across its heteronyms."""
+    out, n = [], 0
+    for h in entry.get("heteronyms", []):
+        for df in h.get("definitions", []):
+            n += 1
+            good = [clean(q) for q in df.get("quote", []) if classify(q, vern)[0]]
+            out.append((h.get("pinyin", ""), n, df.get("def", "").strip(), good[0] if good else None))
+    return out
+
+
+def by_headword(data):
+    """{headword: MOE entry} (the first entry for a repeated title)."""
+    out = {}
+    for e in data:
+        w = clean(e.get("title", ""))
+        if w and "{" not in w:
+            out.setdefault(w, e)
+    return out
 
 
 def qualifying_definitions(data, vern):
