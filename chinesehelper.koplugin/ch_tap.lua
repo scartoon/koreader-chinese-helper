@@ -695,8 +695,14 @@ function Tap:present(args)
             if #cl > 0 then
                 if rank_placed then blocks[1].rank = nil end
                 rank_placed = false
-                for k, b in ipairs(cl) do table.insert(blocks, k, b) end
             end
+            -- #67: then the Classical entries of the words around it.
+            local mw = {}
+            for _, m in ipairs(args.matches) do mw[#mw + 1] = m.word end
+            for _, b in ipairs(Model.classicalWordBlocks(args.db:classicalWords(mw), args.matches, b0, b1, trad)) do
+                cl[#cl + 1] = b
+            end
+            for k, b in ipairs(cl) do table.insert(blocks, k, b) end
         end
         Model.chineseLast(blocks)
         -- No entry of its own, or Classical entries first: the rank goes

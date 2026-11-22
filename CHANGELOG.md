@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.21.0 (2026-11-21)
+
+文言 Mode: complete, purely classical entries, for characters and words (#67)
+- The 文言 entry now lists every classical sense the sources give, numbered, commonest first, and
+  always in full (no more caps of 8, 6 or 5). Senses that exist only in modern Chinese are left
+  out: 的 keeps *target; bull's-eye*, not the structural particle; 就 keeps *to approach*, not
+  *then*; 要 drops *need to*.
+- Words get 文言 entries too: 26,093 words, from Chinese Notes, Wiktionary and CC-CEDICT
+  (賤人 *a lowly person*, 北面 *to face north as a subject*, 所以 *that by which*). In 文言 Mode
+  they follow the tapped character's entry, above everything else.
+- Long entries: the commonest function characters run to 15–30 senses (之, 為, 將), and the popup
+  scrolls to the rest.
+- How it's built: Claude Haiku merged, ordered and marked each headword's senses; Claude Sonnet
+  checked again the senses that came only from CC-CEDICT and left out 3,103 as modern-only. On
+  128 judged words from classical texts, the entry has the needed sense 95% of the time (93%
+  before), in its first two senses 73% (77%), and the whole popup 95%.
+- The database grows by 6.1 MB, to 52.5 MB.
+
 ## 2.20.0 (2026-11-21)
 
 文言 Mode: the Classical dictionary rebuilt for the top of the popup (#65)

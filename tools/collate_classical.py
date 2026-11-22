@@ -164,6 +164,44 @@ def extract_unihan(rank):
     return out
 
 
+# ---------------------------------------------------------------- words (#67)
+def han_word(w):
+    return len(w) >= 2 and all(han1(c) for c in w)
+
+
+def extract_words():
+    """Words of two or more characters: Chinese Notes' Literary Chinese
+    senses (with a gloss) and Wiktionary's literary, Classical, archaic,
+    obsolete or historical senses, by the same rules as for characters."""
+    out = []
+    for line in open(os.path.join(SRC, "chinesenotes", "cnotes_zh_en_dict.tsv")):
+        if line.startswith("#"):
+            continue
+        r = line.rstrip("\n").split("\t")
+        simp, trad = r[1], (r[2] if r[2] != "\\N" else r[1])
+        if not han_word(simp) or r[9] != "Literary Chinese" or r[4] in ("\\N", ""):
+            continue
+        out.append(dict(trad=trad, simp=simp, source="cn", reading=r[3], sense=r[4], tag=r[5]))
+    for line in gzip.open(os.path.join(SRC, "wiktionary", "kaikki-Chinese.jsonl.gz"), "rt"):
+        e = json.loads(line)
+        w = e.get("word", "")
+        if not han_word(w):
+            continue
+        for s in e.get("senses", []):
+            tags = set(s.get("tags", []))
+            raw = " ".join(s.get("raw_glosses") or s.get("glosses") or [])
+            gl = "; ".join(s.get("glosses") or [])
+            if not gl or tags & DIALECT or "alt-of" in tags or ALT.match(gl) or \
+                    re.search(r"\b(Korean|Japanese|Vietnamese)\b", raw):
+                continue
+            hit = tags & WIKT_TAGS
+            tag = sorted(hit)[0] if hit else ("Classical" if "Classical Chinese" in raw else None)
+            if tag:
+                out.append(dict(trad=s2t.convert(w) if w == t2s.convert(w) else w, simp=t2s.convert(w),
+                                source="wikt", reading=wikt_reading(e), sense=raw.strip(), tag=tag))
+    return out
+
+
 # ---------------------------------------------------------------- MOE
 NOVELS = ("水滸傳", "紅樓夢", "儒林外史", "西遊記", "三國演義", "金瓶梅", "老殘遊記", "兒女英雄傳", "醒世恆言",
           "喻世明言", "警世通言", "拍案驚奇", "鏡花緣", "官場現形記", "文明小史", "孽海花", "封神演義", "俠五義",

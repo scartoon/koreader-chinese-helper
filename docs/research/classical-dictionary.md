@@ -415,3 +415,173 @@ time, up from 57%, and in the whole popup 95% of the time, as before.
 **Readings.** v4 replies often give the reading on every sense. The popup only shows a reading
 to tell readings apart, so the build drops them when all of an entry's senses share one. 1,432
 entries keep readings, and the reading display is unchanged.
+## 10. 文言 Mode for words: measurement and proposal (#66)
+
+Do the popup's *words* mislead in classical text, and would classical word senses help? Scripts:
+[`classical-data/measure_words.py`](classical-data/measure_words.py) (the word lists and corpus
+counts) and [`classical-data/judge_words.py`](classical-data/judge_words.py) (corpus-wide
+judgments by Claude Haiku, checked by hand below). Readings are out of scope.
+
+**What the popup lists.** Every word of 2–8 characters in the Han run around the tap that
+contains the tapped character (`Text.candidates`). The words come from CC-CEDICT, or from the
+bundled fallbacks (Wiktionary, Wikipedia titles) for words CC-CEDICT lacks. The Wiktionary
+fallback already shows its literary senses for those words: 何由 *(literary) why; for what
+reason*, 為國 *(literary) to govern a state*, 自為, 金帛. So the gap is narrower than #66 assumed.
+What's missing is the literary senses of words **CC-CEDICT has** (所以, 若是, 賤人), and Chinese
+Notes' literary words that no bundled dictionary has. 妻子 is no gap: CC-CEDICT has *wife and
+children* under 妻子 qīzǐ, and every 妻子 in the texts takes that sense.
+
+**Sources.** Chinese Notes' *Literary Chinese* word senses (21,773 senses with a gloss) and
+Wiktionary's literary, Classical, archaic, obsolete and historical word senses (16,570): 38,343
+senses on 28,742 words. Of those words, 14,367 are CC-CEDICT words, 8,327 are only in the
+fallbacks (already shown), and 6,048 are in no bundled dictionary. Both licences are the ones
+the Classical dictionary already uses (CC BY-SA 3.0 and 4.0).
+
+### Step 1: the 150 sampled taps
+
+The taps are the note's sample (§3): 141 occurrences after the 9 Wikisource annotations. Only 28
+taps list a word at all (21 CC-CEDICT words, 7 fallback words). Most taps fall on single-character
+words in short runs.
+
+| | Taps | Which |
+|---|---|---|
+| (a) a listed word has a classical sense CC-CEDICT lacks | **5** (4%) | 若是 *to be like this*, 所以 *that by which*, 莫大 *nothing greater than*, 賤人 *lowly person*, 夫子 *husband / attendant* |
+| (b) a listed word is really two classical words here, and its senses mislead | **3** (2%) | 相通 in 賢相通其謀 (賢相 + 通), 坐定 in 坐定天下 (坐 + 定), 不由 in 信不由中 (不 + 由) |
+| (c) (a) gives the right sense where CC-CEDICT's is wrong | **4** (3%) | 若是 (CC-CEDICT: *if*), 所以, 莫大, 賤人 (CC-CEDICT: *slut; cheap person*) |
+| a literary word that no bundled dictionary has | 1 | 在其中 *therein* |
+
+The words that do mislead are clear examples. A reader who sees 賤人 *slut* for 相如素賤人
+("Xiangru was of humble birth"), or 若是 *if* for 自令若是 ("brought himself to this"), is
+misled. But on this sample such a tap is about 1 in 30.
+
+### Corpus-wide (all 17 texts, 38,054 characters)
+
+- 2,886 distinct words appear: 2,000 CC-CEDICT words (5,446 occurrences), 686 fallback-only, and
+  200 literary words in no bundled dictionary (之子 16, 不以 14, 之謂 10, 不患 7, 柰何 6, 竊聞 3 …,
+  mostly phrases).
+- **(a)** 998 of the CC-CEDICT words have literary senses. Haiku judged that **336** of them add
+  a meaning CC-CEDICT lacks (1,171 occurrences). I checked 20 of those by hand: 16 are real
+  classical senses (北面 *to face north as a subject*, 消息 *to wax and wane*, 夫人 *wife of a
+  feudal lord*, 公子 *son of a feudal prince*, 前日 *formerly*, 四時 *the four periods of the
+  day*). 4 add nothing a reader needs (離騷 *Sorrow at Parting*, a translation; 折枝 *a
+  painting technique*; 未可; 韓文). The estimate is **about 270 distinct words**.
+- **(b)** Haiku judged each of the 5,446 occurrences: would a reader who takes a CC-CEDICT sense
+  misunderstand the passage? It said *mislead* 685 times (411 distinct words) and *other sense*
+  248 times. I checked 30 *mislead* verdicts by hand: 16 right (及其, 其所, 以為 *made them into*,
+  頗為 across 廉頗 + 為, 餘年 in 百有餘年, 一會 in 無一會期 …), 11 wrong (不知, 之內, 皇帝 …),
+  3 unclear. Of 25 *fits* verdicts, 1 was wrong (約法 in 約法省刑). That puts the misleading
+  occurrences at roughly **600 of 5,446 (about 11%)**, on **about 250–300 distinct words**.
+  A word occurrence covers about two taps, so about 3% of taps, which matches the sample's 2%.
+- **Where (b) comes from.** About half the confirmed cases are function-word compounds that are
+  two words in classical Chinese: 可以 (Haiku: misleading in 29 of 32), 所以 (27/41), 其所 (14/21),
+  有所 (7/8), 與其 (5/8), 以及, 以為, 不可以, 及其, 故而. The other half cross a word boundary next
+  to a name or a phrase: 頗為 (廉頗 + 為), 生發 (賈生 + 發), 起始 (吳起's 起 + 始), 樂之, 之至.
+  Without segmenting the text those can't be predicted from the word alone.
+
+### Step 2: design options
+
+**A. 文言 senses on words** (recommended). In 文言 Mode, a CC-CEDICT word with classical senses
+CC-CEDICT lacks gets those senses as a line labelled 文言, above its CC-CEDICT senses, and these
+words come first among the words.
+- *Which senses.* Chinese Notes' and Wiktionary's literary senses of CC-CEDICT words, filtered by
+  the same Haiku check as above ("does this sense add a meaning CC-CEDICT lacks?"), so the line
+  never repeats CC-CEDICT. Each sense is shown as its source wrote it, as for the other dictionaries
+  (#48): Chinese Notes' glosses are short (median 20 characters, p90 47), Wiktionary's longer
+  (median 41, p90 86, with its tags stripped). **No condensing is needed**, so nothing is
+  machine-written: the model only filters.
+- *Size and cost.* 14,367 words with 19,893 senses, about 0.7 MB of text before filtering, so
+  well under 1 MB in the database. The filter is one Haiku request per word: about $0.30 through
+  the Batch API.
+- *Effect.* On the sample, 4 of 141 taps get the right sense where CC-CEDICT is wrong. In the
+  texts, about 270 words gain a classical sense.
+
+**B. Chinese Notes' literary words that no dictionary has.** In 文言 Mode, show them like a
+fallback dictionary (labelled CN or 文言): 6,048 words, about 0.2 MB, no API cost. Mostly phrases
+(之子, 不患, 竊聞). 1 sampled tap and 200 words in the texts. Cheap, but small. I'd fold it into A
+as the same 文言 line.
+
+**C. A "two words here?" marker.** A small grey note on a word that is often two words in
+classical text: 可以 *often 可 + 以 in 文言*. How the list would be built:
+- (C1) *From the sources*: there is no source listing such words.
+- (C2) *By Haiku from these 17 texts*: 411 flagged words at about 60% precision. These texts are
+  too few to give a general list.
+- (C3) *By hand*: the function-word compounds above (about 15–20: 可以, 所以, 其所, 有所, 與其,
+  以及, 以為, 足以, 是以, 何以, 於是, 而後, 及其, 之上, 之下, 之間 …). Each word has a fixed note
+  naming its parts.
+
+The boundary-crossing half (廉頗為, 賈生發) needs segmentation, which the plugin deliberately
+doesn't do. A per-word marker would also show where the word is a word (所以 fits 12 of its 41
+occurrences, and 可以 in 不可以假人). My recommendation: C3 only, as a short note under the word
+in 文言 Mode, no API cost, size negligible. Or leave C out: it covers about 1% of taps.
+
+**Readings** stay as they are in every option.
+
+**Proposal.** Build A (with B folded in) and, if you want it, C3. Measured cost so far: $1.10
+of API calls (the corpus judgments). Building would cost about $0.30 more and add about 1 MB to
+the database.
+
+## 11. Complete, purely classical entries for characters and words (#67)
+
+Simon's decisions (Nov 21): in 文言 Mode the 文言 entry is the **complete** set of classical senses
+of the character or word, **purely classical** (no modern-only sense), always shown in full, and the
+same for words. MOE stays out. This replaces the caps of §9 and the supplement options of §10.
+
+**Prompt v5** (`tools/condense_classical_prompt.txt`; v4 kept as
+[`classical-data/prompt_v4.txt`](classical-data/prompt_v4.txt)): give every distinct sense, merging
+only true duplicates; mark each `"classical": true/false`; order by frequency in classical texts. The
+build drops senses marked false. The first try (v5a) counted CC-CEDICT's "(bound form)" as modern
+and dropped 事 *matter*, 將 *will* and *a general*, and 民 *the people*. v5b says a bound form is
+classical, that only plainly modern senses are false, and to keep a sense when unsure. It also says
+the order of the input lines means nothing, and that a function word's grammatical uses come first.
+
+**Words.** Headwords of two or more characters with a Chinese Notes *Literary Chinese* sense, a
+Wiktionary literary/Classical/archaic sense or a labelled CC-CEDICT sense, plus all their CC-CEDICT
+senses as candidates: 28,995 inputs. In 文言 Mode, the words' entries follow the character's, at
+the top of the popup, in the popup's word order (`Model.classicalWordBlocks`).
+
+**Purity check.** The 50 commonest characters still had modern senses after Haiku: 的 *of; 's*, 就
+*then* (first!) and its 就…也 / 不…就 patterns, 來 *in order to*, 時 *fashionable*, 麼 *interrogative
+particle*, 要 *need to*. That is about 11 of 50, over the issue's stop line. Those senses all came
+only from CC-CEDICT's unlabelled lines (14,055 senses in the data). A dedicated check
+(`tools/classical_purity.py`: one question per sense, "classical, or only vernacular/modern?"):
+
+| Checker, on the 119 such senses of the 50 commonest characters | Catches the leaks above | Wrong the other way | Cost |
+|---|---|---|---|
+| Haiku 5.5, medium effort | few (keeps 就 *then*, 和 *and*, 對 *towards*) | — | $0.01 |
+| Sonnet 5.5, medium | all | 一 *as soon as* (classical, 一鼓作氣) | $0.12 |
+| Sonnet 5.5, low, 15 entries per request | same verdicts as medium on all 119 | same | $0.03 |
+
+The full check covered characters ranked ≤ 3,000 and words: 5,957 entries, 9,927 senses, Batch API
+**$1.43**. 3,103 senses were judged modern-only (`data/classical_modern.tsv`, applied by the build).
+In 40 random *modern* verdicts, about 33 are right (要 *need to*, 賺 *to earn*, 念 *to read*, 幹 *to
+work*, 毛病 *ailment*) and about 7 debatable or wrong (花甲, 邦交, 外侮, 先行 are attested
+classically). In 30 random *classical* verdicts, about 1 is doubtful (對 *right; correct*). Purity
+costs some real senses, roughly 1 drop in 6. The rarer characters' CC-CEDICT-only senses (4,128)
+weren't rechecked: they are mostly science terms, which Haiku already drops (氦, 氟).
+
+**Results.** Full run 51,803 requests (cached system prompt, Batch API): **$1.80**. Prototypes
+$0.21, purity pilot and run $1.60, so #67's API total is about $3.60.
+
+| On the 128 judged senses | v4b (2.20.0) | v5b, after the purity check |
+|---|---|---|
+| in the 文言 entry | 119 (93%) | **121 (95%)** |
+| in its first two senses | 99 (77%) | 93 (73%) |
+| first | 84 (66%) | 78 (61%) |
+| whole popup | 122 (95%) | 122 (95%) |
+
+No needed sense v4b had is lost; 將 *a general* is now in (23rd of 33). The purity check changed
+one judged position: 還 *to return* moved from 4th to 2nd once *still; yet* went. Complete lists
+cost some order: the first-two measure drops from 77% to 73%.
+
+| | Entries | Senses (median, p90, max) | Characters (median, p90) | Longest |
+|---|---|---|---|---|
+| Characters | 20,620 | 2, 5, 36 | 39, 112 | 道 36, 將 33, 方 33, 著 28 |
+| Words | 26,093 | 1, 3, 12 | 31, 81 | 北京 8 |
+
+Hand review: every sense of the 50 commonest characters after the check, and 50 random words. The
+words read as classical in 48 of 50; 日語 *Spanish language* is a late-Qing Wiktionary sense. No
+added senses were found. The database is 52.5 MB (+6.1 MB on 2.20.0).
+
+**Display.** Senses are numbered when there are several. With everything shown, the 文言 entry of
+the commonest function characters fills the visible popup (之 18 senses, 將 33), and the rest of the
+popup is below it.

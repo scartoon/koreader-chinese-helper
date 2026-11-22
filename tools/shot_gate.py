@@ -225,6 +225,12 @@ local function present(g, char, cands, rows, matches, annotated)
     if g.classical then   -- Classical mode (#53, #56): first, above everything
         local cl = Model.classicalBlocks(g.main:classical(char), char, Model.tradPick(cands, rows), "**", "**",
             g.settings:tradHeadsEnabled())
+        local mw = {}
+        for _, m in ipairs(matches) do mw[#mw + 1] = m.word end
+        for _, b in ipairs(Model.classicalWordBlocks(g.main:classicalWords(mw), matches, "**", "**",
+                g.settings:tradHeadsEnabled())) do
+            cl[#cl + 1] = b
+        end
         for k, b in ipairs(cl) do table.insert(blocks, k, b) end
     end
     Model.chineseLast(blocks)

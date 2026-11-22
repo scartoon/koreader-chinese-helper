@@ -308,6 +308,13 @@ end
 DB.CLASSICAL_SQL = "SELECT trad, simp, senses FROM classical WHERE trad = ? OR simp = ? ORDER BY trad"
 DB.CLASSICAL_VARIANT_SQL = "SELECT trad FROM classical_variant WHERE ch = ?"
 
+-- The Classical entries of words (#67), for n candidate words in either
+-- form. Kept identical to tools/build_classical.py's CLASSICAL_WORDS_SQL.
+function DB.classicalWordsSql(n)
+    return "SELECT trad, simp, senses FROM classical WHERE trad IN (" .. marks(n)
+        .. ") OR simp IN (" .. marks(n) .. ") ORDER BY trad"
+end
+
 -- Whether this database has the Classical dictionary.
 function DB:hasClassical()
     if self.has_classical == nil then self.has_classical = self:hasColumn("classical", "senses") end
@@ -318,6 +325,23 @@ end
 -- (senses: "reading<TAB>gloss<TAB>sources" lines), keyed by its traditional
 -- or simplified form; a variant with no entry of its own (説) gets its
 -- target's (說). Empty when there is none, or no table.
+-- Rows { {trad=, simp=, senses=}, ... } of the Classical entries of these
+-- words (#67), single characters left out. Empty when none, or no table.
+function DB:classicalWords(words)
+    local list = {}
+    for _, w in ipairs(words or {}) do
+        -- Two or more characters: count the bytes that start a UTF-8 character.
+        if select(2, w:gsub("[^\128-\191]", "")) > 1 then list[#list + 1] = w end
+    end
+    local out = {}
+    if #list == 0 then return out end
+    local args, n = padded_args(list, 2)
+    pcall(self.each, self, DB.classicalWordsSql(n), args, function(row)
+        out[#out + 1] = { trad = row[1], simp = row[2], senses = row[3] }
+    end)
+    return out
+end
+
 function DB:classical(ch)
     local out = {}
     local function collect(want)

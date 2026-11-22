@@ -718,7 +718,7 @@ assert(cb[1].classical and not cb[1].collapse, "never collapsed (#56)")
 eq(table.concat(cb[1].lines, " | "), "hair of the head")
 cb = Model.classicalBlocks(fa, "发", nil, "**", "**", true)
 eq(#cb, 2, "no word decides: each form")
-eq(table.concat(cb[1].lines, " | "), "fā: to shoot (an arrow) | fā: to open; to uncover")
+eq(table.concat(cb[1].lines, " | "), "1. fā: to shoot (an arrow) | 2. fā: to open; to uncover", "numbered when several (#67)")
 cb = Model.classicalBlocks(fa, "發", nil, "**", "**", true)
 eq(#cb, 1, "tapped in traditional: its own entry"); eq(cb[1].head, "**发** 發")
 cb = Model.classicalBlocks(fa, "髮", nil, "**", "**", false)
@@ -728,3 +728,16 @@ eq(zhi[1].head, "之"); eq(zhi[1].trad, nil, "the same form: nothing beside it")
 eq(#Model.classicalBlocks({}, "的", nil), 0, "no entry: nothing")
 eq(#Model.classicalBlocks({ { trad = "x", simp = "x", senses = "" } }, "x", nil), 0, "no senses: nothing")
 eq(Model.SOURCE_LABELS.classical, "文言")
+
+-- #67: the Classical entries of the words around the tapped character.
+local wrows = {
+    { trad = "所以", simp = "所以", senses = "\tthat by which\tCN,Wikt\n\tthe reason why\tWikt" },
+    { trad = "賤人", simp = "贱人", senses = "\ta lowly person\tCN,Wikt" },
+}
+local wm = { { word = "贱人", len = 2 }, { word = "人", len = 1 }, { word = "所以", len = 2 }, { word = "賤人", len = 2 } }
+local wb = Model.classicalWordBlocks(wrows, wm, "**", "**", true)
+eq(#wb, 2, "one block per word with an entry, each once")
+eq(wb[1].head, "**贱人** 賤人", "in the order of the matches"); eq(wb[1].source, "classical")
+eq(table.concat(wb[1].lines, " | "), "a lowly person", "one sense: no number")
+eq(table.concat(wb[2].lines, " | "), "1. that by which | 2. the reason why")
+eq(#Model.classicalWordBlocks({}, wm), 0, "no entries: nothing")

@@ -60,10 +60,12 @@ import condense_classical as condense  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "build", "classical")
 DATA = os.path.join(ROOT, "data", "classical.tsv.gz")
+# #67: senses a second check (tools/classical_purity.py, Claude Sonnet) found
+# modern-only: headword<TAB>gloss. They are left out of the entries.
+MODERN = os.path.join(ROOT, "data", "classical_modern.tsv")
 VARIANT = "bundled"
-MAX_SENSES = 5          # the cap for rarer characters
-# #65: higher caps for common characters, by rank: (highest rank, cap).
-CAPS = ((500, 8), (3000, 6))
+# #67: no cap (every classical sense); this only guards against a runaway reply.
+MAX_SENSES = 60
 # The input lists the classical sources first and CC-CEDICT last, so the
 # order of the lines doesn't push its modern senses to the top.
 condense.ORDER = ["wikt", "cn", "unihan", "cedict"]
@@ -76,14 +78,16 @@ csv.field_size_limit(10 ** 8)
 CEDICT_SKIP = re.compile(r"^(surname |Taiwan pr\.|also pr\.|CL:|used in |see |\((dialect|Tw|slang|coll\.|Cantonese|Internet slang)\))")
 
 
-def cedict_rows(trads):
-    """#65: every CC-CEDICT sense of these characters (single-character
-    entries), as collated rows. Labelled senses keep their label in the
-    text ("(literary) to command"); tag is the label or "candidate"."""
+def cedict_rows(trads, words=False):
+    """Every CC-CEDICT sense of these headwords (#65: characters; #67:
+    words of two or more characters with words=True), as collated rows.
+    Labelled senses keep their label in the text ("(literary) to
+    command"); tag is the label or "candidate"."""
     out = []
+    where = "length(simp) > 1" if words else "length(simp) = 1"
     for simp, trad, pinyin, defs in sqlite3.connect(collate.DB).execute(
-            "SELECT simp, trad, pinyin, defs FROM entries WHERE length(simp) = 1 ORDER BY rowid"):
-        if trad not in trads:
+            f"SELECT simp, trad, pinyin, defs FROM entries WHERE {where} ORDER BY rowid"):
+        if trads is not None and trad not in trads:
             continue
         for sense in defs.split("/"):
             sense = sense.strip()
@@ -95,55 +99,54 @@ def cedict_rows(trads):
     return out
 
 
-def collated_rows():
-    """{trad: [row]} from the bundled sources. Wiktionary, Chinese Notes and
-    rare-character Unihan are cached in build/classical/collated-bundled.tsv;
-    CC-CEDICT's senses (#65) are added for every character that has a
-    classical sense from one of those or a labelled classical CC-CEDICT
-    sense, so a character with only modern CC-CEDICT senses gets no entry."""
-    path = os.path.join(OUT, "collated-bundled.tsv")
+def cached_rows(path, extract):
     if not os.path.exists(path):
-        rank = dict(sqlite3.connect(collate.DB).execute("SELECT ch, rank FROM chars"))
-        rows = collate.extract_wikt() + collate.extract_cn() + \
-            [r for r in collate.extract_unihan(rank) if r["tag"] == "rare"]
         os.makedirs(OUT, exist_ok=True)
         with open(path, "w", newline="") as f:
             w = csv.DictWriter(f, collate.FIELDS, delimiter="\t")
             w.writeheader()
-            w.writerows(rows)
+            w.writerows(extract())
     by = collections.defaultdict(list)
     for r in csv.DictReader(open(path), delimiter="\t"):
         if r["sense"].strip():
             by[r["trad"]].append(r)
-    trads = set(by) | {r["trad"] for r in collate.extract_cedict()}
-    for r in cedict_rows(trads):
-        by[r["trad"]].append(r)
     return by
 
 
-def rank_of(ch, simp):
-    return RANKS.get(simp) or RANKS.get(ch) or 0
-
-
-def cap_for(ch, simp):
-    r = rank_of(ch, simp)
-    return next((cap for top, cap in CAPS if 0 < r <= top), MAX_SENSES)
-
-
-RANKS = {}
+def collated_rows():
+    """{trad: [row]} from the bundled sources, for characters and (#67)
+    words. Wiktionary, Chinese Notes and rare-character Unihan are cached in
+    build/classical/collated-bundled.tsv (characters) and
+    collated-words.tsv (words). CC-CEDICT's senses are added for every
+    headword that has a classical sense from one of those or a labelled
+    classical CC-CEDICT sense, so a headword with only modern CC-CEDICT
+    senses gets no entry."""
+    def chars():
+        rank = dict(sqlite3.connect(collate.DB).execute("SELECT ch, rank FROM chars"))
+        return collate.extract_wikt() + collate.extract_cn() + \
+            [r for r in collate.extract_unihan(rank) if r["tag"] == "rare"]
+    by = cached_rows(os.path.join(OUT, "collated-bundled.tsv"), chars)
+    trads = set(by) | {r["trad"] for r in collate.extract_cedict()}
+    for r in cedict_rows(trads):
+        by[r["trad"]].append(r)
+    wby = cached_rows(os.path.join(OUT, "collated-words.tsv"), collate.extract_words)
+    allw = cedict_rows(None, words=True)
+    wtrads = set(wby) | {r["trad"] for r in allw if r["tag"] != "candidate"}
+    for r in allw:
+        if r["trad"] in wtrads:
+            wby[r["trad"]].append(r)
+    by.update(wby)
+    return by
 
 
 def jobs_for(by, prompt, chars=None):
-    if not RANKS:
-        RANKS.update(sqlite3.connect(collate.DB).execute("SELECT ch, rank FROM chars"))
     jobs = []
     for ch in sorted(chars if chars is not None else by):
         if ch not in by:
             continue
         text = condense.input_text(ch, by[ch], VARIANT)
         if text:
-            head, rest = text.split("\n", 1)
-            text = f"{head}. Senses allowed: {cap_for(ch, by[ch][0]['simp'])}\n{rest}"
+            text = text.replace("Character: ", "Headword: ", 1)
             key = hashlib.sha256(json.dumps([condense.MODEL, prompt, VARIANT, text]).encode()).hexdigest()[:24]
             jobs.append((ch, text, key))
     return jobs
@@ -173,6 +176,20 @@ def parse_reply(ch, text, msg_content, stop_reason, usage):
             "usage": {"input": usage.input_tokens, "output": usage.output_tokens}}
 
 
+def SYSTEM(prompt):
+    """The system prompt, cached (#67): about 1,200 tokens sent with every
+    request; a cache read costs a tenth."""
+    return [{"type": "text", "text": prompt, "cache_control": {"type": "ephemeral"}}]
+
+
+def estimate_usd(prompt, texts):
+    """Batch price: the prompt read from the cache (a tenth), the input and
+    about 200 output tokens per request."""
+    p = condense.estimate_tokens(prompt)
+    tin = sum(p * 0.1 + condense.estimate_tokens(t) for t in texts)
+    return (tin / 1e6 * condense.PRICE_IN + 200 * len(texts) / 1e6 * condense.PRICE_OUT) / 2
+
+
 def run_batches(jobs, prompt, max_usd):
     import anthropic
     from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
@@ -183,9 +200,7 @@ def run_batches(jobs, prompt, max_usd):
     state = json.load(open(BATCH_FILE)) if os.path.exists(BATCH_FILE) else []
     pending = [b for b in state if not b.get("collected")]
     if not pending and todo:
-        est_in = sum(condense.estimate_tokens(prompt) + condense.estimate_tokens(t) for _, t, _ in todo)
-        est_out = 150 * len(todo)
-        usd = (est_in / 1e6 * condense.PRICE_IN + est_out / 1e6 * condense.PRICE_OUT) / 2
+        usd = estimate_usd(prompt, [t for _, t, _ in todo])
         print(f"sending {len(todo)} requests, Batch API estimate ~${usd:.2f}")
         if usd > max_usd:
             sys.exit(f"estimate ${usd:.2f} is over --max-usd {max_usd}: not sent")
@@ -193,7 +208,7 @@ def run_batches(jobs, prompt, max_usd):
             chunk = todo[i:i + 50000]
             batch = client.messages.batches.create(requests=[
                 Request(custom_id=key, params=MessageCreateParamsNonStreaming(
-                    model=condense.MODEL, max_tokens=2000, system=prompt,
+                    model=condense.MODEL, max_tokens=6000, system=SYSTEM(prompt),
                     thinking={"type": "disabled"},
                     messages=[{"role": "user", "content": text}]))
                 for _, text, key in chunk])
@@ -201,7 +216,7 @@ def run_batches(jobs, prompt, max_usd):
             json.dump(state, open(BATCH_FILE, "w"))
             print("batch", batch.id, len(chunk))
         pending = [b for b in state if not b.get("collected")]
-    used_in = used_out = 0
+    used_in = used_out = cache_reads = 0
     for b in pending:
         while True:
             batch = client.messages.batches.retrieve(b["id"])
@@ -219,14 +234,18 @@ def run_batches(jobs, prompt, max_usd):
             msg = res.result.message
             rec = parse_reply(ch, text, msg.content, msg.stop_reason, msg.usage)
             json.dump(rec, open(condense.cache_path(res.custom_id), "w"), ensure_ascii=False)
-            used_in += msg.usage.input_tokens
-            used_out += msg.usage.output_tokens
+            u = msg.usage
+            # Input as billed: cache writes 1.25x, cache reads 0.1x.
+            used_in += u.input_tokens + 1.25 * (u.cache_creation_input_tokens or 0) + \
+                0.1 * (u.cache_read_input_tokens or 0)
+            used_out += u.output_tokens
+            cache_reads += u.cache_read_input_tokens or 0
         b["collected"] = True
         b["errors"] = dict(errors)
         json.dump(state, open(BATCH_FILE, "w"))
         print(f"{b['id']}: collected; not succeeded: {dict(errors) or 'none'}")
     if used_in:
-        print(f"this run: {used_in:,} input + {used_out:,} output tokens, "
+        print(f"this run: {used_in:,.0f} billed input (cache reads {cache_reads:,}) + {used_out:,} output tokens, "
               f"${(used_in / 1e6 * condense.PRICE_IN + used_out / 1e6 * condense.PRICE_OUT) / 2:.2f} (batch price)")
 
 
@@ -239,7 +258,7 @@ def run_sync(jobs, prompt):
     for ch, text, key in jobs:
         if os.path.exists(condense.cache_path(key)):
             continue
-        msg = client.messages.create(model=condense.MODEL, max_tokens=2000, system=prompt,
+        msg = client.messages.create(model=condense.MODEL, max_tokens=6000, system=SYSTEM(prompt),
                                      thinking={"type": "disabled"},
                                      messages=[{"role": "user", "content": text}])
         rec = parse_reply(ch, text, msg.content, msg.stop_reason, msg.usage)
@@ -282,9 +301,9 @@ NO_SENSE = re.compile(r"no (classical |further )?(sense|gloss)|no meaning (given
 
 
 def validate(rec):
-    """(senses kept, flags): drop senses citing no existing line, cut to
-    the character's cap (its input's first line), flag English senses sharing under half their words with the
-    cited lines."""
+    """(senses kept, flags): drop senses citing no existing line and (#67)
+    senses the reply marks modern-only ("classical": false), flag English
+    senses sharing under half their words with the cited lines."""
     lines = {}
     for line in rec["input"].split("\n")[1:]:
         num, rest = line.split(". ", 1)
@@ -299,6 +318,9 @@ def validate(rec):
         if NO_SENSE.search(gloss) or all(reading_only(lines[n]) for n in cited):
             flags.append(("no-sense", gloss + "  <=  " + " | ".join(lines[n] for n in cited)))
             continue
+        if s.get("classical") is False:
+            flags.append(("modern", gloss + "  <=  " + " | ".join(lines[n] for n in cited)))
+            continue
         words = content_words(gloss)
         src = set().union(*(content_words(lines[n]) for n in cited))
         stems = {w[:5] for w in src}
@@ -312,11 +334,9 @@ def validate(rec):
     if len({s["reading"] for s in kept if s["reading"]}) <= 1:
         for s in kept:
             s["reading"] = ""
-    m = re.search(r"Senses allowed: (\d+)", rec["input"].split("\n")[0])
-    cap = int(m.group(1)) if m else MAX_SENSES
-    if len(kept) > cap:
+    if len(kept) > MAX_SENSES:
         flags.append(("over-cap", str(len(kept))))
-        kept = kept[:cap]
+        kept = kept[:MAX_SENSES]
     return kept, flags
 
 
@@ -347,6 +367,8 @@ def variants(entries):
 # Keep in step with DB.classicalSql and DB.classicalVariantSql in chinesehelper.koplugin/ch_db.lua.
 CLASSICAL_SQL = "SELECT trad, simp, senses FROM classical WHERE trad = ? OR simp = ? ORDER BY trad"
 VARIANT_SQL = "SELECT trad FROM classical_variant WHERE ch = ?"
+# DB.classicalWordsSql(2) (#67).
+CLASSICAL_WORDS_SQL = "SELECT trad, simp, senses FROM classical WHERE trad IN (?,?) OR simp IN (?,?) ORDER BY trad"
 SCHEMA = """
 CREATE TABLE classical (trad TEXT PRIMARY KEY, simp TEXT NOT NULL, senses TEXT NOT NULL, raw TEXT NOT NULL) WITHOUT ROWID;
 -- senses: one "reading<TAB>gloss<TAB>sources" line per sense; raw: the collated input lines
@@ -387,6 +409,7 @@ def write_tables(con, path=DATA):
 
 def check_plans(con):
     for sql, n, want in ((CLASSICAL_SQL, 2, ("USING PRIMARY KEY", "USING INDEX classical_simp")),
+                         (CLASSICAL_WORDS_SQL, 4, ("USING PRIMARY KEY", "USING INDEX classical_simp")),
                          (VARIANT_SQL, 1, ("USING PRIMARY KEY",))):
         plan = "\n".join(r[3] for r in con.execute("EXPLAIN QUERY PLAN " + sql, ["x"] * n))
         if any(w not in plan for w in want) or re.search(r"\bSCAN classical", plan):
@@ -421,14 +444,14 @@ def main():
     by = collated_rows()
     chars = None
     if args.chars_file:
-        chars = list(dict.fromkeys(c for c in open(args.chars_file).read() if not c.isspace()))
+        # Whitespace-separated: a token that is a word headword stays whole,
+        # any other token is split into its characters.
+        toks = open(args.chars_file).read().split()
+        chars = list(dict.fromkeys(x for t in toks for x in ([t] if len(t) > 1 and t in by else list(t))))
     jobs = jobs_for(by, prompt, chars)
     cached = sum(os.path.exists(condense.cache_path(k)) for *_, k in jobs)
     est_in = sum(condense.estimate_tokens(prompt) + condense.estimate_tokens(t) for _, t, _ in jobs)
-    est_out = 150 * (len(jobs) - cached)
-    todo_in = sum(condense.estimate_tokens(prompt) + condense.estimate_tokens(t)
-                  for _, t, k in jobs if not os.path.exists(condense.cache_path(k)))
-    usd = (todo_in / 1e6 * condense.PRICE_IN + est_out / 1e6 * condense.PRICE_OUT) / 2
+    usd = estimate_usd(prompt, [t for _, t, k in jobs if not os.path.exists(condense.cache_path(k))])
     print(f"{len(jobs)} characters ({cached} cached); all inputs ~{est_in:,.0f} tokens; "
           f"to send: ~${usd:.2f} at batch price")
     if args.estimate:
@@ -437,6 +460,11 @@ def main():
         run_sync(jobs, prompt)
     elif args.run:
         run_batches(jobs, prompt, args.max_usd)
+    modern = set()
+    if os.path.exists(MODERN):
+        for line in open(MODERN):
+            if not line.startswith("#") and "\t" in line:
+                modern.add(tuple(line.rstrip("\n").split("\t")[:2]))
     entries, flags, missing, unparsed = {}, [], 0, []
     for ch, text, key in jobs:
         path = condense.cache_path(key)
@@ -451,6 +479,8 @@ def main():
             continue
         senses, fl = validate(rec)
         flags += [(ch, kind, detail) for kind, detail in fl]
+        flags += [(ch, "modern-check", s["gloss"]) for s in senses if (ch, s["gloss"]) in modern]
+        senses = [s for s in senses if (ch, s["gloss"]) not in modern]
         if senses:
             entries[ch] = {"simp": by[ch][0]["simp"], "senses": senses,
                            "raw": "\n".join(text.split("\n")[1:])}
@@ -459,8 +489,9 @@ def main():
     # popup prefers the tapped character's own entry, so this thin copy
     # would hide the traditional one: drop it, and the simp lookup finds 託.
     simps = {e["simp"] for t, e in entries.items() if e["simp"] != t}
+    # #67: CC-CEDICT's "variant of 託" counts as thin too (讬).
     thin = [t for t, e in entries.items() if t in simps and e["simp"] == t
-            and all(s["sources"] == ["Unihan"] for s in e["senses"])]
+            and all(s["sources"] == ["Unihan"] or s["gloss"].startswith("variant of") for s in e["senses"])]
     for t in thin:
         del entries[t]
     var = {v: t for v, t in variants(entries).items() if v not in simps}
