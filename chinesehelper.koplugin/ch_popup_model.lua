@@ -473,8 +473,8 @@ the block's entries (cleanRows' trads; the first entry is the head line's).
     longer wording or another word as their "traditional" form).
   * A single character: every form its rows give, "/"-joined, the one the
     word around it uses (m.trad_pick) first, then the head line's reading's,
-    then the rest. When the character is itself one of several forms (干:
-    乾/幹/干) it is listed with them; when it is the only form, nothing.
+    then the rest. The character itself is never listed (#73): 干 gives
+    乾/幹, and a character that is its own only form gives nothing.
 ]]
 function Model.tradText(m, entries)
     local word = m.word
@@ -486,7 +486,7 @@ function Model.tradText(m, entries)
     end
     local list, seen = {}, {}
     local function add(t)
-        if t and t ~= "" and not seen[t] and #chars(t) == 1 then
+        if t and t ~= "" and t ~= word and not seen[t] and #chars(t) == 1 then
             seen[t] = true
             list[#list + 1] = t
         end
@@ -499,8 +499,22 @@ function Model.tradText(m, entries)
     for _, e in ipairs(entries) do
         for _, t in ipairs(e.trads or {}) do add(t) end
     end
-    if #list == 0 or (#list == 1 and list[1] == word) then return nil end
+    if #list == 0 then return nil end
     return table.concat(list, "/")
+end
+
+-- The separator between a headword's simplified and traditional forms (#73).
+Model.FORM_SEP = " • "
+
+--[[--
+A head line's start (#73): the simplified form in bold, then " • " and the
+traditional form in regular weight, same size ("**门** • 門"); the word
+alone in bold when there is no other form.
+]]
+function Model.headWord(word, form, b0, b1)
+    local head = (b0 or "") .. word .. (b1 or "")
+    if form then head = head .. Model.FORM_SEP .. form end
+    return head
 end
 
 --[[--
@@ -995,12 +1009,13 @@ The popup's content as blocks, one per match:
     note = { source = "idioms" / "xinhua", text = "比喻…" } or nil: an idiom's
       Chinese short line, under an entry whose text is not Chinese already }
 b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
-With `trad` (the "Show traditional forms" setting, #47), a block whose
-word's traditional form differs also has trad= (Model.tradText), word= and
-rest= (the head line after the word), for the popup to draw the form beside
-the word; head is the same either way. A word tapped in traditional
-characters (#50) has word= its simplified form and trad= the word as
-tapped (Model.headForms), and head leads with both: "**头发** 頭髮  tóufa".
+With `trad` (the "Show traditional in headwords" setting, #47, #73), a
+block whose word's traditional form differs also has trad= (Model.tradText),
+word= and rest= (the head line after the word), and head leads with both
+forms, same size (Model.headWord): "**头发** • 頭髮  tóufa". A word tapped in
+traditional characters (#50) has word= its simplified form and trad= the
+word as tapped (Model.headForms), the same way round. Without `trad`, head
+has the simplified form alone, also for a traditional tap (#73).
 The tapped character's marked readings are unmarked when `annotated` (the
 reading is drawn on the page, so it comes first with no label) or when
 Model.matches set m.mark (the uncertainty pair, or a default reading nothing
@@ -1036,17 +1051,14 @@ function Model.blocks(matches, char, annotated, b0, b1, trad)
                 -- A word with no pinyin (a dialect word without a Standard
                 -- reading) shows the word alone.
                 local rest = (e.pinyin ~= "" and ("  " .. e.pinyin) or "") .. marked .. tag
-                block.head = b0 .. m.word .. b1 .. rest
+                block.head = b0 .. (Model.simpText(m, m.entries) or m.word) .. b1 .. rest
                 block.source = e.source or "cedict"
                 if trad then
+                    -- Tapped in traditional characters (#50), the simplified
+                    -- form leads: "**头发** • 頭髮".
                     local word, form = Model.headForms(m, m.entries)
                     block.word, block.trad, block.rest = word or m.word, form, rest
-                    -- Tapped in traditional characters (#50): the plain head
-                    -- line (the popup's fallback when the drawn one has too
-                    -- little room) leads with the simplified form too.
-                    if word and word ~= m.word then
-                        block.head = b0 .. word .. b1 .. " " .. form .. rest
-                    end
+                    block.head = Model.headWord(word or m.word, form, b0, b1) .. rest
                 end
                 block.lines[#block.lines + 1] = senses
                 local idiom = m.idiom
@@ -1096,7 +1108,7 @@ local function classicalBlock(r, b0, b1, trad)
     if trad then
         local form = r.trad ~= word and r.trad or nil
         block.word, block.trad, block.rest = word, form, ""
-        if form then block.head = b0 .. word .. b1 .. " " .. form end
+        block.head = Model.headWord(word, form, b0, b1)
     end
     return block
 end
@@ -1273,9 +1285,7 @@ blank line:
 function Model.render(matches, char, annotated, b0, b1, trad)
     local out = {}
     for _, block in ipairs(Model.blocks(matches, char, annotated, b0, b1, trad)) do
-        local head = block.head
-        if block.trad then head = (b0 or "") .. block.word .. (b1 or "") .. " " .. block.trad .. block.rest end
-        out[#out + 1] = head .. "\n" .. table.concat(block.lines, "\n")
+        out[#out + 1] = block.head .. "\n" .. table.concat(block.lines, "\n")
             .. (block.note and ("\n" .. block.note.text) or "")
     end
     return table.concat(out, "\n\n")

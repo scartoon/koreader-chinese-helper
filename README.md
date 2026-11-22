@@ -174,7 +174,7 @@ Tools menu). Settings apply to all books.
 | Show character components | On (default) / off. See [Character components](#character-components) |
 | Words first | On (default) / off: the entries of the words around the tapped character above its own entry (with its MOE entry and components); off, the character first. See [The popup](#the-popup) |
 | Show character frequency rank | On (default) / off. The small grey 字频 line on the tapped character's entry |
-| Show traditional forms | On (default) / off. A word's traditional form beside it on each head line, when it differs: **头发** 頭髮; tapped in traditional characters, the simplified form first: **头** 頭 |
+| Show traditional in headwords | On (default) / off. Each headword's traditional form after it, same size, when it differs: **头发** • 頭髮; tapped in traditional characters, the simplified form still first: **头** • 頭. Off, headwords are simplified only |
 | Show the text around the character in the popup | On (default) / off; drawn at the Chinese text size. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
 | Try to match the book's font | On (default) / off: Chinese text in the popup in the book's font. See [The popup](#the-popup) |
@@ -355,15 +355,16 @@ entries stay at the top. The buttons keep their order either way.
   row of its own just below it. Words around the character never show one.
   With [your own frequency ranks](#your-own-frequency-ranks) on, it shows your rank, or the
   bundled one marked **(bundled)** for a character not in your books.
-- **The traditional form** beside each entry's headword, smaller, when it is not the
-  same: **头发** 頭髮, **中国** 中國, and nothing for 人民. A word shows the one form it is
-  written with (发现 發現, 头发 頭髮). A single character with several shows them all, the one
-  the word around it uses first: 发 in 头发 is **发** 髮/發, 干 in 干净 **干** 乾/干/幹. Only
-  the head lines change. **Show traditional forms** in the menu turns it off.
+- **The traditional form** after each entry's headword, at the same size, when it is not the
+  same: **头发** • 頭髮, **中国** • 中國, and just **人民** for 人民. A word shows the one form
+  it is written with (**发现** • 發現, **学习** • 學習). A single character with several shows
+  them all, the one the word around it uses first: 发 in 头发 is **发** • 髮/發, 干 alone
+  **干** • 乾/幹/榦. Only the head lines change. **Show traditional in headwords** in the menu
+  turns it off, leaving simplified headwords only.
 - **Tapped in traditional characters** (a traditional book, or MOE's text in a popup), the head
-  line leads with the simplified form instead, the form as tapped beside it, smaller: 頭 in 頭髮 is
-  **头** 頭, the word **头发** 頭髮. A character shows the one simplified form the word around
-  it uses: 乾 in 乾淨 is **干** 乾, in 乾隆 just 乾. Same setting.
+  line still leads with the simplified form, the form as tapped after it: 頭 in 頭髮 is
+  **头** • 頭, the word **头发** • 頭髮. A character shows the one simplified form the word around
+  it uses: 乾 in 乾淨 is **干** • 乾, in 乾隆 just **乾**. Same setting.
 - **MOE's entry for the character**, with the optional MOE dictionary: in place of CC-CEDICT's
   when CC-CEDICT lacks the character. With MOE for single characters set to **always**, under
   CC-CEDICT's entry too, cut to two lines ending in a small grey **[Tap to show more]** when
@@ -1116,7 +1117,7 @@ MOE's traditional characters, Wiktionary's glosses with their Chinese as Wiktion
 (`original form of 廩／廪`), CC-CEDICT's cross-references with both of its forms
 (`variant of 夠|够 gòu`, `used in 鞦韆|秋千 qiūqiān`). **Popup → Dictionaries → Dictionary text →
 Simplified** shows the same text in simplified characters instead (`variant of 够 gòu`), from the
-next popup on. The head lines are the same either way (**头发** 頭髮), and so is the text of
+next popup on. The head lines are the same either way (**头发** • 頭髮), and so is the text of
 dictionaries that are simplified, or English, already (Xinhua, Moegirlpedia, CBDB, Wikipedia
 titles).
 

@@ -69,10 +69,6 @@ local Popup = InputContainer:extend{
 -- Source labels: a small grey line just above an entry, left-aligned.
 Popup.LABEL_MIN_PX = 18     -- never smaller than this, in screen pixels
 Popup.LABEL_RATIO = 0.62    -- of the popup text size
--- The traditional form beside a headword (#47): the same typeface, this
--- much of the headword's size, in the text's own shade (#54).
-Popup.TRAD_RATIO = 0.8
-
 Popup.BOLD_START = TextBoxWidget.PTF_BOLD_START
 Popup.BOLD_END = TextBoxWidget.PTF_BOLD_END
 
@@ -108,7 +104,6 @@ function Popup:init()
         title_face = Font:getFace("x_smalltfont", 26)
     end
     self.face, self.title_face = face, title_face
-    self.trad_face = Font:getFace("x_smallinfofont", math.floor(face.orig_size * Popup.TRAD_RATIO + 0.5))
     -- Chinese text: the same font, larger (Font:getFace takes the size
     -- unscaled, so the ratio carries over).
     self.chinese_face = Font:getFace("x_smallinfofont",
@@ -125,7 +120,6 @@ function Popup:init()
         self.face = BookFont.wrap(Font, self.face, self.book_font)
         self.title_face = BookFont.wrap(Font, self.title_face, self.book_font)
         self.chinese_face = BookFont.wrap(Font, self.chinese_face, self.book_font)
-        self.trad_face = BookFont.wrap(Font, self.trad_face, self.book_font)
     end
     self:bookFontButtons()
 
@@ -486,68 +480,6 @@ function Marked:free()
     self.marker:free()
 end
 
--- A head line drawn in parts (#47): widgets side by side, their first
--- lines' baselines lined up. parts: { {widget=, baseline=, gap=}, ... }.
-local HeadLine = Widget:extend{ parts = nil }
-
-function HeadLine:init()
-    local base = 0
-    for _, p in ipairs(self.parts) do base = math.max(base, p.baseline) end
-    local x, h = 0, 0
-    for _, p in ipairs(self.parts) do
-        p.x, p.y = x, base - p.baseline
-        local size = p.widget:getSize()
-        x = x + size.w + (p.gap or 0)
-        h = math.max(h, p.y + size.h)
-    end
-    self.size = Geom:new{ w = x, h = h }
-end
-
-function HeadLine:getSize() return self.size end
-
-function HeadLine:paintTo(bb, x, y)
-    self.dimen = Geom:new{ x = x, y = y, w = self.size.w, h = self.size.h }
-    for _, p in ipairs(self.parts) do p.widget:paintTo(bb, x + p.x, y + p.y) end
-end
-
-function HeadLine:free()
-    for _, p in ipairs(self.parts) do p.widget:free() end
-end
-
---[[--
-A block's head line with its traditional form (block.trad, #47): the word
-in bold, then the form smaller (Popup.TRAD_RATIO), in the text's own shade (#54),
-then the rest (reading, markers), which wraps under itself when long. nil
-when the word and the form leave too little room for the rest: the caller
-draws the plain head line.
-]]
-function Popup:headLine(b, width)
-    local word = TextWidget:new{ text = b.word, face = self.face, bold = true }
-    local trad = TextWidget:new{ text = b.trad, face = self.trad_face }
-    local space_w = TextWidget:new{ text = " ", face = self.face }
-    local sw = space_w:getSize().w
-    space_w:free()
-    local parts = {
-        { widget = word, baseline = word:getBaseline(), gap = sw },
-        { widget = trad, baseline = trad:getBaseline() },
-    }
-    local used = word:getSize().w + sw + trad:getSize().w
-    local rest = (b.rest or ""):gsub("^ +", "")
-    if rest ~= "" then
-        local lead = (#(b.rest or "") - #rest) * sw
-        local room = width - used - lead
-        if room < width * 0.3 then
-            word:free()
-            trad:free()
-            return nil
-        end
-        parts[2].gap = lead
-        local tbw = TextBoxWidget:new{ text = rest, face = self.face, width = room }
-        parts[3] = { widget = tbw, baseline = tbw.line_glyph_baseline or math.floor(tbw:getLineHeight() * 0.8) }
-    end
-    return HeadLine:new{ parts = parts }
-end
-
 -- Should this block carry its source label?
 function Popup:labelled(block)
     return not block.nolabel and self.label_mode ~= "none"
@@ -665,9 +597,10 @@ function Popup:body(text_w, max_h, full)
                     fgcolor = self:secondaryColor(), max_width = width,
                 })
             end
+            -- The head line, its traditional form included (Model.headWord,
+            -- #73): one text box, so a long one wraps like any other text.
             if b.head then
-                local head = b.trad and b.word and self:headLine(b, width)
-                add(head or box(TextBoxWidget.PTF_HEADER .. b.head, self.face, width, Model.tappable(b, "head")))
+                add(box(TextBoxWidget.PTF_HEADER .. b.head, self.face, width, Model.tappable(b, "head")))
             end
             if lines_box then add(lines_box) end
             if b.note then

@@ -13,7 +13,7 @@ a default run: the AI's answer varies, so it can't be gated like the others.
 For checks, not the README: SHOT_FONT="STKaiti" uses another book font (taps
 must still land: the device log is checked as usual), SHOT_MATCH_FONT=false
 turns "Try to match the book's font" off, SHOT_TRAD=false turns "Show
-traditional forms" off, SHOT_TEXT=simplified sets "Dictionary text" to
+traditional in headwords" off, SHOT_TEXT=simplified sets "Dictionary text" to
 Simplified, SHOT_MOE=always shows MOE Always for characters and words,
 SHOT_WORDS_FIRST=true takes them with Words first on (the default since 2.23.0),
 SHOT_NIGHT=true takes the shots in night mode, and SHOT_OUT=dir saves there
@@ -153,31 +153,31 @@ SHOTS = {
         "[Wikt]", "**不密**  bùmì", "(literary) not well thought out; (literary) not secret"])],
         frames=[(1, (95, 1191))]),
     "context": dict(page="kyj14", taps=[("间", 1, (773, 500), [
-        "**间** 間  jiàn · likely here", "**间或** 間或  jiànhuò · decides 间's reading"])],
+        "**间** • 間  jiàn · likely here", "**间或** • 間或  jiànhuò · decides 间's reading"])],
         frames=[(1, (137, 1126))]),
     "components": dict(page="kyj13", taps=[("茴", 1, (988, 790), [
         "**茴**  huí", "**艹** cǎo  grass; plant (草字头)  → meaning",
         "**回** huí  to go back; to return  → sound (same sound)", "**茴香豆**  huíxiāngdòu"])],
         frames=[(1, (120, 1143))]),
     "traditional": dict(page="aq59", taps=[("观", 1, (170, 965), [
-        "**观** 觀  guān · likely here", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
-        "simplified: 雚 → 又", "**观音** 觀音  Guānyīn · decides 观's reading"])],
+        "**观** • 觀  guān · likely here", "traditional 觀:", "**雚** guàn", "→ sound (same sound)",
+        "simplified: 雚 → 又", "**观音** • 觀音  Guānyīn · decides 观's reading"])],
         frames=[(1, (103, 1160))]),
     "chengyu": dict(page="kyj13", taps=[("也", 3, (170, 590), [
         "**之乎者也**  zhīhūzhěyě", "[新华] 这四个字都是文言虚词"]), ("出处", None, (1440, 955), [])],
         frames=[(1, (57, 1206)), (2, (20, 700))]),
     "labels": dict(page="sg1", taps=[("秋", 1, (775, 665), [
-        "**秋** 秋/鞦  qiū", "[MMAH]", "  [國語辭典]\n  **秋月春风**", "**秋月春风** 秋月春風  qiū yuè chūn fēng", MOE_QUOTE, "[Wikt]", "**秋月**  qiūyuè"])],
+        "**秋** • 鞦  qiū", "[MMAH]", "  [國語辭典]\n  **秋月春风**", "**秋月春风** • 秋月春風  qiū yuè chūn fēng", MOE_QUOTE, "[Wikt]", "**秋月**  qiūyuè"])],
         frames=[(1, (66, 1198))]),
     # A character of the popup's own text: 歡, inside MOE's quotation of 〈琵琶行〉
     # (MOE's own characters, #48), opens its popup on top; the context line is
     # the quotation (the device's log must give it as the sentence), the 歡
     # below underlined.
-    "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["  [國語辭典]\n  **秋月春风** 秋月春風  qiū yuè chūn fēng",
+    "nested": dict(page="sg1", taps=[("秋", 1, (775, 665), ["  [國語辭典]\n  **秋月春风** • 秋月春風  qiū yuè chūn fēng",
                                                             MOE_QUOTE]),
                                      (MOE_QUOTE[3], "nested", (1322, 772), [MOE_QUOTE])],
                    frames=[(2, (66, 1198))]),
-    "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃** 竊  qiè"])],
+    "translate": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃** • 竊  qiè"])],
         frames=[(1, (15, 1166))]),
     # The same popup, then its Translate & Analyze button (at `koassistant`):
     # KOAssistant's reply, its viewer unrolled: the first page, the text of
@@ -187,7 +187,7 @@ SHOTS = {
     # gate checks the other shots, and a default run would silently replace an
     # image whose README alt text describes one particular answer. Take it by
     # name, look at it, and rewrite the alt text to match.
-    "translate-result": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃** 竊  qiè"])],
+    "translate-result": dict(page="kyj13", taps=[("窃", 1, (1465, 995), ["**窃** • 竊  qiè"])],
         koassistant=(840, 853)),
     # Page 1 with pinyin off, then on: the plugin adds line space where it
     # draws pinyin (69 pages instead of 74), so each crop ends after the same
@@ -203,7 +203,7 @@ SHOTS = {
         "**之**  zhī", "[文言]", "him; her; them; it (object pronoun)"])],
         frames=[(1, (95, 1191))]),
     # The popup's title-bar button, on 盘 in that paragraph.
-    "mark-button": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[("盘", 1, (260, 565), ["**盘** 盤  pán"])],
+    "mark-button": dict(page="aq59", threshold=0, drawn=AQ59_ALL, taps=[("盘", 1, (260, 565), ["**盘** • 盤  pán"])],
                         frames=[(1, (169, 542))]),
 }
 

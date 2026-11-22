@@ -619,7 +619,7 @@ do
     end
     assert(found, "the word block 頭髮")
     eq(found.word, "头发")
-    assert(found.head:find("头发 頭髮", 1, true), found.head)
+    assert(found.head:find("头发 • 頭髮", 1, true), found.head)
     p0.on_outside()
     plugin.settings:set("trad_heads", nil)
 end
