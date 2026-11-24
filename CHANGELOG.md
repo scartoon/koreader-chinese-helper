@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+Popup text size in 10% steps (#81)
+- **Popup text size** now offers every 10% from 40 to 120% of the book's text size (50, 70, 90
+  and 110% are new). The default stays 60%.
+- Suggested by Generalhooha in #78.
+
 ## 2.24.0 (2026-11-22)
 
 Headwords: simplified • traditional, at the same size (#73)

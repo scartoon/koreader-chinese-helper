@@ -79,7 +79,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 21 + 8 + 2 + 5 + 3 + 3 + 5 + 5 + 5 + 8 + 3 + 13 + 3 + 1, "menu size")   -- frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels (2), order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
+eq(count, 21 + 8 + 2 + 5 + 3 + 3 + 5 + 9 + 5 + 8 + 3 + 13 + 3 + 1, "menu size")   -- popup text size: 9 choices (#81); frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels (2), order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
@@ -192,15 +192,20 @@ eq(plugin.settings:rankSource(), "bundled")
 assert(entry.sub_item_table[6].text_func():find("show both"))
 entry.sub_item_table[6].sub_item_table[2].callback()
 eq(plugin.settings:uncertainMode(), "best")
--- Popup text size. A size saved by an earlier version that is no longer a
--- choice (70) shows and checks the default, 60%.
-settings.chinesehelper_popup_text_pct = 70
+-- Popup text size: nine choices, 40 to 120% in 10% steps (#81). A size that
+-- is not a choice (65) shows and checks the default, 60%.
+settings.chinesehelper_popup_text_pct = 65
 assert(entry.sub_item_table[11].text_func():find("60%%"))
-assert(entry.sub_item_table[11].sub_item_table[2].checked_func(), "60% checked")
+eq(#entry.sub_item_table[11].sub_item_table, 9)
+eq(entry.sub_item_table[11].sub_item_table[2].text, "50% of text size")
+assert(entry.sub_item_table[11].sub_item_table[3].checked_func(), "60% checked")
 for k, item in ipairs(entry.sub_item_table[11].sub_item_table) do
-    if k ~= 2 then assert(not item.checked_func(), "only 60% checked") end
+    if k ~= 3 then assert(not item.checked_func(), "only 60% checked") end
 end
-entry.sub_item_table[11].sub_item_table[4].callback()
+entry.sub_item_table[11].sub_item_table[2].callback()
+eq(plugin.settings:popupTextPercent(), 50)
+assert(entry.sub_item_table[11].text_func():find("50%%"))
+entry.sub_item_table[11].sub_item_table[7].callback()
 eq(plugin.settings:popupTextPercent(), 100)
 assert(entry.sub_item_table[11].text_func():find("100%%"))
 -- Chinese text size: right after it, default 130%, choices saved.
