@@ -76,8 +76,9 @@ default, because the AI's answer differs from run to run.
   as usual ([What a tap does](#what-a-tap-does)).
 - **Only the words on the page**: tap 宛 in 很大宛如 and you get 宛, 大宛 and 宛如, longest first,
   so a sentence that could divide two ways shows both ([The popup](#the-popup)).
-- **A reading for every character**, common ones included, right 97.5% of the time on the hard
-  cases ([Readings](#readings), [Accuracy](#accuracy)).
+- **A reading for every character**, common ones included, right 97.3% of the time on the hard
+  cases ([Readings](#readings), [Accuracy](#accuracy)). The reading comes from the most probable
+  split of the sentence into words ([How it works](#how-it-works)).
 - **Pinyin at any level**, from every character ([learner mode](#learner-mode)) through outside
   the 500, 1,000 … 7,000 most common; common characters in an unusual reading (单 in 单于) get
   pinyin too ([Unusual readings](#unusual-readings-of-common-characters)).
@@ -219,7 +220,7 @@ page has thinned out enough, step up to a numeric level: **outside the 500 most 
 1,000 and on. Characters more common than the level go bare, the rest keep their pinyin, and your
 known and remind-me marks still apply at every level.
 
-On a Boox Go 7 a page with pinyin on every character takes about 50 ms to prepare (30 ms at the
+On a Boox Go 7 a page with pinyin on every character takes about 56 ms to prepare (30 ms at the
 default level; see [Speed](#speed)). A few characters keep two readings where nothing on the page
 decides between them (得 *de/děi*, 长 *cháng/zhǎng*), about one in a hundred in 鲁迅's stories;
 **When the reading is uncertain → Show the most likely reading** shows just the first.
@@ -660,6 +661,28 @@ is cut around the tapped character, at a clause mark (，；：) when there is o
 
 </details>
 
+## How it works
+
+A tap doesn't look up a selection. The plugin lists every string of up to 8 characters around the
+tapped one that contains it, and one database query tells it which are dictionary words: tap 宛
+in 很大宛如 and you get 宛, 大宛 and 宛如. To decide which of those words is really there, it
+splits the whole run of text into its most probable sequence of words, using every CC-CEDICT
+word's frequency (很 | 大 | 宛如, not 很 | 大宛 | 如). The word the character lands in gives its
+reading, the same reading for the pinyin on the page and the popup. Dictionaries other than
+CC-CEDICT are asked only for words CC-CEDICT lacks. [docs/how-it-works.md](docs/how-it-works.md)
+walks through each step with real examples, including the dynamic programming behind the split.
+
+```mermaid
+flowchart LR
+    T["Tap"] --> K["Candidate words<br/>up to 8 characters"]
+    K --> Q["One query:<br/>which are words"]
+    T --> S["Most probable split<br/>of the run"]
+    S --> P["Reading:<br/>first rule that applies"]
+    P --> D["Pinyin on the page"]
+    P --> U["Popup"]
+    Q --> U
+```
+
 ## Readings
 
 Each character's reading comes from the words around it, then context rules learned from labelled sentences, then its most frequent reading. The pinyin on the page and the reading marked in the popup always agree.
@@ -671,10 +694,12 @@ Each character's reading is decided by the first of these that applies:
 
 1. **An unusual-reading word** around it (单于 *chányú*), if
    [that option](#unusual-readings-of-common-characters) is on.
-2. **A dictionary word of 2–4 characters** around it, from CC-CEDICT or pypinyin's phrase list:
-   侥 is *jiǎo* in 侥幸 but *yáo* in 僬侥. When two words overlap, the more common one (by
-   [wordfreq](https://github.com/rspeer/wordfreq)) wins. Longer words in the popup, up to 8
-   characters, do not decide readings.
+2. **The dictionary word of 2–4 characters it falls in**, when the run of text around it is
+   split into its most probable sequence of words (every CC-CEDICT word weighted by its
+   [wordfreq](https://github.com/rspeer/wordfreq) frequency; see [How it works](#how-it-works)).
+   The word's reading comes from CC-CEDICT or pypinyin's phrase list: 侥 is *jiǎo* in 侥幸 but
+   *yáo* in 僬侥, and in 扩散到了全身 the split 到 | 了 gives 了 *le*, not the *liǎo* of 到了.
+   Longer words in the popup, up to 8 characters, do not decide readings.
 3. **A context rule** for the character next to it: 952 rules, learned from labelled Wikipedia
    sentences.
 4. **A Wiktionary word**, for uncertain characters only: for the 518 characters whose most
@@ -778,7 +803,7 @@ plugin can't read is never overwritten: it is renamed aside
 
 ## Accuracy
 
-Measured on the hard case, the CPP polyphone test set (Chinese Wikipedia sentences, only characters with several readings): at the default level the most likely reading is right 96.0% of the time, 97.6% counting both of a pair.
+Measured on the hard case, the CPP polyphone test set (Chinese Wikipedia sentences, only characters with several readings): at the default level the most likely reading is right 95.7% of the time, 97.4% counting both of a pair.
 
 <details>
 <summary>Method and full results</summary>
@@ -790,10 +815,10 @@ with several readings, so it is the hard case.
 
 | Pinyin for characters outside | Characters tested | Most likely reading right | Right counting both of a pair | Shown as a pair | Estimated, ordinary text (both shown) |
 |---|---|---|---|---|---|
-| 1,500 most common | 5,353 | 95.7% | 97.4% | 7.0% | 99.53% |
-| 2,500 | 3,189 | 95.9% | 97.5% | 7.7% | 99.50% |
-| 3,500 (default) | 1,482 | 96.0% | 97.6% | 10.7% | 99.67% |
-| 5,000 | 260 | 95.4% | 98.8% | 28.8% | 99.84% |
+| 1,500 most common | 5,353 | 95.6% | 97.3% | 7.2% | 99.51% |
+| 2,500 | 3,189 | 95.7% | 97.2% | 7.7% | 99.46% |
+| 3,500 (default) | 1,482 | 95.7% | 97.4% | 10.9% | 99.64% |
+| 5,000 | 260 | 93.8% | 97.3% | 28.8% | 99.67% |
 | 7,000 | 42 | 97.6% | 100.0% | 45.2% | 100.00% |
 
 Learner mode, 500 and 1,000 have no rows. The characters they add are common ones, and the
@@ -804,7 +829,7 @@ The last column weights every character the plugin would draw by how often it oc
 text (wordfreq), counting characters with a single reading as right. It is an estimate from
 Wikipedia sentences, not a count on books, and it leans pessimistic, since CPP over-represents
 minority readings. The popup's markers on the 1,000 most common characters (3,687 test examples)
-are right 97.5% of the time, 98.1% counting both of a pair (3.1% shown as a pair). CPP's
+are right 97.3% of the time, 98.0% counting both of a pair (3.4% shown as a pair). CPP's
 sentences use 咯, 哩 and 啦 mostly in transliterations (吡咯 *luò*, 三哩岛 *lǐ*, 啦啦队): the
 plugin gives them their particle readings (*lo*, *li*, *la*) as a reader of fiction meets them,
 which costs 0.2–0.3 points at 1,500 and 2,500 here. CPP labels some neutral-tone words
@@ -817,12 +842,12 @@ included, as in the popup; a pair counts when either half is right):
 
 | Decided by | Examples | Right | Popup label |
 |---|---|---|---|
-| A word (CC-CEDICT, pypinyin) | 6,584 | 98.0% | likely here |
+| A word (CC-CEDICT, pypinyin) | 6,487 | 97.9% | likely here |
 | A special word | 78 | 85.9% | likely here |
-| A fallback dictionary's word | 14 | 85.7% | likely here |
-| A context rule | 919 | 99.9% | likely here |
-| Nothing: the uncertainty pair | 524 | 99.2% | none (both listed) |
-| Nothing: the default reading | 2,135 | 96.5% | none |
+| A fallback dictionary's word | 13 | 84.6% | likely here |
+| A context rule | 923 | 99.9% | likely here |
+| Nothing: the uncertainty pair | 545 | 99.3% | none (both listed) |
+| Nothing: the default reading | 2,208 | 96.3% | none |
 
 </details>
 
@@ -1160,7 +1185,7 @@ Headwords and readings are never converted.
 
 ## Speed
 
-On a Boox Go 7, working out a page's pinyin takes about 13 ms on average (about 50 ms on a dense page in learner mode), a tap opens the popup in about 20 ms, and the dictionaries add about 2 MB of memory.
+On a Boox Go 7, working out a page's pinyin takes about 13 ms on average (about 56 ms on a dense page in learner mode), a tap opens the popup in about 20 ms, and the dictionaries add about 2 MB of memory.
 
 <details>
 <summary>Measurements</summary>
@@ -1169,7 +1194,8 @@ Measured on a Boox Go 7:
 
 - **A page turn**: working out the pinyin for a page takes 13.4 ms on average. On a dense page
   of a history book (measured in 2.8.0) it is a median 30 ms at the default level and 51.5 ms in
-  learner mode, about 200 characters annotated. The only query a page can make is one
+  learner mode, about 200 characters annotated; in 2.25.0, which splits every run into words, a
+  median 56 ms in learner mode (47 ms in 2.24.0 on the same pages). The only query a page can make is one
   Wiktionary lookup, when an uncertain rare character on it is left undecided (results are
   cached).
 - **First load**: the reading tables are read into memory when the first page is drawn, in about
