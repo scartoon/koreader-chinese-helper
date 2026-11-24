@@ -438,10 +438,13 @@ end
 
 --[[--
 A Han character tapped in a popup's text (`layer`, a Popup; hit: Popup:charAt):
-its own popup on top, looked up like a tap in the book (the character and
-every word around it that contains it, in that text), with that text's
-sentence (Sentence.inText) as its context line, and no Translate button
-(only the popup from the page has one). The character is underlined in `layer` while the new popup is shown.
+its own popup in place of `layer` (#82: `layer` is hidden until the new one
+closes), looked up like a tap in the book (the character and every word
+around it that contains it, in that text), with that text's sentence
+(Sentence.inText) as its context line, and no Translate button (only the
+popup from the page has one). The character is underlined in `layer` while
+the new popup is open, so a KOReader dictionary popup opened from the new
+one's word buttons shows `layer` again with the line (Tap:present).
 A tap on a CC-CEDICT cross-reference (hit.span, #62: "variant of 賢慧|贤慧
 xiánhuì") looks up the word it names instead, its entry first, with the
 reading the reference gives first.
@@ -534,19 +537,53 @@ end
 Tap.CHUCHU_SOURCES = { idioms = "教育部《成语典》", xinhua = "新华成语" }
 
 --[[--
-The stack of popups shown (first: the one opened from the page). Each is a
-Popup; one opened from another's text or Origin & Usage button sits on it. Closing
-the top one (its Close, or the Back key) shows the one below; a tap
-outside or a Translate closes them all.
+The stack of popups (first: the one opened from the page). Each is a
+Popup; one opened from another's text or Origin & Usage button takes its
+place on the screen (#82): only the top one is drawn, the ones below are
+hidden (Popup:setHidden), not closed. Closing the top one (its Close, or
+the Back key) shows the one below again as it was; a tap outside or a
+Translate closes them all.
 ]]
 function Tap:stack()
     self.layers = self.layers or {}
     return self.layers
 end
 
+-- A popup's frame on the screen, or nil.
+local function regionOf(p)
+    if p.region then return p:region() end
+    return p.frame and p.frame.dimen
+end
+
+-- One refresh over both popups' frames (the one going and the one coming),
+-- flashing when either is tall, so no ghost is left on e-ink (#82).
+local function refreshSwap(a, b)
+    local ra, rb = regionOf(a), regionOf(b)
+    local region = ra and rb and ra:combine(rb) or ra or rb
+    if not region then return end
+    local mode = (a.tall or b.tall) and "flashpartial" or "ui"
+    UIManager:setDirty("all", function() return mode, region end)
+end
+
+-- Put `popup` on the stack and on the screen, in place of the popup below
+-- it (#82), which is hidden, not closed.
 function Tap:push(popup)
     local stack = self:stack()
+    local below = stack[#stack]
     stack[#stack + 1] = popup
+    if below then
+        below:setHidden(true)
+        refreshSwap(below, popup)
+    end
+    UIManager:show(popup)
+end
+
+-- The headwords of the popups on the stack, first popup first: a nested
+-- popup's breadcrumb (#82).
+function Tap:crumbs()
+    local out = {}
+    for _, p in ipairs(self:stack()) do out[#out + 1] = p.headword or p.title end
+    return out
 end
 
 -- `popup` has closed (however it closed): out of the stack.
@@ -557,18 +594,25 @@ function Tap:forget(popup)
     end
 end
 
--- Close the top popup and show the one below, its character no longer
--- underlined. keep_mark: leave the line (a dictionary popup opened from the
--- closed one sits on it now; see Tap:present).
+-- Close the top popup and show the one below again, its character no
+-- longer underlined. keep_mark: leave the line (a dictionary popup opened
+-- from the closed one sits on it now; see Tap:present).
 function Tap:back(popup, keep_mark)
     local stack = self:stack()
     if stack[#stack] ~= popup then
         popup:onClose()
         return
     end
-    popup:onClose()   -- (forgets it)
-    local below = stack[#stack]
-    if below and not keep_mark then below:setMark(nil) end
+    local below = stack[#stack - 1]
+    if not below then
+        popup:onClose()
+        return
+    end
+    -- The one below comes back as it was (#82), in one refresh over both.
+    below:setHidden(false)
+    if not keep_mark then below:setMark(nil) end
+    local ra, rb = regionOf(popup), regionOf(below)
+    popup:onClose(ra and rb and ra:combine(rb) or ra or rb, popup.tall or below.tall)   -- (forgets it)
 end
 
 -- Close every popup in the stack, with one refresh over all of them.
@@ -577,9 +621,8 @@ function Tap:closeAll()
     if #stack == 0 then return end
     local region, tall
     for _, p in ipairs(stack) do
-        if p.frame and p.frame.dimen then
-            region = region and region:combine(p.frame.dimen) or p.frame.dimen:copy()
-        end
+        local r = regionOf(p)
+        if r then region = region and region:combine(r) or r:copy() end
         tall = tall or p.tall
     end
     for k = #stack, 2, -1 do UIManager:close(stack[k]) end
@@ -599,6 +642,8 @@ function Tap:showChuchu(word, source, text, parent)
     local view
     view = Popup:new{
         title = T("%1 · %2 · %3", word, Model.ORIGIN, Tap.CHUCHU_SOURCES[source] or source),
+        headword = word,
+        crumbs = self:crumbs(),
         blocks = { { source = source, lines = { text }, large = true, nolabel = true } },
         labels = Model.SOURCE_LABELS, label_mode = "none",
         full = true,
@@ -612,7 +657,6 @@ function Tap:showChuchu(word, source, text, parent)
         on_close = function() self:forget(view) end,
     }
     self:push(view)
-    UIManager:show(view)
 end
 
 --[[--
@@ -763,8 +807,15 @@ function Tap:present(args)
         return #list > 0 and list or nil
     end
     local font_size = self:textHeight()
+    -- A nested popup takes its parent's place (#82), placed like the first:
+    -- away from the character tapped on the page.
+    local anchor = args.box
+    if parent then anchor = (self:stack()[1] or {}).anchor end
     popup = Popup:new{
         title = args.word or args.char,
+        headword = args.word or args.char,
+        -- Nested (#82): titled with the path to it, "崇 › 莞".
+        crumbs = parent and self:crumbs() or nil,
         blocks = blocks,
         labels = Model.SOURCE_LABELS, label_mode = self.plugin.settings:labelMode(),
         context = args.context,
@@ -779,7 +830,7 @@ function Tap:present(args)
         on_outside = close_all,
         on_back = close,
         buttons = button_rows,
-        anchor = args.box,
+        anchor = anchor,
         text_px = font_size and math.floor(font_size * self.plugin.settings:popupTextPercent() / 100 + 0.5),
         chinese_pct = self.plugin.settings:chineseTextPercent(),
         collapse_lines = self.plugin.settings:collapseLines(),
@@ -787,7 +838,6 @@ function Tap:present(args)
         mark_buttons = titleButtons(),
     }
     self:push(popup)
-    UIManager:show(popup)
     return popup
 end
 

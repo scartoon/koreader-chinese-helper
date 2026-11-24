@@ -64,6 +64,11 @@ local Popup = InputContainer:extend{
                        -- (hit: Popup:charAt)
     on_outside = nil,  -- a tap outside the popup (nil: the popup closes)
     on_back = nil,     -- the Back key (nil: the popup closes)
+    -- Popups opened from popups (#82): one is on screen at a time.
+    crumbs = nil,      -- the headwords of the popups below (nested popups), or nil:
+                       -- the title shows them first, "崇 › 莞" (Model.breadcrumb)
+    hidden = false,    -- covered by a popup opened from it: kept (with its scroll
+                       -- position) but not drawn; Popup:setHidden
 }
 
 -- Source labels: a small grey line just above an entry, left-aligned.
@@ -172,11 +177,22 @@ function Popup:build()
         parts[#parts + 1] = LineWidget:new{ dimen = Geom:new{ w = inner_w, h = math.max(1, Size.line.thin) } }
         header_h = header:getSize().h + math.max(1, Size.line.thin)
     end
+    local title = self.title
+    if self.crumbs and #self.crumbs > 0 then
+        -- A nested popup (#82): the path to it, cut from the left to fit.
+        local room = inner_w - 2 * Size.padding.large - Size.padding.default
+        title = Model.breadcrumb(self.crumbs, self.title, function(text)
+            local w = TextWidget:new{ text = text, face = self.title_face }
+            local fits = w:getSize().w <= room
+            w:free()
+            return fits
+        end)
+    end
     local titlebar = TitleBar:new{
         width = inner_w,
         align = "left",
         with_bottom_line = true,
-        title = self.title,
+        title = title,
         title_face = self.title_face,
         title_top_padding = Size.padding.default,
         bottom_v_padding = Size.padding.default,
@@ -669,12 +685,28 @@ end
 function Popup:setMark(hit)
     if self.marked == hit then return end
     self.marked = hit
-    if self.frame.dimen then
+    if self.frame.dimen and not self.hidden then
         UIManager:setDirty(self, function() return "ui", self.frame.dimen end)
     end
 end
 
+-- The frame's place on the screen (known before the first paint).
+function Popup:region()
+    local size = self.frame:getSize()
+    return Geom:new{ x = self.frame_x, y = self.frame_y, w = size.w, h = size.h }
+end
+
+-- Hide the popup under one opened from it, or show it again (#82). It stays
+-- in UIManager's stack, so nothing is rebuilt and its scroll position, title
+-- bar and buttons come back as they were; the caller (ch_tap.lua) refreshes
+-- the screen. The popup on top takes every tap and key, so a hidden one gets
+-- none.
+function Popup:setHidden(hidden)
+    self.hidden = hidden and true or false
+end
+
 function Popup:paintTo(bb, x, y)
+    if self.hidden then return end
     self.frame:paintTo(bb, x + self.frame_x, y + self.frame_y)
     local hit = self.marked
     if hit and self.tap_boxes and self.tap_boxes[hit.box] then

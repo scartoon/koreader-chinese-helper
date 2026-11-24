@@ -556,6 +556,31 @@ function Model.headWord(word, form, b0, b1)
     return head
 end
 
+-- Between the steps of a nested popup's title (#82).
+Model.CRUMB_SEP = " › "
+
+--[[--
+A nested popup's title (#82): the headwords of the popups below it
+(`crumbs`, first popup first), then its own `title`: "崇 › 莞". When
+fits(text) says it is too long, the leftmost headwords give way to "…"
+("… › 莞 › 東"), down to "… › " and the title alone. No crumbs: the title.
+]]
+function Model.breadcrumb(crumbs, title, fits)
+    if not crumbs or #crumbs == 0 then return title end
+    local function from(k)
+        local parts = {}
+        for i = k, #crumbs do parts[#parts + 1] = crumbs[i] end
+        parts[#parts + 1] = title
+        return table.concat(parts, Model.CRUMB_SEP)
+    end
+    local full = from(1)
+    if not fits or fits(full) then return full end
+    for k = 2, #crumbs + 1 do
+        local text = "…" .. Model.CRUMB_SEP .. from(k)
+        if k == #crumbs + 1 or fits(text) then return text end
+    end
+end
+
 --[[--
 The popup's matches.
 

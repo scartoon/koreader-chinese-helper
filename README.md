@@ -50,7 +50,7 @@ Kobo, Kindle, PocketBook, and Android devices such as Boox.
 </tr>
 <tr>
 <td><img src="docs/classical.png" alt="Popup for 之 in 三国演义's 窦武、陈蕃谋诛之: the line 时有宦官曹节等弄权，窦武、陈蕃谋诛之，作事不密，反为所害，中涓自此愈横。 with 之 marked; the title bar, 之 on the left and the buttons 文言 Mode ✓ and Remind me: zhī on the right; first 字频 69, then the label 文言 on a row of its own and the Classical entry, its senses numbered: 之, 1. him; her; them; that, 2. it (object pronoun), 3. genitive marker; of (possession), 4. attributive marker…, 5. particle infixed in a subject-predicate construction…, 6. to go, 7. to arrive; to go to, and on to 18, with a scroll bar; then the buttons 之, Translate & analyze the surrounding sentence [AI] and Close"><br><a href="#classical-mode"><b>Classical mode</b></a>: one tap on 文言 Mode puts the senses classical texts use first, here 之 as <i>him; her; them</i> in 窦武、陈蕃谋诛之</td>
-<td><img src="docs/nested.png" alt="Popup for 秋 in the 临江仙, its title bar with the buttons 文言 Mode and Remind me: qiū, and on top of it the popup for 歡, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年歡笑復明年，秋月春風等閒度。」 with 歡 marked and no buttons in its title bar, then, labelled CEDICT, 欢笑 • 歡笑 huānxiào; then 字频 443, the label CEDICT, 欢 • 歡 huān and its parts 雚 and 欠 labelled Wikt; the buttons 歡 and 歡笑, then Close at the bottom (no Translate in a popup opened from a popup)"><br><a href="#tapping-a-character-in-the-popup"><b>Read the dictionary by tapping</b></a>: 歡, tapped in MOE's quotation of 〈琵琶行〉, opens its own popup on top</td>
+<td><img src="docs/nested.png" alt="The popup for 歡, tapped in MOE's quotation of 〈琵琶行〉 in the popup for 秋 in the 临江仙, which it replaces on the screen: its line at the top is 「今年歡笑復明年，秋月春風等閒度。」 with 歡 marked, its title 秋 › 歡 with no buttons, then, labelled CEDICT, 欢笑 • 歡笑 huānxiào; then 字频 443, the label CEDICT, 欢 • 歡 huān and its parts 雚 and 欠 labelled Wikt; the buttons 歡 and 歡笑, then Close at the bottom (no Translate in a popup opened from a popup)"><br><a href="#tapping-a-character-in-the-popup"><b>Read the dictionary by tapping</b></a>: 歡, tapped in MOE's quotation of 〈琵琶行〉, opens its own popup in place of the first, titled 秋 › 歡</td>
 </tr>
 <tr>
 <td><img src="docs/labels.png" alt="Popup for 秋 in the 临江仙's 惯看秋月春风: at the top the line 白发渔樵江渚上，惯看秋月春风。 with 秋 marked; the 文言 Mode and reading-mark buttons in the title bar; first 秋月 labelled Wikt; then 字频 1,442, the label CEDICT on a row of its own, 秋 • 鞦 qiū (used in 鞦韆|秋千 qiūqiān) and its parts 禾 and 火 labelled MMAH; last, 秋月春风 • 秋月春風 labelled 國語辭典 with MOE's definition in its own traditional characters, in larger type, quoting 白居易's 〈琵琶行〉: 「今年歡笑復明年，秋月春風等閒度。」; a 成语 Origin &amp; Usage button"><br><a href="#fallback-dictionaries"><b>Several dictionaries, each labelled</b></a>: CC-CEDICT for 秋, Wiktionary for 秋月, and MOE (optional) for 秋月春风, in larger type</td>
@@ -90,7 +90,7 @@ default, because the AI's answer differs from run to run.
   modern. On 128 words from classical texts the entry had the needed sense 95% of the time
   ([Classical mode](#classical-mode)).
 - **Chinese definitions you can read**: tap any character in MOE's or an idiom dictionary's
-  text and it opens its own popup on top
+  text and it opens its own popup in its place
   ([Tapping a character in the popup](#tapping-a-character-in-the-popup)).
 - **Translate** the whole sentence with KOAssistant and your own AI provider, or with KOReader's
   built-in translator when KOAssistant is not installed
@@ -414,9 +414,9 @@ loaded, the popup uses the UI font. Turned off, the popup is exactly as before.
 
 The Chinese dictionaries' own text (MOE, the 成語典, Xinhua and Moegirlpedia: their definitions
 and quotations, an idiom's short line, the Origin & Usage view) can be read by tapping: a character in it
-opens its own popup on top, looked up like a tap in the book (the character and every word
-around it in that text that contains it), and stays underlined in the popup below while the new
-one is open.
+opens its own popup in place of the one you tapped in, looked up like a tap in the book (the
+character and every word around it in that text that contains it). Only one popup is on the
+screen at a time; its title shows the way you came, 崇 › 莞, and **Close** takes you back one step.
 
 CC-CEDICT's cross-references can be tapped too: the word after **variant of**, **see**, **used
 in**, **CL:** and the like, wherever a word is given with its pinyin ("variant of 賢慧|贤慧
@@ -429,7 +429,7 @@ reading the reference gives first. Nothing else in the popup is tappable: not th
 <details>
 <summary>How popups on popups work</summary>
 
-![Popup for 秋 in the 临江仙, its title bar with the buttons 文言 Mode and Remind me: qiū, and on top of it the popup for 歡, tapped in MOE's quotation of 〈琵琶行〉: its line at the top is 「今年歡笑復明年，秋月春風等閒度。」 with 歡 marked and no buttons in its title bar, then, labelled CEDICT, 欢笑 • 歡笑 huānxiào; then 字频 443, the label CEDICT, 欢 • 歡 huān and its parts 雚 and 欠 labelled Wikt; the buttons 歡 and 歡笑, then Close at the bottom (no Translate in a popup opened from a popup)](docs/nested.png)
+![The popup for 歡, tapped in MOE's quotation of 〈琵琶行〉 in the popup for 秋 in the 临江仙, which it replaces on the screen: its line at the top is 「今年歡笑復明年，秋月春風等閒度。」 with 歡 marked, its title 秋 › 歡 with no buttons, then, labelled CEDICT, 欢笑 • 歡笑 huānxiào; then 字频 443, the label CEDICT, 欢 • 歡 huān and its parts 雚 and 欠 labelled Wikt; the buttons 歡 and 歡笑, then Close at the bottom (no Translate in a popup opened from a popup)](docs/nested.png)
 
 - **Its text is the popup's, not the book's.** The line at the top is the sentence around the
   character in the popup text: cut at 。！？；, a line break, or a closing quote after one of
@@ -439,8 +439,12 @@ reading the reference gives first. Nothing else in the popup is tappable: not th
 - **Where a tap lands**: on a character, or within half a character's width of one (beside it,
   just above or below, on the punctuation next to it), takes the nearest, on the tapped line
   first. A tap anywhere else does what it did before. This holds after the popup is scrolled.
+- **One popup at a time.** A popup opened from another takes its place on the screen, placed
+  like the first (away from the character tapped on the page), and its title starts with the
+  headwords of the popups below it: 崇 › 莞, cut from the left (… › 東 › 莞) when it is too long.
 - **Close** (or the device's Back key) in a popup opened from another closes only that popup
-  and shows the one below; a tap outside closes them all. Only the popup from the page has
+  and shows the one below again as you left it: scrolled where it was, the character you tapped
+  in it no longer underlined. A tap outside (on the book's text) closes them all. Only the popup from the page has
   **Translate**. At most **5** popups are open at once (an Origin & Usage view counts); past
   that, a tap says so and opens nothing.
 - **Chinese text size**: the Chinese dictionaries' text (definitions, short lines, the Origin &
@@ -515,7 +519,7 @@ than CC-CEDICT's English gloss:
   small label: 一毛不拔 → *形容人非常吝啬。贬义。* (成语典). It comes from MOE idioms when it has
   the chengyu, otherwise from Xinhua idioms. Entries already in Chinese get no extra line.
 - **A 成语 Origin & Usage button** opens a full-screen view, in the larger Chinese size, with only **Close**,
-  which returns to the popup below; any character in it can be tapped
+  which returns to the popup it was opened from; any character in it can be tapped
   ([above](#tapping-a-character-in-the-popup)). From MOE idioms: 释义, the 典源 passage with its
   notes, 典故说明 (the story retold in modern Chinese), 书证, usage, examples, 辨识 and near and
   opposite idioms; a related form (玉石俱碎) adds its main idiom's source and story under that

@@ -533,7 +533,8 @@ plugin.settings:set("fallback_order", nil)
 -- already) gets no line under it, and its own Origin & Usage button.
 local popups = {}
 stub("ch_popup", { BOLD_START = "", BOLD_END = "",
-                   new = function(_, args) popups[#popups + 1] = args; args.onClose = function() end; return args end })
+                   new = function(_, args) popups[#popups + 1] = args; args.onClose = function() end
+                       args.setHidden = function(p, h) p.hidden = h end; return args end })
 stub("ui/widget/textviewer", { new = function(_, args) return args end })
 local Text = require("ch_text")
 local function popupFor(left, char, right)

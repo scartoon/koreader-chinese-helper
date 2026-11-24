@@ -59,6 +59,7 @@ local Popup = { BOLD_START = "", BOLD_END = "" }
 function Popup:new(args)
     args.marks = {}
     args.setMark = function(p, hit) p.marked = hit; p.marks[#p.marks + 1] = hit or false end
+    args.setHidden = function(p, hidden) p.hidden = hidden and true or false end
     args.onClose = function(p, region, tall)
         require("ui/uimanager"):close(p, tall and "flashpartial" or "partial", region)
     end
