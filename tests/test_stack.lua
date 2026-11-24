@@ -622,5 +622,24 @@ do
     assert(found.head:find("头发 • 頭髮", 1, true), found.head)
     p0.on_outside()
     plugin.settings:set("trad_heads", nil)
+    -- Headwords: as written • other form (#80): the tapped form leads.
+    plugin.settings:set("head_forms", "written_other")
+    p0 = root("", "鬢", "")
+    p0.on_char_tap(p0, hitIn(MOE, "頭"))
+    nested = tap:stack()[2]
+    eq(nested.blocks[1].word, "頭"); eq(nested.blocks[1].trad, "头")
+    found = nil
+    for _, b in ipairs(nested.blocks) do
+        if b.word == "頭髮" then found = b end
+    end
+    assert(found and found.head:find("頭髮 • 头发", 1, true), "the word block 頭髮 • 头发")
+    p0.on_outside()
+    plugin.settings:set("head_forms", "written")
+    p0 = root("", "鬢", "")
+    p0.on_char_tap(p0, hitIn(MOE, "頭"))
+    nested = tap:stack()[2]
+    eq(nested.blocks[1].word, "頭"); eq(nested.blocks[1].trad, nil)
+    p0.on_outside()
+    plugin.settings:set("head_forms", nil)
 end
 print("traditional taps in nested popups: ok")

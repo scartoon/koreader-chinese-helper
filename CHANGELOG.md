@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+Headwords that follow the text you tapped (#80)
+- **Show traditional in headwords** is replaced by **Headwords**, with four choices:
+  **Simplified • traditional** (the default, as before: **头发** • 頭髮 for any tap),
+  **As written • other form** (the form the text uses first: **頭髮** • 头发 in a traditional
+  book, **髮** • 发 for a single character), **As written only** (頭髮 in a traditional book,
+  头发 in a simplified one) and **Simplified only**.
+- It applies to every head line: the tapped character, the words around it, 文言 Mode and MOE
+  entries, and popups opened from a popup.
+- If you had turned **Show traditional in headwords** off, Headwords starts on Simplified only.
+- Suggested by Generalhooha in #78.
+
 Popup text size in 10% steps (#81)
 - **Popup text size** now offers every 10% from 40 to 120% of the book's text size (50, 70, 90
   and 110% are new). The default stays 60%.

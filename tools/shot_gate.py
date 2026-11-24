@@ -208,7 +208,7 @@ local function present(g, char, cands, rows, matches, annotated)
     local words = {}
     for _, m in ipairs(matches) do if m.len and m.len > 1 then words[#words + 1] = m.word end end
     if #words > 0 then Model.attachIdioms(matches, g.idioms(words)) end
-    local blocks = Model.blocks(matches, char, annotated, "**", "**", g.settings:tradHeadsEnabled())
+    local blocks = Model.blocks(matches, char, annotated, "**", "**", g.settings:headForms())
     local buttons = {}
     for _, m in ipairs(matches) do buttons[#buttons + 1] = m.word end
     for _, c in ipairs(Model.chuchu(matches)) do buttons[#buttons + 1] = c.text .. "(" .. c.word .. ")" end
@@ -230,11 +230,11 @@ local function present(g, char, cands, rows, matches, annotated)
     end
     if g.classical then   -- Classical mode (#53, #56): first, above everything
         local cl = Model.classicalBlocks(g.main:classical(char), char, Model.tradPick(cands, rows), "**", "**",
-            g.settings:tradHeadsEnabled())
+            g.settings:headForms())
         local mw = {}
         for _, m in ipairs(matches) do mw[#mw + 1] = m.word end
         for _, b in ipairs(Model.classicalWordBlocks(g.main:classicalWords(mw), matches, "**", "**",
-                g.settings:tradHeadsEnabled())) do
+                g.settings:headForms())) do
             cl[#cl + 1] = b
         end
         for k, b in ipairs(cl) do table.insert(blocks, k, b) end

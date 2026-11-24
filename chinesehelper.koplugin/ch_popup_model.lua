@@ -506,6 +506,45 @@ end
 -- The separator between a headword's simplified and traditional forms (#73).
 Model.FORM_SEP = " • "
 
+-- The "Headwords" setting (#80): which forms a head line shows.
+--   simp_trad      simplified first, its traditional form after the dot, for
+--                  any tap (#47, #73: the default)
+--   written_other  the form the text uses first, the other after the dot
+--   written        the form the text uses alone
+--   simp           simplified alone
+Model.HEADS_SIMP_TRAD, Model.HEADS_WRITTEN_OTHER = "simp_trad", "written_other"
+Model.HEADS_WRITTEN, Model.HEADS_SIMP = "written", "simp"
+Model.HEAD_MODES = { "simp_trad", "written_other", "written", "simp" }
+
+-- A head mode from Model.blocks' `heads` argument: one of HEAD_MODES as
+-- given; true (the old "Show traditional in headwords" on) is simp_trad,
+-- anything else simp.
+function Model.headMode(heads)
+    if heads == true then return Model.HEADS_SIMP_TRAD end
+    for _, mode in ipairs(Model.HEAD_MODES) do
+        if heads == mode then return mode end
+    end
+    return Model.HEADS_SIMP
+end
+
+--[[--
+A match's head line forms in head mode `mode` (#80): the bold form and the
+form after the dot (nil when there is none). `m.word` is the word as
+written in the tapped text.
+]]
+function Model.modeForms(m, entries, mode)
+    if mode == Model.HEADS_WRITTEN then return m.word, nil end
+    if mode == Model.HEADS_SIMP then return Model.simpText(m, entries) or m.word, nil end
+    if mode == Model.HEADS_WRITTEN_OTHER then
+        -- Tapped in traditional characters: the word as tapped leads, its
+        -- simplified form after the dot (**頭髮** • 头发, **髮** • 发).
+        local s = Model.simpText(m, entries)
+        if s then return m.word, s end
+    end
+    local word, form = Model.headForms(m, entries)
+    return word or m.word, form
+end
+
 --[[--
 A head line's start (#73): the simplified form in bold, then " • " and the
 traditional form in regular weight, same size ("**门** • 門"); the word
@@ -1030,21 +1069,25 @@ The popup's content as blocks, one per match:
     note = { source = "idioms" / "xinhua", text = "比喻…" } or nil: an idiom's
       Chinese short line, under an entry whose text is not Chinese already }
 b0/b1 are the bold markers (TextBoxWidget's PTF markers in KOReader).
-With `trad` (the "Show traditional in headwords" setting, #47, #73), a
-block whose word's traditional form differs also has trad= (Model.tradText),
-word= and rest= (the head line after the word), and head leads with both
-forms, same size (Model.headWord): "**头发** • 頭髮  tóufa". A word tapped in
-traditional characters (#50) has word= its simplified form and trad= the
-word as tapped (Model.headForms), the same way round. Without `trad`, head
-has the simplified form alone, also for a traditional tap (#73).
+`heads` is the "Headwords" setting (#80; Model.headMode). In its default,
+simp_trad (#47, #73), a block whose word's traditional form differs also
+has trad= (Model.tradText), word= and rest= (the head line after the word),
+and head leads with both forms, same size (Model.headWord): "**头发** • 頭髮
+tóufa". A word tapped in traditional characters (#50) has word= its
+simplified form and trad= the word as tapped (Model.headForms), the same way
+round. In written_other, word= is the form as tapped and trad= the other
+form, whichever script that is; in written, word= the form as tapped and no
+trad=. In simp, head has the simplified form alone, also for a traditional
+tap (#73), and no word= or trad=. (trad= is always the form after the dot.)
 The tapped character's marked readings are unmarked when `annotated` (the
 reading is drawn on the page, so it comes first with no label) or when
 Model.matches set m.mark (the uncertainty pair, or a default reading nothing
 decided: listed with no label), and "likely here" otherwise. A reading a source does not give itself
 (Model.GENERATED_READING) is followed by "· generated pinyin".
 ]]
-function Model.blocks(matches, char, annotated, b0, b1, trad)
+function Model.blocks(matches, char, annotated, b0, b1, heads)
     b0, b1 = b0 or "", b1 or ""
+    local mode = Model.headMode(heads)
     local default_mark = annotated and "" or Model.MARK_LIKELY
     local blocks = {}
     local function build(m)
@@ -1072,14 +1115,11 @@ function Model.blocks(matches, char, annotated, b0, b1, trad)
                 -- A word with no pinyin (a dialect word without a Standard
                 -- reading) shows the word alone.
                 local rest = (e.pinyin ~= "" and ("  " .. e.pinyin) or "") .. marked .. tag
-                block.head = b0 .. (Model.simpText(m, m.entries) or m.word) .. b1 .. rest
                 block.source = e.source or "cedict"
-                if trad then
-                    -- Tapped in traditional characters (#50), the simplified
-                    -- form leads: "**头发** • 頭髮".
-                    local word, form = Model.headForms(m, m.entries)
-                    block.word, block.trad, block.rest = word or m.word, form, rest
-                    block.head = Model.headWord(word or m.word, form, b0, b1) .. rest
+                local word, form = Model.modeForms(m, m.entries, mode)
+                block.head = Model.headWord(word, form, b0, b1) .. rest
+                if mode ~= Model.HEADS_SIMP then
+                    block.word, block.trad, block.rest = word, form, rest
                 end
                 block.lines[#block.lines + 1] = senses
                 local idiom = m.idiom
@@ -1108,10 +1148,11 @@ function Model.blocks(matches, char, annotated, b0, b1, trad)
 end
 
 -- One Classical block from a classical table row: head line the headword
--- (bold, with its traditional form beside it when `trad` and it differs),
+-- (bold), its forms as head mode `heads` gives them (#80; `written` is the
+-- character or word as the text spells it),
 -- then one sense per line, numbered when there are several (#67), as
 -- "reading: gloss" when the sense gives a reading. nil when no senses.
-local function classicalBlock(r, b0, b1, trad)
+local function classicalBlock(r, b0, b1, heads, written)
     local senses = {}
     for line in (r.senses or ""):gmatch("[^\n]+") do
         local reading, gloss = line:match("^([^\t]*)\t([^\t]*)")
@@ -1124,13 +1165,21 @@ local function classicalBlock(r, b0, b1, trad)
     for k, sense in ipairs(senses) do
         block.lines[k] = #senses > 1 and (k .. ". " .. sense) or sense
     end
-    local word = (r.simp ~= "" and r.simp) or r.trad
-    block.head = b0 .. word .. b1
-    if trad then
-        local form = r.trad ~= word and r.trad or nil
-        block.word, block.trad, block.rest = word, form, ""
-        block.head = Model.headWord(word, form, b0, b1)
+    local simp = (r.simp ~= "" and r.simp) or r.trad
+    local mode = Model.headMode(heads)
+    -- Written in traditional characters: the text spells the row's
+    -- traditional form, not its simplified one.
+    local tradtap = written and written == r.trad and written ~= simp
+    local word, form = simp, nil
+    if mode == Model.HEADS_SIMP_TRAD then
+        form = r.trad ~= simp and r.trad or nil
+    elseif mode == Model.HEADS_WRITTEN_OTHER then
+        if tradtap then word, form = r.trad, simp else form = r.trad ~= simp and r.trad or nil end
+    elseif mode == Model.HEADS_WRITTEN then
+        if tradtap then word = r.trad end
     end
+    block.head = Model.headWord(word, form, b0, b1)
+    if mode ~= Model.HEADS_SIMP then block.word, block.trad, block.rest = word, form, "" end
     return block
 end
 
@@ -1142,7 +1191,7 @@ Model.tradPick), else each in turn. One block per entry, never collapsed
 (#56, #67: shown in full, first in the popup), as classicalBlock draws it.
 Empty when there is no entry: nothing is added.
 ]]
-function Model.classicalBlocks(rows, char, trad_pick, b0, b1, trad)
+function Model.classicalBlocks(rows, char, trad_pick, b0, b1, heads)
     b0, b1 = b0 or "", b1 or ""
     local picked = {}
     for _, r in ipairs(rows or {}) do
@@ -1156,7 +1205,7 @@ function Model.classicalBlocks(rows, char, trad_pick, b0, b1, trad)
     if #picked == 0 then picked = rows or {} end
     local blocks = {}
     for _, r in ipairs(picked) do
-        blocks[#blocks + 1] = classicalBlock(r, b0, b1, trad)
+        blocks[#blocks + 1] = classicalBlock(r, b0, b1, heads, char)
     end
     return blocks
 end
@@ -1169,7 +1218,7 @@ The Classical dictionary's blocks for the words around the tapped character
 forms appears once. They go right below the character's own Classical
 blocks.
 ]]
-function Model.classicalWordBlocks(rows, matches, b0, b1, trad)
+function Model.classicalWordBlocks(rows, matches, b0, b1, heads)
     b0, b1 = b0 or "", b1 or ""
     local blocks, seen = {}, {}
     for _, m in ipairs(matches or {}) do
@@ -1177,7 +1226,7 @@ function Model.classicalWordBlocks(rows, matches, b0, b1, trad)
             for _, r in ipairs(rows or {}) do
                 if (r.simp == m.word or r.trad == m.word) and not seen[r.trad] then
                     seen[r.trad] = true
-                    blocks[#blocks + 1] = classicalBlock(r, b0, b1, trad)
+                    blocks[#blocks + 1] = classicalBlock(r, b0, b1, heads, m.word)
                 end
             end
         end
@@ -1303,9 +1352,9 @@ blank line:
   **大宛**  Dàyuān · decides 宛's reading
   Dayuan, ancient state of Central Asia
 ]]
-function Model.render(matches, char, annotated, b0, b1, trad)
+function Model.render(matches, char, annotated, b0, b1, heads)
     local out = {}
-    for _, block in ipairs(Model.blocks(matches, char, annotated, b0, b1, trad)) do
+    for _, block in ipairs(Model.blocks(matches, char, annotated, b0, b1, heads)) do
         out[#out + 1] = block.head .. "\n" .. table.concat(block.lines, "\n")
             .. (block.note and ("\n" .. block.note.text) or "")
     end

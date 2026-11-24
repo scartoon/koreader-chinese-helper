@@ -654,6 +654,51 @@ eq(headOf("头", "发", "", TT, 2), "头发 頭髮")
 eq(Model.simpPick(Text.candidates({}, "乾", chars("淨")), QIAN), "干")
 eq(Model.simpPick(Text.candidates({}, "乾", chars("隆")), QIAN), "乾")
 
+------------------------------------------------------------------------
+-- Headwords (#80): simplified • traditional, as written • other form, as
+-- written only, simplified only; for simplified and traditional taps.
+------------------------------------------------------------------------
+eq(Model.headMode(true), "simp_trad", "the old setting on"); eq(Model.headMode(false), "simp")
+eq(Model.headMode(nil), "simp"); eq(Model.headMode("written"), "written"); eq(Model.headMode("x"), "simp")
+local function headsOf(left, char, right, rows, mode, extra)
+    local out = {}
+    for _, b in ipairs(Model.blocks(matches(left, char, right, rows, extra), char, false, "<", ">", mode)) do
+        out[#out + 1] = b.head
+    end
+    return table.concat(out, " | ")
+end
+-- A traditional tap: 頭 in 頭髮.
+eq(headsOf("", "頭", "髮", TT, "simp_trad"), "<头> • 頭  tóu | <头发> • 頭髮  tóufa", "the default: as in 2.24.0")
+eq(headsOf("", "頭", "髮", TT, "written_other"), "<頭> • 头  tóu | <頭髮> • 头发  tóufa")
+eq(headsOf("", "頭", "髮", TT, "written"), "<頭>  tóu | <頭髮>  tóufa")
+eq(headsOf("", "頭", "髮", TT, "simp"), "<头>  tóu | <头发>  tóufa")
+-- The tapped traditional character: its simplified form after the dot.
+eq(headsOf("頭", "髮", "", TT, "written_other"), "<髮> • 发  fà | <頭髮> • 头发  tóufa")
+eq(headsOf("頭", "髮", "", TT, "written"), "<髮>  fà | <頭髮>  tóufa")
+-- A simplified tap: as written • other form is the default's order; a single
+-- character keeps its list of traditional forms (发 • 髮/發 in 头发).
+for _, mode in ipairs({ "simp_trad", "written_other" }) do
+    eq(headsOf("头", "发", "", TT, mode), "<发> • 髮/發  fā | <头发> • 頭髮  tóufa", mode)
+end
+eq(headsOf("头", "发", "", TT, "written"), "<发>  fā | <头发>  tóufa")
+eq(headsOf("头", "发", "", TT, "simp"), "<发>  fā | <头发>  tóufa")
+-- The same in both scripts: nothing changes in any mode.
+for _, mode in ipairs(Model.HEAD_MODES) do
+    eq(headsOf("", "大", "人", DR, mode), "<大>  dà | <大人>  dàrén", mode)
+end
+-- 乾 in 乾淨 is traditional (干净); in 乾隆 it is its own simplified form.
+eq(headsOf("", "乾", "淨", QIAN, "written_other", { chosen = "gān" }), "<乾> • 干  gān · likely here | <乾淨> • 干净  gānjìng")
+eq(headsOf("", "乾", "隆", QIAN, "written_other", { chosen = "qián" }), "<乾>  qián · likely here | <乾隆>  Qiánlóng")
+eq(headsOf("", "乾", "淨", QIAN, "written", { chosen = "gān" }), "<乾>  gān · likely here | <乾淨>  gānjìng")
+-- An MOE Always block follows its word.
+local wab = Model.blocks(tam, "頭", false, "<", ">", "written_other")
+eq(wab[3].always, true); eq(wab[3].word, "頭髮"); eq(wab[3].trad, "头发")
+eq(Model.blocks(tam, "頭", false, "<", ">", "written")[3].head, "<頭髮>  tóu fǎ · not in CC-CEDICT")
+-- Block fields: word= the bold form, trad= the form after the dot; none in simp.
+local wb0 = Model.blocks(matches("", "頭", "髮", TT), "頭", false, "<", ">", "written")[2]
+eq(wb0.word, "頭髮"); eq(wb0.trad, nil); eq(wb0.rest, "  tóufa")
+eq(Model.blocks(matches("", "頭", "髮", TT), "頭", false, "<", ">", "simp")[2].word, nil)
+
 -- #48: a self-referring variant sense as CC-CEDICT writes it ("variant of
 -- 個|个 gè" on 个) is dropped like the simplified one; another form's stays.
 local kept = Model.cleanRows("个", {
@@ -795,3 +840,16 @@ eq(wb[1].head, "**贱人** • 賤人", "in the order of the matches"); eq(wb[1]
 eq(table.concat(wb[1].lines, " | "), "a lowly person", "one sense: no number")
 eq(table.concat(wb[2].lines, " | "), "1. that by which | 2. the reason why")
 eq(#Model.classicalWordBlocks({}, wm), 0, "no entries: nothing")
+-- Headwords (#80): the Classical blocks follow the text's spelling too.
+eq(Model.classicalBlocks(fa, "發", nil, "**", "**", "simp_trad")[1].head, "**发** • 發")
+eq(Model.classicalBlocks(fa, "發", nil, "**", "**", "written_other")[1].head, "**發** • 发")
+eq(Model.classicalBlocks(fa, "發", nil, "**", "**", "written")[1].head, "**發**")
+eq(Model.classicalBlocks(fa, "發", nil, "**", "**", "simp")[1].head, "**发**")
+eq(Model.classicalBlocks(fa, "发", "髮", "**", "**", "written_other")[1].head, "**发** • 髮", "simplified tap")
+eq(Model.classicalBlocks(fa, "发", "髮", "**", "**", "written")[1].head, "**发**")
+local twm = { { word = "賤人", len = 2 }, { word = "所以", len = 2 } }
+local twb = Model.classicalWordBlocks(wrows, twm, "**", "**", "written_other")
+eq(twb[1].head, "**賤人** • 贱人"); eq(twb[2].head, "**所以**")
+eq(Model.classicalWordBlocks(wrows, twm, "**", "**", "written")[1].head, "**賤人**")
+eq(Model.classicalWordBlocks(wrows, twm, "**", "**", "simp_trad")[1].head, "**贱人** • 賤人")
+eq(Model.classicalWordBlocks(wrows, wm, "**", "**", "written")[1].head, "**贱人**", "simplified text")

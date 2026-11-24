@@ -29,9 +29,18 @@ eq(s:popupEnabled(), false)
 s:set("threshold", 5000)
 eq(s:threshold(), 5000); assert(st.flushed > 0, "written to disk")
 
--- Traditional forms on the head lines (#47): on by default.
-eq(Settings.new(store()):tradHeadsEnabled(), true)
-eq(Settings.new(store{ chinesehelper_trad_heads = false }):tradHeadsEnabled(), false)
+-- Headwords (#80): simplified • traditional by default; the four choices
+-- kept; the old checkbox migrated (off → simplified only, on → the default).
+eq(Settings.new(store()):headForms(), "simp_trad")
+for _, mode in ipairs({ "simp_trad", "written_other", "written", "simp" }) do
+    eq(Settings.new(store{ chinesehelper_head_forms = mode }):headForms(), mode)
+end
+eq(Settings.new(store{ chinesehelper_head_forms = "nonsense" }):headForms(), "simp_trad")
+eq(Settings.new(store{ chinesehelper_trad_heads = false }):headForms(), "simp", "old off: simplified only")
+eq(Settings.new(store{ chinesehelper_trad_heads = true }):headForms(), "simp_trad", "old on: the default")
+eq(Settings.new(store{ chinesehelper_trad_heads = false, chinesehelper_head_forms = "written" }):headForms(),
+   "written", "a choice made in the new menu wins")
+eq(Settings.new(nil):headForms(), "simp_trad")
 -- Classical mode (#53): off by default.
 eq(Settings.new(store()):classicalEnabled(), false)
 eq(Settings.new(store{ chinesehelper_classical_mode = true }):classicalEnabled(), true)

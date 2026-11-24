@@ -174,7 +174,7 @@ Tools menu). Settings apply to all books.
 | Show character components | On (default) / off. See [Character components](#character-components) |
 | Words first | On (default) / off: the entries of the words around the tapped character above its own entry (with its MOE entry and components); off, the character first. See [The popup](#the-popup) |
 | Show character frequency rank | On (default) / off. The small grey 字频 line on the tapped character's entry |
-| Show traditional in headwords | On (default) / off. Each headword's traditional form after it, same size, when it differs: **头发** • 頭髮; tapped in traditional characters, the simplified form still first: **头** • 頭. Off, headwords are simplified only |
+| Headwords | Simplified • traditional (default): **头发** • 頭髮 for any tap / As written • other form: the form the text uses first, **頭髮** • 头发 in a traditional book / As written only: 頭髮 in a traditional book, 头发 in a simplified one / Simplified only |
 | Show the text around the character in the popup | On (default) / off; drawn at the Chinese text size. See [The popup](#the-popup) |
 | Underline the tapped character on the page | On (default) / off. See [The popup](#the-popup) |
 | Try to match the book's font | On (default) / off: Chinese text in the popup in the book's font. See [The popup](#the-popup) |
@@ -359,12 +359,17 @@ entries stay at the top. The buttons keep their order either way.
   same: **头发** • 頭髮, **中国** • 中國, and just **人民** for 人民. A word shows the one form
   it is written with (**发现** • 發現, **学习** • 學習). A single character with several shows
   them all, the one the word around it uses first: 发 in 头发 is **发** • 髮/發, 干 alone
-  **干** • 乾/幹/榦. Only the head lines change. **Show traditional in headwords** in the menu
-  turns it off, leaving simplified headwords only.
+  **干** • 乾/幹/榦. Only the head lines change.
 - **Tapped in traditional characters** (a traditional book, or MOE's text in a popup), the head
-  line still leads with the simplified form, the form as tapped after it: 頭 in 頭髮 is
-  **头** • 頭, the word **头发** • 頭髮. A character shows the one simplified form the word around
-  it uses: 乾 in 乾淨 is **干** • 乾, in 乾隆 just **乾**. Same setting.
+  line by default still leads with the simplified form, the form as tapped after it: 頭 in 頭髮
+  is **头** • 頭, the word **头发** • 頭髮. A character shows the one simplified form the word
+  around it uses: 乾 in 乾淨 is **干** • 乾, in 乾隆 just **乾**.
+- **Headwords** in the menu changes which forms the head lines show. **As written • other form**
+  puts the form the text uses first: a traditional book shows **頭髮** • 头发 and **髮** • 发,
+  a simplified one the default's **头发** • 頭髮. **As written only** shows just the form the
+  text uses (頭髮, or 头发), **Simplified only** just the simplified form. Every head line follows
+  the setting: the character, the words around it, 文言 Mode's and MOE's entries, and popups
+  opened from a popup.
 - **MOE's entry for the character**, with the optional MOE dictionary: in place of CC-CEDICT's
   when CC-CEDICT lacks the character. With MOE for single characters set to **always**, under
   CC-CEDICT's entry too, cut to two lines ending in a small grey **[Tap to show more]** when

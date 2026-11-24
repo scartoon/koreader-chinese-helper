@@ -672,7 +672,7 @@ function Tap:present(args)
     local has_classical = args.db and args.db.hasClassical and args.db:hasClassical()
     -- The popup's blocks, built again when Classical mode is switched (#53).
     local function makeBlocks()
-        local trad = settings:tradHeadsEnabled()
+        local trad = settings:headForms()   -- "Headwords" (#80)
         local blocks = Model.blocks(args.matches, args.char, args.annotated, b0, b1, trad)
         local rank_placed = Model.markRank(blocks, args.matches, rank_text)
         Model.markSpoken(blocks, args.matches, args.spoken)
