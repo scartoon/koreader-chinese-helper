@@ -70,7 +70,11 @@ Settings.DEFAULTS = {
     components = true,        -- "Show character components" in single-character popups
     words_first = true,       -- "Words first" (#71): the words' entries above the tapped character's
     char_rank = true,         -- "Show character frequency rank": 字频 N on the tapped character's entry
-    trad_heads = true,        -- "Show traditional in headwords": 头发 • 頭髮 on the popup's head lines (#47, #73)
+    -- "Headwords" (#80): "simp_trad" (头发 • 頭髮 for any tap, #47, #73),
+    -- "written_other" (the form the text uses first), "written" (that form
+    -- alone) or "simp". Unset, a saved trad_heads = false (the old "Show
+    -- traditional in headwords" off) reads as "simp" (Settings:headForms).
+    head_forms = "simp_trad",
     dict_text = "original",   -- "Dictionary text": "original" (as each source writes it) or "simplified" (#48)
     rank_source = "bundled",  -- "Frequency ranks": "bundled" (wordfreq) or "books" (the reader's own file, #42)
     popup_context = true,     -- "Show the text around the character in the popup"
@@ -105,7 +109,19 @@ function Settings:specialEnabled() return self:get("special") == true end
 function Settings:componentsEnabled() return self:get("components") == true end
 function Settings:wordsFirst() return self:get("words_first") == true end
 function Settings:charRankEnabled() return self:get("char_rank") == true end
-function Settings:tradHeadsEnabled() return self:get("trad_heads") == true end
+
+Settings.HEAD_FORMS = { "simp_trad", "written_other", "written", "simp" }
+
+-- "Headwords" (#80): one of HEAD_FORMS. With none saved, the old checkbox
+-- (trad_heads, #47/#73) decides: off is "simp", anything else the default.
+function Settings:headForms()
+    local mode = self.store and self.store:readSetting(Settings.PREFIX .. "head_forms")
+    for _, m in ipairs(Settings.HEAD_FORMS) do
+        if mode == m then return mode end
+    end
+    if self.store and self.store:readSetting(Settings.PREFIX .. "trad_heads") == false then return "simp" end
+    return Settings.DEFAULTS.head_forms
+end
 function Settings:classicalEnabled() return self:get("classical_mode") == true end
 
 Settings.TEXT_ORIGINAL, Settings.TEXT_SIMPLIFIED = "original", "simplified"

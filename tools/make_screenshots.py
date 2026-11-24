@@ -12,8 +12,9 @@ a default run: the AI's answer varies, so it can't be gated like the others.
 
 For checks, not the README: SHOT_FONT="STKaiti" uses another book font (taps
 must still land: the device log is checked as usual), SHOT_MATCH_FONT=false
-turns "Try to match the book's font" off, SHOT_TRAD=false turns "Show
-traditional in headwords" off, SHOT_TEXT=simplified sets "Dictionary text" to
+turns "Try to match the book's font" off, SHOT_HEADS=simp (or the old
+SHOT_TRAD=false) sets "Headwords" to Simplified only, SHOT_HEADS=written_other
+or written to As written • other form or As written only (#80), SHOT_TEXT=simplified sets "Dictionary text" to
 Simplified, SHOT_MOE=always shows MOE Always for characters and words,
 SHOT_WORDS_FIRST=false takes them with Words first off (it is on by default since 2.23.0),
 SHOT_NIGHT=true takes the shots in night mode, and SHOT_OUT=dir saves there
@@ -69,6 +70,9 @@ THRESHOLD = 3500
 # Settings for checks (see above); the gate takes the same.
 SHOT_TEXT = "simplified" if os.environ.get("SHOT_TEXT") == "simplified" else "original"
 SHOT_MOE = "always" if os.environ.get("SHOT_MOE") == "always" else "fallback"
+SHOT_HEADS = os.environ.get("SHOT_HEADS") or ("simp" if os.environ.get("SHOT_TRAD") == "false" else "simp_trad")
+if SHOT_HEADS not in ("simp_trad", "written_other", "written", "simp"):
+    sys.exit(f"SHOT_HEADS={SHOT_HEADS}: simp_trad, written_other, written or simp")
 # Words first (#71, on by default since 2.23.0; the shots use it since #72).
 SHOT_WORDS_FIRST = os.environ.get("SHOT_WORDS_FIRST") != "false"
 # MOE's text in the shots, as the Dictionary text setting gives it (#48).
@@ -292,7 +296,7 @@ def settings_variant(original, pinyin=True, threshold=None, classical=False):
             "chinesehelper_words_first": "true" if SHOT_WORDS_FIRST else "false",   # #71
             "chinesehelper_page_underline": "true",
             "chinesehelper_match_book_font": "false" if os.environ.get("SHOT_MATCH_FONT") == "false" else "true",
-            "chinesehelper_trad_heads": "false" if os.environ.get("SHOT_TRAD") == "false" else "true",
+            "chinesehelper_head_forms": f'"{SHOT_HEADS}"',   # "Headwords" (#80)
             "chinesehelper_dict_text": f'"{SHOT_TEXT}"',   # the gate's (the default, #48)
             "chinesehelper_classical_mode": "true" if classical else "false",   # #53
             "night_mode": "true" if os.environ.get("SHOT_NIGHT") == "true" else "false",

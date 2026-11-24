@@ -638,6 +638,20 @@ function ChineseHelper:addToMainMenu(menu_items)
     local refresh = function() plugin.annotator:refreshPage() end
     local apply = function(touchmenu) plugin.annotator:apply(touchmenu) end
 
+    -- "Headwords" (#80): Settings.HEAD_FORMS.
+    local heads_long = {
+        simp_trad = _("Simplified • traditional"),
+        written_other = _("As written • other form"),
+        written = _("As written only"),
+        simp = _("Simplified only"),
+    }
+    local heads_short = {
+        simp_trad = _("simplified • traditional"),
+        written_other = _("as written • other"),
+        written = _("as written"),
+        simp = _("simplified"),
+    }
+
     local uncertain_items = {}
     local uncertain_labels = {
         { Settings.UNCERTAIN_BOTH, _("Show both readings (chéng/shèng)") },
@@ -801,10 +815,12 @@ function ChineseHelper:addToMainMenu(menu_items)
                 callback = function() settings:set("char_rank", not settings:charRankEnabled()) end,
             },
             {
-                text = _("Show traditional in headwords"),
-                help_text = _("Each entry's headword shows its traditional form after the simplified one, at the same size: 门 • 門, 学习 • 學習. A word shows the one form it is written with; a single character with several shows them all, the one the word around it uses first (发 • 髮/發 in 头发). Only the simplified form is shown when the two are the same (人, 大人). A character or word tapped in traditional characters (in a traditional book, or in MOE's text) shows the same way, simplified first: 头发 • 頭髮. When off, headwords are simplified only. The entries' own text is set by Dictionaries → Dictionary text."),
-                checked_func = function() return settings:tradHeadsEnabled() end,
-                callback = function() settings:set("trad_heads", not settings:tradHeadsEnabled()) end,
+                text_func = function()
+                    return T(_("Headwords: %1"), heads_short[settings:headForms()])
+                end,
+                help_text = _("Which forms each entry's headword shows. Simplified • traditional: the simplified form first, in bold, then its traditional form at the same size: 门 • 門, 学习 • 學習, also for a word tapped in traditional characters (头发 • 頭髮). As written • other form: the form the text uses first, so a traditional book shows 頭髮 • 头发 and a simplified one 头发 • 頭髮. As written only: the form the text uses alone (頭髮 in a traditional book). Simplified only: 头发 whatever the text uses. A word shows the one other form it is written with; a single simplified character with several traditional forms shows them all, the one the word around it uses first (发 • 髮/發 in 头发). Nothing is added when the two forms are the same (人, 大人). A word tapped in MOE's text counts as written in traditional characters. The entries' own text is set by Dictionaries → Dictionary text."),
+                sub_item_table = radio(Settings.HEAD_FORMS, "head_forms", function(value) return heads_long[value] end,
+                    function() end, function() return settings:headForms() end),
             },
             {
                 text = _("Show the text around the character in the popup"),

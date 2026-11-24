@@ -79,7 +79,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 21 + 8 + 2 + 5 + 3 + 3 + 5 + 9 + 5 + 8 + 3 + 13 + 3 + 1, "menu size")   -- popup text size: 9 choices (#81); frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels (2), order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
+eq(count, 21 + 8 + 2 + 5 + 3 + 3 + 5 + 9 + 5 + 4 + 8 + 3 + 13 + 3 + 1, "menu size")   -- popup text size: 9 choices (#81); headwords: 4 choices (#80); frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels (2), order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
@@ -118,14 +118,30 @@ assert(not plugin.settings:charRankEnabled() and not rank_item.checked_func())
 rank_item.callback()
 assert(plugin.settings:charRankEnabled())
 
--- Traditional forms on the head lines (#47): on by default, a toggle, right after the rank.
-local trad_item = entry.sub_item_table[16]
-eq(trad_item.text, "Show traditional in headwords")
-assert(plugin.settings:tradHeadsEnabled() and trad_item.checked_func())
-trad_item.callback()
-assert(not plugin.settings:tradHeadsEnabled() and not trad_item.checked_func())
-trad_item.callback()
-assert(plugin.settings:tradHeadsEnabled())
+-- Headwords (#80): right after the rank, four radio choices, the default
+-- simplified • traditional; a saved old checkbox off reads as simplified only.
+local heads_item = entry.sub_item_table[16]
+eq(heads_item.text_func(), "Headwords: simplified • traditional")
+local heads_labels = {}
+for _, item in ipairs(heads_item.sub_item_table) do
+    heads_labels[#heads_labels + 1] = item.text
+    assert(item.radio, "radio choices")
+end
+eq(table.concat(heads_labels, "|"), "Simplified • traditional|As written • other form|As written only|Simplified only")
+assert(heads_item.sub_item_table[1].checked_func() and not heads_item.sub_item_table[2].checked_func())
+heads_item.sub_item_table[2].callback()
+eq(plugin.settings:headForms(), "written_other"); eq(heads_item.text_func(), "Headwords: as written • other")
+assert(heads_item.sub_item_table[2].checked_func() and not heads_item.sub_item_table[1].checked_func())
+heads_item.sub_item_table[3].callback()
+eq(heads_item.text_func(), "Headwords: as written")
+plugin.settings:set("head_forms", nil)
+plugin.settings:set("trad_heads", false)
+eq(heads_item.text_func(), "Headwords: simplified", "the old checkbox off")
+assert(heads_item.sub_item_table[4].checked_func())
+heads_item.sub_item_table[1].callback()
+eq(plugin.settings:headForms(), "simp_trad", "chosen again: the new setting wins")
+plugin.settings:set("trad_heads", nil)
+assert(heads_item.help_text:find("As written only", 1, true))
 
 -- The context line and the page underline: on by default, each its own toggle.
 local ctx_item, ul_item = entry.sub_item_table[17], entry.sub_item_table[18]
