@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.25.0 (2026-11-24)
 
 One popup on screen at a time (#82)
 - A popup opened from another (a character tapped in a popup, or Origin & Usage) now takes its
@@ -27,6 +27,18 @@ Popup text size in 10% steps (#81)
 - **Popup text size** now offers every 10% from 40 to 120% of the book's text size (50, 70, 90
   and 110% are new). The default stays 60%.
 - Suggested by Generalhooha in #78.
+
+Word choice by segmentation (#75)
+- The word that decides a character's reading (the pinyin on the page and the popup's "likely
+  here") now comes from the most probable split of the surrounding text into words, using every
+  CC-CEDICT word's frequency, instead of the longest word through the character. 到了 is read
+  dào le (not liǎo from 到了 "finally"), 手中的诏书 zhōng de (not zhòng dì from 中的 "hit the
+  target"), 一个劲敌 yī ge jìngdí (not 一个劲).
+- Checked on three books and the two samples with every character drawn: 3,122 readings change
+  in about 560,000 characters; of 30 checked by hand, 25 are better, 4 the same and 1 worse
+  (占梦). The regression set has no regressions.
+- A learner-mode page (pinyin on every character) builds in about 56 ms on a Boox Go 7, 8 ms
+  more than 2.24.0. The database grows from 53 to 56 MB.
 
 ## 2.24.0 (2026-11-22)
 
