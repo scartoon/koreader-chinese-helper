@@ -90,7 +90,7 @@ default, because the AI's answer differs from run to run.
   modern. On 128 words from classical texts the entry had the needed sense 95% of the time
   ([Classical mode](#classical-mode)).
 - **Chinese definitions you can read**: tap any character in MOE's or an idiom dictionary's
-  text and it opens its own popup on top
+  text and it opens its own popup in its place
   ([Tapping a character in the popup](#tapping-a-character-in-the-popup)).
 - **Translate** the whole sentence with KOAssistant and your own AI provider, or with KOReader's
   built-in translator when KOAssistant is not installed
@@ -414,9 +414,9 @@ loaded, the popup uses the UI font. Turned off, the popup is exactly as before.
 
 The Chinese dictionaries' own text (MOE, the 成語典, Xinhua and Moegirlpedia: their definitions
 and quotations, an idiom's short line, the Origin & Usage view) can be read by tapping: a character in it
-opens its own popup on top, looked up like a tap in the book (the character and every word
-around it in that text that contains it), and stays underlined in the popup below while the new
-one is open.
+opens its own popup in place of the one you tapped in, looked up like a tap in the book (the
+character and every word around it in that text that contains it). Only one popup is on the
+screen at a time; its title shows the way you came, 崇 › 莞, and **Close** takes you back one step.
 
 CC-CEDICT's cross-references can be tapped too: the word after **variant of**, **see**, **used
 in**, **CL:** and the like, wherever a word is given with its pinyin ("variant of 賢慧|贤慧
@@ -439,8 +439,12 @@ reading the reference gives first. Nothing else in the popup is tappable: not th
 - **Where a tap lands**: on a character, or within half a character's width of one (beside it,
   just above or below, on the punctuation next to it), takes the nearest, on the tapped line
   first. A tap anywhere else does what it did before. This holds after the popup is scrolled.
+- **One popup at a time.** A popup opened from another takes its place on the screen, placed
+  like the first (away from the character tapped on the page), and its title starts with the
+  headwords of the popups below it: 崇 › 莞, cut from the left (… › 東 › 莞) when it is too long.
 - **Close** (or the device's Back key) in a popup opened from another closes only that popup
-  and shows the one below; a tap outside closes them all. Only the popup from the page has
+  and shows the one below again as you left it: scrolled where it was, the character you tapped
+  in it no longer underlined. A tap outside (on the book's text) closes them all. Only the popup from the page has
   **Translate**. At most **5** popups are open at once (an Origin & Usage view counts); past
   that, a tap says so and opens nothing.
 - **Chinese text size**: the Chinese dictionaries' text (definitions, short lines, the Origin &
@@ -515,7 +519,7 @@ than CC-CEDICT's English gloss:
   small label: 一毛不拔 → *形容人非常吝啬。贬义。* (成语典). It comes from MOE idioms when it has
   the chengyu, otherwise from Xinhua idioms. Entries already in Chinese get no extra line.
 - **A 成语 Origin & Usage button** opens a full-screen view, in the larger Chinese size, with only **Close**,
-  which returns to the popup below; any character in it can be tapped
+  which returns to the popup it was opened from; any character in it can be tapped
   ([above](#tapping-a-character-in-the-popup)). From MOE idioms: 释义, the 典源 passage with its
   notes, 典故说明 (the story retold in modern Chinese), 书证, usage, examples, 辨识 and near and
   opposite idioms; a related form (玉石俱碎) adds its main idiom's source and story under that

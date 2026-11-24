@@ -1,5 +1,5 @@
 -- Popups opened from popups (ch_tap.lua): a character tapped in a popup's
--- text opens its popup on top, underlined below while it is shown; its
+-- text opens its popup in place of it (#82), underlined below while it is open; its
 -- Close (no Back button) or the Back key returns to the one below; a tap
 -- outside or Translate closes them all; at most Tap.MAX_DEPTH at once. The nested popup's context line
 -- is the popup text's sentence, not the book's; only the first popup has a Translate button. Built
@@ -18,7 +18,7 @@ function Extendable:extend(o)
 end
 Extendable.new = Extendable.extend
 
-local shown, closed, infos = {}, {}, {}
+local shown, closed, infos, dirty = {}, {}, {}, {}
 stub("gettext", function(s) return s end)
 stub("logger", { err = function() end, warn = function() end, info = function() end, dbg = function() end })
 stub("ffi/util", { template = function(s, ...)
@@ -26,7 +26,8 @@ stub("ffi/util", { template = function(s, ...)
     return (s:gsub("%%(%d)", function(n) return tostring(args[tonumber(n)]) end))
 end })
 stub("ui/uimanager", {
-    nextTick = function(_, f) f() end, setDirty = function() end,
+    nextTick = function(_, f) f() end,
+    setDirty = function(_, w, f) dirty[#dirty + 1] = { w = w, f = f } end,
     show = function(_, w) shown[#shown + 1] = w end,
     close = function(_, w, refresh, region)
         closed[#closed + 1] = { w = w, refresh = refresh, region = region }
@@ -59,12 +60,25 @@ G_reader_settings = {
     flush = function() end,
 }
 
+-- A screen rectangle with Geom's combine and copy.
+function Rect(x, y, w, h)
+    return { x = x, y = y, w = w, h = h,
+             combine = function(a, b)
+                 local x0, y0 = math.min(a.x, b.x), math.min(a.y, b.y)
+                 return Rect(x0, y0, math.max(a.x + a.w, b.x + b.w) - x0, math.max(a.y + a.h, b.y + b.h) - y0)
+             end,
+             copy = function(a) return Rect(a.x, a.y, a.w, a.h) end }
+end
+
 -- The fake popup: the arguments Tap gives it, the underline set on it, and
 -- closing as Popup:onClose does (UIManager:close, then on_close).
 local Popup = { BOLD_START = "", BOLD_END = "" }
 function Popup:new(args)
     args.marks = {}
     args.setMark = function(p, hit) p.marked = hit; p.marks[#p.marks + 1] = hit or false end
+    args.setHidden = function(p, hidden) p.hidden = hidden and true or false end
+    -- Its frame on the screen: the lower half, or all of it when tall.
+    args.region = function(p) return p.tall and Rect(0, 0, 1680, 1264) or Rect(0, 632, 1680, 632) end
     args.onClose = function(p, region, tall)
         require("ui/uimanager"):close(p, tall and "flashpartial" or "partial", region)
     end
@@ -82,6 +96,9 @@ tap.textHeight = function() return 64 end
 local Text = require("ch_text")
 local Model = require("ch_popup_model")
 
+-- The page character the first popup was opened from.
+ROOT_BOX = { x = 500, y = 300, w = 64, h = 64 }
+
 -- The popup for a tap on the page (as Tap:showPopup, without the page).
 local function root(left, char, right, sentence)
     local cands, words = Text.candidates(Text.chars(left), char, Text.chars(right))
@@ -89,7 +106,7 @@ local function root(left, char, right, sentence)
     for _, r in ipairs(tap:fallbackRows(words, rows)) do rows[#rows + 1] = r end
     local m = Model.matches{ cands = cands, rows = rows, order = plugin.settings:fallbackOrder() }
     return tap:present{ db = plugin:db(), char = char, cands = cands, rows = rows, matches = m, annotated = false,
-                        mark = 7, sentence = sentence }
+                        mark = 7, sentence = sentence, box = ROOT_BOX }
 end
 
 -- A tap on the n-th `char` of `text` in popup p's body (as Popup:charAt).
@@ -148,7 +165,10 @@ eq(p1.marked, hit, "underlined in the popup below")
 assert(texts(p2):find("多疑", 1, true), "a word around it in the popup text: " .. texts(p2))
 assert(not button(p2, "Back"), "no Back button: " .. texts(p2))
 eq(lastRow(p2), "Close", "Close alone on the bottom row")
-eq(p2.anchor, hit.rect, "placed away from the tapped character")
+eq(p2.anchor, ROOT_BOX, "placed like the first, away from the character tapped on the page (#82)")
+eq(p1.hidden, true, "the first is hidden, not closed (#82)")
+eq(p2.hidden, nil, "only the new one is drawn")
+eq(table.concat(p2.crumbs, ","), "鼠", "its breadcrumb: the first popup's headword")
 -- Its context line: the popup text's sentence (cut at ；), the character marked.
 eq(table.concat(p2.context.chars, ""), "首鼠：鼠性多疑，出洞时一进一退，不能自决；", "context: the popup sentence")
 eq(p2.context.chars[p2.context.index], "疑", "the tapped character marked")
@@ -157,6 +177,7 @@ eq(p2.context.chars[p2.context.index], "疑", "the tapped character marked")
 p2.on_back()
 eq(#tap:stack(), 1, "back to one")
 eq(p1.marked, nil, "underline gone")
+eq(p1.hidden, false, "the first shown again")
 eq(closed[#closed].w, p2, "the second closed")
 eq(#unmarked, 0, "the page underline stays")
 -- Its Close does the same.
@@ -270,6 +291,98 @@ eq(table.concat(looked.opts.context.chars, ""), "首鼠：鼠性多疑，出洞�
 looked.opts.on_close()
 eq(p1.marked, nil, "the dictionary's close takes the underline")
 p1.on_outside()
+
+-- One popup on screen at a time (#82): each nested popup hides the one
+-- below; Close and the Back key step back one level, showing the one below
+-- again as it was (the same object: its scroll position, title-bar buttons
+-- and Translate row untouched); a tap outside closes them all.
+do
+    local function visible()
+        local out = {}
+        for k, p in ipairs(tap:stack()) do if not p.hidden then out[#out + 1] = k end end
+        return table.concat(out, ",")
+    end
+    p1 = root("首", "鼠", "两端", function(close) return { { text = "Translate", callback = close } } end)
+    p1.scroll_offset = 240   -- (stands for the ScrollableContainer's state)
+    local p1_buttons, p1_marks = p1.buttons, p1.mark_buttons
+    local n_dirty = #dirty
+    p1.on_char_tap(p1, hitIn(DEF, "疑"))
+    p2 = tap:stack()[2]
+    eq(visible(), "2", "depth 2: only the top drawn")
+    -- The swap: one refresh over both frames.
+    eq(#dirty, n_dirty + 1); eq(dirty[#dirty].w, "all")
+    local mode, region = dirty[#dirty].f()
+    eq(mode, "ui"); eq(region.y, 632); eq(region.h, 632)
+    p2.on_char_tap(p2, hitIn(DEF, "端"))
+    p3 = tap:stack()[3]
+    eq(visible(), "3", "depth 3: only the top drawn")
+    eq(table.concat(p3.crumbs, ","), "鼠,疑", "the path below it")
+    eq(p3.title, "端"); eq(p3.anchor, ROOT_BOX, "every level placed like the first")
+    -- Close: back one level.
+    button(p3, "Close").callback()
+    eq(#tap:stack(), 2); eq(visible(), "2", "the second shown again")
+    eq(p2.marked, nil, "its underline gone"); eq(p1.marked ~= nil, true, "the first's stays")
+    eq(closed[#closed].region.y, 632, "one refresh over both")
+    -- The Back key: the same.
+    p2.on_back()
+    eq(#tap:stack(), 1); eq(visible(), "1")
+    eq(tap:stack()[1], p1, "the first popup itself, not a rebuilt one")
+    eq(p1.scroll_offset, 240, "scrolled where it was")
+    eq(p1.buttons, p1_buttons, "its buttons and Translate row"); eq(p1.mark_buttons, p1_marks)
+    eq(lastRow(p1), "Close")
+    assert(button(p1, "Translate"), texts(p1))
+    -- A tap outside at depth 3 closes all three.
+    p1.on_char_tap(p1, hitIn(DEF, "疑"))
+    tap:stack()[2].on_char_tap(tap:stack()[2], hitIn(DEF, "端"))
+    local before = #closed
+    tap:stack()[3].on_outside()
+    eq(#tap:stack(), 0, "all closed"); eq(#closed - before, 3)
+    eq(closed[#closed].w, p1, "the first last, with the refresh")
+    eq(closed[#closed].region.h, 632, "over all their frames")
+
+    -- Origin & Usage in the middle: page -> view -> nested.
+    p1 = root("首", "鼠", "两端")
+    tap:showChuchu("首鼠两端", "xinhua", VIEW, p1)
+    view = tap:stack()[2]
+    eq(visible(), "2", "the view in place of the first")
+    eq(table.concat(view.crumbs, ","), "鼠"); eq(view.headword, "首鼠两端")
+    view.on_char_tap(view, hitIn(VIEW, "秃"))
+    p3 = tap:stack()[3]
+    eq(visible(), "3")
+    eq(table.concat(p3.crumbs, ","), "鼠,首鼠两端", "the view's headword in the path")
+    button(p3, "Close").callback()
+    eq(visible(), "2", "the view back"); eq(view.marked, nil)
+    button(view, "Close").callback()
+    eq(visible(), "1", "then the first")
+    p1.on_outside()
+
+    -- A tall popup: the swap flashes, both ways.
+    p1 = root("首", "鼠", "两端")
+    p1.tall = true
+    p1.on_char_tap(p1, hitIn(DEF, "疑"))
+    mode, region = dirty[#dirty].f()
+    eq(mode, "flashpartial"); eq(region.h, 1264)
+    button(tap:stack()[2], "Close").callback()
+    eq(closed[#closed].refresh, "flashpartial")
+    eq(p1.hidden, false)
+    p1.on_outside()
+
+    -- A word button in a nested popup: the popup below comes back, still
+    -- underlined, under KOReader's dictionary popup.
+    local looked2
+    local real_lookup = tap.lookupInKOReader
+    tap.lookupInKOReader = function(_, text, box, opts) looked2 = { text = text, opts = opts } end
+    p1 = root("首", "鼠", "两端")
+    local h = hitIn(DEF, "疑")
+    p1.on_char_tap(p1, h)
+    button(tap:stack()[2], "多疑").callback()
+    eq(#tap:stack(), 1); eq(p1.hidden, false, "shown again"); eq(p1.marked, h, "with its underline")
+    looked2.opts.on_close()
+    eq(p1.marked, nil)
+    p1.on_outside()
+    tap.lookupInKOReader = real_lookup
+end
+print("one popup at a time: ok")
 
 -- A popup from the page with a Translate row (Wi-Fi on) and enough words to
 -- wrap: entries in rows, Translate, then Close alone on the bottom row.

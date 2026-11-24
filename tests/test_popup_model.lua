@@ -853,3 +853,16 @@ eq(twb[1].head, "**賤人** • 贱人"); eq(twb[2].head, "**所以**")
 eq(Model.classicalWordBlocks(wrows, twm, "**", "**", "written")[1].head, "**賤人**")
 eq(Model.classicalWordBlocks(wrows, twm, "**", "**", "simp_trad")[1].head, "**贱人** • 賤人")
 eq(Model.classicalWordBlocks(wrows, wm, "**", "**", "written")[1].head, "**贱人**", "simplified text")
+
+-- A nested popup's breadcrumb title (#82).
+eq(Model.breadcrumb(nil, "崇"), "崇", "the first popup: its own title")
+eq(Model.breadcrumb({}, "崇"), "崇")
+eq(Model.breadcrumb({ "崇" }, "莞"), "崇 › 莞")
+eq(Model.breadcrumb({ "袁", "崇" }, "莞", function() return true end), "袁 › 崇 › 莞")
+local function under(n) return function(t) return #chars(t) <= n end end
+eq(Model.breadcrumb({ "袁崇焕", "崇", "東" }, "莞", under(15)), "袁崇焕 › 崇 › 東 › 莞", "fits")
+eq(Model.breadcrumb({ "袁崇焕", "崇", "東" }, "莞", under(14)), "… › 崇 › 東 › 莞", "cut from the left")
+eq(Model.breadcrumb({ "袁崇焕", "崇", "東" }, "莞", under(9)), "… › 東 › 莞")
+eq(Model.breadcrumb({ "袁崇焕", "崇", "東" }, "莞", under(1)), "… › 莞", "at least the current one")
+eq(Model.breadcrumb({ "鼠" }, "首鼠两端 · Origin & Usage · 新华", function() return true end),
+   "鼠 › 首鼠两端 · Origin & Usage · 新华")

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+One popup on screen at a time (#82)
+- A popup opened from another (a character tapped in a popup, or Origin & Usage) now takes its
+  place instead of being drawn on top of it, so there is only ever one **Close** row on the
+  screen. It is placed like the first popup, away from the character tapped on the page.
+- **Close** (and the Back key) goes back one step: the popup below comes back as you left it,
+  scrolled where it was, with its title-bar buttons and Translate row. A tap outside still
+  closes them all.
+- A nested popup's title shows the way you came: 崇 › 莞, cut from the left with … when it is
+  too long.
+
 Headwords that follow the text you tapped (#80)
 - **Show traditional in headwords** is replaced by **Headwords**, with four choices:
   **Simplified • traditional** (the default, as before: **头发** • 頭髮 for any tap),
