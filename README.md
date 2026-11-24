@@ -169,7 +169,7 @@ Tools menu). Settings apply to all books.
 | Mark unusual readings of common characters (names, historical terms) | On (default) / off. See [Unusual readings](#unusual-readings-of-common-characters) |
 | Known & remind-me readings | The counts; **Show marks** lists them (a tap clears one), **Clear all marks** (asks first). See [Known and remind-me readings](#known-and-remind-me-readings) |
 | Edge pass-through width | 0 mm (off) / 2.5 mm / 5 mm (default) / 7.5 mm / 10 mm. See [What a tap does](#what-a-tap-does) |
-| Popup text size | 40 / 60 (default) / 80 / 100 / 120% of the book's text size |
+| Popup text size | 40 to 120% of the book's text size, in 10% steps (default 60%) |
 | Chinese text size | 100 / 115 / 130 (default) / 150 / 175% of the popup text size, for the Chinese dictionaries' text (MOE, 成語典, Xinhua, Moegirlpedia) and the line of text at the top of the popup. See [Tapping a character in the popup](#tapping-a-character-in-the-popup) |
 | Show character components | On (default) / off. See [Character components](#character-components) |
 | Words first | On (default) / off: the entries of the words around the tapped character above its own entry (with its MOE entry and components); off, the character first. See [The popup](#the-popup) |

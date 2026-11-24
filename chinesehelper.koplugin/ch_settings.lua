@@ -11,7 +11,7 @@ Settings.PREFIX = "chinesehelper_"
 Settings.THRESHOLDS = { 0, 500, 1000, 1500, 2500, 3500, 5000, 7000 }
 Settings.ALL = 0
 Settings.SIZES = { 35, 40, 45, 50, 55 }            -- pinyin size, % of the book's text size
-Settings.POPUP_SIZES = { 40, 60, 80, 100, 120 }     -- popup text size, % of the book's text size
+Settings.POPUP_SIZES = { 40, 50, 60, 70, 80, 90, 100, 110, 120 }  -- popup text size (10% steps since #81), % of the book's text size
 Settings.CHINESE_SIZES = { 100, 115, 130, 150, 175 } -- Chinese text in the popup, % of the popup text size
 
 Settings.UNCERTAIN_BOTH = "both"
@@ -204,8 +204,7 @@ function Settings:sizePercent()
     return math.max(20, math.min(80, pct))
 end
 
--- One of POPUP_SIZES; anything else (e.g. 70 saved by an earlier version) is
--- the default.
+-- One of POPUP_SIZES; anything else (a hand-edited value) is the default.
 function Settings:popupTextPercent()
     local pct = tonumber(self:get("popup_text_pct"))
     for _, size in ipairs(Settings.POPUP_SIZES) do

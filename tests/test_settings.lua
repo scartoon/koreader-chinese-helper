@@ -48,11 +48,13 @@ eq(Settings.new(store{ chinesehelper_threshold = -1 }):threshold(), 3500)
 s = Settings.new(store{ chinesehelper_uncertain = "nonsense", chinesehelper_size_pct = 500,
                         chinesehelper_special_style = "x", chinesehelper_popup_text_pct = 1 })
 eq(s:uncertainMode(), "both"); eq(s:sizePercent(), 80); eq(s:specialStyle(), "bold"); eq(s:popupTextPercent(), 60)
--- Popup text size: exactly the menu's choices; an old 70 falls back to the default.
-for _, pct in ipairs({ 40, 60, 80, 100, 120 }) do
+-- Popup text size: exactly the menu's choices, every 10% from 40 to 120 (#81);
+-- anything else falls back to the default.
+eq(table.concat(Settings.POPUP_SIZES, ","), "40,50,60,70,80,90,100,110,120")
+for _, pct in ipairs({ 40, 50, 60, 70, 80, 90, 100, 110, 120 }) do
     eq(Settings.new(store{ chinesehelper_popup_text_pct = pct }):popupTextPercent(), pct)
 end
-eq(Settings.new(store{ chinesehelper_popup_text_pct = 70 }):popupTextPercent(), 60)
+eq(Settings.new(store{ chinesehelper_popup_text_pct = 65 }):popupTextPercent(), 60)
 -- Chinese text size: default 130%, the menu's choices, anything else the default.
 eq(Settings.new(store()):chineseTextPercent(), 130)
 for _, pct in ipairs({ 100, 115, 130, 150, 175 }) do
