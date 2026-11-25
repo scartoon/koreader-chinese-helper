@@ -240,9 +240,10 @@ assert(p.text:find("宛如  wǎnrú\n", 1, true), "no tag: CC-CEDICT gives 宛 o
 eq(words(p), "宛,宛如,大宛", "both words listed, the decided one first (#75) and tagged")
 
 -- The word a character belongs to comes from segmenting its run (#75):
--- 尽尽 + 自己的心思. 尽自 (jǐnzi, a word only because 尽 is polyphonic) used
--- to win as the leftmost two-character word, leaving 己 on its own.
-local jin = "能做的，只能是为她办一个盛大的葬礼，尽尽自己的心思。"
+-- 尽 + 自己的心思. 尽自 (jǐnzi, a word only because 尽 is polyphonic) used
+-- to win as the leftmost two-character word, leaving 己 on its own. (The
+-- book's 尽尽自己 is now the hand-checked word 尽尽 jìn jìn, #77.)
+local jin = "能做的，只能是为她办一个盛大的葬礼，尽自己的心思。"
 p = popup(jin, "自")
 eq(p.path.word, "自己"); eq(p.path.start, 0)
 eq(p.decided, nil, "自己 has no reading to give: it decides nothing")
@@ -251,15 +252,15 @@ assert(words(p):find("尽自", 1, true), "尽自 still listed: " .. words(p))
 assert(not p.text:find("尽自[^\n]*likely here"), p.text)
 assert(not p.text:find("decides", 1, true), p.text)
 assert(not p.text:find("likely here", 1, true), "自 has one reading; no word is likely here\n" .. p.text)
--- The second 尽: alone on the path, so 尽自 (jǐn) does not decide it. No
+-- 尽: alone on the path, so 尽自 (jǐn) does not decide it. No
 -- word or rule does, so it is the uncertainty pair, jìn first (jìn alone
 -- in "best" mode), where it used to be jǐn, decided by 尽自.
-p = popup(jin, "尽", { nth = 2 })
+p = popup(jin, "尽")
 eq(p.chosen, "jìn/jǐn"); assert(p.unsure); eq(p.decided, nil); eq(p.path, nil)
 eq(marked(p, "尽"), "jìn,jǐn", "jìn first")
 assert(not p.text:find("尽自[^\n]*likely here"), p.text)
 assert(not p.text:find("decides", 1, true), p.text)
-p = popup(jin, "尽", { nth = 2, mode = "best" })
+p = popup(jin, "尽", { mode = "best" })
 eq(p.chosen, "jìn"); eq(marked(p, "尽"), "jìn")
 -- The page draws the same (尽 ranks below 1,000: learner threshold).
 local items = H.items(jin)
@@ -271,7 +272,7 @@ for _, a in ipairs(Resolve.annotate(data, items, 0, "best", special)) do
         assert(not (a.match and a.match.word == "尽自"), "尽自 decides nothing")
     end
 end
-eq(seen, 2)
+eq(seen, 1)
 -- 大宛 alone: yuān.
 p = popup("西域有大宛国。", "宛", { threshold = 2500 })
 eq(p.drawn, "yuān"); eq(p.decided.word, "大宛")
