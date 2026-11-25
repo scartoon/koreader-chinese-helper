@@ -489,9 +489,10 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
             if not is_name and marked not in readings_by_form[form]:
                 readings_by_form[form].append(marked)
 
-    def neutral_only(form):
+    def neutral_only(form, chars=None):
         """position -> neutral syllable, for the syllables after the first of
-        an annotatable character that CC-CEDICT gives only as a neutral tone:
+        an annotatable character (any character in `chars`, when given) that
+        CC-CEDICT gives only as a neutral tone:
         one of the word's readings has it toneless (刺猬 cì wei) and none
         gives it a tone with the same letters (大爷 dà yé / dà ye does, so 爷
         is not one). These are drawn as the neutral tone, the standard spoken
@@ -499,7 +500,7 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
         readings = every_reading.get(form, ())
         out = {}
         for k in range(1, len(form)):
-            if form[k] not in defaults:
+            if form[k] not in (defaults if chars is None else chars):
                 continue
             for r in readings:
                 syl = r[k]
@@ -587,16 +588,22 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
             words[form][0] = py
             stats["several CC-CEDICT readings: pypinyin's chosen"] += 1
 
-    # Words that exist only for a neutral tone: CC-CEDICT gives an annotatable
-    # character a neutral tone that is not its default (鼓捣 gǔ dao, 捣 is
-    # otherwise only dǎo), in a word not already here (it has no polyphonic
-    # character). Added so the neutral tone is drawn; rare characters' words
-    # are kept in memory, so this costs no page-turn query.
+    # Words that exist only for a neutral tone: CC-CEDICT gives a character a
+    # neutral tone that is not its default (鼓捣 gǔ dao, 捣 is otherwise only
+    # dǎo), in a word not already here (it has no polyphonic character).
+    # Added so the neutral tone is drawn: for a rare character at every
+    # threshold (its words are kept in memory, so this costs no page-turn
+    # query), for a common one in learner mode (时候 shí hou, 媳妇 xí fu,
+    # #83; common characters are only resolved when drawn).
     for form in sorted(every_reading):
         if form in words or form in overrides:
             continue
-        npos = neutral_only(form)
-        if not any(defaults[form[k]] != syl for k, syl in npos.items()):
+        npos = neutral_only(form, all_defaults)
+        if not any(all_defaults[form[k]] != syl for k, syl in npos.items()):
+            continue
+        common = not any(k in neutral_only(form) for k in npos)
+        if common and not (word_freq(form, next(iter(sorted(simp_of.get(form, ())))) if simp_of.get(form) else None)
+                           or phrase_reading(form)):
             continue
         candidates = readings_by_form.get(form) or every_reading[form]
         py = phrase_reading(form)
@@ -605,7 +612,7 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
         simps = simp_of.get(form, ())
         words[form] = [choice, False, next(iter(sorted(simps))) if simps else None]
         neutral_added.add(form)
-        stats["neutral-only words added"] += 1
+        stats["neutral-only words added" + (" (common characters, #83)" if common else "")] += 1
 
     # Hand-checked words win over both sources.
     for form, syls in overrides.items():
