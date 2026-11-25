@@ -821,9 +821,17 @@ with several readings, so it is the hard case.
 | 5,000 | 260 | 93.8% | 97.3% | 28.8% | 99.67% |
 | 7,000 | 42 | 97.6% | 100.0% | 45.2% | 100.00% |
 
-Learner mode, 500 and 1,000 have no rows. The characters they add are common ones, and the
-pinyin drawn is always the reading the popup marks, so the popup's figures in the next paragraph
-largely cover them.
+**Learner mode** (every character drawn) was measured separately, on the reader's own books
+(#35): 300 occurrences of characters with several readings, drawn at random from 10 books held
+out of all tuning, each judged by Claude (not by a person) from the sentence and the
+dictionary's readings. Before the 2.27.0 fixes, 282 were right, 7 were drawn as a pair that
+includes the right reading (得 *de/děi*), and 11 differed: 7 of those were neutral-tone
+conventions rather than errors (一个 *ge* or *gè*, 战术上 *shàng* or *shang*), 4 were real
+errors, since fixed. So about 98.7% of these characters get the right letters and tone, 94.0%
+counting pairs and every neutral-tone difference as wrong. They make up 34% of the characters in
+those books, so overall about 99.5% (98.0% on the strict count). With 300 items the
+uncertainty is roughly ±2 points. Levels 500 and 1,000 have no rows: the pinyin drawn is
+always the reading the popup marks, so the popup's figures below largely cover them.
 
 The last column weights every character the plugin would draw by how often it occurs in ordinary
 text (wordfreq), counting characters with a single reading as right. It is an estimate from

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.27.0 (2026-11-24)
+
+Learner-mode accuracy on the reader's own books (#35)
+- Measured: 300 random occurrences of characters with several readings, from 10 held-out
+  books, judged by Claude. About 98.7% get the right letters and tone; 94.0% counting pairs
+  (得 *de/děi*) and neutral-tone differences as wrong. The README's Accuracy section has the
+  details.
+- Fixed the four errors it found: 咳咳 (a cough) *ké ké*, adverb + 地点头 *de diǎn tóu*, the
+  rank title 五大夫 *wǔ dà fū*, and the name 李泌 *Lǐ Bì*.
+- g2pW (a neural model) was compared over 262,634 sampled occurrences. Most of its
+  disagreements were its own Taiwan readings (和 *hàn*, 包括 *guā*), so no other fixes came from it.
+
 ## 2.26.0 (2026-11-24)
 
 Neutral tones of everyday words in learner mode (#83)

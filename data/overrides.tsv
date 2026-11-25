@@ -290,3 +290,9 @@
 曾曾祖父	zēng zēng zǔ fù	(曾 + 曾祖父)
 曾曾祖母	zēng zēng zǔ mǔ	(曾 + 曾祖母)
 尽尽孝心	jìn jìn xiào xīn	(尽 + 尽孝 + 心)
+
+# --- g2pW mining 2.27 (#35): errors found by the held-out gold set ---
+咳咳	ké ké	g2pW mining 2.27, gold set + corpus contexts: in fiction almost always a cough; hāi is the interjection
+地点头	de diǎn tóu	g2pW mining 2.27: adverb + 地 + 点头 (恍然大悟地点头); 地点 "place" wins otherwise
+五大夫	wǔ dà fū	g2pW mining 2.27: the Qin rank title, not 大夫 dài fu "doctor"
+李泌	lǐ bì	g2pW mining 2.27: the Tang statesman Li Bi; 泌 is bì in his name
