@@ -25,8 +25,9 @@ into the database with CC-CEDICT by `tools/build_db.py`:
   (annotatable characters, the `rare` words held in memory) stays as built.
 - `words`: 2–4 character words containing a character with more than one reading, or with
   several dictionary readings themselves (东西), or where CC-CEDICT gives a rare character a
-  neutral tone that is not its default reading (鼓捣 *gǔ dao*), from CC-CEDICT and pypinyin's
-  phrase list, with each word's frequency.
+  neutral tone that is not its default reading (鼓捣 *gǔ dao*; for a common character, only
+  words with a frequency or in pypinyin's list, drawn in learner mode: 时候 *shí hou*, #83), from
+  CC-CEDICT and pypinyin's phrase list, with each word's frequency.
 - `word_marks`: the reading the popup marks for a word, for the few words where it is not the
   one in `words`: words CC-CEDICT lists both with and without a neutral tone (大爷: *dà yé* is
   drawn above the rare 爷, the popup marks *dà ye* "uncle").
