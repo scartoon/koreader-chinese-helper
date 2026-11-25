@@ -130,6 +130,23 @@ function H.special(special, text, target)
     if not sp then return nil end
     return sp.entry.word, sp.entry.syllables[sp.pos], sp.entry.marks[sp.pos] or false
 end
+-- Learner mode (threshold 0, spoken tones) for every annotated character as
+-- { pos, char, drawn reading, dictionary reading (before the spoken tone),
+-- source (see H.decision), deciding word or false, left neighbour or false,
+-- right neighbour or false }.
+function H.learner(data, text, mode, special)
+    local items = items_of(text, -1)
+    local out = {}
+    for _, a in ipairs(Resolve.annotate(data, items, 0, mode, special, nil, true)) do
+        local i = a.index
+        local _, _, match, _, source = Resolve.reading(data, items, i, mode, special)
+        local left = items[i].joined and items[i - 1] and items[i - 1].text or false
+        local right = items[i + 1] and items[i + 1].joined and items[i + 1].text or false
+        out[#out + 1] = { items[i].pos, items[i].text, a.reading, a.dict or a.reading, source or false,
+                          match and match.word or false, left, right }
+    end
+    return out
+end
 return H
 '''
 
@@ -231,6 +248,14 @@ class Plugin:
         for row in self.h.spoken(self.data, text, self.special, spoken).values():
             out.append((int(row[1]), row[2], row[3], row[4], row[5] or None))
         return out
+
+    def learner(self, text, mode="both"):
+        """[(pos, char, drawn, dictionary reading, source, word, left, right)] for every
+        character learner mode draws (threshold 0, spoken tones for 一 and 不)."""
+        out = []
+        for row in self.h.learner(self.data, text, mode, self.special).values():
+            out.append(tuple(None if row[k] is False else row[k] for k in range(1, 9)))
+        return [(int(r[0]),) + r[1:] for r in out]
 
     def special_at(self, text, pos):
         """(word, reading, marked) of the special word covering pos, or None."""
