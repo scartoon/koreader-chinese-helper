@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.26.0 (2026-11-24)
+
+Neutral tones of everyday words in learner mode (#83)
+- Learner mode now draws the neutral tone of common words the dictionary gives one: 时候
+  *shí hou*, 事情 *shì qing*, 回来 *huí lai*, 明白 *míng bai*, 名字 *míng zi*, 朋友 *péng you*
+  (447 words). Before, a word whose characters each have only one reading had no reading of
+  its own, so 时候 was drawn *shí hòu*.
+- Also inside longer words that the dictionary writes with full tones: 做生意 *zuò shēng yi*,
+  到时候, 儿媳妇, 发脾气, 晒太阳, 做买卖 and a few more.
+- Only learner mode is affected: the other settings never draw these characters.
+
+Reduplicated words (#77)
+- Repeated characters that no dictionary lists as a word now take one reading instead of the
+  uncertainty pair: 尽尽 *jìn jìn*, 撇撇嘴 *piě piě*, 写写画画 *xiě xiě*, 咋咋呼呼 *zhā zhā*
+  (it showed *zǎ/zé*), 长长的 *cháng cháng*, 晕晕乎乎, 挑挑拣拣 and about 40 more, found in
+  the reader's own books.
+- Repeats that are not one word keep their readings: 都得得罪 (*děi dé*), 吐蕃蕃部.
+
 ## 2.25.0 (2026-11-24)
 
 One popup on screen at a time (#82)
