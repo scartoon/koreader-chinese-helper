@@ -683,6 +683,16 @@ flowchart LR
     Q --> U
 ```
 
+The data behind those steps is more than dictionaries. Word frequencies from a large mixed corpus
+(wordfreq) score the split and choose each character's default reading. 952 context rules were
+learned from 79,117 labelled sentences and are right 99.9% of the time they apply on a held-out
+test set. A few hundred checked corrections sit on top: hand-checked function-word defaults and unusual
+readings such as 单于 *chányú*, and neutral tones CC-CEDICT misses, each backed by a written
+source. The rules weren't trained on books; the author's books were used to find errors and to
+measure accuracy. Nothing runs a model on the
+e-reader, only lookup tables built in advance. See
+[Where the knowledge comes from](docs/how-it-works.md#where-the-knowledge-comes-from).
+
 ## Readings
 
 Each character's reading comes from the words around it, then context rules learned from labelled sentences, then its most frequent reading. The pinyin on the page and the reading marked in the popup always agree.

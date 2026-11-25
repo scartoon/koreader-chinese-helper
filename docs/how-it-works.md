@@ -14,7 +14,9 @@ and it either has that string or it doesn't. For Chinese, two things make that h
 The plugin skips the selection. A tap on a character runs the steps below, each fixing a way a
 plain lookup goes wrong. Every example on this page was run through the plugin's own code
 (the offline harness in `tools/plugin_runtime.py`). This page covers only the computation, not how
-a tap is caught or how the nearest character is found.
+a tap is caught or how the nearest character is found. The last part,
+[Where the knowledge comes from](#where-the-knowledge-comes-from), covers the data the steps run
+on: corpus statistics, learned rules and checked corrections.
 
 ```mermaid
 flowchart TD
@@ -252,3 +254,108 @@ A tap on the second 行 in 他是银行行长。 (real output from the offline h
 | Reading | *háng*, decided by the word 行长 (rule 2) |
 | On the page | 行 is the 46th most common character, so it gets pinyin only in learner mode: 银 *yín* 行 *háng* 行 *háng* 长 *zhǎng* |
 | In the popup | **行长** • 行長 *hángzhǎng* · decides 行's reading, first; then **行** *háng* · likely here, with *héng* and *xíng* below it |
+
+## Where the knowledge comes from
+
+The steps above are only as good as the data they look things up in. A plain lookup has one kind
+of data: dictionary entries. The plugin has four kinds, and the learned and hand-made ones are
+checked by measuring.
+
+### 1. Dictionaries: which words exist
+
+CC-CEDICT, with pypinyin's phrase list for word readings, says which strings are words and how
+they are read (steps 2 and 4). The fallback dictionaries add words CC-CEDICT lacks (step 5).
+This is the part an ordinary lookup also has.
+
+### 2. Corpus statistics: how common things are
+
+Dictionaries say what a word means, not how often it is used. The plugin takes that from
+[wordfreq](https://github.com/rspeer/wordfreq): frequencies per billion words, mixed from web
+pages, Google Books, news, film and TV subtitles, Wikipedia, Twitter and Jieba's wordlist. They
+are used three ways:
+
+- **Segmentation** (step 3): every CC-CEDICT word's frequency becomes its score.
+- **Default readings**: a character's default is the reading its dictionary words use most,
+  each word weighted by how often it appears. 行 is in far more frequent text as *xíng* (行为,
+  进行, 自行车) than as *háng* (银行, 行业), so *xíng* is its default and *háng* has to be
+  decided by a word.
+- **Rarity ranks**, which decide which characters get pinyin at each level. These can be
+  rebuilt from your own books instead (see the README's
+  [Your own frequency ranks](../README.md#your-own-frequency-ranks)).
+
+### 3. Learned rules: what the neighbours say
+
+A word doesn't always settle a reading, so the plugin also learns from sentences whose readings
+a person has labelled. The source is the [CPP polyphone dataset](https://github.com/kakaobrain/g2pM):
+Chinese Wikipedia sentences, each with one character that has several readings, labelled with the
+right one. Its official split is kept strictly apart: the rules are learned only from the 79,117
+training sentences, and accuracy is reported only on the 10,254 test sentences.
+
+`tools/learn_from_cpp.py` learns two things:
+
+- **Context rules.** For each character with several readings and each character that appears
+  right before or after it, it counts the readings in the sentences where no dictionary word
+  already decides. A rule is kept only when it has at least 5 examples and at least 95% of them
+  agree. That gives 952 rules, such as 燕 followed by 王 → *yān* (燕王, the King of Yan, not
+  *yàn* "swallow"). On the test split the rules are right 99.9% of the time they apply. A few learned rules are wrong in general even though they
+  fit the training sentences: 攒 after 为 was learned as *cuán* from 塔顶为攒尖顶, but 他为攒够银子
+  is *zǎn*. Six of these are kept out by hand in `data/rules_exclude.tsv`, so learning again
+  never brings them back.
+- **How far to trust each default.** For each character it measures how often the default
+  reading is right when nothing else decides. CPP deliberately has many examples of every
+  reading, so it overstates the rare ones. The measured share is therefore blended with the
+  share the corpus statistics predict, counted as if it were 20 more examples:
+
+  confidence = (times the default was right + 20 × predicted share) ÷ (examples + 20)
+
+  For a character with 10 training examples, 6 of them the default, and a predicted share of
+  0.9: (6 + 18) ÷ (10 + 20) = 0.8. A character below 0.75 is listed as *uncertain* with its
+  two likeliest readings (518 characters, 乐 *lè/yuè* among them). For those the plugin shows
+  both readings instead of guessing (step 4, rule 5).
+
+### 4. Checked corrections
+
+The learned and counted data has known blind spots, so a layer of corrections sits on top, each
+checked by hand or against a written source, and these win over the data below them:
+
+- **247 overrides** (`data/overrides.tsv`): 48 character defaults and 199 word readings. These
+  include the defaults of the commonest function words (的 *de*, 了 *le*, 着 *zhe*), where CPP's
+  oversampling of rare readings (的 *dì*, 了 *liǎo*) would mislead. The learning script prints
+  review lists of possible fixes but never applies them itself, because CPP's labels are
+  sometimes wrong (it gives 黄陂 as *bēi*; the place is *Huángpí*).
+- **Unusual readings of common characters**: about 300 words where a common character takes a
+  reading it rarely has (单于 *chányú*, 冒顿 *mòdú*). They are found automatically: a reading used
+  for under 3% of the character's text, or 10% for historical names and places. 65 are
+  hand-checked, a list that always wins over the automatic one and also keeps 6 contested or wrong
+  words out. A guard list stops false matches: 订单于3日发货 is 订单 + 于, not 单于.
+- **83 neutral-tone fixes** (`data/neutral_tone_overrides.tsv`): words CC-CEDICT gives full
+  tones that Standard Mandarin reads with a neutral syllable (喷嚏 *pēnti*). Each one comes from:
+  - the 普通话水平测试 must-read neutral-tone list (37 of them)
+  - a mainland dictionary-style source found online, marking the syllable as neutral (Taiwan
+    sources don't count either way)
+  - CC-CEDICT's own neutral reading of the word inside it (做生意 from 生意 *shēngyi*)
+
+  With no evidence, CC-CEDICT's reading stays: a missed fix is acceptable, a wrong one isn't.
+
+### Measured, not assumed
+
+- **The numbers come from held-out data.** The per-step accuracy table in step 4 comes from
+  CPP's test split, which no rule is learned from.
+- **Ideas that measured badly were cut back.** Letting Wiktionary words override readings
+  seemed sensible, but measured on CPP it broke seven readings for every one it fixed. So
+  Wiktionary words now decide only for the 518 uncertain characters (step 4, rule 4).
+- **A fixed regression list** of sentences with known readings (`tests/eval_cases.tsv`) is
+  rerun when the reading rules change.
+- **Real books, not just Wikipedia.** On the author's own books, a neural reading model (g2pW)
+  was run as a second opinion, its disagreements with the plugin were grouped into patterns,
+  and the top patterns were checked. The top ones were g2pW's own Taiwan readings (和 *hàn*, 时期 *qí*)
+  or deliberate choices, so they changed nothing. Then 300 characters with several readings,
+  drawn at random from 10 books never used for tuning, were each judged by Claude (not a person)
+  against the sentence: about 98.7% had the right letters and tone (a pair of readings that
+  includes the right one counting as right). The 4 real errors were fixed;
+  most other differences were neutral-tone conventions (README [Accuracy](../README.md#accuracy)).
+
+What the plugin doesn't do: it runs no model on the e-reader, and its rules were not trained on
+books. Books were used to find errors and to measure accuracy, and the rules come from the
+labelled CPP sentences. Everything on the e-reader is lookup tables built in advance on a
+computer, which is part of why a tap takes about 20 ms.
