@@ -177,7 +177,7 @@ lookup lists every reading with nothing to say which applies.
 6. **The default**: the character's most frequent reading.
 
 How often each step is right, on the CPP test split (from the README's
-[Accuracy](../README.md#accuracy) section, both readings of a pair counting):
+[Accuracy](README.md#accuracy) section, both readings of a pair counting):
 
 | Decided by | Examples | Right |
 |---|---|---|
@@ -189,7 +189,7 @@ How often each step is right, on the CPP test split (from the README's
 | Nothing: the default reading | 2,208 | 96.3% |
 
 The full rules, including neutral tones and the spoken tones of 一 and 不, are in the README's
-[Readings](../README.md#readings) section.
+[Readings](README.md#readings) section.
 
 ## 5. Coverage beyond CC-CEDICT
 
@@ -228,7 +228,7 @@ above it, `forPopup` uses that pinyin, so the two can't disagree.
 
 All of this takes about 20 ms per tap on a Boox Go 7. Working out a page's pinyin takes about
 13 ms on average, and about 56 ms on a dense page in learner mode, where every character gets
-pinyin. See the README's [Speed](../README.md#speed) section for the measurements. What keeps it
+pinyin. See the README's [Speed](README.md#speed) section for the measurements. What keeps it
 fast:
 
 - **One query per source.** All the candidate words go to CC-CEDICT in one SQL query, and each
@@ -281,7 +281,7 @@ are used three ways:
   decided by a word.
 - **Rarity ranks**, which decide which characters get pinyin at each level. These can be
   rebuilt from your own books instead (see the README's
-  [Your own frequency ranks](../README.md#your-own-frequency-ranks)).
+  [Your own frequency ranks](README.md#your-own-frequency-ranks)).
 
 ### 3. Learned rules: what the neighbours say
 
@@ -353,7 +353,7 @@ checked by hand or against a written source, and these win over the data below t
   drawn at random from 10 books never used for tuning, were each judged by Claude (not a person)
   against the sentence: about 98.7% had the right letters and tone (a pair of readings that
   includes the right one counting as right). The 4 real errors were fixed;
-  most other differences were neutral-tone conventions (README [Accuracy](../README.md#accuracy)).
+  most other differences were neutral-tone conventions (README [Accuracy](README.md#accuracy)).
 
 What the plugin doesn't do: it runs no model on the e-reader, and its rules were not trained on
 books. Books were used to find errors and to measure accuracy, and the rules come from the

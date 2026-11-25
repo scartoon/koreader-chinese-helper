@@ -655,7 +655,7 @@ in 很大宛如 and you get 宛, 大宛 and 宛如. To decide which of those wor
 splits the whole run of text into its most probable sequence of words, using every CC-CEDICT
 word's frequency (很 | 大 | 宛如, not 很 | 大宛 | 如). The word the character lands in gives its
 reading, the same reading for the pinyin on the page and the popup. Dictionaries other than
-CC-CEDICT are asked only for words CC-CEDICT lacks. [docs/how-it-works.md](docs/how-it-works.md)
+CC-CEDICT are asked only for words CC-CEDICT lacks. [how-it-works.md](how-it-works.md)
 walks through each step with real examples, including the dynamic programming behind the split.
 
 ```mermaid
@@ -675,7 +675,7 @@ learned from 79,117 labelled sentences are right 99.9% of the time they apply, o
 ones; and a few
 hundred checked corrections sit on top (function-word defaults, unusual readings such as 单于
 *chányú*, neutral tones CC-CEDICT misses). No model runs on the e-reader, only lookup tables
-built in advance. See [Where the knowledge comes from](docs/how-it-works.md#where-the-knowledge-comes-from).
+built in advance. See [Where the knowledge comes from](how-it-works.md#where-the-knowledge-comes-from).
 
 ## Readings
 
