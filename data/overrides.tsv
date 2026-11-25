@@ -246,3 +246,47 @@
 赶圩	gǎn xū	to go to market
 趕圩	gǎn xū
 圩集	xū jí	country fair
+
+# --- Reduplications (#77): a repeated polyphone no dictionary lists as a word,
+#     so each half fell back to its default or the uncertainty pair. Given a
+#     segmentation frequency just above their split (tools/build_data.py), so
+#     the whole is taken wherever it appears. Found in the reader's books.
+尽尽	jìn jìn	尽尽孝心, 自尽尽忠
+撇撇	piě piě	撇撇手
+撇撇嘴	piě piě zuǐ	(撇 + 撇嘴 would win over 撇撇 + 嘴)
+写写	xiě xiě	写写画画, 抄抄写写
+哼哼	hēng hēng	groaning, humming
+嘀嘀咕咕	dí dí gū gū	嘀咕 dí gu, reduplicated
+咋咋呼呼	zhā zhā hū hū	咋呼 zhā hu "to bluster"; not zǎ "how"
+咔咔	kā kā	click (camera shutter)
+晕晕	yūn yūn	晕晕乎乎, 脑子晕晕的 "dizzy"
+曾曾	zēng zēng	曾曾祖父 "great-great-"
+涌涌	yǒng yǒng	人头涌涌 "teeming"
+闷闷	mèn mèn	闷闷地说, 闷闷不乐 "glum"
+挨挨	āi āi	挤挤挨挨 "jostling"
+挑挑	tiāo tiāo	挑挑拣拣 "to pick and choose"
+缝缝	féng féng	缝缝补补 "to sew and mend"
+蹬蹬	dēng dēng	footsteps
+铮铮	zhēng zhēng	铮铮誓言 "ringing, staunch"
+少少	shǎo shǎo	搞得少少的
+噌噌	cēng cēng	噌噌地往上涨 "shooting up"
+抹抹	mǒ mǒ	抹抹汗 "to wipe"
+莺莺燕燕	yīng yīng yàn yàn	"bevy of young women"
+弄弄	nòng nòng	弄弄这个 "to fiddle with"
+搂搂	lǒu lǒu	搂搂抱抱 "to hug and cuddle"
+应应	yìng yìng	应应急, 应应付付
+长长	cháng cháng	长长的奏折, 长长叹了一口气 "long"
+干干	gàn gàn	找个活干干 "to do a bit of work"; 干干净净 is a word of its own
+晕晕乎乎	yūn yūn hū hū	(晕 + 晕乎 would win over 晕晕)
+挑挑拣拣	tiāo tiāo jiǎn jiǎn	(挑 + 挑拣)
+咋咋唬唬	zhā zhā hǔ hǔ	咋唬 zhā hu "to bluster"
+抄抄写写	chāo chāo xiě xiě	(抄写 + 写)
+应应付付	yìng yìng fù fù	(应 + 应付)
+应应急	yìng yìng jí	(应 + 应急)
+蹬蹬蹬	dēng dēng dēng	footsteps
+长长叹	cháng cháng tàn	(长 + 长叹)
+长长的	cháng cháng de	(道长 + 长的)
+曾曾孙女	zēng zēng sūn nǚ	(曾 + 曾孙女)
+曾曾祖父	zēng zēng zǔ fù	(曾 + 曾祖父)
+曾曾祖母	zēng zēng zǔ mǔ	(曾 + 曾祖母)
+尽尽孝心	jìn jìn xiào xīn	(尽 + 尽孝 + 心)

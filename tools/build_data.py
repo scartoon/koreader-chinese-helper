@@ -88,6 +88,7 @@ CC-CEDICT: https://www.mdbg.net/chinese/dictionary?page=cc-cedict
 import argparse
 import functools
 import gzip
+import math
 import os
 import re
 import unicodedata
@@ -173,6 +174,22 @@ def load_cedict(path, neutral_path=NEUTRAL_OVERRIDES, originals=None):
         raise SystemExit(f"{neutral_path}: no CC-CEDICT line with the same syllables for "
                          + ", ".join(sorted(set(neutral) - used)))
     return entries
+
+
+def split_log_p(form, seg, floor=1):
+    """The best log probability of `form` split into two or more seg words of
+    1-4 characters (frequencies per billion words), as Resolve.segment scores
+    it; a character with no seg entry counts with the plugin's floor of 1."""
+    n = len(form)
+    best = [0.0] + [-math.inf] * n   # best[k]: the best split of form[:k]
+    for e in range(1, n + 1):
+        for s in range(max(0, e - 4), e):
+            if s == 0 and e == n:
+                continue
+            f = seg.get(form[s:e], floor if e - s == 1 else 0)
+            if f:
+                best[e] = max(best[e], best[s] + math.log(f / 1e9))
+    return best[n]
 
 
 def load_overrides(path):
@@ -717,6 +734,15 @@ def build(cedict, out, overrides_path=os.path.join(ROOT, "data", "overrides.tsv"
                     seg[form] = max(seg.get(form, 0), word_freq(form, simp), seg_floor)
     for form, _, wf in word_rows:
         seg[form] = max(seg.get(form, 0), wf, seg_floor)
+    # A hand-checked reduplication (撇撇 piě piě, 嘀嘀咕咕, #77) is taken over
+    # its parts: neither wordfreq nor CC-CEDICT lists most of them, so at the
+    # floor they lose to 撇 + 撇 and each half falls back to its default or
+    # the uncertainty pair. Its frequency is raised just above its best split.
+    for form, syls in overrides.items():
+        if syls and len(form) > 1 and any(a == b for a, b in zip(form, form[1:])):
+            best = split_log_p(form, seg)
+            seg[form] = max(seg.get(form, seg_floor), math.ceil(math.exp(best) * 1e9) + 1)
+            stats["seg: reduplications raised above their split"] += 1
     with open(os.path.join(args.out, "seg.tsv"), "w", encoding="utf-8") as f:
         for form in sorted(seg):
             f.write(f"{form}\t{seg[form]}\n")
