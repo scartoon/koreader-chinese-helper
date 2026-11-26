@@ -108,19 +108,20 @@ PAGES = {
 }
 
 # Learner mode (#25): page aq59 with pinyin on every character (threshold 0).
-# Every reading hand-checked (一 and 不 in their spoken tones, #37); the one pair, 革过 guò/guo, has the right
-# reading (guo, the aspect particle) second.
+# Every reading hand-checked (一 and 不 in their spoken tones, #37; the neutral tones of 秀才, 消息, 时候 and 招呼
+# since 2.26.0, #90). Of the two pairs, 革过 guò/guo has the right reading (guo, the aspect particle) second,
+# 谈得很投机 de/děi first.
 AQ59_ALL = (
     "你=nǐ 不=bù 知=zhī 道=dào 他=tā 们=men 已=yǐ 经=jīng 来=lái 革=gé 过=guò/guo 了=le 谁=shéi 阿=ā 更=gèng "
-    "其=qí 诧=chà 异=yì 了=le 那=nà 秀=xiù 才=cái 和=hé 洋=yáng 鬼=guǐ 子=zi 阿=ā 很=hěn 出=chū 意=yì 外=wài "
+    "其=qí 诧=chà 异=yì 了=le 那=nà 秀=xiù 才=cai 和=hé 洋=yáng 鬼=guǐ 子=zi 阿=ā 很=hěn 出=chū 意=yì 外=wài "
     "不=bù 由=yóu 的=de 一=yí 错=cuò 愕=è 老=lǎo 尼=ní 姑=gū 见=jiàn 他=tā 失=shī 了=le 锐=ruì 气=qì 便=biàn "
     "飞=fēi 速=sù 的=de 关=guān 了=le 门=mén 阿=ā 再=zài 推=tuī 时=shí 牢=láo 不=bù 可=kě 开=kāi 再=zài 打=dǎ "
     "时=shí 没=méi 有=yǒu 回=huí 答=dá 了=le 那=nà 还=hái 是=shi 上=shàng 午=wǔ 的=de 事=shì 赵=zhào 秀=xiù "
-    "才=cái 消=xiāo 息=xī 灵=líng 一=yì 知=zhī 道=dào 革=gé 命=mìng 党=dǎng 已=yǐ 在=zài 夜=yè 间=jiān "
+    "才=cai 消=xiāo 息=xi 灵=líng 一=yì 知=zhī 道=dào 革=gé 命=mìng 党=dǎng 已=yǐ 在=zài 夜=yè 间=jiān "
     "进=jìn 城=chéng 便=biàn 将=jiāng 辫=biàn 子=zi 盘=pán 在=zài 顶=dǐng 上=shàng 一=yì 早=zǎo 去=qù "
     "拜=bài 访=fǎng 那=nà 历=lì 来=lái 也=yě 不=bù 相=xiāng 能=néng 的=de 钱=qián 洋=yáng 鬼=guǐ 子=zi "
-    "这=zhè 是=shì 咸=xián 与=yù 维=wéi 新=xīn 的=de 时=shí 候=hòu 了=le 所=suǒ 以=yǐ 他=tā 们=men 便=biàn "
-    "谈=tán 得=de 很=hěn 投=tóu 机=jī 立=lì 刻=kè 成=chéng 了=le 情=qíng 投=tóu 意=yì 合=hé 的=de 同=tóng "
+    "这=zhè 是=shì 咸=xián 与=yù 维=wéi 新=xīn 的=de 时=shí 候=hou 了=le 所=suǒ 以=yǐ 他=tā 们=men 便=biàn "
+    "谈=tán 得=de/děi 很=hěn 投=tóu 机=jī 立=lì 刻=kè 成=chéng 了=le 情=qíng 投=tóu 意=yì 合=hé 的=de 同=tóng "
     "志=zhì 也=yě 相=xiāng 约=yuē 去=qù 革=gé 命=mìng 他=tā 们=men 想=xiǎng 而=ér 又=yòu 想=xiǎng 才=cái "
     "想=xiǎng 出=chū 静=jìng 修=xiū 庵=ān 里=lǐ 有=yǒu 一=yí 块=kuài 皇=huáng 帝=dì 万=wàn 岁=suì 万=wàn "
     "万=wàn 岁=suì 的=de 龙=lóng 牌=pái 是=shì 应=yīng 该=gāi 赶=gǎn 紧=jǐn 革=gé 掉=diào 的=de 于=yú 是=shì "
@@ -131,7 +132,7 @@ AQ59_ALL = (
     "检=jiǎn 点=diǎn 龙=lóng 牌=pái 固=gù 然=rán 已=yǐ 经=jīng 碎=suì 在=zài 地=dì 上=shang 了=le 而=ér "
     "且=qiě 又=yòu 不=bú 见=jiàn 了=le 观=guān 音=yīn 娘=niáng 娘=niang 座=zuò 前=qián 的=de 一=yí 个=ge "
     "宣=xuān 德=dé 炉=lú 这=zhè 事=shì 阿=ā 后=hòu 来=lái 才=cái 知=zhī 道=dào 他=tā 颇=pō 悔=huǐ 自=zì 己=jǐ "
-    "睡=shuì 着=zháo 但=dàn 也=yě 深=shēn 怪=guài 他=tā 们=men 不=bù 来=lái 招=zhāo 呼=hū 他=tā 他=tā 又=yòu "
+    "睡=shuì 着=zháo 但=dàn 也=yě 深=shēn 怪=guài 他=tā 们=men 不=bù 来=lái 招=zhāo 呼=hu 他=tā 他=tā 又=yòu "
     "退=tuì 一=yí 步=bù 想=xiǎng 道=dào ").strip()
 # learner-known: the page after a beginner has marked known the 80 commonest
 # characters on it (by 字频 rank, up to 271), each in its default reading,
