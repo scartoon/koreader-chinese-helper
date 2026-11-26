@@ -3,7 +3,7 @@
 (see the README's "Optional dictionaries"), each with its own script.
 
     .venv/bin/python tools/build_optional.py                 # Xinhua idioms
-    .venv/bin/python tools/build_optional.py --all           # ... and CBDB office titles
+    .venv/bin/python tools/build_optional.py --all           # ... and CBDB
     .venv/bin/python tools/build_optional.py --only xinhua,cbdb # just these
     .venv/bin/python tools/build_optional.py --only moegirl  # Moegirlpedia (needs the slob reader)
     .venv/bin/python tools/build_optional.py --push          # ... and adb push each file to the device
@@ -38,7 +38,7 @@ MB = 1_000_000
 #        glob of the downloaded source)
 DICTS = {
     "xinhua": ("Xinhua idioms", "build_xinhua.py", 10, 0, 14.9, "xinhua/idiom.json"),
-    "cbdb": ("CBDB office titles", "build_cbdb.py", 140, 590, 0.5, "cbdb/db/*"),
+    "cbdb": ("CBDB", "build_cbdb.py", 140, 590, 8.7, "cbdb/db/*"),
     "moegirl": ("Moegirlpedia slang", "build_moegirl.py", 1400, 0, 0.1,
                 "moegirl/zhmoegirl-20230507-alpha.slob"),
 }
@@ -80,7 +80,7 @@ def pick(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     group = ap.add_mutually_exclusive_group()
-    group.add_argument("--all", action="store_true", help="the recommended three and CBDB office titles")
+    group.add_argument("--all", action="store_true", help="the recommended one and CBDB")
     group.add_argument("--only", metavar="NAMES", help=f"comma-separated, from: {', '.join(DICTS)}")
     ap.add_argument("--force", action="store_true", help="build files that are already in build/ again")
     ap.add_argument("--push", action="store_true", help=f"adb push each file to {fallback_sources.DEVICE_DIR}/")

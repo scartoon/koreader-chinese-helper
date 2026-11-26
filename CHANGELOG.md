@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.29.0 (unreleased)
+
+CBDB: well-known people, office titles of every dynasty, book titles (#87)
+- `tools/build_cbdb.py` builds a new CBDB file (8.7 MB, still your own file, never shared): 381
+  well-known people (dates, 字, 號, 諡, home town, 進士 year), 25,822 office titles of three or more
+  characters from every dynasty (with CBDB's English), and 35,297 book titles. Until now it held
+  2,900 Ming office titles. Rebuild it to get the new entries; Status says so for an old file.
+- What is in it was decided by testing CBDB on 150,000 simulated taps in 50 books and judging
+  1,358 matches in context (`tools/measure_cbdb.py`). People are those another dictionary also
+  knows (69 of 70 right), office titles leave out modern ones like 副总裁 (93% right), and book
+  titles show only when the tapped text is exactly a title in 《》 (109 of 109). Alternative names
+  (字, 號), places and lesser-known people were left out: CBDB has ordinary words among them
+  (知道 is somebody's 字), so they were mostly wrong.
+- CBDB entries show only where the word fits the plugin's word segmentation (not 试百户 inside
+  考试百户).
+- Readings take their tones from CC-CEDICT, matched to CBDB's toneless pinyin (王安石 Wáng
+  Ānshí; 单 Shàn as a surname); CBDB's own letters stay where nothing settles a tone.
+- In menus and on Status, "CBDB office titles" is now just "CBDB".
+
 ## 2.28.0 (2026-11-26)
 
 MOE's dictionaries come with the plugin, unmodified (#86)
