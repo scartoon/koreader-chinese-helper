@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.27.0"
+ChineseHelper.VERSION = "2.28.0"
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
@@ -175,14 +175,18 @@ ChineseHelper.SOURCE_NAMES = { wikt = "Wiktionary", wp = "Wikipedia titles", cbd
                                 moe = "MOE 重編國語辭典", idioms = "MOE 成語典", xinhua = "Xinhua idioms",
                                 moegirl = "Moegirlpedia slang" }
 ChineseHelper.MOE_MODE_NAMES = { off = _("off"), fallback = _("fallback"), always = _("always") }
--- In the plugin database (the release): their rows are in its fallback table.
-ChineseHelper.BUNDLED_SOURCES = { wikt = true, wp = true }
+-- Part of the plugin: Wiktionary and the Wikipedia titles in the plugin
+-- database's fallback table, MOE's two dictionaries in data/moe/ (#86,
+-- tools/build_moe.py, ch_moe.lua).
+ChineseHelper.BUNDLED_SOURCES = { wikt = true, wp = true, moe = true, idioms = true }
+ChineseHelper.MOE_SOURCES = { moe = "revised", idioms = "idioms" }
 -- Files the user builds and installs (licences that forbid distributing
--- them): tools/build_moe.py, build_cbdb.py, build_idioms.py, build_xinhua.py,
--- build_moegirl.py.
-ChineseHelper.LOCAL_FILES = { moe = "chinesehelper-moe.sqlite", cbdb = "chinesehelper-cbdb.sqlite",
-                              idioms = "chinesehelper-idioms.sqlite", xinhua = "chinesehelper-xinhua.sqlite",
+-- them): tools/build_cbdb.py, build_xinhua.py, build_moegirl.py.
+ChineseHelper.LOCAL_FILES = { cbdb = "chinesehelper-cbdb.sqlite", xinhua = "chinesehelper-xinhua.sqlite",
                               moegirl = "chinesehelper-moegirl.sqlite" }
+-- The MOE files users built themselves before 2.28.0: ignored now (MOE is
+-- bundled); Status says they can be deleted.
+ChineseHelper.OLD_MOE_FILES = { "chinesehelper-moe.sqlite", "chinesehelper-idioms.sqlite" }
 -- Fallback dictionaries whose files also hold idioms' short lines and Origin & Usage
 -- views (an idioms table) for words CC-CEDICT has.
 ChineseHelper.IDIOM_SOURCES = { idioms = true, xinhua = true }
@@ -227,9 +231,41 @@ local function listed(db, source)
     return false
 end
 
+-- The bundled MOE data (data/moe/moe.sqlite).
+function ChineseHelper:moePath()
+    return self.moe_path or (self.path .. "/data/moe/moe.sqlite")
+end
+
+-- MOE's 重編國語辭典 ("moe") or 成語典 ("idioms"), opened on first use, or nil
+-- when the plugin's data/moe/ is missing.
+function ChineseHelper:moeDb(source)
+    session.moe_dbs = session.moe_dbs or {}
+    local cached = session.moe_dbs[source]
+    if cached ~= nil then return cached or nil end
+    local db, err = require("ch_moe").open(self:moePath(), ChineseHelper.MOE_SOURCES[source])
+    if not db then logger.warn("chinesehelper:", err) end
+    session.moe_dbs[source] = db or false
+    return db or nil
+end
+
+-- The MOE files built with tools/build_moe.py or build_idioms.py before
+-- 2.28.0 that are still in KOReader's data folder: { path, ... }.
+function ChineseHelper:oldMoeFiles()
+    local ok, DataStorage = pcall(require, "datastorage")
+    if not ok or not DataStorage then return {} end
+    local out = {}
+    for _i, name in ipairs(ChineseHelper.OLD_MOE_FILES) do
+        local path = DataStorage:getDataDir() .. "/data/chinesehelper/" .. name
+        local f = io.open(path, "rb")
+        if f then f:close(); out[#out + 1] = path end
+    end
+    return out
+end
+
 -- The database holding a fallback dictionary, or nil when it is not there
 -- (not in this plugin database, or the user's file not installed).
 function ChineseHelper:sourceDb(source)
+    if ChineseHelper.MOE_SOURCES[source] then return self:moeDb(source) end
     if ChineseHelper.BUNDLED_SOURCES[source] then
         local db = self:db()
         return db and listed(db, source) and db or nil
@@ -257,19 +293,12 @@ local function length(word)
     return select(2, word:gsub("[^\128-\191]", ""))
 end
 
--- Does the installed MOE file have covered rows (built with 2.5.0's
--- tools/build_moe.py)? Without them, Always behaves as Fallback.
-function ChineseHelper:moeHasCovered()
-    local db = self:localDb("moe")
-    return db ~= nil and metaOf(db).moe_covered == "1" and db:hasCovered()
-end
-
 -- Of `texts` (a tap's candidate words), those MOE is to show Always: the
 -- single character when its Characters mode is Always, the longer words when
--- its Words mode is. None without a rebuilt MOE file.
+-- its Words mode is. None without the MOE data.
 function ChineseHelper:alwaysTexts(texts)
     local chars, words = self.settings:moeMode("chars"), self.settings:moeMode("words")
-    if (chars ~= "always" and words ~= "always") or not self:moeHasCovered() then return {} end
+    if (chars ~= "always" and words ~= "always") or not self:sourceDb("moe") then return {} end
     local out = {}
     for _i, t in ipairs(texts) do
         if (length(t) == 1 and chars == "always") or (length(t) > 1 and words == "always") then
@@ -379,15 +408,6 @@ function ChineseHelper:idiomLookup(words)
     return Model.pickIdioms(rows, self.settings:fallbackOrder())
 end
 
--- A MOE or 成語典 file's text on the Status screen (meta moe_text or
--- idioms_text): "both" from 2.13.0 on (#48); a file with one text says so
--- and that the Dictionary text setting needs a rebuilt file.
-function ChineseHelper.textState(value)
-    if value == "both" then return _("original and simplified text") end
-    return T(_("%1 only: rebuild it for the Dictionary text setting"),
-        value == "simplified" and _("simplified text") or _("traditional text"))
-end
-
 -- One Status line per fallback dictionary, in priority order: version,
 -- size, on or off.
 function ChineseHelper:fallbackStatus()
@@ -400,26 +420,22 @@ function ChineseHelper:fallbackStatus()
             m.wp_dump or "?", m.wp_rows or "?") end,
         cbdb = function(m) return T(_("CBDB office titles: %1 (CBDB %2, %3 entries)"), state("cbdb"),
             (m.cbdb_date or "?"):sub(1, 10), m.cbdb_rows or "?") end,
-        -- Files built before 1.8.0 have no moe_text: their text is traditional.
+        -- MOE's two dictionaries (#86): version (the download's date), records,
+        -- and MOE's attribution, which every copy must carry.
         moe = function(m)
-            local line = T(_("MOE 重編國語辭典: %1 (moedict-data %2, %3 entries, %4)"), state("moe"),
-                (m.moe_commit_date or "?"):sub(1, 10), m.moe_rows or "?", ChineseHelper.textState(m.moe_text))
-            if not self.settings:fallbackEnabled("moe") then return line end
-            local chars, words = self.settings:moeMode("chars"), self.settings:moeMode("words")
-            line = line .. "\n  " .. T(_("characters: %1, words: %2"), ChineseHelper.MOE_MODE_NAMES[chars],
-                ChineseHelper.MOE_MODE_NAMES[words])
-            if self:moeHasCovered() then
-                line = line .. "; " .. T(_("rebuilt for Always: %1 character rows, %2 word rows CC-CEDICT also has"),
-                    m.moe_covered_char_rows or "?", m.moe_covered_word_rows or "?")
-            elseif chars == "always" or words == "always" then
-                line = line .. "\n  " .. _("Always works as Fallback with this file: rebuild it for Always (python3 tools/build_moe.py, see the README).")
+            local line = T(_("MOE 重編國語辭典: %1 (%2, %3 entries, as published)"), state("moe"),
+                m.revised_version or "?", m.revised_records or "?")
+            if self.settings:fallbackEnabled("moe") then
+                line = line .. "\n  " .. T(_("characters: %1, words: %2"),
+                    ChineseHelper.MOE_MODE_NAMES[self.settings:moeMode("chars")],
+                    ChineseHelper.MOE_MODE_NAMES[self.settings:moeMode("words")])
             end
-            return line
+            return line .. "\n  " .. (m.revised_attribution or "")
         end,
-        -- (Files built before 1.9.0 have no idioms_text: their text is simplified.)
-        idioms = function(m) return T(_("MOE 成語典: %1 (%2, %3 idioms, %4 not in CC-CEDICT, %5)"), state("idioms"),
-            m.idioms_version or "?", m.idioms_rows or "?", m.idioms_fallback_rows or "?",
-            ChineseHelper.textState(m.idioms_text or "simplified")) end,
+        idioms = function(m)
+            return T(_("MOE 成語典: %1 (%2, %3 idioms, as published)"), state("idioms"),
+                m.idioms_version or "?", m.idioms_records or "?") .. "\n  " .. (m.idioms_attribution or "")
+        end,
         xinhua = function(m) return T(_("Xinhua idioms: %1 (chinese-xinhua %2, %3 idioms, %4 not in CC-CEDICT)"),
             state("xinhua"), (m.xinhua_commit_date or "?"):sub(1, 10), m.xinhua_rows or "?",
             m.xinhua_fallback_rows or "?") end,
@@ -435,6 +451,13 @@ function ChineseHelper:fallbackStatus()
         else
             lines[#lines + 1] = T(_("%1: not installed"), ChineseHelper.SOURCE_NAMES[source])
         end
+    end
+    if self:sourceDb("moe") then
+        lines[#lines + 1] = T(_("MOE's dictionaries: CC BY-ND 3.0 TW (%1), unmodified, with MOE's usage notes, in %2"),
+            metaOf(self:sourceDb("moe")).license_uri or "?", self.path .. "/data/moe/")
+    end
+    for _i, path in ipairs(self:oldMoeFiles()) do
+        lines[#lines + 1] = T(_("%1 is no longer used (MOE is part of the plugin now): you can delete it."), path)
     end
     return lines
 end
@@ -842,7 +865,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Dictionaries"),
-                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be set to Always (its MOE for single characters and MOE for words items): under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Every entry carries a small grey label naming its dictionary (CC-CEDICT's as CEDICT), unless Source labels is set to None. Wiktionary and the Wikipedia titles are part of the plugin; CBDB, MOE, the idiom files and Moegirlpedia are files you build and install yourself (see the README)."),
+                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be set to Always (its MOE for single characters and MOE for words items): under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Every entry carries a small grey label naming its dictionary (CC-CEDICT's as CEDICT), unless Source labels is set to None. Wiktionary, the Wikipedia titles and MOE's two dictionaries (重編國語辭典 and 成語典) are part of the plugin; CBDB, Xinhua idioms and Moegirlpedia are files you build and install yourself (see the README)."),
                 sub_item_table = plugin:fallbackItems(apply, {
                     {
                         text_func = function()
@@ -968,7 +991,7 @@ function ChineseHelper:dictTextItem()
     end
     return {
         text_func = function() return T(_("Dictionary text: %1"), names[settings:dictText()]) end,
-        help_text = _("Original: each dictionary's text as its source writes it. MOE 重編國語辭典 and the 成語典 are in traditional characters, Wiktionary's glosses quote Chinese the way Wiktionary does (廩／廪), and CC-CEDICT names both forms in its cross-references (variant of 夠|够 gòu). Simplified: the same text in simplified characters (variant of 够 gòu). The head lines (头发 頭髮) are not changed, and nor is the text of dictionaries that are simplified already (Xinhua, Moegirlpedia). MOE and 成語典 files built before version 2.13.0 hold only one text: rebuild them for this setting."),
+        help_text = _("Original: each dictionary's text as its source writes it: Wiktionary's glosses quote Chinese the way Wiktionary does (廩／廪), and CC-CEDICT names both forms in its cross-references (variant of 夠|够 gòu). Simplified: the same text in simplified characters (variant of 够 gòu). The head lines (头发 頭髮) are not changed, and nor is the text of dictionaries that are simplified already (Xinhua, Moegirlpedia). MOE's 重編國語辭典 and 成語典 are always shown as MOE writes them, in traditional characters: their licence does not allow changing them."),
         sub_item_table = {
             choice("original", _("Original: as each dictionary writes it (default)")),
             choice("simplified", _("Simplified characters")),
@@ -1077,7 +1100,7 @@ function ChineseHelper:moeModeItem(kind)
             local what = kind == "words" and _("MOE for words: %1") or _("MOE for single characters: %1")
             return "    " .. T(what, ChineseHelper.MOE_MODE_NAMES[settings:moeMode(kind)])
         end,
-        help_text = _("Always: MOE's entry is shown under CC-CEDICT's too, collapsed (for a single character: between CC-CEDICT's entry and the components), with its classical senses and the readings CC-CEDICT does not list (marked \"not in CC-CEDICT\"). Fallback (the default): only when CC-CEDICT does not have it. Always needs a MOE file built with Chinese helper 2.5.0 or later; with an older one it works as Fallback (Status says so). MOE never decides the pinyin drawn."),
+        help_text = _("Always: MOE's entry is shown under CC-CEDICT's too, collapsed (for a single character: between CC-CEDICT's entry and the components), with its classical senses and the readings CC-CEDICT does not list (marked \"not in CC-CEDICT\"). Fallback (the default): only when CC-CEDICT does not have it. MOE never decides the pinyin drawn."),
         enabled_func = function() return settings:fallbackEnabled("moe") and plugin:sourceDb("moe") ~= nil end,
         sub_item_table = sub,
     }

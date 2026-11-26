@@ -1,34 +1,26 @@
-"""Chengyu sources: 教育部《成語典》 (tools/build_idioms.py) and the Xinhua
-idiom data from chinese-xinhua (tools/build_xinhua.py). Both are built into
-the user's own files, never the release (CC BY-ND, and text scraped from a
-published dictionary).
+"""Chengyu: the Xinhua idiom data from chinese-xinhua (tools/build_xinhua.py),
+built into the user's own file, never the release (text scraped from a
+published dictionary). (The 成語典 is bundled since 2.28.0, #86: MOE's own
+data, tools/build_moe.py, shown by chinesehelper.koplugin/ch_moe.lua.)
 
 Each file holds three tables:
 
   fallback  the same table as every fallback dictionary
             (tools/fallback_sources.py), for the idioms CC-CEDICT lacks:
-            (simp, trad, pinyin, "", short, source), source "idioms" or
-            "xinhua". The popup shows them like any fallback entry.
+            (simp, trad, pinyin, "", short, source), source "xinhua".
+            The popup shows them like any fallback entry.
   idioms    (simp, trad, short, view, short_simp, view_simp) for every idiom the source has,
             CC-CEDICT's too: `short` is the one line of Chinese explanation
             the popup adds under an English entry, `view` the text of the
             出处 view (source text, the story, usage, examples), "" when the
             source has nothing beyond the short line. short and view are the
-            source's own text; short_simp and view_simp the 成語典's in
-            simplified characters (#48), NULL when the same (always for
-            Xinhua, which is simplified already).
+            source's own text; short_simp and view_simp are NULL (Xinhua is
+            simplified already; the columns date from the user-built 成語典
+            file, #48).
   meta      source, version, counts, licence.
 
-Neither source decides readings: their pinyin is only shown on their own
+Xinhua never decides readings: its pinyin is only shown on its own
 fallback entries.
-
-成語典 (dict_idioms_2020_*.xlsx, Taiwan Ministry of Education, CC BY-ND 3.0
-TW): 1,664 main entries (主條) with every field, and about 3,800 related
-entries (非主條) that name their main entry ("見「X」條") and carry only their
-own explanation and citations. Text is traditional and goes through
-simplify.py's Simplifier("tw2s"). Markup in the file: _x000D_ (a carriage
-return), *N* before a word that has note N, newlines around those words,
-and # before a paragraph of context around the passage.
 
 Xinhua (data/idiom.json): 30,895 idioms with explanation, derivation (the
 classical source) and example, simplified, scraped from a published
@@ -64,72 +56,8 @@ SHORT_MAX = 90          # characters in the popup's short line, cut at a sentenc
 VIEW_LIST_MAX = 6       # citations or example sentences kept in the 出处 view
 
 # ---------------------------------------------------------------------------
-# xlsx (the standard library is enough: one sheet, shared strings)
-# ---------------------------------------------------------------------------
-
-_NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
-
-
-def _column(ref):
-    n = 0
-    for c in re.match(r"[A-Z]+", ref).group(0):
-        n = n * 26 + ord(c) - 64
-    return n - 1
-
-
-def read_xlsx(path):
-    """The first sheet's rows as dicts keyed by the header row."""
-    z = zipfile.ZipFile(path)
-    shared = []
-    if "xl/sharedStrings.xml" in z.namelist():
-        for si in ET.fromstring(z.read("xl/sharedStrings.xml")).iter(_NS + "si"):
-            shared.append("".join(t.text or "" for t in si.iter(_NS + "t")))
-    sheet = ET.fromstring(z.read("xl/worksheets/sheet1.xml"))
-    rows = []
-    for r in sheet.iter(_NS + "row"):
-        out = []
-        for c in r.iter(_NS + "c"):
-            i = _column(c.get("r"))
-            out.extend([""] * (i - len(out)))
-            v, t = c.find(_NS + "v"), c.get("t")
-            if t == "s":
-                out.append(shared[int(v.text)])
-            elif t == "inlineStr":
-                out.append("".join(x.text or "" for x in c.iter(_NS + "t")))
-            else:
-                out.append(v.text if v is not None and v.text else "")
-        rows.append(out)
-    header = rows[0]
-    return [dict(zip(header, r + [""] * (len(header) - len(r)))) for r in rows[1:]]
-
-
-# ---------------------------------------------------------------------------
 # Shared
 # ---------------------------------------------------------------------------
-
-
-# The 成語典's editorial marks (※ before 語本, ＃ and ◎ before a passage
-# or as a separator line): never shown.
-EDITORIAL = re.compile(r"◎\d*|[#＃※]")
-# Separators between the parts of a field: ＆ between senses (語義說明,
-# 使用類別, 例句: "比喻…。褒義。＆比喻…") and between source passages, ＋
-# between source passages (典源, 注解, 典故說明). Never shown: a part starts
-# a new line (a new paragraph in the source text).
-SEPARATOR = re.compile(r"[＆＋]")
-
-
-def lines_of(text):
-    """Non-empty stripped lines, carriage returns, editorial marks and
-    full-width spaces at the ends removed; a separator starts a new line."""
-    text = EDITORIAL.sub("", text.replace("_x000D_", "").replace("\r", ""))
-    text = SEPARATOR.sub("\n", text)
-    return [x.strip(" \t　") for x in text.split("\n") if x.strip(" \t　")]
-
-
-def one_line(text):
-    """A field as one line: whitespace and separators out (the parts end
-    with 。 already: "形容計數的仔細。＆比喻…" -> "形容計數的仔細。比喻…")."""
-    return SEPARATOR.sub("", re.sub(r"\s+", "", text.replace("_x000D_", "")))
 
 
 def no_boxes(lines, stats=None, name=""):
@@ -156,142 +84,6 @@ def view_text(sections):
         if lines:
             out.append((heading + "\n" if heading else "") + "\n".join(lines))
     return "\n\n".join(out)
-
-
-def first_reading(pinyin):
-    """The 成語典's reading before any tone-sandhi variant: "yī máo bù bá
-    （變） yì máo bù bá" -> "yī máo bù bá"."""
-    pinyin = re.split(r"（[變又語讀]）|\(變\)", pinyin)[0]
-    return unicodedata.normalize("NFC", re.sub(r"\s+", " ", pinyin.replace("　", " ")).strip())
-
-
-# ---------------------------------------------------------------------------
-# 成語典
-# ---------------------------------------------------------------------------
-
-SEE_MAIN = re.compile(r"見「([^」]+)」條。?")
-CITATION_START = re.compile(r"(?<![0-9])01\.")
-STORY_PREFIX = re.compile(r"^此處所列為「[^」]+」之(?:典源|典故說明)，提供參考。")
-CROSS_REF = re.compile(r"\s*△.*$", re.S)        # 釋義's trailing list of related idioms
-SOURCE_MARK = re.compile(r"（源）")              # a citation that is the 典源 itself
-NOTE_MARK = re.compile(r"\*\d+\*")
-# A related entry whose own explanation only says which idiom it equals,
-# after glossing a character or two (㕙，兔。盧，黑色獵犬。「㕙盡盧烹」猶「兔死狗烹」。).
-ONLY_EQUALS = re.compile(r"^(?:[^。「」]{1,6}，[^。]{1,24}。)*(?:「[^」]+」)?"
-                         r"(?:義?猶|即|義同|同|義參|義仿|義似)「[^」]+」。$")
-# A note ending by pointing to another entry: 「…腳後跟。見「摩頂放踵」。」
-NOTE_POINTER = re.compile(r"見「[^」]+」(?:條)?。?$")
-
-
-def source_text(text):
-    """典源文獻內容 as paragraphs: note markers out, the newlines around
-    annotated words joined, a # paragraph (context around the passage) kept
-    as its own paragraph."""
-    text = NOTE_MARK.sub("", text.replace("_x000D_", "").replace("\r", ""))
-    paras, current = [], []
-    pieces = SEPARATOR.sub("\n＋\n", text).split("\n")
-    k = 0
-    while k < len(pieces):
-        piece = pieces[k]
-        if piece.strip() == "＋":                 # the next source passage
-            if current:
-                paras.append("".join(current))
-                current = []
-        elif piece.lstrip().startswith(("#", "＃", "◎")):
-            if current:
-                paras.append("".join(current))
-                current = []
-            paras.append(piece.lstrip()[1:])
-        else:
-            current.append(piece)
-        k += 1
-    if current:
-        paras.append("".join(current))
-    paras = [EDITORIAL.sub("", p).strip(" \t　") for p in paras]
-    return [p for p in paras if p]
-
-
-def source_title(text):
-    """典源文獻名稱 without its markup: several titles (each after ※) joined
-    with "；"."""
-    text = NOTE_MARK.sub("", text.replace("_x000D_", "").replace("\r", ""))
-    titles = [EDITORIAL.sub("", t).strip(" \t\u3000") for t in re.split(r"[\n※]", text)]
-    return "；".join(t for t in titles if t)
-
-
-def own_explanation(text):
-    """A 釋義 without its related-idiom list, the pointer to its main entry
-    and the citations appended to it."""
-    text = CROSS_REF.sub("", text.replace("_x000D_", "").replace("\r", ""))
-    m = SEE_MAIN.search(text)
-    if m:
-        text = text[:m.start()]
-    m = CITATION_START.search(text)
-    if m:
-        text = text[:m.start()]
-    return EDITORIAL.sub("", re.sub(r"\s+", "", text)).strip()
-
-
-def numbered(lines):
-    """Citation lines: "01.《燕丹子》…" kept as written, the （源） mark out."""
-    return [SOURCE_MARK.sub("", x).strip() for x in lines]
-
-
-def idioms_entries(rows, stats):
-    """The 成語典's rows (read_xlsx) as dicts {trad, pinyin, short, sections,
-    main} in traditional text: `sections` the 出处 view's (heading, lines),
-    headings already simplified. Related entries take the source text, notes
-    and story of their main entry, headed with its name."""
-    by_name = {r["成語"]: r for r in rows}
-
-    def main_sections(r, suffix=""):
-        src_title = source_title(r["典源文獻名稱"])
-        src = [] if STORY_PREFIX.match(r["典源文獻內容"]) else source_text(r["典源文獻內容"])
-        story = STORY_PREFIX.sub("", r["典故說明"].replace("_x000D_", "")).strip()
-        return [
-            (("典源" + suffix + ("　" + src_title if src_title else "")), no_boxes(src, stats, "idioms")),
-            ("注解" + suffix, no_boxes([NOTE_POINTER.sub("", x) for x in lines_of(r["典源注解"])], stats, "idioms")),
-            ("典故说明" + suffix, no_boxes(lines_of(story), stats, "idioms")),
-        ]
-
-    out = []
-    for r in rows:
-        stats["idioms: entries read"] += 1
-        name = r["成語"].strip()
-        is_main = r["主條成語／非主條成語"].strip() == "主條成語"
-        own = own_explanation(r["釋義"])
-        m = SEE_MAIN.search(r["釋義"])
-        main = by_name.get(m.group(1)) if m else None
-        if is_main:
-            stats["idioms: main entries"] += 1
-            sense = r["用法說明-語義說明"].replace("_x000D_", "").strip()
-            short = one_line(sense) or own
-            sections = [("释义", no_boxes([own], stats, "idioms"))] + main_sections(r) + [
-                ("书证", no_boxes(numbered(lines_of(r["書證"]))[:VIEW_LIST_MAX], stats, "idioms")),
-                ("用法", no_boxes(lines_of(sense) + lines_of(r["用法說明-使用類別"]), stats, "idioms")),
-                ("例句", no_boxes(lines_of(r["用法說明-例句"])[:VIEW_LIST_MAX], stats, "idioms")),
-                ("辨识", no_boxes(lines_of(r["辨識-形音辨誤"]) + lines_of(r["辨識-同"]) + lines_of(r["辨識-異"]),
-                                stats, "idioms")),
-                ("", ["近义：" + x for x in lines_of(r["近義成語"])] + ["反义：" + x for x in lines_of(r["反義成語"])]),
-            ]
-        else:
-            stats["idioms: related entries"] += 1
-            short = own
-            if main is not None:
-                stats["idioms: related entries with their main entry"] += 1
-                main_sense = one_line(main["用法說明-語義說明"])
-                if ONLY_EQUALS.match(own) and main_sense:
-                    short = own.rstrip("。") + "：" + main_sense
-            sections = [("释义", no_boxes([own], stats, "idioms")),
-                        ("书证", no_boxes(numbered(lines_of(r["書證"]))[:VIEW_LIST_MAX], stats, "idioms"))]
-            if main is not None:
-                sections += main_sections(main, "（" + main["成語"].strip() + "）")
-        if BOXES.search(short):
-            stats["idioms: short line with a box character (dropped)"] += 1
-            short = ""
-        out.append({"trad": name, "pinyin": first_reading(r["漢語拼音"]), "short": shorten(short),
-                    "sections": sections, "main": is_main})
-    return out
 
 
 # ---------------------------------------------------------------------------

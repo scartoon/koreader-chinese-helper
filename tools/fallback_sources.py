@@ -1,5 +1,5 @@
 """Fallback dictionaries: the sources the popup consults for candidate words
-CC-CEDICT has no entry for (shared by tools/build_db.py, tools/build_moe.py and
+CC-CEDICT has no entry for (shared by tools/build_db.py, the optional-file builds and
 tools/measure_fallback.py).
 
 Every source becomes rows in the same shape as CC-CEDICT's `entries`:
@@ -23,9 +23,8 @@ What every source gets (the plugin can only ever match these):
   * headwords of 1-8 Han characters only: the popup's context stops at any
     other character, so 卡拉OK or 996 can never be looked up;
   * no row for a headword CC-CEDICT has, in either form: CC-CEDICT stays the
-    only entry for its words. The exception is MOE's own file
-    (build_moe.py), which keeps them as covered rows (`covered` = 1) for the
-    popup's "always shown" mode; the fallback lookup leaves them out;
+    only entry for its words (MOE, bundled since 2.28.0, has its own key
+    tables with a covered flag instead: tools/build_moe.py);
   * no everyday combinations (see everyday()) and no numerals.
 
 Sources:
@@ -38,9 +37,8 @@ Sources:
         Chinese in the glosses is kept as written in defs; defs_simp has it
         simplified (simplify.py, t2s): "廩／廪" pairs collapse to 廪, other
         text is converted.
-  moe   教育部《重編國語辭典修訂本》 via g0v/moedict-data (CC BY-ND 3.0 TW):
-        built only into the user's own local file, never the release. defs is
-        MOE's own text, defs_simp the simplified one (simplify.py, tw2s).
+  (moe   教育部《重編國語辭典修訂本》: bundled unmodified since 2.28.0, its own
+        tables, not this one: tools/build_moe.py.)
   wp    Chinese Wikipedia article titles with an English article, filtered
         to technology, engineering, military and history (CC BY-SA 4.0):
         the gloss is the English article's title.
@@ -55,7 +53,6 @@ kaomoji and decorative symbols, so they are taken out.
 """
 import gzip
 import json
-import lzma
 import os
 import re
 import sqlite3
@@ -497,74 +494,6 @@ def wiktionary_rows(path, cedict, measure, stats, dropped=None, readings=None):
             for pinyin, senses in senses_by_py.items():
                 emit(simp, word, pinyin, senses)
     stats["wikt: rows"] = len(rows)
-    return rows
-
-
-# ---------------------------------------------------------------------------
-# MOE 重編國語辭典修訂本 (g0v/moedict-data dict-revised.json.xz)
-# ---------------------------------------------------------------------------
-
-PUA = re.compile("[-]|\\{\\[[0-9a-f]+\\]\\}")
-
-
-def moe_rows(path, cedict, measure, stats, dropped=None, covered=None):
-    """Rows (simp, trad, pinyin, syllables, defs, "moe", defs_simp). The
-    simplified form is OpenCC's tw2s (characters only: tw2sp would also swap
-    vocabulary, 滑鼠 -> 鼠标, and index a word under another word). defs is
-    MOE's text as written, defs_simp the same in simplified characters
-    (simplify.py, tw2s with its fixes), None when nothing changes.
-    covered: a list that, when given, receives the rows for headwords
-    CC-CEDICT has (dropped otherwise), built the same way and through the same
-    everyday-combinations filter; write_local_file stores them with
-    covered = 1. The rows returned are the same with or without it."""
-    import opencc
-    tw2s = opencc.OpenCC("tw2s")
-    simplifier = Simplifier("tw2s")
-    rows = []
-    for e in json.load(lzma.open(path, "rt", encoding="utf-8")):
-        stats["moe: entries read"] += 1
-        trad = e.get("title", "")
-        if PUA.search(trad):
-            stats["moe: private-use characters in headword (dropped)"] += 1
-            continue
-        simp = tw2s.convert(trad)
-        if not han_word(trad) or not han_word(simp):
-            stats["moe: not Han-only 1-8 (dropped)"] += 1
-            continue
-        is_covered = simp in cedict or trad in cedict
-        if is_covered and covered is None:
-            stats["moe: CC-CEDICT has the headword (dropped)"] += 1
-            continue
-        tag = "moe covered" if is_covered else "moe"
-        hets = []
-        for het in e.get("heteronyms") or []:
-            senses = []
-            for d in het.get("definitions") or []:
-                text = d.get("def", "")
-                if PUA.search(text):
-                    text = PUA.sub("□", text)
-                    stats[tag + ": senses with private-use characters (shown as □)"] += 1
-                if text:
-                    senses.append(clean_sense(text))
-            if senses:
-                hets.append((unicodedata.normalize("NFC", het.get("pinyin") or ""), senses))
-        protected = any(HISTORICAL_MOE.search(x) for _, senses in hets for x in senses)
-        reason = everyday(simp, cedict, measure, protected) or everyday(trad, cedict, measure, protected)
-        if reason:
-            stats[tag + ": everyday combinations (dropped): " + reason] += 1
-            if dropped is not None and not is_covered:
-                dropped.append((simp, reason, hets[0][1][0] if hets else ""))
-            continue
-        out = covered if is_covered else rows
-        for pinyin, senses in hets:
-            simple = [simplifier.convert(x) for x in senses]
-            if simple != senses:
-                stats[tag + ": rows with definitions simplified"] += 1
-            defs, defs_simp = "/".join(senses), "/".join(simple)
-            out.append((simp, trad, pinyin, "", defs, "moe", defs_simp if defs_simp != defs else None))
-    stats["moe: rows"] = len(rows)
-    if covered is not None:
-        stats["moe covered: rows"] = len(covered)
     return rows
 
 

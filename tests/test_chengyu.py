@@ -1,12 +1,9 @@
-"""Unit tests for tools/chengyu.py (the 成語典 and Xinhua idiom files;
-tools/check.sh runs them)."""
-import io
+"""Unit tests for tools/chengyu.py (the Xinhua idiom file; tools/check.sh
+runs them). The 成語典's text is ch_moe.lua's: tests/test_moe.lua."""
 import os
 import sqlite3
 import sys
-import tempfile
 import unittest
-import zipfile
 from collections import Counter
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
@@ -94,43 +91,7 @@ class XinhuaExample(unittest.TestCase):
                          "便是刻舟求剑，胶柱鼓瑟了！ ——清·曹雪芹《红楼梦》第一百二十回")
 
 
-class IdiomsText(unittest.TestCase):
-    def test_source_text(self):
-        text = ("孟子曰：「_x000D_\n*1*楊子_x000D_\n取_x000D_\n*2*為我_x000D_\n，拔一毛而利天下，不為也。_x000D_\n"
-                "#子莫執中，執中為近之。")
-        self.assertEqual(chengyu.source_text(text), ["孟子曰：「楊子取為我，拔一毛而利天下，不為也。", "子莫執中，執中為近之。"])
-
-    def test_separators(self):
-        # ＋ (and ＆) between two source passages: a new paragraph, never shown.
-        text = "昔日*1*齷齪_x000D_\n不足誇。_x000D_\n＋_x000D_\n唐詩*1*情深詞婉_x000D_\n，故有久久莫知其意者。"
-        self.assertEqual(chengyu.source_text(text), ["昔日齷齪不足誇。", "唐詩情深詞婉，故有久久莫知其意者。"])
-        self.assertEqual(chengyu.source_text("甲。_x000D_\n＆_x000D_\n乙。"), ["甲。", "乙。"])
-        # ＆ between senses: a new line in the view, nothing in the short line.
-        self.assertEqual(chengyu.lines_of("比喻甲。褒義。＆比喻乙。褒義。"), ["比喻甲。褒義。", "比喻乙。褒義。"])
-        self.assertEqual(chengyu.lines_of("例一。_x000D_\n＆_x000D_\n例二。"), ["例一。", "例二。"])
-        self.assertEqual(chengyu.lines_of("注一。_x000D_\n＋_x000D_\n注二。"), ["注一。", "注二。"])
-        self.assertEqual(chengyu.one_line("比喻甲。褒義。＆比喻乙。_x000D_\n"), "比喻甲。褒義。比喻乙。")
-
-    def test_source_title(self):
-        self.assertEqual(chengyu.source_title("＃《莊子．山木》*1*"), "《莊子．山木》")
-        self.assertEqual(chengyu.source_title("※《醒世姻緣傳》第三四回_x000D_\n※《水滸傳》第二四回"),
-                         "《醒世姻緣傳》第三四回；《水滸傳》第二四回")
-        self.assertEqual(chengyu.source_title("◎1宋．王之道〈惜奴嬌〉詞"), "宋．王之道〈惜奴嬌〉詞")
-
-    def test_own_explanation(self):
-        self.assertEqual(chengyu.own_explanation("猶「玉石俱焚」。見「玉石俱焚」條。01.三國魏．陳琳〈檄〉：「大兵一放。」"),
-                         "猶「玉石俱焚」。")
-        self.assertEqual(chengyu.own_explanation("一根毫毛也不願意拔取。※語本《孟子》。 _x000D_\n△「愛財如命」"),
-                         "一根毫毛也不願意拔取。語本《孟子》。")
-
-    def test_only_equals(self):
-        self.assertTrue(chengyu.ONLY_EQUALS.match("猶「玉石俱焚」。"))
-        self.assertTrue(chengyu.ONLY_EQUALS.match("㕙，兔。盧，黑色獵犬。「㕙盡盧烹」猶「兔死狗烹」。"))
-        self.assertFalse(chengyu.ONLY_EQUALS.match("比喻有限的本領。"))
-
-    def test_first_reading(self):
-        self.assertEqual(chengyu.first_reading("yī máo bù bá （變） yì máo bù bá"), "yī máo bù bá")
-
+class Shared(unittest.TestCase):
     def test_shorten(self):
         self.assertEqual(chengyu.shorten("甲。" * 60, 10), "甲。" * 5)
         self.assertEqual(chengyu.shorten("短。"), "短。")
@@ -141,65 +102,7 @@ class IdiomsText(unittest.TestCase):
         self.assertEqual(stats["x: lines with characters fonts draw as a box (dropped)"], 2)
 
 
-HEADER = ["編號", "成語", "注音", "漢語拼音", "釋義", "典源文獻名稱", "典源文獻內容", "典源注解", "典源參考資料", "典故說明",
-          "書證", "用法說明-語義說明", "用法說明-使用類別", "用法說明-例句", "辨識-形音辨誤", "辨識-同", "辨識-異", "辨識-例句",
-          "近義成語", "反義成語", "參考詞語", "主條成語／非主條成語"]
-
-
-def tiny_xlsx(rows):
-    """A minimal workbook with inline strings."""
-    def cell(ref, v):
-        v = v.replace("&", "&amp;").replace("<", "&lt;")
-        return f'<c r="{ref}" t="inlineStr"><is><t>{v}</t></is></c>'
-    letters = [chr(65 + k) if k < 26 else "A" + chr(65 + k - 26) for k in range(len(HEADER))]
-    xml = ['<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>']
-    for i, r in enumerate([HEADER] + rows, 1):
-        xml.append(f'<row r="{i}">' + "".join(cell(f"{letters[k]}{i}", v) for k, v in enumerate(r) if v) + "</row>")
-    xml.append("</sheetData></worksheet>")
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w") as z:
-        z.writestr("xl/worksheets/sheet1.xml", "".join(xml))
-    return buf.getvalue()
-
-
-def row(**kw):
-    return [kw.get(h, "") for h in HEADER]
-
-
-class IdiomsEntries(unittest.TestCase):
-    def setUp(self):
-        main = row(成語="玉石俱焚", 漢語拼音="yù shí jù fén", 釋義="美玉和石頭一起燒毀。",
-                   典源文獻名稱="《書經．胤征》", 典源文獻內容="火炎*1*崐岡_x000D_\n，玉石俱焚。", 典源注解="崐岡：崑崙山。",
-                   典故說明="夏帝仲康時……", 書證="01.《三國志》：「玉石俱焚。」（源）",
-                   **{"用法說明-語義說明": "比喻好壞同時受害。", "主條成語／非主條成語": "主條成語",
-                      "近義成語": "同歸於盡"})
-        sub = row(成語="玉石俱碎", 漢語拼音="yù shí jù suì", 釋義="猶「玉石俱焚」。見「玉石俱焚」條。01.陳琳〈檄〉：「玉石俱碎。」",
-                  典源文獻內容="此處所列為「玉石俱焚」之典源，提供參考。", 典故說明="此處所列為「玉石俱焚」之典故說明，提供參考。夏帝……",
-                  書證="01.陳琳〈檄〉：「玉石俱碎。」", **{"主條成語／非主條成語": "非主條成語"})
-        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
-            f.write(tiny_xlsx([main, sub]))
-            self.path = f.name
-
-    def tearDown(self):
-        os.remove(self.path)
-
-    def test_entries(self):
-        rows = chengyu.read_xlsx(self.path)
-        self.assertEqual(rows[0]["成語"], "玉石俱焚")
-        out = {e["trad"]: e for e in chengyu.idioms_entries(rows, Counter())}
-        main, sub = out["玉石俱焚"], out["玉石俱碎"]
-        self.assertEqual(main["short"], "比喻好壞同時受害。")
-        self.assertEqual(sub["short"], "猶「玉石俱焚」：比喻好壞同時受害。")
-        view = chengyu.view_text(main["sections"])
-        self.assertIn("典源　《書經．胤征》\n火炎崐岡，玉石俱焚。", view)
-        self.assertIn("书证\n01.《三國志》：「玉石俱焚。」\n", view)
-        self.assertIn("近义：同歸於盡", view)
-        sub_view = chengyu.view_text(sub["sections"])
-        self.assertTrue(sub_view.startswith("释义\n猶「玉石俱焚」。\n\n书证\n01.陳琳"))
-        self.assertIn("典源（玉石俱焚）　《書經．胤征》", sub_view)
-        self.assertIn("典故说明（玉石俱焚）\n夏帝仲康時……", sub_view)
-        self.assertNotIn("提供參考", sub_view)
-
+class Tables(unittest.TestCase):
     def test_tables(self):
         stats = Counter()
         # The source's text, and (#48) its simplified copy when it differs.

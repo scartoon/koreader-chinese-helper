@@ -87,7 +87,7 @@ end
 stub("ch_popup", Popup)
 
 local Plugin = dofile(PLUGIN_DIR .. "/main.lua")
-local plugin = Plugin:new{ path = PLUGIN_DIR }
+local plugin = Plugin:new{ path = PLUGIN_DIR, moe_path = TEST_MOE_PATH }
 plugin:init()
 plugin.ui = { highlight = { onTranslateText = function() end } }
 local tap = plugin.tap

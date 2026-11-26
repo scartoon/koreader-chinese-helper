@@ -7,6 +7,7 @@ cd "$(dirname "$0")/.."
 tools/check.sh
 DEST=/sdcard/koreader/plugins
 [ -f chinesehelper.koplugin/data/chinesehelper.sqlite ] || { echo "no database: run tools/build_db.py"; exit 1; }
+[ -f chinesehelper.koplugin/data/moe/moe.sqlite ] || { echo "no MOE data: run tools/build_moe.py"; exit 1; }
 adb shell rm -rf "$DEST/chinesehelper.koplugin"
 adb push chinesehelper.koplugin "$DEST/" >/dev/null
 adb shell am force-stop org.koreader.launcher

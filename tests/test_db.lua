@@ -93,81 +93,13 @@ for _, n in ipairs({ 1, 2, 16 }) do
     eq(DB.idiomsSql(n, true), PY_IDIOMS_SQL(n, true), "idioms SQL with the simplified text for " .. n)
 end
 eq(#db:idioms({ "一毛不拔" }), 0, "the release database has no idioms table")
-local idb = DB.open(TEST_KOREADER_DIR .. "/data/chinesehelper/chinesehelper-idioms.sqlite", H.SQ3)
-local irows = idb:idioms({ "一毛不拔", "玉石俱碎", "东西" })
-eq(#irows, 2); eq(irows[1].short ~= nil, true)
--- Both texts (#48): the 成語典's own, and simplified where it differs.
-local yimao
-for _, r in ipairs(irows) do if r.simp == "一毛不拔" then yimao = r end end
-eq(yimao.short, "形容人非常吝嗇。貶義。"); eq(yimao.short_simp, "形容人非常吝啬。贬义。")
-assert(yimao.view:find("盡心上", 1, true) and yimao.view_simp:find("尽心上", 1, true))
-eq(#idb:idioms({}), 0)
-idb:close()
-
--- MOE's file keeps headwords CC-CEDICT has as covered rows (2.5.0); the
--- fallback lookup returns exactly what it returns from the same file without
--- them, and a file built before (no `covered` column) still works.
 eq(db:hasCovered(), false, "the release database has no covered column")
-local function rowsText(rows)
-    local out = {}
-    for _, r in ipairs(rows) do
-        -- (The old file holds the simplified text only.)
-        out[#out + 1] = table.concat({ r.simp, r.trad, r.pinyin, r.syllables, r.defs_simp or r.defs, r.source }, "|")
-    end
-    return table.concat(out, "\n")
-end
-local mdb = DB.open(TEST_KOREADER_DIR .. "/data/chinesehelper/chinesehelper-moe.sqlite", H.SQ3)
-local odb = DB.open(TEST_KOREADER_DIR .. "/moe-old.sqlite", H.SQ3)
-eq(mdb:hasCovered(), true); eq(odb:hasCovered(), false)
-local ncovered = 0
-mdb:each("SELECT count(*) FROM fallback WHERE covered = 1", nil, function(row) ncovered = tonumber(row[1]) end)
-eq(ncovered, 4, "covered rows in the test file")
-eq(mdb:meta().moe_covered, "1")
-local probe_words = { "尚书省", "丁匠", "典史", "和", "涓", "台風", "颱風", "台风", "東西" }
-eq(rowsText(mdb:fallback(probe_words)), rowsText(odb:fallback(probe_words)), "covered rows never returned")
-eq(#odb:fallback(probe_words), 3, "the old file's rows")
-for _, w in ipairs(probe_words) do
-    eq(rowsText(mdb:fallback({ w })), rowsText(odb:fallback({ w })), "one word: " .. w)
-end
-eq(#mdb:fallback({ "台風" }), 0, "a covered row found by a form CC-CEDICT lacks is still left out")
-eq(#mdb:fallback({ "和", "涓" }), 0)
-local checks = 0
-local real_each = mdb.each
-mdb.each = function(self, sql, ...)
-    if sql:find("PRAGMA", 1, true) then checks = checks + 1 end
-    return real_each(self, sql, ...)
-end
-mdb.columns = nil
-mdb:fallback({ "丁匠" }); mdb:fallback({ "典史" }); mdb:fallback({ "和" }); mdb:fallbackAll({ "和" })
-eq(checks, 1, "the columns are checked once per database")
--- #48: MOE's own text and the simplified copy; none from the old file.
-local ding = mdb:fallback({ "丁匠" })[1]
-eq(ding.defs, "官府徵調的工匠。"); eq(ding.defs_simp, "官府征调的工匠。")
-eq(mdb:fallback({ "典史" })[1].defs_simp, nil, "nothing to simplify: no copy")
-eq(odb:fallback({ "丁匠" })[1].defs_simp, nil)
-eq(odb:hasColumn("fallback", "defs_simp"), false)
-local juan = mdb:fallbackAll({ "涓" })[1]
-eq(juan.covered, true); eq(juan.defs, "細小的流水。"); eq(juan.defs_simp, "细小的流水。")
-mdb.each = real_each
--- MOE Always (#11): one query for every row, covered or not.
+-- (Xinhua's file keeps the idioms table; MOE is bundled: tests/test_moe.lua.)
 for _, n in ipairs({ 1, 2, 36 }) do
     eq(DB.fallbackAllSql(n), PY_FALLBACK_ALL_SQL(n), "all-rows SQL for " .. n)
     eq(DB.fallbackAllSql(n, true), PY_FALLBACK_ALL_SQL(n, true), "all-rows SQL with defs_simp for " .. n)
 end
-local all = mdb:fallbackAll(probe_words)
-local ncov, nunc = 0, 0
-for _, r in ipairs(all) do if r.covered then ncov = ncov + 1 else nunc = nunc + 1 end end
-eq(ncov, 4, "every covered row"); eq(nunc, #mdb:fallback(probe_words), "and every uncovered one")
-local unc = {}
-for _, r in ipairs(all) do if not r.covered then unc[#unc + 1] = r end end
-eq(rowsText(unc), rowsText(mdb:fallback(probe_words)), "uncovered rows as the fallback query gives them")
-eq(#odb:fallbackAll(probe_words), 0, "an old file: no all-rows query")
 eq(#db:fallbackAll({ "东西" }), 0, "nor the release database")
-local plan = {}
-mdb:each("EXPLAIN QUERY PLAN " .. DB.fallbackAllSql(1), { "和", "和" }, function(row) plan[#plan + 1] = row[4] end)
-plan = table.concat(plan, "\n")
-assert(plan:find("fallback_simp", 1, true) and plan:find("fallback_trad", 1, true), "all-rows query uses the indexes: " .. plan)
-mdb:close(); odb:close()
 
 local fb = db:fallback({ "尚书省" })
 eq(#fb, 1, "尚书省 from Wiktionary"); eq(fb[1].source, "wikt"); eq(fb[1].trad, "尚書省")
@@ -199,7 +131,7 @@ eq(meta2.fallback_sources, "wikt,wp"); assert(meta2.wikt_dump ~= "" and meta2.wi
 assert(meta2.wp_dump:match("^%d%d%d%d%-%d%d%-%d%d$"), meta2.wp_dump); assert(tonumber(meta2.wp_rows) > 10000)
 
 -- The user's own files, as built by tools/build_cbdb.py and
--- tools/build_moegirl.py (and build_moe.py), when this computer has them:
+-- tools/build_moegirl.py, when this computer has them:
 -- they load through the same SQL, every row has the file's source, and none
 -- is for a headword CC-CEDICT has.
 local function checkLocal(name, source, word, want)
@@ -233,4 +165,3 @@ end
 checkLocal("cbdb", "cbdb", "典史", "Ming office title")
 checkLocal("cbdb", "cbdb", "试百户", "office title (Ming)")
 checkLocal("moegirl", "moegirl", "问题不大", "网络流行语")
-checkLocal("moe", "moe", "丁匠", "工匠")
