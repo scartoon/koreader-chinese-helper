@@ -269,7 +269,7 @@ end
 
 -- After CC-CEDICT, in this order (the default; Settings:fallbackOrder() can
 -- change it, passed to Model.matches as args.order).
-Model.SOURCE_ORDER = { "wikt", "cbdb", "moe", "idioms", "xinhua", "wp", "moegirl" }
+Model.SOURCE_ORDER = { "cbdb", "wikt", "moe", "idioms", "xinhua", "wp", "moegirl" }
 -- Sources whose readings are generated (pypinyin), not the source's own:
 -- the popup says so.
 Model.GENERATED_READING = { wp = true, moegirl = true }
@@ -598,6 +598,10 @@ The popup's matches.
                     as cleanRows gives them; a reading CC-CEDICT does not
                     list for that word has notcedict = true). Never read
                     by the reading markers.
+  args.cbdb         CBDB's rows for the words it shows Always (#88,
+                    Tap:cbdbAlways), or nil: a match whose entries are not
+                    CBDB's own gets them as m.cbdb, shown right after its
+                    entry and before MOE's Always entries.
   args.chosen       the resolver's reading of the tapped character ("dào", or a
                     pair "chéng/shèng"), or nil
   args.default      the tapped character's default reading, or nil: which of
@@ -690,6 +694,24 @@ function Model.matches(args)
         end
         return out
     end
+    -- CBDB's Always rows (#88), by form: its entry for a word whose own
+    -- entries are another dictionary's.
+    local cbdb_by_form = {}
+    for _, row in ipairs(args.cbdb or {}) do
+        for _, form in ipairs({ row.simp, row.trad }) do
+            if form then
+                local list = cbdb_by_form[form] or {}
+                cbdb_by_form[form] = list
+                if list[#list] ~= row then list[#list + 1] = row end
+            end
+        end
+    end
+    local function cbdbFor(text, source)
+        local list = cbdb_by_form[text]
+        if not list or source == "cbdb" then return nil end
+        local out = Model.cleanRows(text, list)
+        return #out > 0 and out or nil
+    end
     local decided = args.decided
     local anchor, words, have_decided = nil, {}, false
     for _, c in ipairs(args.cands or {}) do
@@ -698,6 +720,13 @@ function Model.matches(args)
         local m = { word = c.text, start = c.start, len = c.len, entries = entries }
         if #entries > 0 then
             m.always = alwaysFor(c.text, list_source, entries)
+            m.cbdb = cbdbFor(c.text, list_source)
+        elseif cbdb_by_form[c.text] then
+            -- Only CBDB's Always rows have it (a 《》 book title, a form
+            -- CC-CEDICT lacks): CBDB's entry is the word's own, MOE's after.
+            entries = Model.cleanRows(c.text, cbdb_by_form[c.text])
+            m.entries = entries
+            m.always = alwaysFor(c.text, "cbdb", entries)
         elseif always_by_form[c.text] then
             -- Only MOE's covered rows have it (a form CC-CEDICT lacks, 台風
             -- for its 颱風): MOE's entry is the word's own.
@@ -816,7 +845,7 @@ function Model.matches(args)
     -- reading markers and the "decides" tag were worked out from the full
     -- list: the tapped character's own entry already shows the reading.
     local function empty(m)
-        if m.note or m.always then return false end
+        if m.note or m.always or m.cbdb then return false end
         for _, e in ipairs(m.entries) do
             if #e.senses > 0 then return false end
         end
@@ -1160,6 +1189,14 @@ function Model.blocks(matches, char, annotated, b0, b1, heads)
     end
     for _, m in ipairs(matches) do
         blocks[#blocks + 1] = build(m)
+        if m.cbdb then
+            -- CBDB's Always entry (#88): directly after the word's own entry,
+            -- before MOE's, collapsed like it.
+            local block = build{ word = m.word, len = m.len, entries = m.cbdb, trad_pick = m.trad_pick,
+                                 simp_pick = m.simp_pick }
+            block.always, block.collapse = true, true
+            blocks[#blocks + 1] = block
+        end
         if m.always then
             -- MOE's Always entries: their own block, right after the match's,
             -- collapsed in the popup (ch_popup.lua), never marked.

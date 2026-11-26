@@ -45,8 +45,12 @@ local data_dir = TEST_KOREADER_DIR
 stub("libs/libkoreader-lfs", { attributes = function() return nil end })
 stub("datastorage", { getDataDir = function() return data_dir end, getSettingsDir = function() return data_dir .. "/settings" end })
 
--- Pinyin on at 2,500; the popup never set.
-local settings = { chinesehelper_pinyin_enabled = true, chinesehelper_threshold = 2500 }
+-- Pinyin on at 2,500; the popup never set. The dictionaries in the order
+-- before 2.29.0 (Wiktionary first), saved, and already past the one-time
+-- move of CBDB to the front (#88; tested below and in test_settings.lua).
+local settings = { chinesehelper_pinyin_enabled = true, chinesehelper_threshold = 2500,
+                   chinesehelper_fallback_order = "wikt,cbdb,moe,idioms,xinhua,wp,moegirl",
+                   chinesehelper_cbdb_first_done = true }
 G_reader_settings = {
     readSetting = function(_, k) return settings[k] end,
     saveSetting = function(_, k, v) settings[k] = v end,
@@ -79,7 +83,7 @@ local function walk(items)
     end
 end
 walk(entry.sub_item_table)
-eq(count, 21 + 8 + 2 + 5 + 3 + 3 + 5 + 9 + 5 + 4 + 8 + 3 + 13 + 3 + 1, "menu size")   -- popup text size: 9 choices (#81); headwords: 4 choices (#80); frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels (2), order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1)
+eq(count, 21 + 8 + 2 + 5 + 3 + 3 + 5 + 9 + 5 + 4 + 8 + 3 + 13 + 3 + 1 + 4, "menu size")   -- popup text size: 9 choices (#81); headwords: 4 choices (#80); frequency ranks: 2 choices; spoken tones: 3 choices; dictionaries: labels (2), order, collapse (4), 7 dictionaries, MOE's two modes (3 each), dictionary text (3), Classical mode (1), CBDB's mode (1 + 3, #88)
 
 -- Reading marks (#26): right after the special readings, the counts in its
 -- label, the file named in its help; its sub-items list and clear.
@@ -397,8 +401,21 @@ for k = 6, #all_items do
     local it = all_items[k]
     if it.sub_item_table then moe_modes[#moe_modes + 1] = it else fb_item.sub_item_table[#fb_item.sub_item_table + 1] = it end
 end
+local cbdb_mode = table.remove(moe_modes, 1)
 eq(#moe_modes, 2)
-eq(all_items[9], moe_modes[1], "right after MOE's switch")
+eq(all_items[8], cbdb_mode, "CBDB's mode right after its switch")
+eq(all_items[10], moe_modes[1], "right after MOE's switch")
+-- CBDB's mode (#88): Always by default; Fallback and Off from the menu.
+eq(cbdb_mode.text_func(), "    CBDB: always")
+assert(cbdb_mode.sub_item_table[3].checked_func(), "Always checked by default")
+eq(cbdb_mode.sub_item_table[3].text, "Always: also under CC-CEDICT's entry (default)")
+assert(cbdb_mode.help_text:find("right after CC-CEDICT's", 1, true), cbdb_mode.help_text)
+cbdb_mode.sub_item_table[2].callback(); eq(plugin.settings:cbdbMode(), "fallback")
+eq(cbdb_mode.text_func(), "    CBDB: fallback")
+cbdb_mode.sub_item_table[1].callback(); eq(plugin.settings:cbdbMode(), "off")
+eq(names(plugin:fallbackSources()), "wikt,moe,idioms,xinhua,wp,moegirl", "CBDB's mode off: not consulted")
+cbdb_mode.sub_item_table[3].callback(); eq(plugin.settings:cbdbMode(), "always")
+assert(cbdb_mode.enabled_func())
 eq(moe_modes[1].text_func(), "    MOE for single characters: fallback")
 assert(moe_modes[1].sub_item_table[2].checked_func(), "Fallback checked by default")
 eq(moe_modes[1].sub_item_table[2].text, "Fallback: only when CC-CEDICT lacks it (default)")
@@ -498,7 +515,7 @@ eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
 -- The order is a setting (not in the menu): named sources first, the rest
 -- after in the default order.
 plugin.settings:set("fallback_order", "moe, moegirl,bogus,moe")
-eq(names(plugin:fallbackSources()), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
+eq(names(plugin:fallbackSources()), "moe,moegirl,cbdb,wikt,idioms,xinhua,wp")
 eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强将:xinhua,红夷大炮:moegirl,试百户:cbdb,问题不大:moegirl")
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
@@ -506,9 +523,9 @@ plugin:addToMainMenu(items3)
 eq(items3.chinesehelper.sub_item_table[20].sub_item_table[6].text_func(), "MOE 重編國語辭典",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
-eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
+eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,cbdb,wikt,idioms,xinhua,wp")
 plugin.settings:set("fallback_order", nil)
-eq(names(plugin:fallbackSources()), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
+eq(names(plugin:fallbackSources()), "cbdb,wikt,moe,idioms,xinhua,wp,moegirl", "the default: CBDB first (#88)")
 -- The Order item: KOReader's SortWidget over the seven; its order saved, and
 -- the menu's dictionary items rebuilt in it.
 local sort_args
@@ -518,13 +535,13 @@ plugin:addToMainMenu(items4)
 local dict_menu = items4.chinesehelper.sub_item_table[20].sub_item_table
 local updated = 0
 dict_menu[4].callback({ updateItems = function() updated = updated + 1 end })
-eq(#sort_args.item_table, 7); eq(sort_args.item_table[1].text, "Wiktionary")
+eq(#sort_args.item_table, 7); eq(sort_args.item_table[1].text, "CBDB")
 local moved = table.remove(sort_args.item_table, 6)   -- Wikipedia titles to the top
 table.insert(sort_args.item_table, 1, moved)
 sort_args.callback()
-eq(plugin.settings:get("fallback_order"), "wp,wikt,cbdb,moe,idioms,xinhua,moegirl")
+eq(plugin.settings:get("fallback_order"), "wp,cbdb,wikt,moe,idioms,xinhua,moegirl")
 eq(updated, 1)
-eq(dict_menu[6].text_func(), "Wikipedia titles"); eq(#dict_menu, 5 + 7 + 2, "rebuilt, not added to")
+eq(dict_menu[6].text_func(), "Wikipedia titles"); eq(#dict_menu, 5 + 7 + 3, "rebuilt, not added to")
 plugin.settings:set("fallback_order", nil)
 
 -- The popup with idioms (ch_tap.lua present, with a stand-in for the popup
@@ -602,12 +619,14 @@ for k, it in ipairs(items2.chinesehelper.sub_item_table[20].sub_item_table) do
         if it.sub_item_table then moe_modes2[#moe_modes2 + 1] = it else dict_items[#dict_items + 1] = it end
     end
 end
+local cbdb_mode2 = table.remove(moe_modes2, 1)
+assert(not cbdb_mode2.enabled_func(), "CBDB's mode: greyed out without its file")
 for _, it in ipairs(moe_modes2) do assert(it.enabled_func(), "MOE's modes: MOE is part of the plugin") end
-eq(texts(dict_items), "Wiktionary | CBDB (not installed) | MOE 重編國語辭典"
+eq(texts(dict_items), "CBDB (not installed) | Wiktionary | MOE 重編國語辭典"
     .. " | MOE 成語典 | Xinhua idioms (not installed)"
     .. " | Wikipedia titles | Moegirlpedia slang (not installed)")
-for _, k in ipairs({ 3, 4 }) do assert(dict_items[k].enabled_func() and dict_items[k].checked_func()) end
-for _, k in ipairs({ 2, 5, 7 }) do
+for _, k in ipairs({ 2, 3, 4, 6 }) do assert(dict_items[k].enabled_func() and dict_items[k].checked_func()) end
+for _, k in ipairs({ 1, 5, 7 }) do
     assert(not dict_items[k].enabled_func() and not dict_items[k].checked_func())
 end
 local status2 = table.concat(plugin2:fallbackStatus(), "\n")

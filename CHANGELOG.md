@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.29.0 (unreleased)
+## 2.29.0 (2026-11-26)
 
 CBDB: well-known people, office titles of every dynasty, book titles (#87)
 - `tools/build_cbdb.py` builds a new CBDB file (8.7 MB, still your own file, never shared): 381
@@ -18,6 +18,17 @@ CBDB: well-known people, office titles of every dynasty, book titles (#87)
 - Readings take their tones from CC-CEDICT, matched to CBDB's toneless pinyin (王安石 Wáng
   Ānshí; 单 Shàn as a surname); CBDB's own letters stay where nothing settles a tone.
 - In menus and on Status, "CBDB office titles" is now just "CBDB".
+
+CBDB on by default, right after CC-CEDICT, even for words CC-CEDICT has (#88)
+- With the CBDB file installed, CBDB's entry now comes right after CC-CEDICT's for the same word,
+  collapsed like MOE Always and before MOE's own Always entry: 王安石's dates, 字, 號, home town
+  and 進士 year under CC-CEDICT's one line. With **Words first**, each word's CBDB entry follows
+  its CC-CEDICT entry; in **Classical mode** the 文言 entry stays at the top.
+- A new **CBDB** item under CBDB's switch in the **Dictionaries** menu: off / fallback (only words
+  CC-CEDICT lacks, as before) / always (the default). Status shows the mode.
+- CBDB is now first in the order after CC-CEDICT. **If you had saved your own order, CBDB is moved
+  to its front once**; the rest of your order is kept, and you can move CBDB back with **Order**.
+- About 6 taps in 1,000 get a CBDB entry in the books it was tested on.
 
 ## 2.28.0 (2026-11-26)
 

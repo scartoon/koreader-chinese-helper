@@ -43,7 +43,7 @@ local ChineseHelper = WidgetContainer:extend{
     is_doc_only = true,
 }
 
-ChineseHelper.VERSION = "2.28.0"
+ChineseHelper.VERSION = "2.29.0"
 
 -- Opened once per KOReader session and shared by every book: the database
 -- handle, the resolver's tables and the special words.
@@ -55,6 +55,7 @@ local session = {}
 
 function ChineseHelper:init()
     self.settings = Settings.new(G_reader_settings)
+    self.settings:cbdbFirstOnce()
     self.annotator = Annotator.new(self)
     self.tap = Tap.new(self)
     -- Register the menu first: if anything later fails, the entry still shows.
@@ -280,7 +281,7 @@ function ChineseHelper:fallbackSources()
     local out = {}
     local settings = self.settings
     for _i, source in ipairs(settings:fallbackOrder()) do
-        if settings:fallbackEnabled(source) then
+        if settings:fallbackEnabled(source) and not (source == "cbdb" and settings:cbdbMode() == "off") then
             local db = self:sourceDb(source)
             if db then out[#out + 1] = { source = source, db = db } end
         end
@@ -422,8 +423,12 @@ function ChineseHelper:fallbackStatus()
         -- 2.29.0 has Ming office titles only, and no counts by kind.
         cbdb = function(m)
             if m.cbdb_people then
-                return T(_("CBDB: %1 (CBDB %2: %3 people, %4 office titles, %5 book titles)"), state("cbdb"),
+                local line = T(_("CBDB: %1 (CBDB %2: %3 people, %4 office titles, %5 book titles)"), state("cbdb"),
                     (m.cbdb_date or "?"):sub(1, 10), m.cbdb_people, m.cbdb_offices or "?", m.cbdb_books or "?")
+                if self.settings:fallbackEnabled("cbdb") then
+                    line = line .. "\n  " .. T(_("shown: %1"), ChineseHelper.MOE_MODE_NAMES[self.settings:cbdbMode()])
+                end
+                return line
             end
             return T(_("CBDB: %1 (CBDB %2, %3 Ming office titles; rebuild it for people and books)"), state("cbdb"),
                 (m.cbdb_date or "?"):sub(1, 10), m.cbdb_rows or "?")
@@ -873,7 +878,7 @@ function ChineseHelper:addToMainMenu(menu_items)
             },
             {
                 text = _("Dictionaries"),
-                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be set to Always (its MOE for single characters and MOE for words items): under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. Every entry carries a small grey label naming its dictionary (CC-CEDICT's as CEDICT), unless Source labels is set to None. Wiktionary, the Wikipedia titles and MOE's two dictionaries (重編國語辭典 and 成語典) are part of the plugin; CBDB, Xinhua idioms and Moegirlpedia are files you build and install yourself (see the README)."),
+                help_text = _("CC-CEDICT always comes first. For a word it does not have, the popup shows the entry of the first other dictionary that has it, in the order set here (Order). MOE 重編國語辭典 can also be set to Always (its MOE for single characters and MOE for words items): under CC-CEDICT's entry for a character (or word) it has too, collapsed to a few lines ending in [Tap to show more]. CBDB is Always by default (its CBDB item): its entry for a well-known person, an office title or a book title in 《》 comes right after CC-CEDICT's. Every entry carries a small grey label naming its dictionary (CC-CEDICT's as CEDICT), unless Source labels is set to None. Wiktionary, the Wikipedia titles and MOE's two dictionaries (重編國語辭典 and 成語典) are part of the plugin; CBDB, Xinhua idioms and Moegirlpedia are files you build and install yourself (see the README)."),
                 sub_item_table = plugin:fallbackItems(apply, {
                     {
                         text_func = function()
@@ -936,6 +941,8 @@ function ChineseHelper:fallbackItems(apply, items)
                 for _j, kind in ipairs({ "chars", "words" }) do
                     items[#items + 1] = plugin:moeModeItem(kind)
                 end
+            elseif source == "cbdb" then
+                items[#items + 1] = plugin:cbdbModeItem()
             end
         end
     end
@@ -1110,6 +1117,32 @@ function ChineseHelper:moeModeItem(kind)
         end,
         help_text = _("Always: MOE's entry is shown under CC-CEDICT's too, collapsed (for a single character: between CC-CEDICT's entry and the components), with its classical senses and the readings CC-CEDICT does not list (marked \"not in CC-CEDICT\"). Fallback (the default): only when CC-CEDICT does not have it. MOE never decides the pinyin drawn."),
         enabled_func = function() return settings:fallbackEnabled("moe") and plugin:sourceDb("moe") ~= nil end,
+        sub_item_table = sub,
+    }
+end
+
+-- CBDB's mode item (#88): Off / Fallback / Always (the default).
+function ChineseHelper:cbdbModeItem()
+    local plugin, settings = self, self.settings
+    local labels = {
+        off = _("Off"),
+        fallback = _("Fallback: only when CC-CEDICT lacks it"),
+        always = _("Always: also under CC-CEDICT's entry (default)"),
+    }
+    local sub = {}
+    for _i, mode in ipairs(Settings.MOE_MODES) do
+        sub[#sub + 1] = {
+            text = labels[mode], radio = true, keep_menu_open = true,
+            checked_func = function() return settings:cbdbMode() == mode end,
+            callback = function() settings:set("cbdb_mode", mode) end,
+        }
+    end
+    return {
+        text_func = function()
+            return "    " .. T(_("CBDB: %1"), ChineseHelper.MOE_MODE_NAMES[settings:cbdbMode()])
+        end,
+        help_text = _("Always (the default): CBDB's entry for a well-known person, an office title or a book title in 《》 is shown right after CC-CEDICT's entry for the word, collapsed, even when CC-CEDICT has the word too: 王安石's dates, 字, 號 and home town under CC-CEDICT's one line. Fallback: only for words CC-CEDICT lacks. Off: CBDB is not used. CBDB never decides the pinyin drawn."),
+        enabled_func = function() return settings:fallbackEnabled("cbdb") and plugin:sourceDb("cbdb") ~= nil end,
         sub_item_table = sub,
     }
 end
