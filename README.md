@@ -189,7 +189,8 @@ The **Dictionaries** submenu:
 | Classical mode | Off (default) / on; the same as the popup's 文言 Mode button. See [Classical mode](#classical-mode) |
 | Order | The order of the dictionaries after CC-CEDICT |
 | Collapse long entries | 1 / 2 (default) / 3 lines / never |
-| Each dictionary | On / off, listed in that order (default: Wiktionary, CBDB, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang). See [Fallback dictionaries](#fallback-dictionaries) |
+| Each dictionary | On / off, listed in that order (default: CBDB, Wiktionary, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang). See [Fallback dictionaries](#fallback-dictionaries) |
+| CBDB | Under CBDB's switch: off / fallback / always (default). See [CBDB](#cbdb) |
 | MOE for single characters | Under MOE's switch: off / fallback (default) / always. See [MOE Always](#moe-always) |
 | MOE for words | Under MOE's switch: off / fallback (default) / always. See [MOE Always](#moe-always) |
 
@@ -881,10 +882,12 @@ For words CC-CEDICT doesn't have, the popup also looks in the other dictionaries
 <details>
 <summary>Order, labels, readings and switches</summary>
 
-- **Order.** A word CC-CEDICT has never gets a fallback entry. Any other word gets the entry
-  from the first fallback dictionary that has it, in the table's order. CBDB's narrow entries
-  (people, office titles, book titles) come before MOE's general definitions; an English article title is more a label than a
-  definition, so it comes after the real dictionaries; and Moegirlpedia is only for words nothing
+- **Order.** A word CC-CEDICT has never gets a fallback entry, except from MOE and CBDB set to
+  Always ([MOE Always](#moe-always), [CBDB](#cbdb)). Any other word gets the entry
+  from the first fallback dictionary that has it, in the table's order. CBDB comes first:
+  its entries are narrow (people, office titles, book titles) and were checked to be right where
+  they show; then Wiktionary, then MOE's general definitions. An English article title is more a
+  label than a definition, so it comes after the real dictionaries; and Moegirlpedia is only for words nothing
   else has. To change the order, use **Order** in the **Dictionaries** menu: tap a dictionary,
   move it with the arrows, then tap ✓. CC-CEDICT always stays first.
 - **Labels.** A small grey line above each entry names its dictionary, using the labels in the
@@ -995,6 +998,12 @@ dictionaries](#optional-dictionaries)), the CBDB dictionary adds three kinds of 
   (副总裁, 副局长) are left out: 25,822 titles.
 - **Book titles**, only when the tapped text is exactly a title in 《》 (or the book before a ·, as
   in 《新唐书·地理志》), with its authors: 35,297 titles.
+
+**CBDB** under CBDB's switch in the **Dictionaries** menu is **always** by default: CBDB's entry
+comes right after CC-CEDICT's for the same word, even when CC-CEDICT has the word, collapsed like
+[MOE Always](#moe-always) and before MOE's own Always entry. CC-CEDICT's 王安石 is one line; CBDB's
+adds his dates, 字, 號, home town and 進士 year. **Fallback** shows CBDB only for words CC-CEDICT
+lacks, and **off** turns it off. CBDB comes first in the order after CC-CEDICT.
 
 CBDB entries show only where the word fits the plugin's word segmentation, so 试百户 is not offered
 inside 考试百户. Readings: CBDB's pinyin has no tones; they are taken from CC-CEDICT, choosing the
