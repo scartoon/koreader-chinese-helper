@@ -151,7 +151,9 @@ def load_taps():
 def features(cat, h, info):
     """Filter features for one hit."""
     infos = info[cat][h["word"]]
-    f = {"dictword": h["cedict"] or h["other"], "len": h["len"], "aligned": h["aligned"], "n": len(infos)}
+    before, after = h["sent"][h["at"] - 1:h["at"]], h["sent"][h["at"] + h["len"]:h["at"] + h["len"] + 1]
+    f = {"dictword": h["cedict"] or h["other"], "len": h["len"], "aligned": h["aligned"], "n": len(infos),
+         "quoted": before in ("《", "〈") or after in ("》", "〉")}
     if cat in ("person", "alt"):
         f["docs"] = max(p["docs"] for p in infos)
         f["iy"] = any(p["iy"] for p in infos)
@@ -213,16 +215,79 @@ def stage_sample(n_always, n_fallback, seed):
     print(f"  {len(rows)} hits in {(len(rows) + per - 1) // per} batches in {OUT}/judge/")
 
 
+TARGETS = {
+    "person": ("3+ chars, aligned, docs >= 10",
+               lambda f: f["len"] >= 3 and f["aligned"] and f["docs"] >= 10),
+    "alt": ("aligned, not dictionary word, docs >= 30",
+            lambda f: f["aligned"] and not f["dictword"] and f["docs"] >= 30),
+    "office": ("3+ chars, aligned", lambda f: f["len"] >= 3 and f["aligned"]),
+    "place": ("3+ chars, aligned, admin suffix", lambda f: f["len"] >= 3 and f["aligned"] and f["suffix"]),
+    "book": ("in 《》, or 3+ chars and not a dictionary word",
+             lambda f: f.get("quoted") or (f["len"] >= 3 and not f["dictword"])),
+}
+
+
+def filter_rates(d):
+    """{cat: (taps per 1,000 with a hit passing the target filter, always; fallback)}"""
+    n, res = len(d["taps"]), {}
+    for cat, (_name, fn) in TARGETS.items():
+        a = fb = 0
+        for t in d["taps"]:
+            ok = [h for h in t["hits"] if cat in h["cats"] and fn(features(cat, h, d["info"]))]
+            a += bool(ok)
+            fb += any(not h["cedict"] and not h["other"] for h in ok)
+        res[cat] = (1000 * a / n, 1000 * fb / n)
+    return res
+
+
+def stage_sample2(n_target, seed):
+    """Round 2: n_target hits per category that pass its TARGETS filter, not judged in round 1."""
+    d = load_taps()
+    rnd = random.Random(seed + 2)
+    with open(os.path.join(OUT, "sample.pickle"), "rb") as f:
+        rows = pickle.load(f)
+    seen = {(r["word"], r["context"]) for r in rows}
+    new = []
+    for cat, (name, fn) in TARGETS.items():
+        hits = [h for t in d["taps"] for h in t["hits"] if cat in h["cats"] and fn(features(cat, h, d["info"]))]
+        rnd.shuffle(hits)
+        k = 0
+        for h in hits:
+            if k >= n_target:
+                break
+            s = h["sent"].replace("\t", " ").replace("\n", " ")
+            ctx = s[:h["at"]] + "【" + h["word"] + "】" + s[h["at"] + h["len"]:]
+            if (h["word"], ctx) in seen:
+                continue
+            seen.add((h["word"], ctx))
+            new.append({"pool": "target", "cat": cat, "word": h["word"], "context": ctx,
+                        "cbdb": gloss(cat, h["word"], d["info"]), **features(cat, h, d["info"])})
+            k += 1
+    rnd.shuffle(new)
+    keys, per, base = ["id", "cat", "word", "context", "cbdb"], 60, len(rows)
+    for b in range(0, len(new), per):
+        with open(os.path.join(OUT, "judge", f"batch-{(base + b) // per:02d}.tsv"), "w", encoding="utf-8") as f:
+            f.write("\t".join(keys) + "\n")
+            for k, r in enumerate(new[b:b + per]):
+                r["id"] = base + b + k
+                f.write("\t".join(str(r[x]) for x in keys) + "\n")
+    with open(os.path.join(OUT, "sample.pickle"), "wb") as f:
+        pickle.dump(rows + new, f)
+    print(f"  {len(new)} more hits, batches from {base // per:02d}")
+
+
 def stage_report():
     d = load_taps()
     taps = d["taps"]
     n = len(taps)
     with open(os.path.join(OUT, "sample.pickle"), "rb") as f:
         rows = pickle.load(f)
+    rates = filter_rates(d)
     verdict = {}
     for p in glob.glob(os.path.join(OUT, "judge", "verdicts-*.tsv")):
         for r in csv.DictReader(open(p, encoding="utf-8"), delimiter="\t", quoting=csv.QUOTE_NONE):
             verdict[int(r["id"])] = r["verdict"].strip().lower()
+    rows = [r for r in rows if r["id"] in verdict]
     out = [f"# CBDB in the popup (#87): {d['cbdb']}, {n:,} simulated taps on {len({t['book'] for t in taps})} books",
            "", "Taps per 1,000 tapped characters with at least one hit in the category (always / fallback mode).", "",
            "| Category | Always | Fallback | Distinct words hit (always) |", "|---|---:|---:|---:|"]
@@ -259,11 +324,21 @@ def stage_report():
                 "|---|---:|---:|---:|"]
         for name, fn in filters.items():
             fallback_only = "dictionary" in name and "not" in name or name.startswith("fallback only")
-            sub = [r for r in rs if fn(r) and (r["pool"] == "always" or fallback_only)]
+            sub = [r for r in rs if fn(r) and (r["pool"] == "always" or (fallback_only and r["pool"] == "fallback"))]
             if len(sub) < 10:
                 continue
             ok = sum(1 for r in sub if verdict[r["id"]] == "yes")
             out.append(f"| {name} | {len(sub)} | {ok} | {100 * ok / len(sub):.0f}% |")
+        tname, tfn = TARGETS[cat]
+        tr = [r for r in rs if r["pool"] == "target"] + [r for r in rs if r["pool"] == "always" and tfn(r)]
+        if tr:
+            ok = sum(1 for r in tr if verdict[r["id"]] == "yes")
+            fbr = [r for r in tr if not r["dictword"]]
+            okf = sum(1 for r in fbr if verdict[r["id"]] == "yes")
+            a, f = rates[cat]
+            out += ["", f"**Round 2 filter: {tname}.** {len(tr)} judged, {ok} right: {100 * ok / len(tr):.0f}% "
+                    f"(no dictionary has it: {okf}/{len(fbr)}). Shows on {a:.1f} taps per 1,000 (always), "
+                    f"{f:.1f} (fallback)."]
         out.append("")
     path = os.path.join(OUT, "report.md")
     open(path, "w", encoding="utf-8").write("\n".join(out) + "\n")
@@ -272,16 +347,19 @@ def stage_report():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("stage", choices=["taps", "sample", "report"])
+    ap.add_argument("stage", choices=["taps", "sample", "sample2", "report"])
     ap.add_argument("--per-book", type=int, default=3000)
     ap.add_argument("--always", type=int, default=120)
     ap.add_argument("--fallback", type=int, default=60)
+    ap.add_argument("--target", type=int, default=100)
     ap.add_argument("--seed", type=int, default=87)
     args = ap.parse_args()
     if args.stage == "taps":
         stage_taps(args.per_book, args.seed)
     elif args.stage == "sample":
         stage_sample(args.always, args.fallback, args.seed)
+    elif args.stage == "sample2":
+        stage_sample2(args.target, args.seed)
     else:
         stage_report()
 
