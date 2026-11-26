@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.28.0 (2026-11-26)
+
+MOE's dictionaries come with the plugin, unmodified (#86)
+- 教育部《重編國語辭典修訂本》 and 《成語典》 are now in the release zip (`data/moe/`): nothing to
+  build. They come straight from MOE's own downloads (2026-09-29), not g0v/moedict-data, and hold
+  every record and every field exactly as MOE publishes them. They ship with MOE's usage notes
+  (使用說明) and a `LICENSE.txt` with the CC BY-ND 3.0 TW licence and MOE's attribution, which
+  Status also shows.
+- MOE's text is always shown as MOE writes it, in traditional characters. **Dictionary text:
+  Simplified** no longer applies to MOE or the 成語典, since the licence doesn't allow changing
+  them.
+- A MOE definition now shows MOE's whole definition field, line by line: part-of-speech labels
+  ([名]), sense numbers, examples and quotations (until now: the bare sense from g0v's copy).
+  Collapsed to two lines under MOE Always, as before.
+- A related idiom's short line keeps MOE's own punctuation: 即「胸有成竹」。比喻處事有定見。
+  (it was 即「胸有成竹」：比喻…). A line of the 成語典 holding one of MOE's image codes
+  (&25cd1.jpg;) is now left out instead of shown as code (31 idioms).
+- MOE files you built yourself (`chinesehelper-moe.sqlite`, `chinesehelper-idioms.sqlite` in
+  KOReader's data folder) are no longer read. Status says they can be deleted.
+  `tools/build_idioms.py` is gone; `tools/build_moe.py` now builds the bundled folder.
+- Sizes: release zip 23.4 MB → 57.7 MB; `data/moe/moe.sqlite` 78.6 MB unzipped (the two
+  self-built files were 45.2 MB and 36.3 MB); the main database is unchanged.
+- Entries: 重編國語辭典 163,909 records, all of them in the file (before: 153,041 rows kept from
+  g0v's copy). The popup looks up 153,140, 90,519 of them for words CC-CEDICT lacks (before:
+  90,501); everyday combinations and headwords that are not 1–8 Han characters stay in the file
+  but are not looked up, as before. 成語典 5,489 records, 5,474 looked up, 3,705 for idioms
+  CC-CEDICT lacks (before: 5,473 and 3,704).
+- The reading tables are unchanged: MOE still never decides the pinyin drawn.
+
 ## 2.27.0 (2026-11-24)
 
 Learner-mode accuracy on the reader's own books (#35)

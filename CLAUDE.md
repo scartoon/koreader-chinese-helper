@@ -2,11 +2,17 @@
 
 ## The database
 
-`chinesehelper.koplugin/data/chinesehelper.sqlite` (about 36 MB) is **not in git**; the whole
+`chinesehelper.koplugin/data/chinesehelper.sqlite` (about 56 MB) is **not in git**; the whole
 `chinesehelper.koplugin/data/` folder is gitignored. It is built by `tools/build_db.py` and
 shipped inside each GitHub release zip. If it is missing locally and the database hasn't
 changed, take it from the latest release zip (`gh release download <tag> -p
 chinesehelper.koplugin.zip`) rather than rebuilding.
+
+MOE's dictionaries (`chinesehelper.koplugin/data/moe/`: `moe.sqlite`, about 79 MB, MOE's usage
+notes and `LICENSE.txt`) are also only in the release zip. `tools/build_moe.py` builds them in
+seconds from MOE's downloads (kept in `build/sources/moe-official/`); run it after a database
+rebuild, since its covered flags come from CC-CEDICT. They are CC BY-ND: never change MOE's
+tables, only the plugin's own key tables and the Lua that displays them.
 
 ## Release routine
 
@@ -20,7 +26,8 @@ are on `main`:
    zip -qr -X dist/chinesehelper.koplugin.zip chinesehelper.koplugin -x '*.DS_Store'
    ```
    Check its file list (`unzip -Z1`) against the previous release's asset: the Lua files, the
-   two license texts and `data/chinesehelper.sqlite`, nothing else.
+   two license texts, `data/chinesehelper.sqlite` and `data/moe/` (`moe.sqlite`, `LICENSE.txt`
+   and MOE's four usage-note files), nothing else.
 3. `gh release create vX.Y.Z dist/chinesehelper.koplugin.zip --title "X.Y.Z: <short summary>"
    --notes-file <notes>`, where the notes are that version's `CHANGELOG.md` section without its
    heading.

@@ -29,14 +29,14 @@ jobs:
       - name: lupa (runs the Lua tests under LuaJIT) and OpenCC (the converter's tests)
         run: python -m pip install lupa opencc
 
-      - name: Database from the latest release
+      - name: Database and MOE data (data/moe/) from the latest release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download --repo "$GITHUB_REPOSITORY" --pattern chinesehelper.koplugin.zip --dir "$RUNNER_TEMP"
           unzip -q "$RUNNER_TEMP/chinesehelper.koplugin.zip" "chinesehelper.koplugin/data/*" -d "$RUNNER_TEMP/release"
           mkdir -p chinesehelper.koplugin/data
-          cp "$RUNNER_TEMP/release/chinesehelper.koplugin/data/chinesehelper.sqlite" chinesehelper.koplugin/data/
+          cp -R "$RUNNER_TEMP/release/chinesehelper.koplugin/data/." chinesehelper.koplugin/data/
           python -c "import sqlite3; c = sqlite3.connect('chinesehelper.koplugin/data/chinesehelper.sqlite'); print(dict(c.execute(\"SELECT key, value FROM meta WHERE key IN ('cedict_date', 'words', 'rules')\")))"
 
       - name: tools/check.sh

@@ -2,13 +2,14 @@
 """Build the optional dictionaries in one go: the files the plugin can't ship
 (see the README's "Optional dictionaries"), each with its own script.
 
-    .venv/bin/python tools/build_optional.py                 # MOE, MOE idioms, Xinhua idioms
+    .venv/bin/python tools/build_optional.py                 # Xinhua idioms
     .venv/bin/python tools/build_optional.py --all           # ... and CBDB office titles
-    .venv/bin/python tools/build_optional.py --only moe,cbdb # just these
+    .venv/bin/python tools/build_optional.py --only xinhua,cbdb # just these
     .venv/bin/python tools/build_optional.py --only moegirl  # Moegirlpedia (needs the slob reader)
     .venv/bin/python tools/build_optional.py --push          # ... and adb push each file to the device
 
-Names for --only: moe, idioms, xinhua, cbdb, moegirl. Moegirlpedia is built
+Names for --only: xinhua, cbdb, moegirl. (MOE's two dictionaries are part of
+the plugin since 2.28.0: tools/build_moe.py builds them for the release.) Moegirlpedia is built
 only when --only names it: it needs the slob reader (and ICU) and a 1.4 GB
 download.
 
@@ -36,14 +37,12 @@ MB = 1_000_000
 # name: (label, script, download MB, extra disk MB beyond the download, file MB,
 #        glob of the downloaded source)
 DICTS = {
-    "moe": ("MOE dictionary", "build_moe.py", 15, 0, 17.0, "moe/dict-revised.json.xz"),
-    "idioms": ("MOE idioms", "build_idioms.py", 5, 5, 21.7, "idioms/dict_idioms_*"),
     "xinhua": ("Xinhua idioms", "build_xinhua.py", 10, 0, 14.9, "xinhua/idiom.json"),
     "cbdb": ("CBDB office titles", "build_cbdb.py", 140, 590, 0.5, "cbdb/db/*"),
     "moegirl": ("Moegirlpedia slang", "build_moegirl.py", 1400, 0, 0.1,
                 "moegirl/zhmoegirl-20230507-alpha.slob"),
 }
-DEFAULT = ["moe", "idioms", "xinhua"]
+DEFAULT = ["xinhua"]
 ALL = DEFAULT + ["cbdb"]
 # The release zip's size and the database unzipped from it.
 DB_DOWNLOAD, DB_DISK = 17, 36
