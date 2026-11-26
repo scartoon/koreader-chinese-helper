@@ -110,15 +110,42 @@ dropped; each title under its OpenCC `t2s` and `s2t` forms; the English title as
 (underscores as spaces, Greek letters spelt out, characters KOReader's fonts may not draw taken
 out); a reading generated with pypinyin, shown as such.
 
-Not part of this data, never committed or released: five optional dictionaries that
-`tools/build_moe.py`, `tools/build_cbdb.py`, `tools/build_idioms.py`, `tools/build_xinhua.py`
-and `tools/build_moegirl.py` build into separate files for the user's own device.
+**MOE's dictionaries** (`chinesehelper.koplugin/data/moe/`, in the release zip, not in git),
+built by `tools/build_moe.py`. Not under CC BY-SA: distributed unmodified under CC BY-ND 3.0 TW,
+https://creativecommons.org/licenses/by-nd/3.0/tw/, with MOE's usage notes (使用說明).
 
-- **MOE**, 中華民國教育部《重編國語辭典修訂本》 — https://dict.revised.moe.edu.tw/ — © Ministry of
-  Education, Republic of China (Taiwan), CC BY-ND 3.0 TW —
-  https://creativecommons.org/licenses/by-nd/3.0/tw/ — read from g0v/moedict-data,
-  https://github.com/g0v/moedict-data. Definitions kept as written, with a copy converted with
-  `tools/simplify.py` (tw2s).
+- 中華民國教育部（Ministry of Education, R.O.C.）。《重編國語辭典修訂本》（版本編號：2026-09-29）網址：http://dict.revised.moe.edu.tw/
+- 中華民國教育部（Ministry of Education, R.O.C.）。《成語典》（版本編號：2026-09-29）網址：http://dict.idioms.moe.edu.tw/
+
+Source: MOE's open-data downloads (教育部國語辭典公眾授權網),
+https://language.moe.gov.tw/001/Upload/Files/site_content/M0001/respub/index.html. The build
+takes the newest dated dictionary zip from each download page (the text, not the 字圖 images)
+and the usage notes `reviseddict_10312.pdf`/`.odt` and `idiomsdict_10409.pdf`/`.odt`.
+
+What `moe.sqlite` holds:
+
+- `revised` and `idioms`: MOE's sheets, one row per record, every field, MOE's column names and
+  order, rowid = the sheet's row. The only conversions are the format's: the .xlsx's OOXML
+  escapes are decoded (`_x000D_` is a carriage return), a cell is stored as the text the sheet
+  shows (a formula cell such as 字詞號 `="00083"` as `00083`, numbers as written), an empty cell
+  as NULL. Characters MOE could not encode stay as MOE codes them: private-use characters (for
+  MOE's 造字 font) and image references such as `&98ab._104_0.gif;`. Nothing is simplified,
+  dropped or rewritten; errors are reported to MOE, not fixed here.
+- The plugin's own tables, never MOE's text: `revised_keys` and `idioms_keys` (the headword and
+  its OpenCC `tw2s` form, pointing to a MOE row, and whether CC-CEDICT has the word; for a
+  related idiom its main entry's row, and whether its explanation only names the idiom it
+  equals), `revised_hidden` (records with no key: everyday combinations, numerals, headwords
+  that are not 1–8 Han characters), `meta` (file names, dates, SHA-256, attribution, counts).
+
+The popup's text is chosen and laid out from MOE's fields in `ch_moe.lua` at display time (a
+part-of-speech line joined to the sense after it; the 成語典's short line and Origin & Usage
+view, its editorial marks left out); `tests/test_moe_data.py` checks the stored fields against
+MOE's files with an independent reader.
+
+Not part of this data, never committed or released: three optional dictionaries that
+`tools/build_cbdb.py`, `tools/build_xinhua.py` and `tools/build_moegirl.py` build into separate
+files for the user's own device.
+
 - **CBDB**, the China Biographical Database (Harvard University, Academia Sinica, Peking
   University) — https://cbdb.hsites.harvard.edu/ — its SQLite release,
   https://huggingface.co/datasets/cbdb/cbdb-sqlite (via https://github.com/cbdb-project/cbdb_sqlite).
@@ -130,16 +157,6 @@ and `tools/build_moegirl.py` build into separate files for the user's own device
   and alternative name of 1–8 Han characters, under its traditional form and OpenCC `t2s`; CBDB's
   English translation with "(Ming office title)" added, or "office title (Ming)" when CBDB has
   none ("[Not Yet Translated]"); CBDB's toneless reading. Names CC-CEDICT has dropped.
-- **成語典**, 中華民國教育部《成語典》 — https://dict.idioms.moe.edu.tw/ — © Ministry of Education,
-  Republic of China (Taiwan), CC BY-ND 3.0 TW — downloaded from 教育部國語辭典公眾授權網,
-  https://language.moe.gov.tw/001/Upload/Files/site_content/M0001/respub/dict_idiomsdict_download.html
-  (written against `dict_idioms_2020_20260929.zip`). Used: every entry's headword and first
-  reading; for main entries 釋義, 典源 (title, text, notes), 典故說明, 書證 and 例句 (first six
-  each), 用法說明, 辨識 (not its example table) and 近義/反義; for related entries their own
-  釋義 and 書證, and their main entry's 典源, notes and 典故說明 under its name. Editorial marks,
-  pointers to other entries and lines with characters the device fonts lack taken out; text
-  kept as written, with a copy converted with `tools/simplify.py` (tw2s). Idioms CC-CEDICT has
-  get no fallback row.
 - **Xinhua idioms**, `data/idiom.json` of chinese-xinhua — https://github.com/pwxcoo/chinese-xinhua
   (the repository's MIT licence covers its code; the text is scraped from a published
   dictionary). Used: idioms of 4–8 Han characters with their explanation, derivation and
@@ -200,12 +217,17 @@ wordfreq and pypinyin versions in the database's `meta` table; update this table
 the release database is rebuilt. mdbg.net, kaikki.org and dumps.wikimedia.org/zhwiki/latest/
 only serve the current files, so keep copies of them if an exact rebuild matters.
 
+MOE's dictionaries (`data/moe/`, bundled; `tools/build_moe.py` prints these):
+
+| Dictionary | Built | Source | Records | Keys |
+|---|---|---|---|---|
+| 重編國語辭典修訂本 | 2026-11-26 | `dict_revised_2015_20260929.zip`, SHA-256 `65a24fff76d0fbfa078541f39761bb9f302bdf7ad6bb48be4ce1052d1b49f609` | 163,909 | 153,140 (90,519 not in CC-CEDICT) |
+| 成語典 | 2026-11-26 | `dict_idioms_2020_20260929.zip`, SHA-256 `33dc230ceb126cccfe3dc6e17e3b38b99618b8d6c6ff85ee911493065dc2850e` | 5,489 | 5,474 (3,705 not in CC-CEDICT) |
+
 For reference, the user files built here (not distributed):
 
 | File | Built | Source | Rows |
 |---|---|---|---|
-| MOE | 2026-11-13 | g0v/moedict-data commit 925fa83 (2026-07-11), `dict-revised.json.xz` SHA-256 `5cc4ec0efd7e549621edf9b46d261989230c1729d9dc2c8e2056f4b21c8a93da` | 90,501 |
 | CBDB | 2026-11-12 | `cbdb_20261107.sqlite3` (generated 2026-11-07), SHA-256 `df3ee4961e7def9643ed78b967c753b560249e8e3c7aa660955bf598d9834e28` | 2,920 |
-| 成語典 | 2026-11-13 | `dict_idioms_2020_20260929.zip`, SHA-256 `33dc230ceb126cccfe3dc6e17e3b38b99618b8d6c6ff85ee911493065dc2850e` | 5,473 idioms (3,704 fallback rows) |
 | Xinhua idioms | 2026-11-13 | chinese-xinhua commit 8de1001 (2018-12-16), `idiom.json` SHA-256 `1d4b4f454ce1c416d6a1ab2369d6e66c0ff99e04390172eef70790499e21ce19` | 30,212 idioms (23,485 fallback rows) |
 | Moegirlpedia | 2026-11-12 | `zhmoegirl-20230507-alpha.slob` (snapshot 2023-05-07), SHA-256 `75e246cf8e601e389ff72edfe0ced2ded5095347f103316b282883c707af36f8` | 352 |
