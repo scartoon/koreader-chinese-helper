@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `tools/build_cbdb.py`: office glosses that CBDB cut at 50 characters are completed from a longer
+  gloss of the same title (or the only one in CBDB) where there is one (同中书门下平章事, Tang:
+  "Jointly Manager of Affairs with the Secretariat-Chancellery", not "...Secretariat-Ch"), and
+  end in "…" where they are visibly cut. Stray "=" and "/" at the end of glosses are gone
+  (392 office titles change; rebuild the CBDB file to get them) (#89).
+
 ## 2.29.0 (2026-11-26)
 
 CBDB: well-known people, office titles of every dynasty, book titles (#87)
