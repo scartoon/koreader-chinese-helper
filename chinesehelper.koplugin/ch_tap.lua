@@ -391,13 +391,55 @@ function Tap:translateRow(sentence, close)
     return row
 end
 
+-- CBDB's rows (#87) after the other fallback rows of a tap: its people and
+-- office titles only where the word does not cut through a word of the
+-- segmentation's path (Resolve.fits: 卫将军 in 骁卫将军 is not shown), and
+-- its book titles only when the tapped run is exactly a title in 《》
+-- (Text.bookTitle; edges as Context.around gives them). `rows` is changed
+-- in place.
+function Tap:cbdbRows(rows, cands, left, char, right, edges)
+    local settings = self.plugin.settings
+    if not (settings.fallbackEnabled and settings:fallbackEnabled("cbdb")) then return end
+    local fits, data
+    local keep = {}
+    for _, row in ipairs(rows) do
+        if row.source == "cbdb" then
+            if fits == nil then
+                fits = {}
+                data = self.plugin:readings()
+                local items = {}
+                for _, c in ipairs(left) do items[#items + 1] = { text = c, joined = #items > 0 } end
+                items[#items + 1] = { text = char, joined = #items > 0 }
+                local i = #items
+                for _, c in ipairs(right) do items[#items + 1] = { text = c, joined = true } end
+                for _, c in ipairs(cands) do
+                    local a = i + c.start
+                    fits[c.text] = c.len == 1 or not data or Resolve.fits(data, items, a, a + c.len - 1)
+                end
+            end
+            if fits[row.simp] or fits[row.trad] then keep[#keep + 1] = row end
+        else
+            keep[#keep + 1] = row
+        end
+    end
+    for k = 1, math.max(#rows, #keep) do rows[k] = keep[k] end
+    local title = edges and Text.bookTitle(left, char, right, edges.before, edges.after)
+    local cbdb = title and self.plugin:sourceDb("cbdb")
+    if cbdb and cbdb.cbdbBooks then
+        for _, row in ipairs(cbdb:cbdbBooks(title)) do rows[#rows + 1] = row end
+    end
+end
+
 -- The lookup for `char` with the Han run around it: { cands=, rows=,
 -- matches=, chosen= }. resolve() -> chosen, decided, annotated, unsure, source.
-function Tap:lookup(db, char, left, right, resolve)
+-- edges: the characters just outside the run ({ before=, after= },
+-- Context.around), or nil.
+function Tap:lookup(db, char, left, right, resolve, edges)
     local cands, texts = Text.candidates(left, char, right)
     local rows = db:lookup(texts)
     local fallback, always = self:fallbackRows(texts, rows)
     for _, row in ipairs(fallback) do rows[#rows + 1] = row end
+    self:cbdbRows(rows, cands, left, char, right, edges)
     -- Each dictionary's own text, or the simplified text (#48).
     local simplified = self.plugin.settings:dictText() == "simplified"
     Model.chooseText(rows, simplified)
@@ -422,8 +464,9 @@ function Tap:showPopup(hit)
     -- A tap on the page starts afresh: any popups still shown go.
     self:closeAll()
     local document = self:ui().document
-    local left, right = Context.around(document, hit)
-    local found = self:lookup(db, hit.char, left, right, function() return self:resolve(hit, left, right) end)
+    local left, right, edges = Context.around(document, hit)
+    local found = self:lookup(db, hit.char, left, right, function() return self:resolve(hit, left, right) end,
+        edges)
     self:present{
         db = db, char = hit.char, box = hit.box, cands = found.cands, rows = found.rows, matches = found.matches,
         annotated = found.annotated, context = self:context(hit), mark = self:mark(hit),
@@ -463,6 +506,8 @@ function Tap:openNested(layer, hit)
     local char = hit.char
     local left = Text.hanSuffix(table.concat(chars, "", 1, i - 1))
     local right = Text.hanPrefix(table.concat(chars, "", i + 1))
+    local edges = { before = Text.edgeBefore(table.concat(chars, "", 1, i - 1), left),
+                    after = Text.edgeAfter(table.concat(chars, "", i + 1), right) }
     local span = hit.span
     if span then
         -- A cross-reference (#62): the word it names, whichever of its forms
@@ -470,7 +515,7 @@ function Tap:openNested(layer, hit)
         local word = Text.chars(span.word)
         local at = Model.spanOffset(span, i)
         char = word[at]
-        left, right = {}, {}
+        left, right, edges = {}, {}, nil
         for k = 1, at - 1 do left[#left + 1] = word[k] end
         for k = at + 1, #word do right[#right + 1] = word[k] end
     end
@@ -479,7 +524,8 @@ function Tap:openNested(layer, hit)
     if self.plugin.settings:contextEnabled() then
         context = { chars = Snippet.chars(sentence.text, "\n"), index = i - sentence.from + 1 }
     end
-    local found = self:lookup(db, char, left, right, function() return self:resolveRun(left, char, right) end)
+    local found = self:lookup(db, char, left, right, function() return self:resolveRun(left, char, right) end,
+        edges)
     if span then Model.spanFirst(found.matches, span) end
     -- (Also kept while KOReader's dictionary popup is shown instead: its
     -- close takes it away, Tap:present.)

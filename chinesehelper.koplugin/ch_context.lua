@@ -219,15 +219,19 @@ getRangeText only puts its "\n" block delimiter between two pieces of
 collected text, so a range that stops exactly at a paragraph boundary (the
 tapped character first or last in its paragraph) would otherwise run the two
 paragraphs together.
-Returns left, right (arrays of characters, in reading order).
+Returns left, right (arrays of characters, in reading order) and the run's
+edges { before=, after= }: the characters that ended it on each side (《 and
+》 around a book title), nil where it reached `max` characters or the range's
+end.
 ]]
 function Context.around(document, hit, max)
     max = max or Text.MAX_CONTEXT
-    local left, right = {}, {}
+    local left, right, before, after = {}, {}, nil, nil
     local from = walk(document, hit.pos0, "getPrevVisibleChar", max)
     if from ~= hit.pos0 then
         local text = withoutLast(call(document, "getTextFromXPointers", from, hit.pos1), hit.char)
         left = Text.hanSuffix(text or "", max)
+        before = Text.edgeBefore(text or "", left, max)
     end
     -- pos1 is the end of the tapped character; one more step than max because
     -- the first step from pos1 may only reach the start of the next character.
@@ -235,8 +239,9 @@ function Context.around(document, hit, max)
     if to ~= hit.pos1 then
         local text = withoutFirst(call(document, "getTextFromXPointers", hit.pos0, to), hit.char)
         right = Text.hanPrefix(text or "", max)
+        after = Text.edgeAfter(text or "", right, max)
     end
-    return left, right
+    return left, right, { before = before, after = after }
 end
 
 return Context

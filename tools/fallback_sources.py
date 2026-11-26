@@ -42,8 +42,9 @@ Sources:
   wp    Chinese Wikipedia article titles with an English article, filtered
         to technology, engineering, military and history (CC BY-SA 4.0):
         the gloss is the English article's title.
-  cbdb  CBDB's Ming and Southern Ming office titles (CC BY-NC-SA 4.0 and
-        CBDB's own terms): the user's own local file, never the release.
+  (cbdb  CBDB's people, office titles and book titles (CC BY-NC-SA 4.0 and
+        CBDB's own terms): the user's own local file, never the release,
+        built by tools/build_cbdb.py.)
   moegirl  萌娘百科 (Moegirlpedia) internet-slang pages, the opening sentence
         or two (CC BY-NC-SA 3.0 CN): the user's own local file, never the
         release.
@@ -616,59 +617,6 @@ def wikipedia_rows(dump_dir, cedict, measure, stats):
         rows.append((simp, trad, generated_pinyin(simp), "", gloss, "wp"))
     rows = font_safe_rows(rows, stats, "wp")
     stats["wp: rows"] = len(rows)
-    return rows
-
-
-# ---------------------------------------------------------------------------
-# CBDB office titles (China Biographical Database, OFFICE_CODES)
-# ---------------------------------------------------------------------------
-
-CBDB_MING = (19, 80)    # DYNASTIES.c_dy: 明, 南明
-CBDB_NO_TRANSLATION = "office title (Ming)"
-
-
-def cbdb_rows(cbdb_sqlite, cedict, measure, stats):
-    """Rows (simp, trad, pinyin, syllables, defs, "cbdb") for the Ming and
-    Southern Ming office titles: each name and alternative name, under its
-    traditional form and OpenCC's t2s. The gloss is CBDB's English
-    translation followed by "(Ming office title)", or CBDB_NO_TRANSLATION;
-    the reading is CBDB's own (toneless)."""
-    import opencc
-    t2s, s2t = opencc.OpenCC("t2s"), opencc.OpenCC("s2t")
-    con = sqlite3.connect(f"file:{cbdb_sqlite}?mode=ro", uri=True)
-    q = ("SELECT c_office_id, c_office_chn, c_office_chn_alt, c_office_pinyin, c_office_trans FROM OFFICE_CODES "
-         f"WHERE c_dy IN ({','.join(map(str, CBDB_MING))}) ORDER BY c_office_id")
-    rows, seen = [], set()
-    for _oid, chn, alt, py, trans in con.execute(q):
-        stats["cbdb: Ming office codes"] += 1
-        trans = re.sub(r"\s+", " ", (trans or "")).strip()
-        if not trans or trans.startswith("["):
-            stats["cbdb: ... without an English translation"] += 1
-            gloss = CBDB_NO_TRANSLATION
-        else:
-            gloss = clean_sense(trans) + " (Ming office title)"
-        names = [chn] + re.split(r"[;；,，/、]", alt or "")
-        for name in names:
-            name = (name or "").strip()
-            if not han_word(name):
-                continue
-            trad, simp = s2t.convert(t2s.convert(name)), t2s.convert(name)
-            if not han_word(simp) or not han_word(trad):
-                continue
-            if simp in cedict or trad in cedict or name in cedict:
-                stats["cbdb: names CC-CEDICT has (dropped)"] += 1
-                continue
-            if everyday(simp, cedict, measure, protected=True):
-                stats["cbdb: numerals (dropped)"] += 1
-                continue
-            if simp in seen:
-                stats["cbdb: names given twice (dropped)"] += 1
-                continue
-            seen.add(simp)
-            rows.append((simp, trad, re.sub(r"\s+", " ", py or "").strip(), "", gloss, "cbdb"))
-    con.close()
-    rows = font_safe_rows(rows, stats, "cbdb")
-    stats["cbdb: rows"] = len(rows)
     return rows
 
 

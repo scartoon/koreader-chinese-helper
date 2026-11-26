@@ -171,7 +171,7 @@ end
 -- Fallback dictionaries
 ------------------------------------------------------------------------
 
-ChineseHelper.SOURCE_NAMES = { wikt = "Wiktionary", wp = "Wikipedia titles", cbdb = "CBDB office titles",
+ChineseHelper.SOURCE_NAMES = { wikt = "Wiktionary", wp = "Wikipedia titles", cbdb = "CBDB",
                                 moe = "MOE 重編國語辭典", idioms = "MOE 成語典", xinhua = "Xinhua idioms",
                                 moegirl = "Moegirlpedia slang" }
 ChineseHelper.MOE_MODE_NAMES = { off = _("off"), fallback = _("fallback"), always = _("always") }
@@ -418,8 +418,16 @@ function ChineseHelper:fallbackStatus()
             m.wikt_dump or "?", m.wikt_rows or "?") end,
         wp = function(m) return T(_("Wikipedia titles: %1 (dump %2, %3 entries)"), state("wp"),
             m.wp_dump or "?", m.wp_rows or "?") end,
-        cbdb = function(m) return T(_("CBDB office titles: %1 (CBDB %2, %3 entries)"), state("cbdb"),
-            (m.cbdb_date or "?"):sub(1, 10), m.cbdb_rows or "?") end,
+        -- People, office titles and book titles (#87); a file built before
+        -- 2.29.0 has Ming office titles only, and no counts by kind.
+        cbdb = function(m)
+            if m.cbdb_people then
+                return T(_("CBDB: %1 (CBDB %2: %3 people, %4 office titles, %5 book titles)"), state("cbdb"),
+                    (m.cbdb_date or "?"):sub(1, 10), m.cbdb_people, m.cbdb_offices or "?", m.cbdb_books or "?")
+            end
+            return T(_("CBDB: %1 (CBDB %2, %3 Ming office titles; rebuild it for people and books)"), state("cbdb"),
+                (m.cbdb_date or "?"):sub(1, 10), m.cbdb_rows or "?")
+        end,
         -- MOE's two dictionaries (#86): version (the download's date), records,
         -- and MOE's attribution, which every copy must carry.
         moe = function(m)
