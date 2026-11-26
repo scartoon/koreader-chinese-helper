@@ -316,7 +316,7 @@ eq(Model.render(m, "尚", false), blocks[1].head .. "\n" .. table.concat(blocks[
     .. blocks[2].head .. "\n" .. table.concat(blocks[2].lines, "\n"))
 eq(Model.SOURCE_LABELS.cedict, "CEDICT"); eq(Model.SOURCE_LABELS.wikt, "Wikt"); eq(Model.SOURCE_LABELS.moe, "國語辭典")
 eq(Model.SOURCE_LABELS.wp, "WP"); eq(Model.SOURCE_LABELS.cbdb, "CBDB"); eq(Model.SOURCE_LABELS.moegirl, "Moegirl")
-eq(table.concat(Model.SOURCE_ORDER, ","), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl", "the default priority")
+eq(table.concat(Model.SOURCE_ORDER, ","), "cbdb,wikt,moe,idioms,xinhua,wp,moegirl", "the default priority")
 eq(Model.SOURCE_LABELS.idioms, "成语典"); eq(Model.SOURCE_LABELS.xinhua, "新华")
 
 -- Idioms: the first source in the order for each field, the other filling

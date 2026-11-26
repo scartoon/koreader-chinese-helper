@@ -103,33 +103,88 @@ eq(Text.bookTitle({}, "书", {}, "《", "》"), nil, "a single character")
 local function lookup(left, char, right, edges)
     return tap:lookup(plugin:db(), char, Text.chars(left), Text.chars(right), resolve, edges)
 end
-local function cbdbRows(found)
-    local out = {}
-    for _, r in ipairs(found.rows) do if r.source == "cbdb" then out[#out + 1] = r.simp end end
+-- CBDB's words in a lookup: its entries and its Always blocks (#88).
+local function cbdbWords(found)
+    local out, seen = {}, {}
+    for _, m in ipairs(found.matches) do
+        local own = m.entries[1] and m.entries[1].source == "cbdb"
+        if (own or m.cbdb) and not seen[m.word] then out[#out + 1], seen[m.word] = m.word, true end
+    end
     table.sort(out)
     return table.concat(out, ",")
 end
+-- "source:word" per block ("*" for an Always block), "|" between.
+local function shape(left, char, right, edges)
+    local found = lookup(left, char, right, edges)
+    local p = tap:present{ db = plugin:db(), char = char, cands = found.cands, rows = found.rows,
+                           matches = found.matches, annotated = false }
+    local out = {}
+    for _, b in ipairs(p.blocks) do
+        local word = (b.head or ""):match("^(%S+)") or ""
+        out[#out + 1] = (b.components and "components" or (b.source or "?")) .. (b.always and "*" or "") .. ":" .. word
+    end
+    return table.concat(out, " | ")
+end
+
+eq(plugin.settings:cbdbMode(), "always", "the default (#88)")
+eq(table.concat(plugin.settings:fallbackOrder(), ","), "cbdb,wikt,moe,idioms,xinhua,wp,moegirl", "CBDB first")
 
 -- Book titles: only for the whole run inside 《》.
 local title = { before = "《", after = "》" }
-eq(cbdbRows(lookup("", "隋", "书", title)), "隋书", "《隋书》")
-eq(cbdbRows(lookup("", "隋", "书", nil)), "", "隋书 without 《》")
-eq(cbdbRows(lookup("", "隋", "书", { before = "，", after = "》" })), "", "not opened by 《")
-eq(cbdbRows(lookup("", "隋", "书", { before = "《", after = "·" })), "隋书", "《隋书·地理志》")
-local book = lookup("", "隋", "书", title).rows
-for _, r in ipairs(book) do
-    if r.source == "cbdb" then eq(r.defs, "book title"); eq(r.pinyin, "Suí Shū") end
-end
+eq(cbdbWords(lookup("", "隋", "书", title)), "隋书", "《隋书》")
+eq(cbdbWords(lookup("", "隋", "书", nil)), "", "隋书 without 《》")
+eq(cbdbWords(lookup("", "隋", "书", { before = "，", after = "》" })), "", "not opened by 《")
+eq(cbdbWords(lookup("", "隋", "书", { before = "《", after = "·" })), "隋书", "《隋书·地理志》")
+local s = shape("", "隋", "书", title)
+assert(s:find("cedict:隋书 | cbdb*:隋书", 1, true), s)
 
 -- Office titles: shown where the word fits the segmentation, never when it
 -- cuts through one of its words (考试 in 考试百户).
-eq(cbdbRows(lookup("", "试", "百户", nil)), "试百户", "试百户 on its own")
-eq(cbdbRows(lookup("考", "试", "百户", nil)), "", "试百户 cuts through 考试")
+eq(cbdbWords(lookup("", "试", "百户", nil)), "试百户", "试百户 on its own")
+eq(cbdbWords(lookup("考", "试", "百户", nil)), "", "试百户 cuts through 考试")
 
--- CBDB switched off: nothing of it, books included.
+-- People CC-CEDICT has (#88): CBDB's entry right after CC-CEDICT's.
+s = shape("", "王", "安石")
+assert(s:find("cedict:王安石 | cbdb*:王安石", 1, true), s)
+local found = lookup("", "王", "安石")
+for _, m in ipairs(found.matches) do
+    if m.word == "王安石" then
+        eq(m.entries[1].source, "cedict"); eq(m.cbdb[1].source, "cbdb")
+        assert(m.cbdb[1].senses[1]:find("字 介甫", 1, true), m.cbdb[1].senses[1])
+    end
+end
+-- Words first: the same pair, now above the character's entry.
+set("words_first", true)
+s = shape("", "王", "安石")
+assert(s:find("^cedict:王安石 | cbdb%*:王安石"), s)
+set("words_first", false)
+-- With MOE Always for words: CBDB's block before MOE's (尚书省: Wiktionary's
+-- entry first in an order that puts it before CBDB, then CBDB's, then MOE's).
+set("moe_words", "always")
+s = shape("", "尚", "书省")
+assert(s:find("cbdb:尚书省 | moe*:尚书省", 1, true), "CBDB first in the default order: " .. s)
+plugin.settings:setFallbackOrder({ "wikt", "cbdb", "moe" })
+s = shape("", "尚", "书省")
+assert(s:find("wikt:尚书省 | cbdb*:尚书省 | moe*:尚书省", 1, true), s)
+plugin.settings:set("fallback_order", nil)
+set("moe_words", nil)
+-- Classical mode: the 文言 entry stays at the top.
+set("classical_mode", true)
+s = shape("", "王", "安石")
+assert(s:find("^classical:") and s:find("cedict:王安石 | cbdb*:王安石", 1, true), s)
+set("classical_mode", nil)
+
+-- Fallback: only words CC-CEDICT lacks, so no 王安石 and no 隋书.
+set("cbdb_mode", "fallback")
+eq(cbdbWords(lookup("", "王", "安石")), "")
+eq(cbdbWords(lookup("", "隋", "书", title)), "", "CC-CEDICT has 隋书")
+eq(cbdbWords(lookup("", "试", "百户", nil)), "试百户")
+-- Off, from its mode or its switch: nothing of it.
+set("cbdb_mode", "off")
+eq(cbdbWords(lookup("", "王", "安石")) .. cbdbWords(lookup("", "试", "百户", nil)), "", "mode off")
+set("cbdb_mode", nil)
 set("fallback_cbdb", false)
-eq(cbdbRows(lookup("", "试", "百户", nil)), "", "off: no office titles")
-eq(cbdbRows(lookup("", "隋", "书", title)), "", "off: no book titles")
+eq(cbdbWords(lookup("", "王", "安石")) .. cbdbWords(lookup("", "隋", "书", title)), "", "switched off")
 set("fallback_cbdb", true)
 
 print("CBDB: ok")

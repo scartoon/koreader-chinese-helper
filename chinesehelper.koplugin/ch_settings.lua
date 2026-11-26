@@ -54,7 +54,13 @@ Settings.DEFAULTS = {
     fallback_xinhua = true,   -- and Origin & Usage view of idioms CC-CEDICT has
     -- The dictionaries' order after CC-CEDICT, comma-separated (the menu's
     -- Order item). Sources left out keep their default place after the ones named.
-    fallback_order = "wikt,cbdb,moe,idioms,xinhua,wp,moegirl",
+    -- CBDB first since 2.29.0 (#88); a saved order gets it moved to the
+    -- front once (Settings:cbdbFirstOnce).
+    fallback_order = "cbdb,wikt,moe,idioms,xinhua,wp,moegirl",
+    -- CBDB (#88): "off", "fallback" (only words CC-CEDICT lacks) or "always"
+    -- (also under CC-CEDICT's entry for a word it has). fallback_cbdb off
+    -- overrides it.
+    cbdb_mode = "always",
     -- MOE 重編國語辭典, for single characters and for words: "off", "fallback"
     -- (only what CC-CEDICT lacks) or "always" (also what it has, collapsed;
     -- needs a MOE file rebuilt with covered rows). fallback_moe off overrides both.
@@ -148,7 +154,7 @@ function Settings:fallbackEnabled(source)
     return self:get("fallback_" .. source) == true
 end
 
-Settings.FALLBACK_SOURCES = { "wikt", "cbdb", "moe", "idioms", "xinhua", "wp", "moegirl" }   -- the default order
+Settings.FALLBACK_SOURCES = { "cbdb", "wikt", "moe", "idioms", "xinhua", "wp", "moegirl" }   -- the default order
 
 -- The fallback dictionaries in priority order: those fallback_order names
 -- (unknown names and repeats ignored), then the rest in the default order.
@@ -180,6 +186,39 @@ function Settings:moeMode(kind)
         if mode == m then return mode end
     end
     return Settings.DEFAULTS[key]
+end
+
+-- CBDB's mode (#88): "off", "fallback" or "always"; "off" whenever CBDB itself
+-- is switched off.
+function Settings:cbdbMode()
+    if not self:fallbackEnabled("cbdb") then return "off" end
+    local mode = self:get("cbdb_mode")
+    for _, m in ipairs(Settings.MOE_MODES) do
+        if mode == m then return mode end
+    end
+    return Settings.DEFAULTS.cbdb_mode
+end
+
+-- 2.29.0 (#88) puts CBDB first after CC-CEDICT. A reader who saved an order
+-- before gets CBDB moved to its front, once (cbdb_first_done remembers it),
+-- the rest of their order kept. Returns true when it moved it.
+function Settings:cbdbFirstOnce()
+    if not self.store or self:get("cbdb_first_done") then return false end
+    local saved = self.store:readSetting(Settings.PREFIX .. "fallback_order")
+    local moved = false
+    if type(saved) == "string" and saved ~= "" then
+        local order = { "cbdb" }
+        for _, s in ipairs(self:fallbackOrder()) do
+            if s ~= "cbdb" then order[#order + 1] = s end
+        end
+        local text = table.concat(order, ",")
+        if text ~= saved then
+            self:setFallbackOrder(order)
+            moved = true
+        end
+    end
+    self:set("cbdb_first_done", true)
+    return moved
 end
 
 -- How many lines an Always entry is collapsed to (0: never collapsed).

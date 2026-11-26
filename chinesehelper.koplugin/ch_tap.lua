@@ -391,42 +391,67 @@ function Tap:translateRow(sentence, close)
     return row
 end
 
--- CBDB's rows (#87) after the other fallback rows of a tap: its people and
--- office titles only where the word does not cut through a word of the
--- segmentation's path (Resolve.fits: 卫将军 in 骁卫将军 is not shown), and
--- its book titles only when the tapped run is exactly a title in 《》
--- (Text.bookTitle; edges as Context.around gives them). `rows` is changed
--- in place.
-function Tap:cbdbRows(rows, cands, left, char, right, edges)
+-- CBDB's rows for a tap's candidate words when its mode is Always (#88):
+-- every row for them, covered ones (words CC-CEDICT has) included; {}
+-- otherwise. One query to CBDB's file.
+function Tap:cbdbAlways(texts)
     local settings = self.plugin.settings
-    if not (settings.fallbackEnabled and settings:fallbackEnabled("cbdb")) then return end
-    local fits, data
-    local keep = {}
-    for _, row in ipairs(rows) do
-        if row.source == "cbdb" then
-            if fits == nil then
-                fits = {}
-                data = self.plugin:readings()
-                local items = {}
-                for _, c in ipairs(left) do items[#items + 1] = { text = c, joined = #items > 0 } end
-                items[#items + 1] = { text = char, joined = #items > 0 }
-                local i = #items
-                for _, c in ipairs(right) do items[#items + 1] = { text = c, joined = true } end
-                for _, c in ipairs(cands) do
-                    local a = i + c.start
-                    fits[c.text] = c.len == 1 or not data or Resolve.fits(data, items, a, a + c.len - 1)
-                end
-            end
-            if fits[row.simp] or fits[row.trad] then keep[#keep + 1] = row end
-        else
-            keep[#keep + 1] = row
-        end
+    if not (settings.cbdbMode and settings:cbdbMode() == "always") then return {} end
+    local db = self.plugin:sourceDb("cbdb")
+    if not (db and db.fallbackAll) then return {} end
+    local words = {}
+    for _, t in ipairs(texts) do
+        if #Text.chars(t) > 1 then words[#words + 1] = t end
     end
-    for k = 1, math.max(#rows, #keep) do rows[k] = keep[k] end
+    local rows = db:fallbackAll(words)
+    for _, row in ipairs(rows) do row.source = "cbdb" end
+    return rows
+end
+
+-- Keep only the rows of `list` that are not CBDB's or whose word `fits`.
+local function keepFitting(list, fits)
+    local keep = {}
+    for _, row in ipairs(list) do
+        if row.source ~= "cbdb" or fits[row.simp] or fits[row.trad] then keep[#keep + 1] = row end
+    end
+    for k = 1, math.max(#list, #keep) do list[k] = keep[k] end
+end
+
+-- CBDB's rows (#87) after the other fallback rows of a tap, and its Always
+-- rows (#88, Tap:cbdbAlways): its people and office titles only where the
+-- word does not cut through a word of the segmentation's path (Resolve.fits:
+-- 卫将军 in 骁卫将军 is not shown), and its book titles only when the tapped
+-- run is exactly a title in 《》 (Text.bookTitle; edges as Context.around
+-- gives them), added to `always` in Always mode, to `rows` otherwise. Both
+-- lists are changed in place.
+function Tap:cbdbRows(rows, cands, left, char, right, edges, always)
+    local settings = self.plugin.settings
+    if not (settings.cbdbMode and settings:cbdbMode() ~= "off") then return end
+    always = always or {}
+    local has = false
+    for _, list in ipairs({ rows, always }) do
+        for _, row in ipairs(list) do if row.source == "cbdb" then has = true end end
+    end
+    if has then
+        local fits = {}
+        local data = self.plugin:readings()
+        local items = {}
+        for _, c in ipairs(left) do items[#items + 1] = { text = c, joined = #items > 0 } end
+        items[#items + 1] = { text = char, joined = #items > 0 }
+        local i = #items
+        for _, c in ipairs(right) do items[#items + 1] = { text = c, joined = true } end
+        for _, c in ipairs(cands) do
+            local a = i + c.start
+            fits[c.text] = c.len == 1 or not data or Resolve.fits(data, items, a, a + c.len - 1)
+        end
+        keepFitting(rows, fits)
+        keepFitting(always, fits)
+    end
     local title = edges and Text.bookTitle(left, char, right, edges.before, edges.after)
     local cbdb = title and self.plugin:sourceDb("cbdb")
     if cbdb and cbdb.cbdbBooks then
-        for _, row in ipairs(cbdb:cbdbBooks(title)) do rows[#rows + 1] = row end
+        local into = settings:cbdbMode() == "always" and always or rows
+        for _, row in ipairs(cbdb:cbdbBooks(title)) do into[#into + 1] = row end
     end
 end
 
@@ -439,17 +464,20 @@ function Tap:lookup(db, char, left, right, resolve, edges)
     local rows = db:lookup(texts)
     local fallback, always = self:fallbackRows(texts, rows)
     for _, row in ipairs(fallback) do rows[#rows + 1] = row end
-    self:cbdbRows(rows, cands, left, char, right, edges)
+    local cbdb = self:cbdbAlways(texts)
+    self:cbdbRows(rows, cands, left, char, right, edges, cbdb)
     -- Each dictionary's own text, or the simplified text (#48).
     local simplified = self.plugin.settings:dictText() == "simplified"
     Model.chooseText(rows, simplified)
     Model.chooseText(always, simplified)
+    Model.chooseText(cbdb, simplified)
     local chosen, decided, annotated, unsure, source, rank, unusual, spoken, path = resolve()
     local data = self.plugin:readings()
     if data then data:prefetch(texts) end
     local matches = Model.matches{
         cands = cands, rows = rows, chosen = chosen, annotated = annotated, decided = decided,
         unsure = unsure, source = source, order = self.plugin.settings:fallbackOrder(), always = always, path = path,
+        cbdb = cbdb,
         default = data and select(2, data:char(char)) or nil,
         wordReading = data and function(word) return Resolve.wordReading(data, word) end,
     }

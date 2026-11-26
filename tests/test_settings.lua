@@ -91,16 +91,33 @@ eq(Settings.new(store()):fallbackEnabled("wikt"), true); eq(Settings.new(store()
 for _, src in ipairs({ "wp", "cbdb", "moegirl", "idioms", "xinhua" }) do eq(Settings.new(store()):fallbackEnabled(src), true) end
 -- The fallback priority: the default, a setting naming some (the rest
 -- follow in the default order), unknown names, repeats and junk ignored.
-eq(table.concat(Settings.new(store()):fallbackOrder(), ","), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
+eq(table.concat(Settings.new(store()):fallbackOrder(), ","), "cbdb,wikt,moe,idioms,xinhua,wp,moegirl")
 eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = "moegirl,wikt" }):fallbackOrder(), ","),
    "moegirl,wikt,cbdb,moe,idioms,xinhua,wp")
 eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = " wp , x,wp" }):fallbackOrder(), ","),
-   "wp,wikt,cbdb,moe,idioms,xinhua,moegirl")
+   "wp,cbdb,wikt,moe,idioms,xinhua,moegirl")
 -- A saved order from before 1.9.0 (no idiom sources): they follow in the default order.
 eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = "wikt,cbdb,moe,wp,moegirl" }):fallbackOrder(),
    ","), "wikt,cbdb,moe,wp,moegirl,idioms,xinhua")
 eq(table.concat(Settings.new(store{ chinesehelper_fallback_order = 5 }):fallbackOrder(), ","),
-   "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
+   "cbdb,wikt,moe,idioms,xinhua,wp,moegirl")
+-- CBDB first (#88): a saved order gets CBDB moved to its front once, the
+-- rest kept; after that, the reader's own order stays as they set it.
+s = Settings.new(store{ chinesehelper_fallback_order = "moe,wikt,cbdb,wp" })
+eq(s:cbdbFirstOnce(), true, "moved")
+eq(table.concat(s:fallbackOrder(), ","), "cbdb,moe,wikt,wp,idioms,xinhua,moegirl")
+s:setFallbackOrder({ "wikt", "cbdb" })
+eq(s:cbdbFirstOnce(), false, "only once")
+eq(table.concat(s:fallbackOrder(), ","), "wikt,cbdb,moe,idioms,xinhua,wp,moegirl")
+s = Settings.new(store())
+eq(s:cbdbFirstOnce(), false, "nothing saved: the default already has CBDB first")
+eq(s:get("cbdb_first_done"), true)
+-- CBDB's mode (#88): Always by default; Off whenever CBDB is switched off.
+s = Settings.new(store())
+eq(s:cbdbMode(), "always")
+s:set("cbdb_mode", "fallback"); eq(s:cbdbMode(), "fallback")
+s:set("cbdb_mode", "x"); eq(s:cbdbMode(), "always", "unknown: the default")
+s:set("fallback_cbdb", false); eq(s:cbdbMode(), "off")
 -- No settings store at all (tests, odd starts): defaults, no errors.
 s = Settings.new(nil); eq(s:threshold(), 3500); s:set("threshold", 1); eq(s:threshold(), 3500)
 
@@ -133,4 +150,4 @@ for _, n in ipairs({ 1, 3, 0 }) do st.values.chinesehelper_collapse_lines = n; e
 st.values.chinesehelper_collapse_lines = 7; eq(s:collapseLines(), 2)
 s:setFallbackOrder({ "wp", "moe" })
 eq(st.values.chinesehelper_fallback_order, "wp,moe")
-eq(table.concat(s:fallbackOrder(), ","), "wp,moe,wikt,cbdb,idioms,xinhua,moegirl")
+eq(table.concat(s:fallbackOrder(), ","), "wp,moe,cbdb,wikt,idioms,xinhua,moegirl")
