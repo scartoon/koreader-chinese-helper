@@ -44,6 +44,12 @@ CBDB = sorted(glob.glob(os.path.join(ROOT, "build", "sources", "cbdb", "db", "*.
 MOE = os.path.join(ROOT, "build", "chinesehelper-moe.sqlite")
 CATS = ["person", "alt", "office", "place", "book"]
 HAN2 = re.compile(f"[{mf.HAN}]{{2,8}}")
+# Endings of modern titles: CBDB has some as historical offices (副总裁 Ming, 副局长 Jin), but books use them
+# in today's sense.
+MODERN_TITLE = ("局长", "总裁", "经理", "主任", "处长", "科长", "部长", "厂长", "主席", "书记", "董事", "秘书",
+                "会长", "院长", "校长", "所长", "司长", "厅长", "省长", "市长", "县长", "镇长", "乡长", "村长",
+                "队长", "组长", "社长", "台长", "站长", "行长", "总监", "委员", "代表", "教授", "讲师", "干部",
+                "警官", "律师", "总统", "总理", "议员", "大使", "领事", "主编")
 ADMIN_SUFFIX = set("州府縣县郡軍军路道衛卫所鎮镇廳厅監监司寨堡城")
 
 
@@ -152,7 +158,7 @@ def features(cat, h, info):
     """Filter features for one hit."""
     infos = info[cat][h["word"]]
     before, after = h["sent"][h["at"] - 1:h["at"]], h["sent"][h["at"] + h["len"]:h["at"] + h["len"] + 1]
-    f = {"dictword": h["cedict"] or h["other"], "len": h["len"], "aligned": h["aligned"], "n": len(infos),
+    f = {"word": h["word"], "dictword": h["cedict"] or h["other"], "len": h["len"], "aligned": h["aligned"], "n": len(infos),
          "quoted": before in ("《", "〈") or after in ("》", "〉")}
     if cat in ("person", "alt"):
         f["docs"] = max(p["docs"] for p in infos)
@@ -220,7 +226,8 @@ TARGETS = {
                lambda f: f["len"] >= 3 and f["aligned"] and f["docs"] >= 10),
     "alt": ("aligned, not dictionary word, docs >= 30",
             lambda f: f["aligned"] and not f["dictword"] and f["docs"] >= 30),
-    "office": ("3+ chars, aligned", lambda f: f["len"] >= 3 and f["aligned"]),
+    "office": ("3+ chars, aligned, not a modern title",
+               lambda f: f["len"] >= 3 and f["aligned"] and not f["word"].endswith(MODERN_TITLE)),
     "place": ("3+ chars, aligned, admin suffix", lambda f: f["len"] >= 3 and f["aligned"] and f["suffix"]),
     "book": ("in 《》, or 3+ chars and not a dictionary word",
              lambda f: f.get("quoted") or (f["len"] >= 3 and not f["dictword"])),
@@ -330,7 +337,7 @@ def stage_report():
             ok = sum(1 for r in sub if verdict[r["id"]] == "yes")
             out.append(f"| {name} | {len(sub)} | {ok} | {100 * ok / len(sub):.0f}% |")
         tname, tfn = TARGETS[cat]
-        tr = [r for r in rs if r["pool"] == "target"] + [r for r in rs if r["pool"] == "always" and tfn(r)]
+        tr = [r for r in rs if r["pool"] in ("target", "always") and tfn(r)]
         if tr:
             ok = sum(1 for r in tr if verdict[r["id"]] == "yes")
             fbr = [r for r in tr if not r["dictword"]]
