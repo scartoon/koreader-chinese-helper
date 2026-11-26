@@ -162,6 +162,6 @@ local function checkLocal(name, source, word, want)
     end
     ldb:close()
 end
-checkLocal("cbdb", "cbdb", "典史", "Ming office title")
-checkLocal("cbdb", "cbdb", "试百户", "office title (Ming)")
+checkLocal("cbdb", "cbdb", "侍讲学士", "office title · Song: Academician")
+checkLocal("cbdb", "cbdb", "水陆转运使", "office title (Tang)")
 checkLocal("moegirl", "moegirl", "问题不大", "网络流行语")

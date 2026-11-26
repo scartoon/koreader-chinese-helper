@@ -256,6 +256,24 @@ function DB:fallbackAll(words)
     return rows
 end
 
+-- CBDB's book titles (tools/build_cbdb.py's cbdb_books table) for one word,
+-- either form. Only asked for a tapped run that is exactly a title in 《》
+-- (Text.bookTitle). Kept identical to tools/build_cbdb.py's BOOKS_SQL.
+DB.CBDB_BOOKS_SQL = "SELECT simp, trad, pinyin, defs, defs_simp FROM cbdb_books WHERE simp = ? OR trad = ? ORDER BY rowid"
+
+-- Rows { {simp=, trad=, pinyin=, syllables="", defs=, defs_simp=, source="cbdb"} }
+-- for `word` from the cbdb_books table; none without the table.
+function DB:cbdbBooks(word)
+    if not word or not self:hasColumn("cbdb_books", "simp") then return {} end
+    local rows = {}
+    local ok, err = pcall(self.each, self, DB.CBDB_BOOKS_SQL, { word, word }, function(row)
+        rows[#rows + 1] = { simp = row[1], trad = row[2], pinyin = row[3], syllables = "", defs = row[4],
+                            defs_simp = row[5], source = "cbdb" }
+    end)
+    if not ok then return {}, err end
+    return rows
+end
+
 -- An idiom's short line and Origin & Usage view for n candidate words, from the
 -- user's 成語典 or Xinhua file (tools/chengyu.py). Kept identical to
 -- tools/chengyu.py's idioms_sql. simp: also read short_simp and view_simp.

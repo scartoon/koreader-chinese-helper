@@ -109,7 +109,7 @@ two lines ([MOE Always](#moe-always)).
 |---|---|---|---|---|
 | CC-CEDICT | CEDICT | 125,000 | bundled | modern vocabulary, in English |
 | Wiktionary | Wikt | 61,000 | bundled | historical and literary terms, chengyu, technical terms, some slang |
-| CBDB office titles | CBDB | 2,900 | [optional](#optional-dictionaries) | Ming and Southern Ming office titles |
+| CBDB | CBDB | 61,500 | [optional](#optional-dictionaries) | well-known historical people (dates, 字, 號, home town, 進士), office titles of every dynasty, book titles in 《》 ([CBDB](#cbdb)) |
 | MOE dictionary | 國語辭典 | 90,500 (of its 161,000) | bundled, [unmodified](#moes-dictionaries) | historical and literary vocabulary (in Chinese) |
 | MOE idioms | 成语典 | 3,700\* | bundled, [unmodified](#moes-dictionaries) | chengyu, with source texts and stories (in Chinese) |
 | Xinhua idioms | 新华 | 23,500\* | [optional](#optional-dictionaries) | chengyu and set phrases, with classical sources (in Chinese) |
@@ -146,7 +146,7 @@ Tested on a Boox Go 7 (Android, 300 dpi) with KOReader v2026.07.1.
    - Other devices: the `plugins` folder inside KOReader's own folder.
 3. Restart KOReader.
 4. Optional: [build the optional dictionaries](#optional-dictionaries) on a computer: Xinhua
-   idioms, CBDB office titles and Moegirlpedia slang.
+   idioms, CBDB and Moegirlpedia slang.
 
 The folder must keep its name, `chinesehelper.koplugin`. To install from a clone instead, [build
 the database](#building-the-database) first: the repository doesn't contain it.
@@ -189,7 +189,7 @@ The **Dictionaries** submenu:
 | Classical mode | Off (default) / on; the same as the popup's 文言 Mode button. See [Classical mode](#classical-mode) |
 | Order | The order of the dictionaries after CC-CEDICT |
 | Collapse long entries | 1 / 2 (default) / 3 lines / never |
-| Each dictionary | On / off, listed in that order (default: Wiktionary, CBDB office titles, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang). See [Fallback dictionaries](#fallback-dictionaries) |
+| Each dictionary | On / off, listed in that order (default: Wiktionary, CBDB, MOE 重編國語辭典, MOE 成語典, Xinhua idioms, Wikipedia titles, Moegirlpedia slang). See [Fallback dictionaries](#fallback-dictionaries) |
 | MOE for single characters | Under MOE's switch: off / fallback (default) / always. See [MOE Always](#moe-always) |
 | MOE for words | Under MOE's switch: off / fallback (default) / always. See [MOE Always](#moe-always) |
 
@@ -882,8 +882,8 @@ For words CC-CEDICT doesn't have, the popup also looks in the other dictionaries
 <summary>Order, labels, readings and switches</summary>
 
 - **Order.** A word CC-CEDICT has never gets a fallback entry. Any other word gets the entry
-  from the first fallback dictionary that has it, in the table's order. CBDB's narrow office
-  titles come before MOE's general definitions; an English article title is more a label than a
+  from the first fallback dictionary that has it, in the table's order. CBDB's narrow entries
+  (people, office titles, book titles) come before MOE's general definitions; an English article title is more a label than a
   definition, so it comes after the real dictionaries; and Moegirlpedia is only for words nothing
   else has. To change the order, use **Order** in the **Dictionaries** menu: tap a dictionary,
   move it with the arrows, then tap ✓. CC-CEDICT always stays first.
@@ -893,7 +893,7 @@ For words CC-CEDICT doesn't have, the popup also looks in the other dictionaries
   tapped character's entry, the label sits on its own row below the 字频 line. **Source labels**
   can turn them all off.
 - **Readings.** A fallback entry shows its own dictionary's reading (Taiwan standard in the MOE
-  dictionary; no tone marks in CBDB) and is never marked *likely here*, because that label comes
+  dictionary; CBDB's, with tones taken from CC-CEDICT, [CBDB](#cbdb)) and is never marked *likely here*, because that label comes
   from the plugin's own reading code, which keeps the popup and the pinyin in agreement.
   Wikipedia titles and Moegirlpedia give no readings, so the popup shows one generated with
   pypinyin, marked *generated pinyin*. Only Wiktionary words can decide a reading, and only for
@@ -980,6 +980,46 @@ common characters).
 
 </details>
 
+### CBDB
+
+The [China Biographical Database](https://cbdb.hsites.harvard.edu/) documents about 660,000 people
+of imperial China and the offices they held. Built from it ([Optional
+dictionaries](#optional-dictionaries)), the CBDB dictionary adds three kinds of entry:
+
+- **Well-known people.** 曾国藩: *Qing · 1811–1872 · 字 伯涵 · 號 求闕齋 · 諡 文正 · 湘鄉 · 進士
+  1838*. A name is there only when another dictionary of the plugin also knows it and CBDB has at
+  least 10 records for the person: 381 names. Several people with one name are listed best
+  documented first, at most three, then "+N more in CBDB".
+- **Office titles** of three or more characters, from every dynasty, with CBDB's English where it
+  has one: 侍讲学士, *office title · Ming, Qing: Academician Expositor-in-waiting*. Modern titles
+  (副总裁, 副局长) are left out: 25,822 titles.
+- **Book titles**, only when the tapped text is exactly a title in 《》 (or the book before a ·, as
+  in 《新唐书·地理志》), with its authors: 35,297 titles.
+
+CBDB entries show only where the word fits the plugin's word segmentation, so 试百户 is not offered
+inside 考试百户. Readings: CBDB's pinyin has no tones; they are taken from CC-CEDICT, choosing the
+reading whose letters match CBDB's (单 *Shàn*, 解 *Xiè* as surnames).
+
+<details>
+<summary>What was left out, and how accurate it is</summary>
+
+Before it was built, CBDB was tested on 150,000 simulated taps in 50 books, and 1,358 of the
+matches were judged in context (`tools/measure_cbdb.py`). Without filters every category was
+mostly wrong, because CBDB's names include ordinary words: 知道 and 皇帝 are both somebody's 字, and
+美国 is a place. With the filters above:
+
+| Category | Right | Shows on (taps per 1,000) |
+|---|---|---|
+| Well-known people | 69 of 70 | 3.5 |
+| Office titles, 3+ characters | 100 of 108 (93%) | 1.7 |
+| Book titles in 《》 | 109 of 109 | 0.8 |
+
+Left out: alternative names (字, 號; at best 13% right: 姚汝能's 汝能 is 陳亮's name in CBDB);
+people no other dictionary knows (51% per tap: a novel's hero who shares a name with a Tang
+official appears on every page); and places (太平军 is a Song prefecture in CBDB).
+
+</details>
+
 ### Coverage on one book
 
 Tested on 临高启明, a novel that mixes Ming officialdom, early-industrial technology and internet slang: 81% of simulated taps landed on a word or character the dictionaries have, and another 11.5% on an everyday combination of such words.
@@ -1008,15 +1048,15 @@ them; Xinhua idioms takes the share of chengyu in the 46 test books that get an 
 two dictionaries were optional files too until 2.28.0; they now come with the plugin:
 [MOE's dictionaries](#moes-dictionaries).)
 
-**Which to build.** For most readers: Xinhua idioms. Add CBDB office titles if you read books set
-in the Ming. Moegirlpedia slang adds only 350 internet-slang
+**Which to build.** For most readers: Xinhua idioms. Add CBDB if you read history or historical
+novels. Moegirlpedia slang adds only 350 internet-slang
 words but needs a 1.4 GB download and an extra library ([below](#moegirlpedia-slang)), so skip
 it unless you read web fiction.
 
 | Dictionary | Script | Download | File | Licence |
 |---|---|---|---|---|
 | Xinhua idioms | `tools/build_xinhua.py` | 10 MB | 14.9 MB | none for the text ([below](#the-sources)) |
-| CBDB office titles | `tools/build_cbdb.py` | 140 MB (590 MB unzipped) | 0.5 MB | [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms) |
+| CBDB | `tools/build_cbdb.py` | 140 MB (590 MB unzipped) | 8.7 MB | [CBDB Data Licensing Terms](https://cbdb.hsites.harvard.edu/cbdb-data-licensing-terms) |
 | Moegirlpedia slang | `tools/build_moegirl.py` | 1.4 GB | 0.1 MB | [CC BY-NC-SA 3.0 CN](https://creativecommons.org/licenses/by-nc-sa/3.0/cn/) |
 
 The downloads go into `build/sources/` in your copy of the repository, and you can delete them
@@ -1044,7 +1084,7 @@ One command builds the recommended one, Xinhua idioms:
 ```
 
 It first tells you how much it will download and how much disk space it needs, and at the end
-lists each file it wrote and where it goes on the device. `--all` adds CBDB office titles, and
+lists each file it wrote and where it goes on the device. `--all` adds CBDB, and
 `--only xinhua,cbdb` builds just the ones you name (`xinhua`, `cbdb`, `moegirl`).
 Files that are already built are skipped; `--force` builds them again.
 
@@ -1103,7 +1143,7 @@ and copy the file as in step 3. Reading every page of the 1.4 GB snapshot takes 
   The repository's MIT licence covers its code; the text was scraped from a published
   dictionary. The build puts back punctuation lost in scraping where that is reliable
   (首鼠鼠性多疑 → 首鼠：鼠性多疑) and shows symbols standing for lost text as …; typos stay.
-- **CBDB office titles**: from the [China Biographical Database](https://cbdb.hsites.harvard.edu/)'s
+- **CBDB**: from the [China Biographical Database](https://cbdb.hsites.harvard.edu/)'s
   [SQLite release](https://huggingface.co/datasets/cbdb/cbdb-sqlite). Its terms are CC BY-NC-SA
   4.0 for the standalone release's data and CBDB's own non-commercial, no-derivatives,
   no-redistribution terms beyond it; this project follows the stricter: the file is for your own
@@ -1202,7 +1242,8 @@ Each dictionary's text is shown the way its source writes it: Wiktionary's defin
 Dictionary text → Simplified** shows the same text in simplified characters instead
 (`variant of 够 gòu`), starting from the next popup. The headings look the same either way
 (**头发** • 頭髮), and so does the text of dictionaries that are already in simplified Chinese or
-English (Xinhua, Moegirlpedia, CBDB, Wikipedia titles). MOE's dictionary and MOE idioms are
+English (Xinhua, Moegirlpedia, Wikipedia titles). CBDB's Chinese (字 介甫 · 臨川) is converted like
+CC-CEDICT's. MOE's dictionary and MOE idioms are
 always shown as MOE writes them, in traditional characters: their licence doesn't allow changing
 them ([MOE's dictionaries](#moes-dictionaries)).
 
@@ -1420,7 +1461,7 @@ links each licence):
 <details>
 <summary>The optional dictionaries' sources and licences</summary>
 
-- CBDB office titles, from the China Biographical Database (Harvard University, Academia Sinica
+- CBDB (people, office titles, book titles), from the China Biographical Database (Harvard University, Academia Sinica
   and Peking University), CBDB Data Licensing Terms and CC BY-NC-SA 4.0 (`tools/build_cbdb.py`);
 - Xinhua idioms, from chinese-xinhua's `data/idiom.json` (text scraped from a published
   dictionary) (`tools/build_xinhua.py`);

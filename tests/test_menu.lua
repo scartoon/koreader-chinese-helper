@@ -415,13 +415,13 @@ local function texts(items)
     for _, it in ipairs(items) do out[#out + 1] = it.text_func() end
     return table.concat(out, " | ")
 end
-eq(texts(fb_item.sub_item_table), "Wiktionary | CBDB office titles (your own file) | MOE 重編國語辭典"
+eq(texts(fb_item.sub_item_table), "Wiktionary | CBDB (your own file) | MOE 重編國語辭典"
     .. " | MOE 成語典 | Xinhua idioms (your own file)"
     .. " | Wikipedia titles | Moegirlpedia slang (your own file)")
 for _, it in ipairs(fb_item.sub_item_table) do assert(it.enabled_func() and it.checked_func()) end
 local status = table.concat(plugin:fallbackStatus(), "\n")
 assert(status:find("Wiktionary: on (dump 2026-10-01", 1, true), status)
-assert(status:find("CBDB office titles: on (CBDB 2026-11-07, 3 entries)", 1, true), status)
+assert(status:find("CBDB: on (CBDB 2026-11-07: 2 people, 3 office titles, 1 book titles)", 1, true), status)
 assert(status:find("MOE 重編國語辭典: on (2026-09-29, 10 entries, as published)", 1, true), status)
 assert(status:find("Wikipedia titles: on %(dump %d%d%d%d%-%d%d%-%d%d, %d+ entries%)"), status)
 assert(status:find("Moegirlpedia slang: on (snapshot 2023-05-07, 3 entries)", 1, true), status)
@@ -603,7 +603,7 @@ for k, it in ipairs(items2.chinesehelper.sub_item_table[20].sub_item_table) do
     end
 end
 for _, it in ipairs(moe_modes2) do assert(it.enabled_func(), "MOE's modes: MOE is part of the plugin") end
-eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典"
+eq(texts(dict_items), "Wiktionary | CBDB (not installed) | MOE 重編國語辭典"
     .. " | MOE 成語典 | Xinhua idioms (not installed)"
     .. " | Wikipedia titles | Moegirlpedia slang (not installed)")
 for _, k in ipairs({ 3, 4 }) do assert(dict_items[k].enabled_func() and dict_items[k].checked_func()) end
@@ -611,7 +611,7 @@ for _, k in ipairs({ 2, 5, 7 }) do
     assert(not dict_items[k].enabled_func() and not dict_items[k].checked_func())
 end
 local status2 = table.concat(plugin2:fallbackStatus(), "\n")
-for _, line in ipairs({ "CBDB office titles: not installed", "MOE 重編國語辭典: on (2026-09-29",
+for _, line in ipairs({ "CBDB: not installed", "MOE 重編國語辭典: on (2026-09-29",
                         "MOE 成語典: on (2026-09-29", "Xinhua idioms: not installed",
                         "Moegirlpedia slang: not installed" }) do
     assert(status2:find(line, 1, true), status2)

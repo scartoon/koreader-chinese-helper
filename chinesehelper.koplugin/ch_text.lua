@@ -76,6 +76,40 @@ function Text.hanPrefix(text, max)
     return out
 end
 
+-- The character that ended hanSuffix's run `left` (taken from `text`): 《
+-- before 《隋書》. nil when the run reached `max` characters or the start of
+-- `text`.
+function Text.edgeBefore(text, left, max)
+    max = max or Text.MAX_CONTEXT
+    if #left >= max then return nil end
+    local chars = Text.chars(text)
+    return chars[#chars - #left]
+end
+
+-- The character that ended hanPrefix's run `right` (see edgeBefore).
+function Text.edgeAfter(text, right, max)
+    max = max or Text.MAX_CONTEXT
+    if #right >= max then return nil end
+    return Text.chars(text)[#right + 1]
+end
+
+-- What may open and close a book title for Text.bookTitle: 《隋書》, and the
+-- book before a chapter, 《新唐書·地理志》.
+Text.TITLE_OPEN = { ["《"] = true, ["〈"] = true }
+Text.TITLE_CLOSE = { ["》"] = true, ["〉"] = true, ["·"] = true, ["・"] = true }
+
+-- The tapped run (left .. char .. right) when it is exactly a book title:
+-- `before` (the character before the run) opens a title and `after` closes
+-- it, and the run is 2 to Text.MAX_WORD characters. nil otherwise. CBDB's
+-- book titles are shown only then (#87): elsewhere 大學, 春秋 and 日記 are
+-- mostly ordinary words.
+function Text.bookTitle(left, char, right, before, after)
+    if not (before and Text.TITLE_OPEN[before] and after and Text.TITLE_CLOSE[after]) then return nil end
+    local n = #(left or {}) + 1 + #(right or {})
+    if n < 2 or n > Text.MAX_WORD then return nil end
+    return table.concat(left or {}) .. char .. table.concat(right or {})
+end
+
 --[[--
 Every substring of left .. char .. right that contains the tapped character,
 1 to MAX_WORD characters long.

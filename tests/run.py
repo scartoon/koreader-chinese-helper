@@ -33,7 +33,7 @@ TESTS = [
     "test_layout.lua", "test_hit.lua", "test_popup_model.lua", "test_edge.lua",
     "test_db.lua", "test_resolve.lua", "test_special.lua", "test_page.lua",
     "test_integration.lua", "test_menu.lua", "test_sentence.lua", "test_translate.lua", "test_components.lua",
-    "test_snippet.lua", "test_popup_sentence.lua", "test_glyphs.lua", "test_stack.lua", "test_area.lua", "test_bookfont.lua", "test_always.lua", "test_marks.lua", "test_sandhi.lua", "test_ranks.lua", "test_moe.lua",
+    "test_snippet.lua", "test_popup_sentence.lua", "test_glyphs.lua", "test_stack.lua", "test_area.lua", "test_bookfont.lua", "test_always.lua", "test_marks.lua", "test_sandhi.lua", "test_ranks.lua", "test_moe.lua", "test_cbdb.lua",
 ]
 
 
@@ -94,6 +94,8 @@ def make_test_files(data_dir):
         尚书省   wikt, cbdb, moe        -> Wiktionary
         典史     cbdb, moe              -> CBDB (before MOE)
         试百户   cbdb                   -> CBDB
+        王安石, 曾国藩  CC-CEDICT; cbdb covered rows (people)
+        隋书     cbdb_books only (shown for 《隋书》)
         丁匠     moe                    -> MOE
         红夷大炮 wp, moegirl            -> Wikipedia (before Moegirlpedia)
         问题不大 moegirl                -> Moegirlpedia
@@ -113,7 +115,8 @@ def make_test_files(data_dir):
             ("尚书省", "尚書省", "shang shu sheng", "", "Department of State Affairs (Ming office title)", "cbdb"),
             ("典史", "典史", "dian shi", "", "Clerk／District Jailor (Ming office title)", "cbdb"),
             ("试百户", "試百戶", "shi bai hu", "", "office title (Ming)", "cbdb"),
-        ], {"fallback_sources": "cbdb", "cbdb_rows": "3", "cbdb_date": "2026-11-07T19:14:55Z"}),
+        ], {"fallback_sources": "cbdb", "cbdb_rows": "5", "cbdb_people": "2", "cbdb_offices": "3",
+            "cbdb_books": "1", "cbdb_date": "2026-11-07T19:14:55Z"}),
         "moegirl": ([
             ("红夷大炮", "紅夷大炮", "hóng yí dà pào", "", "不是网络用语。", "moegirl"),
             ("问题不大", "問題不大", "wèn tí bù dà", "", "问题不大是一句网络流行语，现在十分常用。", "moegirl"),
@@ -131,11 +134,25 @@ def make_test_files(data_dir):
                    ("一毛不拔", "一毛不拔", "一根汗毛也不肯拔。", "释义\n一根汗毛也不肯拔。"),
                    ("首鼠两端", "首鼠兩端", "首鼠：鼠性多疑；两端：拿不定主意。", "释义\n首鼠：鼠性多疑。\n\n出处\n《史记》")],
     }
+    # CBDB (tools/build_cbdb.py): people for words CC-CEDICT has are covered
+    # rows (shown only Always), book titles in their own table.
+    import build_cbdb
+    from simplify import Simplifier
+    cbdb_covered = [
+        ("王安石", "王安石", "Wáng Ānshí", "", "Song · 1021–1086 · 字 介甫 · 號 半山老人 · 臨川 · 進士 1042", "cbdb"),
+        ("曾国藩", "曾國藩", "Zēng Guófān", "", "Qing · 1811–1872 · 字 伯涵 · 湘鄉 · 進士 1838", "cbdb"),
+    ]
+    cbdb_books = [("隋书", "隋書", "Suí Shū", "book title")]
     for source, (rows, meta) in files.items():
         path = os.path.join(folder, f"chinesehelper-{source}.sqlite")
         if os.path.exists(path):
             os.remove(path)
         extra = (lambda con, r=idioms[source]: chengyu.write_idioms(con, r)) if source in idioms else None
+        if source == "cbdb":
+            fallback_sources.write_local_file(path, rows, meta, source,
+                                              extra=build_cbdb.write_books(cbdb_books, Simplifier("t2s")),
+                                              covered=cbdb_covered)
+            continue
         fallback_sources.write_local_file(path, rows, meta, source, extra=extra)
     # MOE's files as users built them before 2.28.0 (now ignored): none here.
     for old in ("chinesehelper-moe.sqlite", "chinesehelper-idioms.sqlite"):
