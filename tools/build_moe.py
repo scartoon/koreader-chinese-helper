@@ -226,13 +226,37 @@ def revised_keys(header, body, tw2s, cedict, measure, stats):
 
 
 SEE_MAIN = re.compile(r"見「([^」]+)」條")
+# A related entry whose own explanation only says which idiom it equals, after
+# glossing a character or two (㕙，兔。盧，黑色獵犬。「㕙盡盧烹」猶「兔死狗烹」。):
+# the popup adds its main entry's 語義說明 to the short line.
+ONLY_EQUALS = re.compile(r"^(?:[^。「」]{1,6}，[^。]{1,24}。)*(?:「[^」]+」)?"
+                         r"(?:義?猶|即|義同|同|義參|義仿|義似)「[^」]+」。$")
+CROSS_REF = re.compile(r"\s*△.*$", re.S)
+CITATION_START = re.compile(r"(?<![0-9])01\.")
+EDITORIAL = re.compile(r"◎\d*|[#＃※]")
+
+
+def own_explanation(text):
+    """A 釋義 without its related-idiom list, the pointer to its main entry and
+    the citations appended to it (as ch_moe.lua's Moe.ownExplanation)."""
+    text = CROSS_REF.sub("", (text or "").replace("\r", ""))
+    m = SEE_MAIN.search(text)
+    if m:
+        text = text[:m.start()]
+    m = CITATION_START.search(text)
+    if m:
+        text = text[:m.start()]
+    return EDITORIAL.sub("", re.sub(r"\s+", "", text)).strip()
 
 
 def idioms_keys(header, body, tw2s, cedict, stats):
-    """(simp, trad, rowid, covered, main): main the rowid of a related entry's
-    main entry (釋義 says 見「X」條), NULL otherwise."""
+    """(simp, trad, rowid, covered, main, equals): main the rowid of a related
+    entry's main entry (釋義 says 見「X」條), NULL otherwise; equals 1 for a
+    related entry whose explanation only says which idiom it equals, when its
+    main entry has a 語義說明."""
     col = {h: k for k, h in enumerate(header)}
     by_name = {(vals[col["成語"]] or "").strip(): n for n, vals in body}
+    rows_by_number = dict(body)
     keys = []
     for n, vals in body:
         stats["idioms: records"] += 1
@@ -245,7 +269,13 @@ def idioms_keys(header, body, tw2s, cedict, stats):
         main = by_name.get(m.group(1)) if m and (vals[col["主條成語／非主條成語"]] or "").strip() != "主條成語" else None
         covered = int(simp in cedict or trad in cedict)
         stats["idioms: keyed, CC-CEDICT has the idiom" if covered else "idioms: keyed, not in CC-CEDICT"] += 1
-        keys.append((simp, trad, n, covered, main))
+        equals = 0
+        if main is not None and ONLY_EQUALS.match(own_explanation(vals[col["釋義"]])):
+            main_vals = rows_by_number[main]
+            if re.sub(r"\s", "", main_vals[col["用法說明-語義說明"]] or ""):
+                equals = 1
+                stats["idioms: related entries that only say which idiom they equal"] += 1
+        keys.append((simp, trad, n, covered, main, equals))
     return keys
 
 
@@ -255,9 +285,43 @@ KEYS_SCHEMA = """
 CREATE TABLE revised_keys (simp TEXT NOT NULL, trad TEXT NOT NULL, id INTEGER NOT NULL, covered INTEGER NOT NULL);
 CREATE TABLE revised_hidden (id INTEGER NOT NULL, reason TEXT NOT NULL);
 CREATE TABLE idioms_keys (simp TEXT NOT NULL, trad TEXT NOT NULL, id INTEGER NOT NULL, covered INTEGER NOT NULL,
-                          main INTEGER);
+                          main INTEGER, equals INTEGER NOT NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 """
+
+
+IDIOM_FIELDS = ["成語", "漢語拼音", "釋義", "典源文獻名稱", "典源文獻內容", "典源注解", "典故說明", "書證",
+                "用法說明-語義說明", "用法說明-使用類別", "用法說明-例句", "辨識-形音辨誤", "辨識-同",
+                "辨識-異", "近義成語", "反義成語", "主條成語／非主條成語"]
+MAIN_FIELDS = ["成語", "典源文獻名稱", "典源文獻內容", "典源注解", "典故說明", "用法說明-語義說明"]
+
+
+def revised_sql(n, uncovered=False):
+    marks = ",".join("?" * n)
+    return (f'SELECT k.simp, k.trad, r."漢語拼音", r."釋義", k.covered FROM revised_keys k '
+            f"JOIN revised r ON r.rowid = k.id WHERE (k.simp IN ({marks}) OR k.trad IN ({marks}))"
+            + (" AND k.covered = 0" if uncovered else "") + " ORDER BY k.rowid")
+
+
+def idioms_sql(n, uncovered=False):
+    marks = ",".join("?" * n)
+    cols = ["k.simp", "k.trad", "k.covered", "k.equals"] + [f'i."{f}"' for f in IDIOM_FIELDS] \
+        + [f'm."{f}"' for f in MAIN_FIELDS]
+    return ("SELECT " + ", ".join(cols) + " FROM idioms_keys k JOIN idioms i ON i.rowid = k.id "
+            "LEFT JOIN idioms m ON m.rowid = k.main"
+            f" WHERE (k.simp IN ({marks}) OR k.trad IN ({marks}))"
+            + (" AND k.covered = 0" if uncovered else "") + " ORDER BY k.rowid")
+
+
+def check_plans(con):
+    """The popup's lookups must use the key indexes."""
+    for sql in (revised_sql, idioms_sql):
+        for n in (1, 16):
+            for uncovered in (False, True):
+                plan = "\n".join(r[3] for r in con.execute("EXPLAIN QUERY PLAN " + sql(n, uncovered), ["x"] * (2 * n)))
+                table = "revised_keys" if sql is revised_sql else "idioms_keys"
+                if f"USING INDEX {table}_simp" not in plan or f"USING INDEX {table}_trad" not in plan:
+                    raise SystemExit(f"{sql.__name__} does not use its indexes:\n{plan}")
 
 
 def quote(name):
@@ -311,7 +375,7 @@ def main():
             con.executemany("INSERT INTO revised_hidden VALUES (?, ?)", hidden)
         else:
             keys = idioms_keys(header, body, tw2s, cedict, stats)
-            con.executemany("INSERT INTO idioms_keys VALUES (?, ?, ?, ?, ?)", keys)
+            con.executemany("INSERT INTO idioms_keys VALUES (?, ?, ?, ?, ?, ?)", keys)
         meta.update({f"{kind}_version": version, f"{kind}_file": os.path.basename(zpath),
                      f"{kind}_sha256": fallback_sources.sha256_of(zpath), f"{kind}_xlsx": name,
                      f"{kind}_url": PAGES[kind], f"{kind}_records": str(len(body)),
@@ -321,9 +385,14 @@ def main():
     for table in ("revised_keys", "idioms_keys"):
         con.execute(f"CREATE INDEX {table}_simp ON {table}(simp)")
         con.execute(f"CREATE INDEX {table}_trad ON {table}(trad)")
+    check_plans(con)
     con.executemany("INSERT INTO meta VALUES (?, ?)", sorted(meta.items()))
     con.commit()
-    con.execute("VACUUM")
+    # (No VACUUM: it may renumber the rowids the key tables point to.)
+    for kind in ("revised", "idioms"):
+        first, last, count = con.execute(f"SELECT min(rowid), max(rowid), count(*) FROM {kind}").fetchone()
+        if (first, last) != (2, count + 1):
+            sys.exit(f"{kind}: rowids {first}..{last} for {count} rows: expected the sheet's rows 2..{count + 1}")
     con.close()
     for k in sorted(stats):
         print(f"  {k}: {stats[k]:,}")
