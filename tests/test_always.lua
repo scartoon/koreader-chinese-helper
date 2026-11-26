@@ -68,7 +68,7 @@ end
 stub("ch_popup", Popup)
 
 local Plugin = dofile(PLUGIN_DIR .. "/main.lua")
-local plugin = Plugin:new{ path = PLUGIN_DIR }
+local plugin = Plugin:new{ path = PLUGIN_DIR, moe_path = TEST_MOE_PATH }
 plugin:init()
 plugin.ui = { highlight = { onTranslateText = function() end } }
 local tap = plugin.tap
@@ -121,23 +121,21 @@ eq(p.collapse_lines, 2, "collapse setting passed to the popup")
 p = popup("", "和", "平")
 local moe = block(p, function(b) return b.always end)
 -- The test file has hàn first: CC-CEDICT's readings come first all the same.
-eq(moe.head, "和  hé"); eq(moe.lines[2], "hàn · " .. Model.NOT_CEDICT .. ": 連詞。")
+eq(moe.head, "和  hé"); eq(moe.lines[2], "hàn · " .. Model.NOT_CEDICT .. ": [連] 連詞。")
 eq(p.blocks[2], moe, "right after the character's own entry")
--- Dictionary text: Simplified (#48) gives the simplified copy, Always rows too.
+-- Dictionary text: Simplified (#48) leaves MOE's text as MOE writes it (#86).
 set("dict_text", "simplified")
 p = popup("", "和", "平")
-eq(block(p, function(b) return b.always end).lines[2], "hàn · " .. Model.NOT_CEDICT .. ": 连词。")
+eq(block(p, function(b) return b.always end).lines[2], "hàn · " .. Model.NOT_CEDICT .. ": [連] 連詞。")
 set("dict_text", nil)
--- Words stay Fallback by default: 台風 (only covered rows in MOE: CC-CEDICT
--- has 颱風) is not shown.
-p = popup("台", "風", "")
-eq(block(p, function(b) return b.head and b.head:find("台風") end), nil, "words: Fallback")
--- Words Always: MOE's 台風 shown, as the word's own entry (nothing above it to
--- collapse under).
+-- Words stay Fallback by default: 颶風 (CC-CEDICT has it) gets no MOE block.
+p = popup("颶", "風", "")
+eq(block(p, function(b) return b.source == "moe" end), nil, "words: Fallback")
+-- Words Always: MOE's 颶風 shown under CC-CEDICT's, collapsed.
 set("moe_words", "always")
-p = popup("台", "風", "")
-local w = block(p, function(b) return b.head and b.head:find("台風") end)
-eq(w and w.head, "台風 • 颱風  tái fēng", "with its traditional form (#73)"); eq(w.source, "moe"); eq(w.always, nil)
+p = popup("颶", "風", "")
+local w = block(p, function(b) return b.source == "moe" end)
+eq(w and w.always, true); eq(w.lines[1], "熱帶氣旋。／風暴。")
 set("moe_words", nil)
 
 -- Everything but the Always blocks is what MOE on Fallback gives, which is
@@ -150,7 +148,7 @@ local function without(p_)
     return table.concat(out, "\n")
 end
 local always_shapes = {}
-local cases = { { "", "涓", "涓细流" }, { "", "和", "平" }, { "台", "風", "" }, { "尚书", "省", "" }, { "", "丁", "匠" } }
+local cases = { { "", "涓", "涓细流" }, { "", "和", "平" }, { "颶", "風", "" }, { "尚书", "省", "" }, { "", "丁", "匠" } }
 for k, c in ipairs(cases) do always_shapes[k] = without(popup(c[1], c[2], c[3])) end
 set("moe_chars", "fallback")
 for k, c in ipairs(cases) do
@@ -158,26 +156,21 @@ for k, c in ipairs(cases) do
     eq(block(q, function(b) return b.always end), nil, "Fallback: no Always block for " .. c[2])
     eq(without(q), always_shapes[k], "Fallback: the rest unchanged for " .. c[2])
 end
--- An old MOE file (no covered rows, no meta flag): Always behaves as Fallback.
+-- A MOE file users built before 2.28.0, left in KOReader's data folder: not
+-- read (MOE is bundled), and Status says it can be deleted.
+local old_path = TEST_KOREADER_DIR .. "/data/chinesehelper/chinesehelper-moe.sqlite"
+local fh = assert(io.open(old_path, "wb")); fh:write("old"); fh:close()
 set("moe_chars", "always")
-local real_localDb = plugin.localDb
-local old = DB.open(TEST_KOREADER_DIR .. "/moe-old.sqlite", H.SQ3)
-plugin.localDb = function(self, source)
-    if source == "moe" then return old end
-    return real_localDb(self, source)
-end
-eq(plugin:moeHasCovered(), false)
 for k, c in ipairs(cases) do
-    local q = popup(c[1], c[2], c[3])
-    eq(block(q, function(b) return b.always end), nil, "old file: no Always block for " .. c[2])
-    -- (Its one text, here simplified, whatever the Dictionary text setting.)
-    eq(without(q), (always_shapes[k]:gsub("官府徵調的工匠", "官府征调的工匠")), "old file: as Fallback for " .. c[2])
+    eq(without(popup(c[1], c[2], c[3])), always_shapes[k], "an old file changes nothing for " .. c[2])
 end
 local status = table.concat(plugin:fallbackStatus(), "\n")
-assert(status:find("rebuild", 1, true), "Status says to rebuild: " .. status)
-plugin.localDb = real_localDb
-old:close()
-eq(plugin:moeHasCovered(), true)
+assert(status:find(old_path .. " is no longer used", 1, true), status)
+assert(status:find("MOE 重編國語辭典: on (2026-09-29, 10 entries, as published)", 1, true), status)
+assert(status:find("中華民國教育部（Ministry of Education, R.O.C.）。《重編國語辭典修訂本》（版本編號：2026-09-29）", 1, true), status)
+assert(status:find("CC BY-ND 3.0 TW (https://creativecommons.org/licenses/by-nd/3.0/tw/)", 1, true), status)
+os.remove(old_path)
+assert(not table.concat(plugin:fallbackStatus(), "\n"):find("no longer used", 1, true))
 
 -- MOE off: nothing from it at all, whatever its modes.
 set("fallback_moe", false)
@@ -187,7 +180,7 @@ eq(block(p, function(b) return b.source == "moe" end), nil)
 set("fallback_moe", nil)
 
 -- One query to MOE's file per tap with characters Always.
-local mdb = plugin:localDb("moe")
+local mdb = plugin:sourceDb("moe")
 local queries = 0
 local real_all, real_fb = mdb.fallbackAll, mdb.fallback
 mdb.fallbackAll = function(self, l) queries = queries + 1; return real_all(self, l) end
@@ -203,7 +196,7 @@ mdb.fallbackAll, mdb.fallback = real_all, real_fb
 -- whatever MOE's modes.
 local function readingRows()
     local out = {}
-    for _, r in ipairs(plugin:readings().fallback({ "丁匠", "尚书省", "和", "涓", "台風", "问题不大" })) do
+    for _, r in ipairs(plugin:readings().fallback({ "丁匠", "尚书省", "和", "涓", "颶風", "问题不大" })) do
         out[#out + 1] = r.simp .. ":" .. r.source .. ":" .. tostring(r.covered)
     end
     return table.concat(out, ",")

@@ -55,7 +55,7 @@ G_reader_settings = {
 
 -- The plugin finds its database at <path>/data/chinesehelper.sqlite.
 local Plugin = dofile(PLUGIN_DIR .. "/main.lua")
-local plugin = Plugin:new{ path = PLUGIN_DIR }
+local plugin = Plugin:new{ path = PLUGIN_DIR, moe_path = TEST_MOE_PATH }
 plugin:init()
 eq(plugin.settings:pinyinEnabled(), true)
 eq(plugin.settings:threshold(), 2500)
@@ -339,8 +339,9 @@ assert(math.abs(Annotator.lineHeightFor(64, 40, 85) - lh / 0.85) < 1e-9, "line s
 eq(Annotator.lineHeightFor(64, 80, 50), 3.0, "line height capped")
 
 -- Fallback dictionaries: Wiktionary and Wikipedia titles from the plugin
--- database; CBDB, MOE and Moegirlpedia from the user's files in KOReader's
--- data folder (here test files, tests/run.py), in the default order.
+-- database, MOE's two from the plugin's data/moe/ (here a test file); CBDB,
+-- Xinhua and Moegirlpedia from the user's files in KOReader's data folder
+-- (here test files, tests/run.py), in the default order.
 local function names(list)
     local out = {}
     for _, s in ipairs(list) do out[#out + 1] = s.source end
@@ -366,7 +367,8 @@ assert(text_item.help_text:find("头发 頭髮", 1, true) and text_item.help_tex
 assert(text_item.sub_item_table[1].checked_func() and not text_item.sub_item_table[2].checked_func())
 text_item.sub_item_table[2].callback(); eq(plugin.settings:dictText(), "simplified")
 eq(text_item.text_func(), "Dictionary text: simplified")
-eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝啬。贬义。", "simplified idiom line")
+eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝嗇。貶義。", "the 成語典 as MOE writes it (#86)")
+assert(text_item.help_text:find("always shown as MOE writes them", 1, true), text_item.help_text)
 text_item.sub_item_table[1].callback(); eq(plugin.settings:dictText(), "original")
 eq(plugin:idiomLookup({ "一毛不拔" })["一毛不拔"].short, "形容人非常吝嗇。貶義。", "the 成語典's own text")
 -- Classical mode (#53): off by default, a toggle, the same setting as the
@@ -413,19 +415,17 @@ local function texts(items)
     for _, it in ipairs(items) do out[#out + 1] = it.text_func() end
     return table.concat(out, " | ")
 end
-eq(texts(fb_item.sub_item_table), "Wiktionary | CBDB office titles (your own file) | MOE 重編國語辭典 (your own file)"
-    .. " | MOE 成語典 (your own file) | Xinhua idioms (your own file)"
+eq(texts(fb_item.sub_item_table), "Wiktionary | CBDB office titles (your own file) | MOE 重編國語辭典"
+    .. " | MOE 成語典 | Xinhua idioms (your own file)"
     .. " | Wikipedia titles | Moegirlpedia slang (your own file)")
 for _, it in ipairs(fb_item.sub_item_table) do assert(it.enabled_func() and it.checked_func()) end
 local status = table.concat(plugin:fallbackStatus(), "\n")
 assert(status:find("Wiktionary: on (dump 2026-10-01", 1, true), status)
 assert(status:find("CBDB office titles: on (CBDB 2026-11-07, 3 entries)", 1, true), status)
-assert(status:find("MOE 重編國語辭典: on (moedict-data 2026-07-11, 3 entries, original and simplified text)", 1, true), status)
+assert(status:find("MOE 重編國語辭典: on (2026-09-29, 10 entries, as published)", 1, true), status)
 assert(status:find("Wikipedia titles: on %(dump %d%d%d%d%-%d%d%-%d%d, %d+ entries%)"), status)
 assert(status:find("Moegirlpedia slang: on (snapshot 2023-05-07, 3 entries)", 1, true), status)
-assert(status:find("MOE 成語典: on (2020_20260929, 2 idioms, 1 not in CC-CEDICT, original and simplified text)", 1, true), status)
-eq(Plugin.textState("simplified"), "simplified text only: rebuild it for the Dictionary text setting")
-eq(Plugin.textState(nil), "traditional text only: rebuild it for the Dictionary text setting")
+assert(status:find("MOE 成語典: on (2026-09-29, 3 idioms, as published)\n  中華民國教育部（Ministry of Education, R.O.C.）。《成語典》（版本編號：2026-09-29）網址：http://dict.idioms.moe.edu.tw/", 1, true), status)
 assert(status:find("Xinhua idioms: on (chinese-xinhua 2018-12-16, 4 idioms, 2 not in CC-CEDICT)", 1, true), status)
 assert(status:find("^Wiktionary.*\nCBDB.*\nMOE 重.*\nMOE 成.*\nXinhua.*\nWikipedia.*\nMoegirlpedia"),
     "Status in priority order")
@@ -503,7 +503,7 @@ eq(lookup(), "丁匠:moe,典史:moe,尚书省:moe,玉石俱碎:idioms,精兵强�
 assert(table.concat(plugin:fallbackStatus(), "\n"):find("^MOE.*\nMoegirlpedia.*\nWiktionary"), "Status follows")
 local items3 = {}
 plugin:addToMainMenu(items3)
-eq(items3.chinesehelper.sub_item_table[20].sub_item_table[6].text_func(), "MOE 重編國語辭典 (your own file)",
+eq(items3.chinesehelper.sub_item_table[20].sub_item_table[6].text_func(), "MOE 重編國語辭典",
    "the menu follows")
 -- The popup gets the same order (Model.matches args.order).
 eq(table.concat(plugin.settings:fallbackOrder(), ","), "moe,moegirl,wikt,cbdb,idioms,xinhua,wp")
@@ -587,12 +587,12 @@ item("idioms").callback(); item("xinhua").callback()
 package.loaded["ch_popup"], package.loaded["ui/widget/textviewer"] = nil, nil
 
 -- No user files (a fresh session, with an empty data folder): the plugin's
--- own two, and the menu and Status say the rest are not installed.
+-- own four, and the menu and Status say the rest are not installed.
 data_dir = "/nonexistent-koreader"
 local Plugin2 = dofile(PLUGIN_DIR .. "/main.lua")
-local plugin2 = Plugin2:new{ path = PLUGIN_DIR }
+local plugin2 = Plugin2:new{ path = PLUGIN_DIR, moe_path = TEST_MOE_PATH }
 plugin2:init()
-eq(names(plugin2:fallbackSources()), "wikt,wp")
+eq(names(plugin2:fallbackSources()), "wikt,moe,idioms,wp")
 local items2 = {}
 plugin2:addToMainMenu(items2)
 local dict_items = {}
@@ -602,25 +602,26 @@ for k, it in ipairs(items2.chinesehelper.sub_item_table[20].sub_item_table) do
         if it.sub_item_table then moe_modes2[#moe_modes2 + 1] = it else dict_items[#dict_items + 1] = it end
     end
 end
-for _, it in ipairs(moe_modes2) do assert(not it.enabled_func(), "MOE's modes greyed out without its file") end
-eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典 (not installed)"
-    .. " | MOE 成語典 (not installed) | Xinhua idioms (not installed)"
+for _, it in ipairs(moe_modes2) do assert(it.enabled_func(), "MOE's modes: MOE is part of the plugin") end
+eq(texts(dict_items), "Wiktionary | CBDB office titles (not installed) | MOE 重編國語辭典"
+    .. " | MOE 成語典 | Xinhua idioms (not installed)"
     .. " | Wikipedia titles | Moegirlpedia slang (not installed)")
-for _, k in ipairs({ 2, 3, 4, 5, 7 }) do
+for _, k in ipairs({ 3, 4 }) do assert(dict_items[k].enabled_func() and dict_items[k].checked_func()) end
+for _, k in ipairs({ 2, 5, 7 }) do
     assert(not dict_items[k].enabled_func() and not dict_items[k].checked_func())
 end
 local status2 = table.concat(plugin2:fallbackStatus(), "\n")
-for _, line in ipairs({ "CBDB office titles: not installed", "MOE 重編國語辭典: not installed",
-                        "MOE 成語典: not installed", "Xinhua idioms: not installed",
+for _, line in ipairs({ "CBDB office titles: not installed", "MOE 重編國語辭典: on (2026-09-29",
+                        "MOE 成語典: on (2026-09-29", "Xinhua idioms: not installed",
                         "Moegirlpedia slang: not installed" }) do
     assert(status2:find(line, 1, true), status2)
 end
--- The lookup still works: Wiktionary and Wikipedia only.
+-- The lookup: Wiktionary, MOE and Wikipedia.
 local fb2 = {}
 for _, r in ipairs(plugin2:fallbackLookup(Model.uncovered(texts_, rows))) do fb2[#fb2 + 1] = r.simp .. ":" .. r.source end
 table.sort(fb2)
-eq(table.concat(fb2, ","), "尚书省:wikt,红夷大炮:wp")
-eq(next(plugin2:idiomLookup({ "一毛不拔" })), nil, "no idiom files: no idiom lines")
+eq(table.concat(fb2, ","), "丁匠:moe,典史:moe,尚书省:wikt,玉石俱碎:idioms,红夷大炮:wp")
+eq(plugin2:idiomLookup({ "一毛不拔" })["一毛不拔"].source, "idioms", "the 成語典 with no user files")
 -- One query for both: they share the plugin database.
 local pdb = plugin2:db()
 local real_fallback, queries = pdb.fallback, 0

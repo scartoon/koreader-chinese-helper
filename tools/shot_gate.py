@@ -62,6 +62,10 @@ function G.open(files)
             local db
             if source == "wikt" or source == "wp" then
                 db = main
+            elseif source == "moe" or source == "idioms" then
+                -- Bundled (#86): the plugin's data/moe/.
+                db = assert(require("ch_moe").open(PLUGIN_DIR .. "/data/moe/moe.sqlite",
+                    source == "moe" and "revised" or "idioms", SQ3))
             elseif files[source] then
                 db = assert(DB.open(files[source], SQ3))
             end
@@ -307,7 +311,7 @@ return G
 '''
 
 FILES_DIR = os.path.join(ROOT, "build")
-LOCAL_SOURCES = ("cbdb", "moe", "idioms", "xinhua", "moegirl")
+LOCAL_SOURCES = ("cbdb", "xinhua", "moegirl")
 
 
 def to_py(v):
@@ -340,7 +344,7 @@ class Gate:
         self.g = self.G.open(self.lua.table_from(files))
         self.sources = self.g.sources
         if not self.g.covered:
-            sys.exit("gate: the MOE file in build/ has no covered rows: rebuild it (tools/build_moe.py) for Always")
+            sys.exit("gate: no MOE data: build chinesehelper.koplugin/data/moe/ (tools/build_moe.py)")
 
     def annotate(self, text, threshold, mode="both", known=()):
         """[(char, reading, special)] in page order; known: (char, reading)

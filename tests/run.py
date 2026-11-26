@@ -33,7 +33,7 @@ TESTS = [
     "test_layout.lua", "test_hit.lua", "test_popup_model.lua", "test_edge.lua",
     "test_db.lua", "test_resolve.lua", "test_special.lua", "test_page.lua",
     "test_integration.lua", "test_menu.lua", "test_sentence.lua", "test_translate.lua", "test_components.lua",
-    "test_snippet.lua", "test_popup_sentence.lua", "test_glyphs.lua", "test_stack.lua", "test_area.lua", "test_bookfont.lua", "test_always.lua", "test_marks.lua", "test_sandhi.lua", "test_ranks.lua",
+    "test_snippet.lua", "test_popup_sentence.lua", "test_glyphs.lua", "test_stack.lua", "test_area.lua", "test_bookfont.lua", "test_always.lua", "test_marks.lua", "test_sandhi.lua", "test_ranks.lua", "test_moe.lua",
 ]
 
 
@@ -109,12 +109,6 @@ def make_test_files(data_dir):
     folder = os.path.join(data_dir, "data", "chinesehelper")
     os.makedirs(folder, exist_ok=True)
     files = {
-        "moe": ([
-            ("尚书省", "尚書省", "shàng shū shěng", "", "官署名。", "moe"),     # Wiktionary has it too
-            ("丁匠", "丁匠", "dīng jiàng", "", "官府徵調的工匠。", "moe", "官府征调的工匠。"),   # MOE only
-            ("典史", "典史", "diǎn shǐ", "", "官名。", "moe"),                  # CBDB has it too
-        ], {"fallback_sources": "moe", "moe_rows": "3", "moe_commit_date": "2026-07-11T09:55:26Z",
-            "moe_text": "both"}),
         "cbdb": ([
             ("尚书省", "尚書省", "shang shu sheng", "", "Department of State Affairs (Ming office title)", "cbdb"),
             ("典史", "典史", "dian shi", "", "Clerk／District Jailor (Ming office title)", "cbdb"),
@@ -125,10 +119,6 @@ def make_test_files(data_dir):
             ("问题不大", "問題不大", "wèn tí bù dà", "", "问题不大是一句网络流行语，现在十分常用。", "moegirl"),
             ("东西", "東西", "dōng xī", "", "不该出现。", "moegirl"),
         ], {"fallback_sources": "moegirl", "moegirl_rows": "3", "moegirl_snapshot": "2023-05-07"}),
-        "idioms": ([
-            ("玉石俱碎", "玉石俱碎", "yù shí jù suì", "", "犹「玉石俱焚」：比喻好坏同时受害。", "idioms"),
-        ], {"fallback_sources": "idioms", "idioms_rows": "2", "idioms_fallback_rows": "1",
-            "idioms_version": "2020_20260929", "idioms_text": "both"}),
         "xinhua": ([
             ("玉石俱碎", "玉石俱碎", "yù shí jù suì", "", "犹玉石俱焚。", "xinhua"),
             ("精兵强将", "精兵強將", "jīng bīng qiáng jiàng", "", "精良的士兵，勇猛的将领。", "xinhua"),
@@ -136,48 +126,103 @@ def make_test_files(data_dir):
             "xinhua_commit_date": "2018-12-16T05:00:00Z"}),
     }
     idioms = {
-        "idioms": [("玉石俱碎", "玉石俱碎", "犹「玉石俱焚」：比喻好坏同时受害。", "释义\n犹「玉石俱焚」。"),
-                   # As the 成語典 writes it, and simplified (#48).
-                   ("一毛不拔", "一毛不拔", "形容人非常吝嗇。貶義。", "释义\n一根毫毛也不願意拔取。\n\n典源　《孟子．盡心上》",
-                    "形容人非常吝啬。贬义。", "释义\n一根毫毛也不愿意拔取。\n\n典源　《孟子．尽心上》")],
         "xinhua": [("玉石俱碎", "玉石俱碎", "犹玉石俱焚。", ""),
                    ("精兵强将", "精兵強將", "精良的士兵，勇猛的将领。", "释义\n精良的士兵。\n\n出处\n《水浒传》"),
                    ("一毛不拔", "一毛不拔", "一根汗毛也不肯拔。", "释义\n一根汗毛也不肯拔。"),
                    ("首鼠两端", "首鼠兩端", "首鼠：鼠性多疑；两端：拿不定主意。", "释义\n首鼠：鼠性多疑。\n\n出处\n《史记》")],
     }
-    # MOE's file keeps headwords CC-CEDICT has as covered rows (2.5.0), which
-    # the fallback lookup never returns: 和 and 涓 as CC-CEDICT has them, and
-    # 台風 / 颱風, a simplified form CC-CEDICT lacks whose traditional form it has.
-    covered = {"moe": [
-        ("和", "和", "hé", "", "連帶。/平靜。", "moe", "连带。/平静。"),
-        ("和", "和", "hàn", "", "連詞。", "moe", "连词。"),
-        ("涓", "涓", "juān", "", "細小的流水。", "moe", "细小的流水。"),
-        ("台風", "颱風", "tái fēng", "", "熱帶氣旋。", "moe", "热带气旋。"),
-    ]}
-    files["moe"][1].update({"moe_covered": "1", "moe_covered_char_rows": "3", "moe_covered_word_rows": "1"})
     for source, (rows, meta) in files.items():
         path = os.path.join(folder, f"chinesehelper-{source}.sqlite")
         if os.path.exists(path):
             os.remove(path)
         extra = (lambda con, r=idioms[source]: chengyu.write_idioms(con, r)) if source in idioms else None
-        fallback_sources.write_local_file(path, rows, meta, source, extra=extra, covered=covered.get(source, ()))
-    # The same MOE rows as a file built before 2.5.0: no `covered` column, and
-    # (as before 2.13.0) no `defs_simp`: one text, here the simplified one.
-    old = os.path.join(data_dir, "moe-old.sqlite")
-    if os.path.exists(old):
-        os.remove(old)
-    con = sqlite3.connect(old)
-    con.execute("CREATE TABLE fallback (simp TEXT NOT NULL, trad TEXT NOT NULL, pinyin TEXT NOT NULL, "
-                "syllables TEXT NOT NULL, defs TEXT NOT NULL, source TEXT NOT NULL)")
-    con.executemany("INSERT INTO fallback VALUES (?, ?, ?, ?, ?, ?)",
-                    sorted((*r[:4], r[6] if len(r) > 6 else r[4], r[5]) for r in files["moe"][0]))
-    con.execute("CREATE INDEX fallback_simp ON fallback(simp)")
-    con.execute("CREATE INDEX fallback_trad ON fallback(trad)")
-    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
-    con.execute("INSERT INTO meta VALUES ('fallback_sources', 'moe')")
+        fallback_sources.write_local_file(path, rows, meta, source, extra=extra)
+    # MOE's files as users built them before 2.28.0 (now ignored): none here.
+    for old in ("chinesehelper-moe.sqlite", "chinesehelper-idioms.sqlite"):
+        if os.path.exists(os.path.join(folder, old)):
+            os.remove(os.path.join(folder, old))
+    if os.path.exists(os.path.join(data_dir, "moe-old.sqlite")):
+        os.remove(os.path.join(data_dir, "moe-old.sqlite"))
+    make_test_moe(os.path.join(data_dir, "moe", "moe.sqlite"))
+    return data_dir
+
+
+REVISED_HEADER = ["字詞名", "辭條別名", "字數", "字詞號", "部首字", "總筆畫數", "部首外筆畫數", "多音排序", "注音一式",
+                  "變體類型 1:變 2:又音 3:語音 4:讀音 5:或讀", "變體注音", "漢語拼音", "變體漢語拼音", "相似詞",
+                  "相反詞", "釋義", "多音參見訊息", "異體字"]
+IDIOMS_HEADER = ["編號", "成語", "注音", "漢語拼音", "釋義", "典源文獻名稱", "典源文獻內容", "典源注解", "典源參考資料",
+                 "典故說明", "書證", "用法說明-語義說明", "用法說明-使用類別", "用法說明-例句", "辨識-形音辨誤", "辨識-同",
+                 "辨識-異", "辨識-例句", "近義成語", "反義成語", "參考詞語", "主條成語／非主條成語"]
+
+
+def make_test_moe(path):
+    """A tiny file in the format of the bundled MOE data (tools/build_moe.py),
+    written by the build's own functions from sheet rows shaped like MOE's.
+
+    重編國語辭典 (CC-CEDICT has 和, 涓 and 颶風: keys with covered = 1):
+        尚書省  Wiktionary has it too        丁匠  MOE only
+        典史    CBDB has it too              和    two readings, hé and hàn
+        涓      one reading                  颶風  a word
+        很大    an everyday combination (no key)
+        &98ab._104_0.gif;佬族  a headword with MOE's image code (no key)
+        𤆬     a private-use character in its text (drawn as □)
+    成語典: 一毛不拔 and 玉石俱焚 main entries (CC-CEDICT has 一毛不拔), 玉石俱碎
+    a related entry that only says which idiom it equals."""
+    import opencc
+    import build_moe
+    import fallback_sources
+    if os.path.exists(path):
+        os.remove(path)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    def sheet(header, records):
+        return [(k + 2, [rec.get(h) for h in header]) for k, rec in enumerate(records)]
+    revised = sheet(REVISED_HEADER, [
+        {"字詞名": "尚書省", "字數": "3", "漢語拼音": "shàng shū shěng", "釋義": "官署名。"},
+        {"字詞名": "丁匠", "字數": "2", "漢語拼音": "dīng jiàng", "釋義": "官府徵調的工匠。"},
+        {"字詞名": "典史", "字數": "2", "漢語拼音": "diǎn shǐ", "釋義": "官名。"},
+        {"字詞名": "和", "字數": "1", "多音排序": "1", "漢語拼音": "hé", "釋義": "[動]\r\n1.連帶。\r\n2.平靜。"},
+        {"字詞名": "和", "字數": "1", "多音排序": "2", "漢語拼音": "hàn ", "釋義": "[連]\n連詞。"},
+        {"字詞名": "涓", "字數": "1", "漢語拼音": "juān", "釋義": "細小的流水。"},
+        {"字詞名": "颶風", "字數": "2", "漢語拼音": "jù fēng", "釋義": "熱帶氣旋。/風暴。"},
+        {"字詞名": "很大", "字數": "2", "漢語拼音": "hěn dà", "釋義": "非常大。"},
+        {"字詞名": "&98ab._104_0.gif;佬族", "字數": "3", "漢語拼音": "gē lǎo zú", "釋義": "民族名。"},
+        {"字詞名": "𤆬", "字數": "1", "漢語拼音": "chuā", "釋義": "火聲。見\U000fa7d1字。"},
+    ])
+    idioms = sheet(IDIOMS_HEADER, [
+        {"編號": "1", "成語": "一毛不拔", "漢語拼音": "yī máo bù bá （變） yì máo bù bá",
+         "釋義": "一根毫毛也不願意拔取。\r\n△「愛財如命」", "典源文獻名稱": "《孟子．盡心上》",
+         "典源文獻內容": "孟子曰：「\r\n*1*楊子\r\n取為我，拔一毛而利天下，不為也。」", "典源注解": "楊子：楊朱。",
+         "用法說明-語義說明": "形容人非常吝嗇。貶義。", "近義成語": "愛財如命", "主條成語／非主條成語": "主條成語"},
+        {"編號": "2", "成語": "玉石俱焚", "漢語拼音": "yù shí jù fén", "釋義": "美玉和石頭一起焚毀。",
+         "用法說明-語義說明": "比喻好壞同時受害。", "主條成語／非主條成語": "主條成語"},
+        {"編號": "3", "成語": "玉石俱碎", "漢語拼音": "yù shí jù suì", "釋義": "猶「玉石俱焚」。見「玉石俱焚」條。",
+         "書證": "01.《晉書》：「玉石俱碎。」", "主條成語／非主條成語": "非主條成語"},
+    ])
+    tw2s = opencc.OpenCC("tw2s")
+    cedict, measure = fallback_sources.cedict_forms(DB_PATH)
+    from collections import Counter
+    stats = Counter()
+    con = sqlite3.connect(path)
+    con.executescript(build_moe.KEYS_SCHEMA)
+    build_moe.write_moe_table(con, "revised", REVISED_HEADER, revised)
+    build_moe.write_moe_table(con, "idioms", IDIOMS_HEADER, idioms)
+    keys, hidden = build_moe.revised_keys(REVISED_HEADER, revised, tw2s, cedict, measure, stats)
+    con.executemany("INSERT INTO revised_keys VALUES (?, ?, ?, ?)", keys)
+    con.executemany("INSERT INTO revised_hidden VALUES (?, ?)", hidden)
+    con.executemany("INSERT INTO idioms_keys VALUES (?, ?, ?, ?, ?, ?)",
+                    build_moe.idioms_keys(IDIOMS_HEADER, idioms, tw2s, cedict, stats))
+    for table in ("revised_keys", "idioms_keys"):
+        con.execute(f"CREATE INDEX {table}_simp ON {table}(simp)")
+        con.execute(f"CREATE INDEX {table}_trad ON {table}(trad)")
+    meta = {"license_uri": build_moe.LICENSE_URI, "revised_version": "2026-09-29", "revised_records": "10",
+            "idioms_version": "2026-09-29", "idioms_records": "3",
+            "revised_attribution": build_moe.attribution("revised", "2026-09-29"),
+            "idioms_attribution": build_moe.attribution("idioms", "2026-09-29")}
+    con.executemany("INSERT INTO meta VALUES (?, ?)", sorted(meta.items()))
     con.commit()
     con.close()
-    return data_dir
+    return path
 
 
 def main():
@@ -187,6 +232,7 @@ def main():
         sys.exit(f"missing {DB_PATH}: build it first with tools/build_db.py")
     import build_db  # the SQL the build checks, compared in test_db.lua
     import chengyu
+    import build_moe
 
     wanted = [n if n.endswith(".lua") else n + ".lua" for n in sys.argv[1:]] or TESTS
     failed = 0
@@ -204,6 +250,9 @@ def main():
         g.PY_FALLBACK_SQL = build_db.fallback_sources.fallback_sql
         g.PY_FALLBACK_ALL_SQL = build_db.fallback_sources.fallback_all_sql
         g.PY_IDIOMS_SQL = chengyu.idioms_sql
+        g.PY_MOE_REVISED_SQL = build_moe.revised_sql
+        g.PY_MOE_IDIOMS_SQL = build_moe.idioms_sql
+        g.TEST_MOE_PATH = os.path.join(test_data, "moe", "moe.sqlite")
         g.PY_COMPONENTS_SQL = build_db.COMPONENTS_SQL
         g.PY_NOTES_SQL = build_db.NOTES_SQL
         g.TEST_KOREADER_DIR = test_data

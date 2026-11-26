@@ -21,7 +21,7 @@ What is shown is MOE's text, only selected and laid out: never reworded or
 converted to simplified characters. Characters MOE could not encode
 (private-use characters, and image references written as &98ab._104_0.gif;)
 are drawn as □ in a 重編國語辭典 sense; a line of the 成語典 holding one is left
-out (as the 成語典 file built before 3.0.0 did).
+out (as the 成語典 file built before 2.28.0 did).
 
 A Moe object stands in for a fallback dictionary's database in main.lua:
 fallback(words), fallbackAll(words), hasCovered(), idioms(words), meta().
