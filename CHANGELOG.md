@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.29.0 (unreleased)
+## 2.29.0 (2026-11-26)
 
 CBDB: well-known people, office titles of every dynasty, book titles (#87)
 - `tools/build_cbdb.py` builds a new CBDB file (8.7 MB, still your own file, never shared): 381
