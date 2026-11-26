@@ -87,6 +87,9 @@ MODERN_TITLE = ("局长", "总裁", "经理", "主任", "处长", "科长", "部
                 "会长", "院长", "校长", "所长", "司长", "厅长", "省长", "市长", "县长", "镇长", "乡长", "村长",
                 "队长", "组长", "社长", "台长", "站长", "行长", "总监", "委员", "代表", "教授", "讲师", "干部",
                 "警官", "律师", "总统", "总理", "议员", "大使", "领事", "主编")
+OFFICE_CUT = 50             # OFFICE_CODES.c_office_trans is cut at this many characters (#89)
+# A cut gloss that ends in one of these, or in a word no whole gloss has ("Secretariat-Ch"), gets "…".
+CUT_ENDINGS = ("of", "the", "and", "for", "at", "in", "to", "a", "an", "on", "with", "by")
 HAN = fallback_sources.han_word
 
 
@@ -308,12 +311,48 @@ def office_rows(con, t2s, readings, stats):
     for d, en, start in con.execute("SELECT c_dy, c_dynasty, c_start FROM DYNASTIES"):
         dynasty[d] = (start if start is not None else 9999, en)
     titles = collections.defaultdict(lambda: {"py": "", "trad": "", "en": collections.defaultdict(set)})
-    for chn, alt, py, tr, d in con.execute(
-            "SELECT c_office_chn, c_office_chn_alt, c_office_pinyin, c_office_trans, c_dy FROM OFFICE_CODES "
-            "ORDER BY c_office_id"):
-        en = re.sub(r"\s*\(Hucker\)\s*$", "", re.sub(r"\s+", " ", tr or "")).strip()
-        if en.startswith("[") or en.lower() in ("", "unknown"):
-            en = ""
+    office = con.execute("SELECT c_office_chn, c_office_chn_alt, c_office_pinyin, c_office_trans, c_dy "
+                         "FROM OFFICE_CODES ORDER BY c_office_id").fetchall()
+
+    def clean(tr):
+        # Stray "=" and "/" end some glosses ("... (Hucker)==").
+        tr = re.sub(r"[\s=/]+$", "", re.sub(r"\s+", " ", tr or ""))
+        en = re.sub(r"\s*\(Hucker\)$", "", tr).strip()
+        return "" if en.startswith("[") or en.lower() == "unknown" else en
+
+    # About 220 glosses are cut at OFFICE_CUT characters (#89: 同中書門下平章事, Tang:
+    # "Jointly Manager of Affairs with the Secretariat-Ch"). Where a longer gloss starts
+    # with the cut one, use it: the same title's first, else the only one in CBDB.
+    cut = {clean(tr) for _, _, _, tr, _ in office if len(tr or "") == OFFICE_CUT}
+    cut_lengths = {len(en) for en in cut}
+    full_of_title, full = collections.defaultdict(set), collections.defaultdict(set)
+    words = set()   # the words of uncut glosses
+    for chn, _, _, tr, _ in office:
+        en = clean(tr)
+        if len(tr or "") == OFFICE_CUT:
+            continue
+        words.update(re.findall(r"[\w'-]+", en))
+        for n in cut_lengths:
+            if n < len(en) and en[:n] in cut:
+                full[en[:n]].add(en)
+                full_of_title[(chn, en[:n])].add(en)
+
+    def whole(chn, tr):
+        en = clean(tr)
+        if len(tr or "") != OFFICE_CUT or not en:
+            return en
+        for found in (full_of_title.get((chn, en)), full.get(en)):
+            if found and len(found) == 1:
+                stats["offices: cut glosses completed"] += 1
+                return next(iter(found))
+        last = re.findall(r"[\w'-]+$", en)
+        if not last or last[0] not in words or last[0].lower() in CUT_ENDINGS:
+            stats["offices: cut glosses marked …"] += 1
+            return en + "…"
+        return en
+
+    for chn, alt, py, tr, d in office:
+        en = whole(chn, tr)
         for k, name in enumerate([chn] + re.split(r"[;；,，/、]", alt or "")):
             name = (name or "").strip()
             if len(name) < 3 or not HAN(name):
